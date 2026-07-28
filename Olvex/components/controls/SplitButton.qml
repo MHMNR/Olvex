@@ -144,5 +144,6 @@ Row {
         attachSideY: root.menuOnTop ? Menu.Top : Menu.Bottom
         thisSideY: root.menuOnTop ? Menu.Bottom : Menu.Top
         marginY: Tokens.spacing.small * (root.menuOnTop ? -1 : 1)
+        highlightActive: true
     }
 }

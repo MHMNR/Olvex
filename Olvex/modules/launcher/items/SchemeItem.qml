@@ -9,6 +9,8 @@ Item {
 
     required property Schemes.Scheme modelData
     required property var list
+    required property int index
+    readonly property bool isCurrent: list.currentIndex === index
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
@@ -70,12 +72,14 @@ Item {
             StyledText {
                 text: root.modelData?.flavour ?? ""
                 textPointSize: Tokens.font.size.normal
+                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                font.weight: isCurrent ? Font.DemiBold : Font.Normal
             }
 
             StyledText {
                 text: root.modelData?.name ?? ""
                 textPointSize: Tokens.font.size.small
-                color: Colours.palette.m3outline
+                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3outline
 
                 elide: Text.ElideRight
                 anchors.left: parent.left
@@ -94,7 +98,7 @@ Item {
 
             sourceComponent: MaterialIcon {
                 text: "check"
-                color: Colours.palette.m3onSurfaceVariant
+                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                 iconPointSize: Tokens.font.size.large
             }
         }

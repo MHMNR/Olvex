@@ -173,29 +173,39 @@ Item {
                 z: 10
                 anchors.top: parent.top
                 anchors.topMargin: 0
-                width: 48; height: 48; radius: 24
                 clip: true
-                transform: Translate { id: musicMomentum; x: 0; y: 0 }
-                
-                // Sleek Material Card Background
+
                 color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
-                state: expanded ? "expanded" : "compact"
                 property bool expanded: false
 
-                TapHandler { onTapped: musicPill.expanded = !musicPill.expanded }
+                width: expanded ? 340 : 180
+                height: expanded ? 160 : 48
+                radius: expanded ? 28 : 24
 
-                // ── SHARED ELEMENTS ──────────────────────────────────────
+                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                Behavior on radius { NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+
+                TapHandler { onTapped: musicPill.expanded = !musicPill.expanded }
 
                 // Album art
                 Rectangle {
                     id: musicIcon
-                    width: 34; height: 34; radius: 17
+                    width: musicPill.expanded ? 108 : 34
+                    height: musicPill.expanded ? 108 : 34
+                    radius: musicPill.expanded ? 26 : 17
+                    anchors.left: parent.left
+                    anchors.leftMargin: musicPill.expanded ? 24 : 8
+                    anchors.top: parent.top
+                    anchors.topMargin: musicPill.expanded ? 26 : 7
                     color: Qt.rgba(1, 1, 1, 0.08)
                     border.color: Qt.rgba(1, 1, 1, 0.18); border.width: 1
-                    anchors.top: parent.top
-                    anchors.topMargin: 7
-                    anchors.left: parent.left
-                    anchors.leftMargin: 8
+
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                    Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                    Behavior on radius { NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                    Behavior on anchors.leftMargin { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                    Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
 
                     layer.enabled: true
                     layer.effect: MultiEffect {
@@ -203,12 +213,7 @@ Item {
                         maskSource: ShaderEffectSource {
                             live: true
                             hideSource: true
-                            sourceItem: Rectangle {
-                                width: musicIcon.width
-                                height: musicIcon.height
-                                radius: musicIcon.radius
-                                color: "black"
-                            }
+                            sourceItem: Rectangle { width: musicIcon.width; height: musicIcon.height; radius: musicIcon.radius; color: "black" }
                         }
                     }
 
@@ -220,7 +225,6 @@ Item {
                         Behavior on opacity { NumberAnimation { duration: 300 } }
                     }
                     MaterialIcon {
-                        id: musicPlaceholderIcon
                         anchors.centerIn: parent
                         text: "music_note"
                         color: Qt.rgba(1, 1, 1, 0.4)
@@ -229,19 +233,18 @@ Item {
                     }
                 }
 
-                // Track Info (Fixed coordinates, Zero movement fade)
+                // Track Info
                 Column {
-                    id: trackInfo
                     width: 188
                     spacing: 2
                     anchors.left: parent.left
+                    anchors.leftMargin: 148
                     anchors.top: parent.top
-                    // Compact: Hidden behind/next to icon
-                    // Expanded: x: 145, y: 32
-                    anchors.leftMargin: 145
                     anchors.topMargin: 32
-                    opacity: 0
+                    opacity: musicPill.expanded ? 1 : 0
                     visible: opacity > 0
+
+                    Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
                     StyledText {
                         width: parent.width
@@ -257,22 +260,22 @@ Item {
                     }
                 }
 
-                // Controls Row (Absolute Positioning)
+                // Controls
                 Row {
-                    id: controlsRow
-                    spacing: 40
+                    spacing: 18
                     anchors.left: parent.left
+                    anchors.leftMargin: 136
                     anchors.top: parent.top
-                    // Compact: x: 52, y: 8
-                    // Expanded: x: 100, y: 105 (Horizontal Center of card)
-                    anchors.leftMargin: 52
-                    anchors.topMargin: 8
+                    anchors.topMargin: 92
+                    opacity: musicPill.expanded ? 1 : 0
+                    visible: opacity > 0
 
+                    Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+                    // Prev
                     Rectangle {
-                        id: prevBtnContainer
-                        width: playBtn.width; height: playBtn.height; radius: width/2; color: "transparent"
+                        width: 30; height: 30; radius: width / 2; color: "transparent"
                         MaterialIcon {
-                            id: prevBtn
                             anchors.centerIn: parent
                             text: "skip_previous"
                             color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
@@ -281,56 +284,40 @@ Item {
                         StateLayer { enabled: Players.active !== null; onClicked: Players.previous(); radius: parent.radius }
                     }
 
+                    // Play/Pause
                     Rectangle {
                         id: playBtn
                         width: 32; height: 32
-                        radius: (Players.active && Players.active.isPlaying) ? (musicPill.expanded ? 14 : 10) : height / 2
+                        radius: (Players.active && Players.active.isPlaying) ? 14 : height / 2
                         color: Players.active ? Colours.palette.m3primary : "transparent"
                         clip: true
 
-                        // Force clipping to respect radius even for StateLayer
+                        Behavior on radius { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                        Behavior on color { ColorAnimation { duration: 350 } }
+
                         layer.enabled: true
                         layer.effect: MultiEffect {
                             maskEnabled: true
                             maskSource: ShaderEffectSource {
                                 live: true
                                 hideSource: true
-                                sourceItem: Rectangle {
-                                    width: playBtn.width
-                                    height: playBtn.height
-                                    radius: playBtn.radius
-                                    color: "black"
-                                }
+                                sourceItem: Rectangle { width: playBtn.width; height: playBtn.height; radius: playBtn.radius; color: "black" }
                             }
                         }
 
-                        Behavior on radius {
-                            // Disable during expansion to prevent "ghost morph"
-                            enabled: !(musicPill.width > 185 && musicPill.width < 335)
-                            NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.5 }
-                        }
-
                         MaterialIcon {
-                            id: playIcon
                             anchors.centerIn: parent
                             text: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
-                            color: Players.active ? ((Players.active.isPlaying) ? Colours.palette.m3onPrimary : Qt.alpha(Colours.palette.m3onPrimary, 0.7)) : "white"
+                            color: Players.active ? Colours.palette.m3onPrimary : "white"
                             iconPointSize: 16
-
-                            animate: true
-                            animateProp: "rotation"
-                            animateFrom: 90
-                            animateTo: 0
-                            animateDuration: 400
                         }
                         StateLayer { radius: parent.radius; enabled: Players.active !== null; onClicked: Players.togglePlaying() }
                     }
 
+                    // Next
                     Rectangle {
-                        id: nextBtnContainer
-                        width: playBtn.width; height: playBtn.height; radius: width/2; color: "transparent"
+                        width: 30; height: 30; radius: width / 2; color: "transparent"
                         MaterialIcon {
-                            id: nextBtn
                             anchors.centerIn: parent
                             text: "skip_next"
                             color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
@@ -339,116 +326,6 @@ Item {
                         StateLayer { enabled: Players.active !== null; onClicked: Players.next(); radius: parent.radius }
                     }
                 }
-
-                // ── STATES & TRANSITIONS ─────────────────────────────────
-                states: [
-                    State {
-                        name: "compact"
-                        PropertyChanges { target: musicPill; width: 180; height: 48; radius: 24 }
-                        PropertyChanges { target: musicIcon; width: 34; height: 34; radius: 17; anchors.leftMargin: 8; anchors.topMargin: 7 }
-                        PropertyChanges { target: trackInfo; opacity: 0; anchors.leftMargin: 145; anchors.topMargin: 32 }
-                        PropertyChanges { target: controlsRow; spacing: 8; anchors.leftMargin: 52; anchors.topMargin: 8 }
-                        PropertyChanges { target: playBtn; width: 32; height: 32 }
-                        PropertyChanges { target: playIcon; iconPointSize: 16 }
-                        PropertyChanges { target: prevBtn; iconPointSize: 14 }
-                        PropertyChanges { target: nextBtn; iconPointSize: 14 }
-                    },
-                    State {
-                        name: "expanded"
-                        PropertyChanges { target: musicPill; width: 340; height: 160; radius: 28 }
-                        PropertyChanges { target: musicIcon; width: 108; height: 108; radius: 26; anchors.leftMargin: 24; anchors.topMargin: 26 }
-                        PropertyChanges { target: trackInfo; opacity: 1; anchors.leftMargin: 148; anchors.topMargin: 32 }
-                        PropertyChanges { target: controlsRow; spacing: 18; anchors.leftMargin: 136; anchors.topMargin: 92 }
-                        PropertyChanges { target: playBtn; width: 48; height: 48; color: Players.active ? Colours.current.palette.m3primary : "transparent" }
-                        PropertyChanges { target: playIcon; iconPointSize: 24 }
-                        PropertyChanges { target: prevBtn; iconPointSize: 20 }
-                        PropertyChanges { target: nextBtn; iconPointSize: 20 }
-                    }
-                ]
-
-                transitions: [
-                    Transition {
-                        from: "compact"; to: "expanded"
-                        ParallelAnimation {
-                            // Width expands snappier first
-                            SpringAnimation {
-                                targets: [musicPill, musicIcon, playBtn]
-                                property: "width"
-                                spring: 5.5; damping: 0.35; epsilon: 0.1
-                            }
-                            // Height delay: expands vertically second to create beautiful horizontal-then-vertical fluid morphing
-                            SequentialAnimation {
-                                PauseAnimation { duration: 80 }
-                                SpringAnimation {
-                                    targets: [musicPill, musicIcon, playBtn]
-                                    property: "height"
-                                    spring: 4.2; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            // Radius matches the height animation timeline
-                            SequentialAnimation {
-                                PauseAnimation { duration: 80 }
-                                SpringAnimation {
-                                    targets: [musicPill, musicIcon]
-                                    property: "radius"
-                                    spring: 4.2; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            // Internal geometry details
-                            SequentialAnimation {
-                                PauseAnimation { duration: 50 }
-                                SpringAnimation {
-                                    targets: [musicPill, musicIcon, playIcon, trackInfo, controlsRow, playBtn]
-                                    properties: "anchors.leftMargin,anchors.topMargin,spacing,textPointSize"
-                                    spring: 4.0; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            ColorAnimation { target: playBtn; duration: 350 }
-                            // Stagger content fade-in to prevent visual clutter
-                            SequentialAnimation {
-                                PauseAnimation { duration: 180 }
-                                NumberAnimation { targets: [trackInfo, controlsRow]; property: "opacity"; duration: 250; easing.type: Easing.OutQuint }
-                            }
-                        }
-                    },
-                    Transition {
-                        from: "expanded"; to: "compact"
-                        ParallelAnimation {
-                            // Content fades out instantly
-                            NumberAnimation { target: trackInfo; property: "opacity"; duration: 100; easing.type: Easing.OutQuint }
-                            // Height collapses vertically first
-                            SpringAnimation {
-                                targets: [musicPill, musicIcon, playBtn]
-                                property: "height"
-                                spring: 5.5; damping: 0.40; epsilon: 0.1
-                            }
-                            SpringAnimation {
-                                targets: [musicPill, musicIcon]
-                                property: "radius"
-                                spring: 5.5; damping: 0.40; epsilon: 0.1
-                            }
-                            // Width delay: collapses horizontally second to create spectacular retracting effect
-                            SequentialAnimation {
-                                PauseAnimation { duration: 80 }
-                                SpringAnimation {
-                                    targets: [musicPill, musicIcon, playBtn]
-                                    property: "width"
-                                    spring: 4.2; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            // Internal geometry details
-                            SequentialAnimation {
-                                PauseAnimation { duration: 40 }
-                                SpringAnimation {
-                                    targets: [musicPill, musicIcon, playIcon, trackInfo, controlsRow, playBtn]
-                                    properties: "anchors.leftMargin,anchors.topMargin,spacing,textPointSize"
-                                    spring: 4.5; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            ColorAnimation { target: playBtn; duration: 350 }
-                        }
-                    }
-                ]
             }
 
             // System Pill
@@ -658,22 +535,24 @@ Item {
                 z: 10
                 anchors.top: parent.top
                 anchors.topMargin: 0
-                width: 48; height: 48; radius: 24
                 clip: true
-                transform: Translate { id: notifMomentum; x: 0; y: 0 }
-                
-                // Sleek Material Card Background
+
                 color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
-                state: expanded ? "expanded" : "compact"
                 property bool expanded: false
 
+                width: expanded ? 340 : (notifHeaderRow.width + 16)
+                height: expanded ? Math.min(320, Math.max(120, Notifs.notClosed.length * 66 + 64)) : 48
+                radius: expanded ? 28 : 24
 
+                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                Behavior on radius { NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
 
-                // ── SHARED HEADER ────────────────────────────────────────
+                // Header
                 Row {
                     id: notifHeaderRow
                     anchors.top: parent.top
-                    anchors.topMargin: 6 // (48 - 36) / 2
+                    anchors.topMargin: 6
                     anchors.left: parent.left
                     anchors.leftMargin: 7
                     spacing: 12
@@ -682,20 +561,17 @@ Item {
                     TapHandler { onTapped: notifPill.expanded = !notifPill.expanded }
 
                     Item {
-                        id: notifIconBox
                         width: 36; height: 36; anchors.verticalCenter: parent.verticalCenter
                         Rectangle {
                             anchors.fill: parent; radius: width / 2
                             color: Qt.rgba(1, 1, 1, 0.08); border.color: Qt.rgba(1, 1, 1, 0.15); border.width: 1
                         }
                         MaterialIcon {
-                            id: mainNotifIcon
                             anchors.centerIn: parent; text: "notifications"
                             color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.75) : Qt.rgba(1, 1, 1, 0.3)
                             iconPointSize: 15
                         }
                         Rectangle {
-                            id: notifBadge
                             width: 18; height: 18; radius: 9; color: Colours.current.m3primary
                             anchors.top: parent.top; anchors.right: parent.right
                             anchors.topMargin: -2; anchors.rightMargin: -2
@@ -705,7 +581,6 @@ Item {
                     }
 
                     StyledText {
-                        id: notifLabel
                         anchors.verticalCenter: parent.verticalCenter
                         text: Notifs.notClosed.length === 0 ? "No Notifications" : (Notifs.notClosed.length + (Notifs.notClosed.length === 1 ? " New Notification" : " New Notifications"))
                         color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.90) : Qt.rgba(1, 1, 1, 0.40)
@@ -713,18 +588,20 @@ Item {
                     }
                 }
 
-                // ── EXPANDED LIST (Scrollable) ───────────────────────────
+                // Notification List
                 ListView {
                     id: notifList
                     anchors.top: notifHeaderRow.bottom; anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                     anchors.margins: 16; anchors.topMargin: 10; spacing: 8
-                    opacity: 0; visible: opacity > 0
+                    opacity: notifPill.expanded ? 1 : 0
+                    visible: opacity > 0
                     clip: true
                     interactive: true
                     boundsBehavior: Flickable.DragAndOvershootBounds
                     model: Notifs.notClosed
 
-                    // Android-style Stretch Logic
+                    Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
                     property real wheelOvershoot: 0
                     Behavior on wheelOvershoot { NumberAnimation { duration: 500; easing.type: Easing.OutBack; easing.overshoot: 2.0 } }
 
@@ -750,7 +627,6 @@ Item {
                     }
                     Timer { id: wheelReset; interval: 10; onTriggered: notifList.wheelOvershoot = 0 }
 
-                    Behavior on opacity { NumberAnimation { duration: 250 } }
                     delegate: Item {
                         required property var modelData
                         width: ListView.view.width; height: 58
@@ -782,109 +658,6 @@ Item {
                         }
                     }
                 }
-
-                // ── STATES & TRANSITIONS ─────────────────────────────────
-                states: [
-                    State {
-                        name: "compact"
-                        PropertyChanges { target: notifPill; width: (notifHeaderRow.width + 16); height: 48; radius: 24 }
-                        PropertyChanges { target: mainNotifIcon; iconPointSize: 15 }
-                        PropertyChanges { target: notifLabel; font.weight: Font.Medium; textPointSize: Tokens.font.size.normal - 1 }
-                        PropertyChanges { target: notifList; opacity: 0 }
-                        PropertyChanges { target: notifBadge; opacity: 1 }
-                        PropertyChanges { target: notifHeaderRow; anchors.topMargin: 6; anchors.leftMargin: 7 }
-                    },
-                    State {
-                        name: "expanded"
-                        PropertyChanges { 
-                            target: notifPill
-                            width: 340
-                            height: Math.min(320, Math.max(120, Notifs.notClosed.length * 66 + 64))
-                            radius: 28
-                        }
-                        PropertyChanges { target: mainNotifIcon; iconPointSize: 14 }
-                        PropertyChanges { target: notifLabel; font.weight: Font.SemiBold }
-                        PropertyChanges { target: notifList; opacity: 1 }
-                        PropertyChanges { target: notifBadge; opacity: 0 }
-                        PropertyChanges { target: notifHeaderRow; anchors.topMargin: 16; anchors.leftMargin: 16 }
-                    }
-                ]
-                transitions: [
-                    Transition {
-                        from: "compact"; to: "expanded"
-                        ParallelAnimation {
-                            // Width expands snappier first
-                            SpringAnimation {
-                                target: notifPill
-                                property: "width"
-                                spring: 5.5; damping: 0.35; epsilon: 0.1
-                            }
-                            // Height delay: expands vertically second to create horizontal-then-vertical fluid morphing
-                            SequentialAnimation {
-                                PauseAnimation { duration: 80 }
-                                SpringAnimation {
-                                    target: notifPill
-                                    property: "height"
-                                    spring: 4.2; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            // Radius matches the height animation timeline
-                            SequentialAnimation {
-                                PauseAnimation { duration: 80 }
-                                SpringAnimation {
-                                    target: notifPill
-                                    property: "radius"
-                                    spring: 4.2; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            // Internal geometry details
-                            SequentialAnimation {
-                                PauseAnimation { duration: 50 }
-                                SpringAnimation {
-                                    target: notifPill
-                                    properties: "anchors.topMargin,anchors.leftMargin"
-                                    spring: 4.0; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            NumberAnimation { properties: "opacity,textPointSize,font.letterSpacing"; duration: 250; easing.type: Easing.OutQuint }
-                        }
-                    },
-                    Transition {
-                        from: "expanded"; to: "compact"
-                        ParallelAnimation {
-                            // Height collapses vertically first
-                            SpringAnimation {
-                                target: notifPill
-                                property: "height"
-                                spring: 5.5; damping: 0.40; epsilon: 0.1
-                            }
-                            SpringAnimation {
-                                target: notifPill
-                                property: "radius"
-                                spring: 5.5; damping: 0.40; epsilon: 0.1
-                            }
-                            // Width delay: collapses horizontally second to create spectacular retracting effect
-                            SequentialAnimation {
-                                PauseAnimation { duration: 80 }
-                                SpringAnimation {
-                                    target: notifPill
-                                    property: "width"
-                                    spring: 4.2; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            // Internal geometry details
-                            SequentialAnimation {
-                                PauseAnimation { duration: 40 }
-                                SpringAnimation {
-                                    target: notifPill
-                                    properties: "anchors.topMargin,anchors.leftMargin"
-                                    spring: 4.5; damping: 0.45; epsilon: 0.1
-                                }
-                            }
-                            NumberAnimation { properties: "opacity,textPointSize,font.letterSpacing"; duration: 200; easing.type: Easing.OutQuint }
-                        }
-                    }
-                ]
             }
         }
     }

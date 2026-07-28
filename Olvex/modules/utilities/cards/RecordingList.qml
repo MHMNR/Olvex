@@ -52,6 +52,7 @@ ColumnLayout {
             StyledText {
                 Layout.fillWidth: true
                 Layout.rightMargin: Tokens.spacing.small / 2
+                Layout.alignment: Qt.AlignVCenter
                 text: {
                     const time = recording.baseName;
                     const matches = time.match(/^Recording_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
@@ -74,6 +75,10 @@ ColumnLayout {
             IconButton {
                 icon: "play_arrow"
                 type: IconButton.Text
+                iconPointSize: Tokens.font.size.normal
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                Layout.alignment: Qt.AlignVCenter
                 onClicked: {
                     root.visibilities.utilities = false;
                     root.visibilities.sidebar = false;
@@ -84,6 +89,10 @@ ColumnLayout {
             IconButton {
                 icon: "folder"
                 type: IconButton.Text
+                iconPointSize: Tokens.font.size.normal
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                Layout.alignment: Qt.AlignVCenter
                 onClicked: {
                     root.visibilities.utilities = false;
                     root.visibilities.sidebar = false;
@@ -92,8 +101,22 @@ ColumnLayout {
             }
 
             IconButton {
+                icon: "content_copy"
+                type: IconButton.Text
+                iconPointSize: Tokens.font.size.normal
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                Layout.alignment: Qt.AlignVCenter
+                onClicked: Quickshell.execDetached(["wl-copy", recording.modelData.path])
+            }
+
+            IconButton {
                 icon: "delete_forever"
                 type: IconButton.Text
+                iconPointSize: Tokens.font.size.normal
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                Layout.alignment: Qt.AlignVCenter
                 label.color: Colours.palette.m3error
                 stateLayer.color: Colours.palette.m3error
                 onClicked: root.props.recordingConfirmDelete = recording.modelData.path

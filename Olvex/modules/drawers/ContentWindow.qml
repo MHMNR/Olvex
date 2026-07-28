@@ -89,7 +89,15 @@ StyledWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: focusGrab.active ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
-    mask: (morph.active || visibilities.utilities) ? null : regions
+    property bool launchTransition: false
+    Timer {
+        id: launchTransitionTimer
+        interval: 350
+        onTriggered: root.launchTransition = false
+    }
+
+
+    mask: (morph.active || visibilities.utilities || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
 
     Regions {
         id: regions
@@ -125,7 +133,8 @@ StyledWindow {
     Shortcut {
         sequence: "Escape"
         onActivated: {
-            if (visibilities.launcher) visibilities.launcher = false;
+            if (visibilities.wallpaperLauncher) visibilities.wallpaperLauncher = false;
+            else if (visibilities.launcher) visibilities.launcher = false;
             else if (visibilities.dashboard) visibilities.dashboard = false;
             else if (visibilities.utilities) visibilities.utilities = false;
             else if (visibilities.clipboard) visibilities.clipboard = false;
@@ -141,10 +150,18 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || (visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.utilities || visibilities.clipboard
+        active: (visibilities.launcher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.wallpaperLauncher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.session && root.contentItem?.Config?.session?.enabled) || (visibilities.sidebar && root.contentItem?.Config?.sidebar?.enabled) || (visibilities.dashboard && root.contentItem?.Config?.dashboard?.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.utilities || visibilities.clipboard
         windows: root.oskWindow && visibilities.osk ? [root, root.oskWindow] : [root]
+        onActiveChanged: {
+            if (active) {
+                root.launchTransition = true;
+                launchTransitionTimer.restart();
+            }
+        }
         onCleared: {
+            if (root.launchTransition) return;
             visibilities.launcher = false;
+            visibilities.wallpaperLauncher = false;
             visibilities.session = false;
             visibilities.sidebar = false;
             visibilities.dashboard = false;
@@ -231,6 +248,13 @@ StyledWindow {
                 id: launcherBg
 
                 panel: panels.launcher
+                deformAmount: 0.1
+            }
+
+            PanelBg {
+                id: wallpaperSelectorBg
+
+                panel: panels.wallpaperSelector
                 deformAmount: 0.1
             }
 
@@ -335,6 +359,7 @@ StyledWindow {
         
         // Removed global behavior to fix jitter on QS Panel and other drawers
 
+
         Interactions {
             id: interactions
 
@@ -357,6 +382,9 @@ StyledWindow {
                 borderThickness: root.borderThickness
                 safeBorder: root.safeBorder
 
+                // Wire the flying-icon morph overlay back into Panels so GridAppItem → Panels.triggerAppMorph reaches it
+                appLaunchMorph: appLaunchMorphId
+
                 utilities.deformMatrix: utilsBg.rawDeformMatrix
 
                 dashboard.transform: Matrix4x4 {
@@ -364,6 +392,9 @@ StyledWindow {
                 }
                 launcher.transform: Matrix4x4 {
                     matrix: launcherBg.deformMatrix
+                }
+                wallpaperSelector.transform: Matrix4x4 {
+                    matrix: wallpaperSelectorBg.deformMatrix
                 }
                 session.transform: Matrix4x4 {
                     matrix: sessionBg.deformMatrix
@@ -489,10 +520,88 @@ StyledWindow {
             onClicked: mouse => { mouse.accepted = false; }
         }
 
+
+        // Dismiss layer: closes launcher when clicking outside it
+        MouseArea {
+            anchors.fill: parent
+            enabled: visibilities.launcher && !morph.active
+            hoverEnabled: false
+            z: 48
+            propagateComposedEvents: true
+            onPressed: (mouse) => {
+                const launcher = panels.launcher;
+                const mapped = launcher.mapToItem(revealContainer, 0, 0);
+                const inLauncher = mouse.x >= mapped.x && mouse.x <= mapped.x + launcher.width
+                                 && mouse.y >= mapped.y && mouse.y <= mapped.y + launcher.height;
+                const bp = panels.bottomPanel;
+                const bpMapped = bp.mapToItem(revealContainer, 0, 0);
+                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width
+                                   && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+                
+                let inOsIcon = false;
+                if (bar.osIcon) {
+                    const osMapped = bar.osIcon.mapToItem(revealContainer, 0, 0);
+                    inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width
+                            && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
+                }
+
+                if (!inLauncher && !inBottomPanel && !inOsIcon) {
+                    visibilities.launcher = false;
+                    mouse.accepted = true;
+                } else {
+                    mouse.accepted = false;
+                }
+            }
+            onClicked: mouse => { mouse.accepted = false; }
+        }
+
+        // Dismiss layer: closes wallpaper selector when clicking outside it
+        MouseArea {
+            anchors.fill: parent
+            enabled: visibilities.wallpaperLauncher && !morph.active
+            hoverEnabled: false
+            z: 47
+            propagateComposedEvents: true
+            onPressed: (mouse) => {
+                const ws = panels.wallpaperSelector;
+                const mapped = ws.mapToItem(revealContainer, 0, 0);
+                const inWS = mouse.x >= mapped.x && mouse.x <= mapped.x + ws.width
+                                 && mouse.y >= mapped.y && mouse.y <= mapped.y + ws.height;
+                const bp = panels.bottomPanel;
+                const bpMapped = bp.mapToItem(revealContainer, 0, 0);
+                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width
+                                   && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+                
+                let inOsIcon = false;
+                if (bar.osIcon) {
+                    const osMapped = bar.osIcon.mapToItem(revealContainer, 0, 0);
+                    inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width
+                            && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
+                }
+
+                if (!inWS && !inBottomPanel && !inOsIcon) {
+                    visibilities.wallpaperLauncher = false;
+                    mouse.accepted = true;
+                } else {
+                    mouse.accepted = false;
+                }
+            }
+            onClicked: mouse => { mouse.accepted = false; }
+        }
+
         Cards.MediaMorphOverlay {
             id: morph
 
             screen: root.screen
+        }
+
+        // Flying-icon overlay for launcher → pinned-dock morph
+        AppLaunchMorph {
+            id: appLaunchMorphId
+
+            visibilities: visibilities
+            bottomPanel: panels.bottomPanel
+            pinnedLayout: panels.pinnedLayout
         }
     }
 

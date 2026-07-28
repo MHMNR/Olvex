@@ -15,6 +15,12 @@ Item {
 
     required property StyledTextField search
     required property DrawerVisibilities visibilities
+    required property var panels
+
+    // Shared context menu state — single menu instance slides between items
+    property DesktopEntry sharedMenuEntry: null
+    property Item sharedMenuAttachTo: null
+    property bool keyboardHighlightActive: false
 
     readonly property int appsRowHeight: 120
     readonly property int appsColumns: 5
@@ -36,93 +42,130 @@ Item {
     }
 
     onStateChanged: {
+        suspended = false;
+        keyboardHighlightActive = false;
         if (state === "scheme" || state === "variant")
             Schemes.reload();
-        syncModels();
     }
 
-    Connections {
-        target: search
-        function onTextChanged(): void {
-            searchDebounce.restart();
-        }
+    property bool suspended: false
+
+    // Reactive model — auto-updates on search text change
+    readonly property var modelValues: {
+        if (state === "apps") return Apps.search(search.text);
+        if (state === "actions") return Actions.query(search.text);
+        if (state === "calc") return [0];
+        if (state === "scheme") return Schemes.query(search.text);
+        if (state === "variant") return M3Variants.query(search.text);
+        return [];
     }
 
     Connections {
         target: DesktopEntries.applications
-        function onValuesChanged(): void {
+        function onValuesChanged() {
             Apps.invalidateCatalog();
-            syncModels();
         }
-    }
-
-    Timer {
-        id: searchDebounce
-        interval: 32
-        repeat: false
-        onTriggered: syncModels()
-    }
-
-    ScriptModel {
-        id: appScriptModel
-    }
-
-    ScriptModel {
-        id: actionScriptModel
-    }
-
-    function syncModels(): void {
-        const text = search.text;
-        if (state === "apps")
-            appScriptModel.values = Apps.search(text);
-        else if (state === "actions")
-            actionScriptModel.values = Actions.query(text);
-        else if (state === "calc")
-            actionScriptModel.values = [0];
-        else if (state === "scheme")
-            actionScriptModel.values = Schemes.query(text);
-        else if (state === "variant")
-            actionScriptModel.values = M3Variants.query(text);
-        else
-            actionScriptModel.values = [];
     }
 
     readonly property int count: state === "apps" ? appGrid.count : actionList.count
     readonly property int currentIndex: state === "apps" ? appGrid.currentIndex : actionList.currentIndex
     readonly property var currentItem: state === "apps" ? appGrid.currentItem : actionList.currentItem
 
+    function showKeyboardHighlight() {
+        keyboardHighlightActive = true;
+        appGrid.hoveredItem = null;
+    }
+
+    function showMouseHighlight(item: Item) {
+        keyboardHighlightActive = false;
+        appGrid.currentIndex = item.index;
+        appGrid.hoveredItem = item;
+    }
+
     function decrementCurrentIndex() {
-        if (state === "apps")
+        if (state === "apps") {
+            showKeyboardHighlight();
             appGrid.currentIndex = Math.max(0, appGrid.currentIndex - appsColumns);
-        else
+            Qt.callLater(scrollToCurrentItem);
+        } else {
             actionList.decrementCurrentIndex();
+        }
     }
 
     function incrementCurrentIndex() {
-        if (state === "apps")
+        if (state === "apps") {
+            showKeyboardHighlight();
             appGrid.currentIndex = Math.min(appGrid.count - 1, appGrid.currentIndex + appsColumns);
-        else
+            Qt.callLater(scrollToCurrentItem);
+        } else {
             actionList.incrementCurrentIndex();
+        }
+    }
+
+    function moveLeft() {
+        if (state === "apps") {
+            showKeyboardHighlight();
+            appGrid.currentIndex = Math.max(0, appGrid.currentIndex - 1);
+            Qt.callLater(scrollToCurrentItem);
+        } else {
+            actionList.decrementCurrentIndex();
+        }
+    }
+
+    function moveRight() {
+        if (state === "apps") {
+            showKeyboardHighlight();
+            appGrid.currentIndex = Math.min(appGrid.count - 1, appGrid.currentIndex + 1);
+            Qt.callLater(scrollToCurrentItem);
+        } else {
+            actionList.incrementCurrentIndex();
+        }
+    }
+
+    // Smoothly scroll grid so the keyboard-selected item is fully visible
+    function scrollToCurrentItem() {
+        const item = appGrid.currentItem;
+        if (!item) return;
+        const itemTop = item.y;                        // content-space Y
+        const itemBot = itemTop + item.height;
+        const visTop = appGrid.contentY;
+        const visBot = visTop + appGrid.height;
+        const maxScroll = Math.max(0, appGrid.contentHeight - appGrid.height);
+        let target = -1;
+        if (itemTop < visTop) {
+            target = Math.max(0, itemTop - 4);
+        } else if (itemBot > visBot) {
+            target = Math.min(maxScroll, itemBot - appGrid.height + 4);
+        }
+        if (target < 0) return;
+        smoothScrollAnim.stop();
+        smoothScrollAnim.from = appGrid.contentY;
+        smoothScrollAnim.to = target;
+        smoothScrollAnim.start();
     }
 
     property int revealEpoch: 0
+    property bool revealPending: false
 
     readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
 
-    function playOpenReveal(): void {
+    function playOpenReveal() {
         if (root.state !== "apps" || !root.visibilities.launcher)
             return;
         jellySpring.stop();
+        revealDelay.stop();
+        revealPending = true;
+        keyboardHighlightActive = false;
         scrollVelocity = 0;
         scrollJellyActive = false;
-        revealEpoch++;
+        revealDelay.restart();
     }
 
     property bool scrollJellyActive: false
     property real scrollVelocity: 0
     property real lastContentY: 0
 
-    function bumpScrollVelocity(impulse: real): void {
+    function bumpScrollVelocity(impulse) {
         if (!root.scrollJellyActive)
             return;
         scrollVelocity = Math.max(-72, Math.min(72, scrollVelocity + impulse));
@@ -132,9 +175,12 @@ Item {
         jellySpring.start();
     }
 
-    function suspend(): void {
+    function suspend() {
         smoothScrollAnim.stop();
         jellySpring.stop();
+        revealDelay.stop();
+        revealPending = false;
+        keyboardHighlightActive = false;
         scrollVelocity = 0;
         scrollJellyActive = false;
         lastContentY = 0;
@@ -143,19 +189,22 @@ Item {
         actionList.currentIndex = 0;
     }
 
-    function resume(): void {
-        if (appScriptModel.values.length === 0 && state === "apps")
-            syncModels();
-        playOpenReveal();
+    function resume() {
+        revealDelay.stop();
+        revealPending = true;
+        Qt.callLater(playOpenReveal);
     }
 
     Connections {
         target: visibilities
-        function onLauncherChanged(): void {
+        function onLauncherChanged() {
             if (visibilities.launcher)
-                Qt.callLater(playOpenReveal);
-            else
+                resume();
+            else {
                 suspend();
+                // Dismiss context menu when launcher closes
+                sharedContextMenu.expanded = false;
+            }
         }
     }
 
@@ -165,6 +214,17 @@ Item {
         property: "contentY"
         duration: 260
         easing.type: Easing.OutCubic
+    }
+
+    Timer {
+        id: revealDelay
+
+        interval: 120
+        repeat: false
+        onTriggered: {
+            root.revealPending = false;
+            root.revealEpoch++;
+        }
     }
 
     SpringAnimation {
@@ -184,7 +244,7 @@ Item {
         enabled: appGrid.visible
         ignoreUnknownSignals: true
 
-        function onContentYChanged(): void {
+        function onContentYChanged() {
             if (!root.scrollJellyActive)
                 return;
             const dy = appGrid.contentY - root.lastContentY;
@@ -194,25 +254,26 @@ Item {
             root.bumpScrollVelocity(Math.max(-72, Math.min(72, dy * 5.0)));
         }
 
-        function onMovementStarted(): void {
+        function onMovementStarted() {
             root.scrollJellyActive = true;
         }
 
-        function onFlickStarted(): void {
+        function onFlickStarted() {
             root.scrollJellyActive = true;
         }
     }
 
     Component.onCompleted: {
         Apps.warmCatalog();
-        syncModels();
+        // Initialize safe non-null default for sharedMenuAttachTo
+        sharedMenuAttachTo = appGridHost;
     }
 
     implicitWidth: state === "apps" ? 590 : Tokens.sizes.launcher.itemWidth
     implicitHeight: {
         if (state === "apps")
             return appsPaneHeight;
-        const maxShown = Config.launcher.maxShown ?? 6;
+        const maxShown = Config.launcher.maxShown ? Config.launcher.maxShown : 6;
         return (Tokens.sizes.launcher.itemHeight + 8) * Math.min(maxShown, count) - 8;
     }
 
@@ -222,13 +283,74 @@ Item {
         visible: root.state === "apps"
         width: 550
         height: root.appsPaneHeight - 8
+        transformOrigin: Item.Bottom
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 4
         clip: true
 
+        // Sliding hover highlight behind GridView items
+        StyledRect {
+            id: gridHoverHighlight
+            visible: appGrid.hoveredItem !== null && root.state === "apps"
+            opacity: visible ? 1 : 0
+            color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+            border.width: 1
+            radius: 16
+
+            width: 102
+            height: 112
+
+            x: appGrid.hoveredItem ? appGrid.hoveredItem.x + 4 : x
+            y: appGrid.hoveredItem ? appGrid.hoveredItem.y - appGrid.contentY + 4 : y
+
+            Behavior on x {
+                enabled: root.visibilities.launcher
+                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+            }
+            Behavior on y {
+                enabled: root.visibilities.launcher
+                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: 150 }
+            }
+        }
+
+        // Sliding keyboard-selection highlight
+        StyledRect {
+            id: keyboardHighlight
+
+            visible: root.keyboardHighlightActive && appGrid.hoveredItem === null && appGrid.currentItem !== null && root.state === "apps"
+            opacity: visible ? 1 : 0
+            color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+            border.width: 1
+            radius: 16
+
+            width: 102
+            height: 112
+
+            x: appGrid.currentItem ? appGrid.currentItem.x + 4 : x
+            y: appGrid.currentItem ? appGrid.currentItem.y - appGrid.contentY + 4 : y
+
+            Behavior on x {
+                enabled: root.visibilities.launcher
+                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+            }
+            Behavior on y {
+                enabled: root.visibilities.launcher
+                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: 150 }
+            }
+        }
+
         GridView {
             id: appGrid
+            property Item hoveredItem: null
 
             anchors.fill: parent
 
@@ -240,7 +362,7 @@ Item {
             flickDeceleration: 2200
             maximumFlickVelocity: 3200
 
-            model: root.state === "apps" ? appScriptModel : null
+            model: root.state === "apps" ? root.modelValues : null
             delegate: gridAppItemComponent
 
             add: Transition {
@@ -311,10 +433,64 @@ Item {
         id: gridAppItemComponent
         GridAppItem {
             visibilities: root.visibilities
+            panels: root.panels
             gridView: appGrid
             revealEpoch: root.revealEpoch
+            revealPending: root.revealPending
             scrollVelocity: root.scrollVelocity
+
+            onMouseActivated: item => root.showMouseHighlight(item)
+
+            onContextMenuRequested: (src) => {
+                root.sharedMenuEntry = modelData;
+                root.sharedMenuAttachTo = src;
+                sharedContextMenu.expanded = true;
+            }
         }
+    }
+
+    // Shared context menu — single instance that slides between items (Panels.qml pattern)
+    Menu {
+        id: sharedContextMenu
+
+        // Safe null-fallback: appGridHost is forward ref but resolved before first use
+        attachTo: root.sharedMenuAttachTo ?? root
+
+        items: [
+            MenuItem {
+                text: qsTr("Open")
+                icon: "rocket_launch"
+                onClicked: {
+                    if (root.sharedMenuEntry) {
+                        Apps.launch(root.sharedMenuEntry);
+                        root.visibilities.launcher = false;
+                    }
+                }
+            },
+            MenuItem {
+                readonly property bool isPinned: {
+                    if (!root.sharedMenuEntry) return false;
+                    const pApps = root.visibilities.pinnedApps || [];
+                    for (let i = 0; i < pApps.length; i++) {
+                        if (pApps[i] === root.sharedMenuEntry.id) return true;
+                    }
+                    return false;
+                }
+                text: isPinned ? qsTr("Remove from Panel") : qsTr("Add to Panel")
+                icon: isPinned ? "keep_off" : "push_pin"
+                onClicked: {
+                    if (!root.sharedMenuEntry) return;
+                    const id = root.sharedMenuEntry.id;
+                    const rawPinned = root.visibilities.pinnedApps || [];
+                    const pinned = [];
+                    for (let i = 0; i < rawPinned.length; i++) pinned.push(rawPinned[i]);
+                    const idx = pinned.indexOf(id);
+                    if (idx > -1) pinned.splice(idx, 1);
+                    else pinned.push(id);
+                    root.visibilities.pinnedApps = pinned;
+                }
+            }
+        ]
     }
 
     StyledScrollBar {
@@ -334,7 +510,7 @@ Item {
         clip: true
         spacing: 8
 
-        model: root.state !== "apps" ? actionScriptModel : null
+        model: root.state !== "apps" ? root.modelValues : null
 
         delegate: {
             if (root.state === "actions") return actionItem;
@@ -344,15 +520,11 @@ Item {
             return null;
         }
 
-        highlightFollowsCurrentItem: false
+        highlightFollowsCurrentItem: true
         highlight: StyledRect {
             radius: Tokens.rounding.normal
-            color: Colours.palette.m3onSurface
-            opacity: 0.08
-
-            y: actionList.currentItem?.y ?? 0
-            implicitWidth: actionList.width
-            implicitHeight: actionList.currentItem?.implicitHeight ?? 0
+            color: Colours.palette.m3primary
+            opacity: 1.0
         }
 
         StyledScrollBar.vertical: StyledScrollBar {

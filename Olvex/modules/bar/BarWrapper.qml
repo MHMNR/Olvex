@@ -25,17 +25,18 @@ Item {
     readonly property int exclusiveZone: !disabled && (Config.bar.persistent || visibilities.bar) ? contentWidth : safeBorder.thickness
     readonly property bool shouldBeVisible: !fullscreen && !disabled && (Config.bar.persistent || visibilities.bar || isHovered)
     property bool isHovered
+    readonly property Item osIcon: content.item ? content.item.osIcon : null
 
     function closeTray(): void {
-        (content.item as Bar)?.closeTray();
+        content.item?.closeTray?.();
     }
 
     function checkPopout(y: real): void {
-        (content.item as Bar)?.checkPopout(y);
+        content.item?.checkPopout?.(y);
     }
 
     function handleWheel(y: real, angleDelta: point): void {
-        (content.item as Bar)?.handleWheel(y, angleDelta);
+        content.item?.handleWheel?.(y, angleDelta);
     }
 
     clip: true

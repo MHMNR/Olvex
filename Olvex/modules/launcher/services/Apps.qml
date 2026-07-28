@@ -17,9 +17,11 @@ Searcher {
 
     function invalidateCatalog(): void {
         _allAppsCache = [];
+        warmCatalog();
     }
 
     function launch(entry: DesktopEntry): void {
+        if (!entry) return;
         appDb.incrementFrequency(entry.id);
 
         if (entry.runInTerminal)
@@ -34,39 +36,34 @@ Searcher {
             });
     }
 
+    function setKeysAndWeights(newKeys, newWeights) {
+        let keysChanged = !keys || keys.length !== newKeys.length || keys.some((v, i) => v !== newKeys[i]);
+        let weightsChanged = !weights || weights.length !== newWeights.length || weights.some((v, i) => v !== newWeights[i]);
+        if (keysChanged) keys = newKeys;
+        if (weightsChanged) weights = newWeights;
+    }
+
     function search(search: string): list<var> {
         const prefix = GlobalConfig.launcher.specialPrefix;
 
         if (search.startsWith(`${prefix}i `)) {
-            keys = ["id", "name"];
-            weights = [0.9, 0.1];
+            setKeysAndWeights(["id", "name"], [0.9, 0.1]);
         } else if (search.startsWith(`${prefix}c `)) {
-            keys = ["categories", "name"];
-            weights = [0.9, 0.1];
+            setKeysAndWeights(["categories", "name"], [0.9, 0.1]);
         } else if (search.startsWith(`${prefix}d `)) {
-            keys = ["comment", "name"];
-            weights = [0.9, 0.1];
+            setKeysAndWeights(["comment", "name"], [0.9, 0.1]);
         } else if (search.startsWith(`${prefix}e `)) {
-            keys = ["execString", "name"];
-            weights = [0.9, 0.1];
+            setKeysAndWeights(["execString", "name"], [0.9, 0.1]);
         } else if (search.startsWith(`${prefix}w `)) {
-            keys = ["startupClass", "name"];
-            weights = [0.9, 0.1];
+            setKeysAndWeights(["startupClass", "name"], [0.9, 0.1]);
         } else if (search.startsWith(`${prefix}g `)) {
-            keys = ["genericName", "name"];
-            weights = [0.9, 0.1];
+            setKeysAndWeights(["genericName", "name"], [0.9, 0.1]);
         } else if (search.startsWith(`${prefix}k `)) {
-            keys = ["keywords", "name"];
-            weights = [0.9, 0.1];
+            setKeysAndWeights(["keywords", "name"], [0.9, 0.1]);
         } else {
-            keys = ["name"];
-            weights = [1];
+            setKeysAndWeights(["name"], [1]);
 
             if (!search.startsWith(`${prefix}t `)) {
-                if (!search) {
-                    warmCatalog();
-                    return _allAppsCache;
-                }
                 return query(search).map(e => e.entry);
             }
         }
@@ -91,4 +88,5 @@ Searcher {
         favouriteApps: GlobalConfig.launcher.favouriteApps
         entries: DesktopEntries.applications.values.filter(a => !Strings.testRegexList(GlobalConfig.launcher.hiddenApps, a.id))
     }
+
 }

@@ -9,6 +9,8 @@ Item {
 
     required property M3Variants.Variant modelData
     required property var list
+    required property int index
+    readonly property bool isCurrent: list.currentIndex === index
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
@@ -31,6 +33,7 @@ Item {
 
             text: root.modelData?.icon ?? ""
             // removed font.pointSize to avoid point/pixel conflict warnings
+            color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
 
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -46,12 +49,14 @@ Item {
             StyledText {
                 text: root.modelData?.name ?? ""
                 // removed font.pointSize to avoid point/pixel conflict warnings
+                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                font.weight: isCurrent ? Font.DemiBold : Font.Normal
             }
 
             StyledText {
                 text: root.modelData?.description ?? ""
                 // removed font.pointSize to avoid point/pixel conflict warnings
-                color: Colours.palette.m3outline
+                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3outline
 
                 elide: Text.ElideRight
                 anchors.left: parent.left
@@ -69,8 +74,9 @@ Item {
             active: root.modelData?.variant === Schemes.currentVariant
 
             sourceComponent: MaterialIcon {
+                id: checkIcon
                 text: "check"
-                color: Colours.palette.m3onSurfaceVariant
+                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                 // removed font.pointSize to avoid point/pixel conflict warnings
             }
         }

@@ -54,13 +54,15 @@ _olvex_ensure_xdg_dirs() {
     _olvex_prune_caelestia_links "${cache_base}/olvex"
 }
 
-if ! python3 -c "import caelestia" >/dev/null 2>&1; then
-    echo "Olvex Python backend unavailable. Install olvex-cli." >&2
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+export PYTHONPATH="${SCRIPT_DIR}/src:${PYTHONPATH:-}"
+
+if ! python3 -c "import olvex" >/dev/null 2>&1; then
+    echo "Olvex Python backend unavailable." >&2
     exit 1
 fi
 
 _olvex_ensure_xdg_dirs
 
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 export OLVEX_QS_INSTANCE="${OLVEX_QS_INSTANCE:-olvex}"
 exec python3 "${SCRIPT_DIR}/olvex-backend.py" "$@"

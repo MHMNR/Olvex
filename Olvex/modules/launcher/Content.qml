@@ -17,6 +17,24 @@ Item {
     readonly property int padding: Tokens.padding.large
     readonly property int rounding: Tokens.rounding.large
 
+    function navigateUp() { list.currentList?.decrementCurrentIndex?.(); }
+    function navigateDown() { list.currentList?.incrementCurrentIndex?.(); }
+    function navigateLeft() {
+        if (list.currentList?.moveLeft) {
+            list.currentList.moveLeft();
+        }
+    }
+    function navigateRight() {
+        if (list.currentList?.moveRight) {
+            list.currentList.moveRight();
+        }
+    }
+    function navigateEnter() {
+        if (list.currentList?.count > 0) {
+            list.currentList?.currentItem?.select();
+        }
+    }
+
     function suspendLists(): void {
         list.suspendLists();
     }
@@ -93,9 +111,7 @@ Item {
             onAccepted: {
                 const currentItem = list.currentList?.currentItem;
                 if (currentItem) {
-                    if (list.showWallpapers) {
-                        Wallpapers.setWallpaper(currentItem.modelData.path);
-                    } else if (text.startsWith(GlobalConfig.launcher.actionPrefix)) {
+                    if (text.startsWith(GlobalConfig.launcher.actionPrefix)) {
                         if (text.startsWith(`${GlobalConfig.launcher.actionPrefix}calc `))
                             currentItem.onClicked();
                         else
@@ -108,30 +124,36 @@ Item {
                 }
             }
 
-            Keys.onUpPressed: list.currentList?.decrementCurrentIndex()
-            Keys.onDownPressed: list.currentList?.incrementCurrentIndex()
-            Keys.onLeftPressed: {
-                if (list.state === "wallpapers") {
-                    list.currentList?.decrementCurrentIndex();
-                    event.accepted = true;
-                }
+            Keys.priority: Keys.BeforeItem
+            Keys.onUpPressed: {
+                list.currentList?.showKeyboardHighlight?.();
+                list.currentList?.decrementCurrentIndex();
             }
-            Keys.onRightPressed: {
-                if (list.state === "wallpapers") {
-                    list.currentList?.incrementCurrentIndex();
-                    event.accepted = true;
-                }
+            Keys.onDownPressed: {
+                list.currentList?.showKeyboardHighlight?.();
+                list.currentList?.incrementCurrentIndex();
             }
-
-            Keys.onEscapePressed: root.visibilities.launcher = false
+            Keys.onEscapePressed: {
+                root.visibilities.launcher = false;
+                event.accepted = true;
+            }
 
             Keys.onPressed: event => {
+                if (event.key === Qt.Key_Left) {
+                    list.currentList?.showKeyboardHighlight?.();
+                    list.currentList?.moveLeft?.();
+                    event.accepted = true;
+                    return;
+                }
+                if (event.key === Qt.Key_Right) {
+                    list.currentList?.showKeyboardHighlight?.();
+                    list.currentList?.moveRight?.();
+                    event.accepted = true;
+                    return;
+                }
+
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                    if (list.state === "wallpapers") {
-                        if (list.currentList?.currentItem) {
-                            list.currentList.currentItem.select();
-                        }
-                    } else if (list.currentList?.count > 0 && search.text !== "") {
+                    if (list.currentList?.count > 0) {
                         list.currentList?.currentItem?.select();
                     }
                     event.accepted = true;
@@ -159,26 +181,43 @@ Item {
 
             Component.onCompleted: forceActiveFocus()
 
+            Timer {
+                id: focusTimer
+                interval: 50
+                repeat: true
+                property int attempts: 0
+                onTriggered: {
+                    if (search.activeFocus || attempts >= 20) {
+                        stop();
+                    } else {
+                        search.forceActiveFocus();
+                        attempts++;
+                    }
+                }
+            }
+
             Connections {
                 function onLauncherChanged(): void {
                     if (!root.visibilities.launcher) {
                         search.text = "";
-                        root.visibilities.wallpaperLauncher = false;
-                    } else if (root.visibilities.launcherSearchText) {
-                        search.text = root.visibilities.launcherSearchText;
-                        root.visibilities.launcherSearchText = "";
+                        focusTimer.stop();
+                    } else {
+                        if (root.visibilities.launcherSearchText) {
+                            search.text = root.visibilities.launcherSearchText;
+                            root.visibilities.launcherSearchText = "";
+                        }
                         search.forceActiveFocus();
-                    } else if (list.showWallpapers) {
-                        Visibilities.launcherInterrupted = true;
-                        if (!root.visibilities.wallpaperLauncher)
-                            root.visibilities.wallpaperLauncher = true;
-                        Qt.callLater(() => search.forceActiveFocus());
+                        focusTimer.attempts = 0;
+                        focusTimer.start();
                     }
                 }
 
                 function onSessionChanged(): void {
-                    if (!root.visibilities.session)
+                    if (!root.visibilities.session) {
                         search.forceActiveFocus();
+                        focusTimer.attempts = 0;
+                        focusTimer.start();
+                    }
                 }
 
                 function onLauncherSearchTextChanged(): void {

@@ -8,7 +8,9 @@ import os
 import re
 import subprocess
 import sys
+
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.resolve() / "src"))
 from typing import Any, Sequence
 
 VIDEO_SUFFIXES = {".mp4", ".mkv", ".webm", ".mov", ".avi", ".m4v"}
@@ -93,10 +95,10 @@ def _scheme_payload_is_valid(data: Any) -> bool:
 
 
 def _propagate_olvex_paths() -> None:
-    """Re-sync path objects imported via `from caelestia.utils.paths import …`."""
+    """Re-sync path objects imported via `from olvex.utils.paths import …`."""
     import sys
 
-    import caelestia.utils.paths as paths
+    import olvex.utils.paths as paths
 
     path_names = [
         name
@@ -108,14 +110,14 @@ def _propagate_olvex_paths() -> None:
         if module is None:
             continue
         qualname = getattr(module, "__name__", "")
-        if not qualname.startswith("caelestia"):
+        if not qualname.startswith("olvex"):
             continue
         for name in path_names:
             if hasattr(module, name):
                 setattr(module, name, getattr(paths, name))
 
     try:
-        import caelestia.utils.scheme as scheme_mod
+        import olvex.utils.scheme as scheme_mod
 
         scheme_mod.scheme = None
     except ImportError:
@@ -132,14 +134,14 @@ def _ensure_scheme_json() -> None:
         except (OSError, json.JSONDecodeError):
             pass
 
-    from caelestia.utils.scheme import Scheme
+    from olvex.utils.scheme import Scheme
 
     scheme_path.parent.mkdir(parents=True, exist_ok=True)
     Scheme(None).save()
 
 
 def _apply_olvex_paths() -> None:
-    import caelestia.utils.paths as paths
+    import olvex.utils.paths as paths
 
     config_dir = _xdg_config_home()
     data_dir = _xdg_data_home()
@@ -193,7 +195,7 @@ def _rewrite_qs_cmd(cmd: Sequence[Any]) -> list[Any]:
             seq[i] == "qs"
             and i + 2 < len(seq)
             and seq[i + 1] == "-c"
-            and seq[i + 2] == "caelestia"
+            and seq[i + 2] == "olvex"
         ):
             seq[i + 2] = qs_instance
         i += 1
@@ -216,8 +218,8 @@ _KONSOLE_COLOUR_KEYS = (
 
 def _patch_apply_colours() -> None:
     """Ensure Konsole/Qt templates always receive resolved k* colours."""
-    import caelestia.utils.theme as theme_mod
-    from caelestia.utils.scheme import get_scheme
+    import olvex.utils.theme as theme_mod
+    from olvex.utils.scheme import get_scheme
 
     original = theme_mod.apply_colours
 
@@ -367,7 +369,7 @@ def main() -> None:
     argv = _patch_wallpaper_print(sys.argv[1:])
     sys.argv = ["olvex", *argv]
 
-    from caelestia import main as backend_main
+    from olvex import main as backend_main
 
     backend_main()
 

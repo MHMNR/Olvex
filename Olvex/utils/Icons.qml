@@ -4,6 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
 import Olvex.Config
+import Olvex
+import qs.utils
 
 Singleton {
     id: root
@@ -79,6 +81,28 @@ Singleton {
             Office: "content_paste"
         })
 
+    property var _iconResolveCache: ({})
+    property var _iconSearchDirs: []
+
+    readonly property var iconRoots: [
+        Paths.home + "/.local/share/icons",
+        Paths.home + "/.icons",
+        Paths.home + "/.local/share/flatpak/exports/share/icons",
+        "/var/lib/flatpak/exports/share/icons",
+        "/usr/local/share/icons",
+        "/usr/share/icons"
+    ]
+    readonly property var iconPixmapDirs: [
+        Paths.home + "/.local/share/pixmaps/",
+        "/usr/local/share/pixmaps/",
+        "/usr/share/pixmaps/"
+    ]
+    readonly property var iconThemes: ["hicolor", "Papirus", "Papirus-Dark", "Papirus-Light", "breeze", "breeze-dark", "Adwaita", "AdwaitaLegacy"]
+    readonly property var iconSizeDirs: ["scalable", "1024x1024", "512x512", "384x384", "256x256", "192x192", "160x160", "128x128", "96x96", "84x84", "72x72", "64x64", "48x48", "42x42", "32x32", "24x24", "22x22", "16x16", "8x8", "symbolic"]
+    readonly property var iconNumericDirs: ["1024", "512", "384", "256", "192", "160", "128", "96", "84", "72", "64", "48", "42", "32", "24", "22", "16", "12", "8"]
+    readonly property var iconCategories: ["apps", "actions", "devices", "status", "places", "categories", "mimetypes", "emblems", "emotes", "legacy", "panel", "preferences", "applets", "animations", "ui"]
+    readonly property var iconExtensions: ["", ".png", ".svg", ".svgz", ".xpm", ".ico"]
+
     // Checks if a name matches an icon config. Icon configs can have the following keys:
     // - name: The exact name of the icon
     // - regex: A regex to match against the name (takes priority over name)
@@ -102,8 +126,202 @@ Singleton {
     function getAppIcon(name: string, fallback: string): string {
         const icon = DesktopEntries.heuristicLookup(name)?.icon;
         if (fallback !== "undefined")
-            return Quickshell.iconPath(icon, fallback);
-        return Quickshell.iconPath(icon);
+            return resolveIcon(icon, fallback);
+        return resolveIcon(icon, "");
+    }
+
+    function _withTrailingSlash(path: string): string {
+        return path && path.endsWith("/") ? path : path + "/";
+    }
+
+    function _addIconSearchDir(dirs: var, seen: var, dir: string): void {
+        if (!dir || seen[dir] || !CUtils.fileExists(dir))
+            return;
+
+        seen[dir] = true;
+        dirs.push(dir);
+    }
+
+    function _getIconSearchDirs(): var {
+        if (_iconSearchDirs.length > 0)
+            return _iconSearchDirs;
+
+        const dirs = [];
+        const seen = ({});
+
+        for (let i = 0; i < iconPixmapDirs.length; i++)
+            _addIconSearchDir(dirs, seen, iconPixmapDirs[i]);
+
+        for (let r = 0; r < iconRoots.length; r++) {
+            const rootDir = _withTrailingSlash(iconRoots[r]);
+            _addIconSearchDir(dirs, seen, rootDir);
+
+            for (let t = 0; t < iconThemes.length; t++) {
+                const themeRoot = rootDir + iconThemes[t] + "/";
+                if (!CUtils.fileExists(themeRoot))
+                    continue;
+
+                _addIconSearchDir(dirs, seen, themeRoot);
+
+                for (let s = 0; s < iconSizeDirs.length; s++) {
+                    const sizeRoot = themeRoot + iconSizeDirs[s] + "/";
+                    _addIconSearchDir(dirs, seen, sizeRoot);
+
+                    for (let c = 0; c < iconCategories.length; c++) {
+                        _addIconSearchDir(dirs, seen, sizeRoot + iconCategories[c] + "/");
+                        _addIconSearchDir(dirs, seen, sizeRoot + "symbolic/" + iconCategories[c] + "/");
+                    }
+                }
+
+                for (let c = 0; c < iconCategories.length; c++) {
+                    const categoryRoot = themeRoot + iconCategories[c] + "/";
+                    _addIconSearchDir(dirs, seen, categoryRoot);
+                    _addIconSearchDir(dirs, seen, themeRoot + "symbolic/" + iconCategories[c] + "/");
+                    _addIconSearchDir(dirs, seen, themeRoot + "scalable/" + iconCategories[c] + "/");
+
+                    for (let s = 0; s < iconNumericDirs.length; s++) {
+                        _addIconSearchDir(dirs, seen, categoryRoot + iconNumericDirs[s] + "/");
+                        _addIconSearchDir(dirs, seen, themeRoot + "symbolic/" + iconCategories[c] + "/" + iconNumericDirs[s] + "/");
+                    }
+                }
+            }
+        }
+
+        _iconSearchDirs = dirs;
+        return _iconSearchDirs;
+    }
+
+    function _fileIconUrl(path: string): string {
+        if (!path)
+            return "";
+
+        let localPath = String(path);
+        if (localPath.startsWith("file://"))
+            localPath = localPath.slice(7);
+        if (localPath.startsWith("~"))
+            localPath = Paths.absolutePath(localPath);
+
+        return CUtils.fileExists(localPath) ? "file://" + localPath : "";
+    }
+
+    function _hasIconExtension(path: string): bool {
+        const lower = String(path).toLowerCase();
+        for (let i = 1; i < iconExtensions.length; i++) {
+            if (lower.endsWith(iconExtensions[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    function _normalisedResolvedIcon(path: string): string {
+        if (!path)
+            return "";
+        if (path.startsWith("/") || path.startsWith("file://"))
+            return _fileIconUrl(path);
+        return path;
+    }
+
+    function _themeIcon(icon: string): string {
+        if (!icon)
+            return "";
+
+        let path = Quickshell.iconPath(icon, true);
+        let resolved = _normalisedResolvedIcon(path);
+        if (resolved)
+            return resolved;
+
+        if (Quickshell.hasThemeIcon(icon)) {
+            path = Quickshell.iconPath(icon, "");
+            resolved = _normalisedResolvedIcon(path);
+            if (resolved)
+                return resolved;
+        }
+
+        return "";
+    }
+
+    function _addIconName(names: var, seen: var, name: string): void {
+        if (!name || seen[name])
+            return;
+
+        seen[name] = true;
+        names.push(name);
+    }
+
+    function _iconNameVariants(icon: string): var {
+        const names = [];
+        const seen = ({});
+
+        _addIconName(names, seen, icon);
+
+        const lowercase = icon.toLowerCase();
+        _addIconName(names, seen, lowercase);
+
+        let base = icon;
+        for (let i = 1; i < iconExtensions.length; i++) {
+            const ext = iconExtensions[i];
+            if (base.endsWith(ext)) {
+                base = base.slice(0, -ext.length);
+                _addIconName(names, seen, base);
+                break;
+            }
+        }
+
+        if (!base.endsWith("_app") && !base.includes(".")) {
+            _addIconName(names, seen, base + "_app");
+            _addIconName(names, seen, base + "-app");
+            _addIconName(names, seen, "org." + base + "." + base);
+            _addIconName(names, seen, "org." + base + "." + base + "_app");
+            _addIconName(names, seen, "com." + base + "." + base);
+            _addIconName(names, seen, "io." + base + "." + base);
+        }
+
+        if (base.includes(".")) {
+            const parts = base.split(".");
+            const lastPart = parts[parts.length - 1];
+            _addIconName(names, seen, lastPart);
+            _addIconName(names, seen, lastPart.toLowerCase());
+            if (lastPart.endsWith("_app"))
+                _addIconName(names, seen, lastPart.slice(0, -4));
+        }
+
+        return names;
+    }
+
+    function _manualIcon(icon: string): string {
+        if (!icon)
+            return "";
+        if (icon.startsWith("/") || icon.startsWith("file://") || icon.startsWith("~"))
+            return _fileIconUrl(icon);
+
+        const iconNames = _iconNameVariants(icon);
+        const searchDirs = _getIconSearchDirs();
+
+        for (let k = 0; k < iconNames.length; k++) {
+            const currentIcon = iconNames[k];
+            const firstExt = _hasIconExtension(currentIcon) ? 0 : 1;
+            for (let i = 0; i < searchDirs.length; i++) {
+                const dir = searchDirs[i];
+                for (let j = firstExt; j < iconExtensions.length; j++) {
+                    const fullPath = dir + currentIcon + iconExtensions[j];
+                    if (CUtils.fileExists(fullPath))
+                        return "file://" + fullPath;
+                }
+            }
+        }
+
+        return "";
+    }
+
+    function resolveIcon(icon: string, fallback: string): string {
+        const key = (icon || "") + "\u001f" + (fallback || "");
+        if (_iconResolveCache.hasOwnProperty(key))
+            return _iconResolveCache[key];
+
+        let resolved = _manualIcon(icon) || _themeIcon(icon) || _manualIcon(fallback) || _themeIcon(fallback);
+        _iconResolveCache[key] = resolved;
+        return resolved;
     }
 
     function getAppCategoryIcon(name: string, fallback: string): string {

@@ -157,7 +157,7 @@ StyledRect {
                     clip: true
 
                     readonly property bool needsMarquee: labelText.implicitWidth > width
-                    readonly property real speed: 30 // pixels per second
+                    readonly property real speed: 38 // pixels per second
 
                     // Edge Fading Mask
                     layer.enabled: needsMarquee
@@ -170,8 +170,8 @@ StyledRect {
                                 gradient: Gradient {
                                     orientation: Gradient.Horizontal
                                     GradientStop { position: 0.0; color: "transparent" }
-                                    GradientStop { position: 0.1; color: "black" }
-                                    GradientStop { position: 0.9; color: "black" }
+                                    GradientStop { position: 0.08; color: "black" }
+                                    GradientStop { position: 0.92; color: "black" }
                                     GradientStop { position: 1.0; color: "transparent" }
                                 }
                             }
@@ -210,22 +210,16 @@ StyledRect {
                             running: marqueeContainer.needsMarquee && root.isPanelVisible
                             loops: Animation.Infinite
 
-                            PauseAnimation { duration: 2500 }
+                            PauseAnimation { duration: 1200 }
 
                             NumberAnimation {
                                 target: marqueeRow
                                 property: "marqueeX"
                                 from: 0
                                 to: -(labelText.implicitWidth + 40)
-                                duration: Math.max(3000, (labelText.implicitWidth) * 1000 / marqueeContainer.speed)
-                                easing.type: Easing.InOutQuad
+                                duration: Math.max(1800, (labelText.implicitWidth) * 1000 / marqueeContainer.speed)
+                                easing.type: Easing.Linear
                             }
-
-                            PauseAnimation { duration: 1500 }
-
-                            PropertyAnimation { target: marqueeRow; property: "opacity"; to: 0; duration: 400 }
-                            PropertyAction { target: marqueeRow; property: "marqueeX"; value: 0 }
-                            PropertyAnimation { target: marqueeRow; property: "opacity"; to: 1; duration: 400 }
                         }
                     }
                 }
@@ -233,10 +227,10 @@ StyledRect {
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: root.stateText
-                textPointSize: Tokens.font.size.small - 2
+                textPointSize: Tokens.font.size.small - 1
                 color: root.disabled ? root.disabledOnColour
                      : root.inactiveOnColour
-                opacity: 0.8
+                opacity: 0.7
             }
         }
     }

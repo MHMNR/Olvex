@@ -5,7 +5,6 @@ import Olvex.Config
 import qs.components
 import qs.services
 import qs.utils
-import qs.components.controls as Controls
 import qs.modules.launcher.services
 
 Item {
@@ -13,6 +12,8 @@ Item {
 
     required property DesktopEntry modelData
     required property DrawerVisibilities visibilities
+
+    signal contextMenuRequested(sourceItem: Item)
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
@@ -26,7 +27,7 @@ Item {
 
         onClicked: mouse => {
             if (mouse.button === Qt.RightButton) {
-                contextMenu.expanded = true;
+                root.contextMenuRequested(stateLayer);
             } else {
                 Apps.launch(root.modelData);
                 root.visibilities.launcher = false;
@@ -52,7 +53,7 @@ Item {
 
             IconImage {
                 asynchronous: true
-                source: Quickshell.iconPath(root.modelData?.icon, "image-missing")
+                source: Icons.resolveIcon(root.modelData?.icon || "", "image-missing")
                 anchors.fill: parent
                 anchors.margins: 5
             }
@@ -104,43 +105,5 @@ Item {
         }
     }
 
-    Controls.Menu {
-        id: contextMenu
-        attachTo: stateLayer
-
-        items: [
-            Controls.MenuItem {
-                readonly property bool isPinned: {
-                    if (!root.modelData) return false;
-                    const pApps = root.visibilities.pinnedApps || [];
-                    for (let i = 0; i < pApps.length; i++) {
-                        if (pApps[i] === root.modelData.id) return true;
-                    }
-                    return false;
-                }
-                text: isPinned ? qsTr("Remove from Panel") : qsTr("Add to Panel")
-                icon: isPinned ? "keep_off" : "push_pin"
-                
-                onClicked: {
-                    if (!root.modelData) return;
-                    const id = root.modelData.id;
-                    const rawPinned = root.visibilities.pinnedApps || [];
-                    let pinned = [];
-                    for (let i = 0; i < rawPinned.length; i++) {
-                        pinned.push(rawPinned[i]);
-                    }
-                    
-                    const idx = pinned.indexOf(id);
-                    if (idx > -1) {
-                        pinned.splice(idx, 1);
-                        console.log("Unpinned", id, "Current pinned array:", pinned);
-                    } else {
-                        pinned.push(id);
-                        console.log("Pinned", id, "Current pinned array:", pinned);
-                    }
-                    root.visibilities.pinnedApps = pinned;
-                }
-            }
-        ]
-    }
+    // Context menu is handled by the shared menu in AppList
 }

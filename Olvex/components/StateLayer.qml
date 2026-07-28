@@ -14,7 +14,7 @@ MouseArea {
     readonly property alias rect: base
 
     property bool shapeMorph
-    property real stateOpacity: pressed ? 0.1 : containsMouse ? 0.08 : 0
+    property real stateOpacity: pressed ? 0.1 : (showHoverBackground && containsMouse) ? 0.08 : 0
 
     property real pressX: width / 2
     property real pressY: height / 2

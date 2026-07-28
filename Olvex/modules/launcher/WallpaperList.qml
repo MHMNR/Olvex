@@ -219,8 +219,8 @@ Item {
 
         Connections {
             target: root.visibilities
-            function onLauncherChanged() {
-                if (root.visibilities.launcher) {
+            function onWallpaperLauncherChanged() {
+                if (root.visibilities.wallpaperLauncher) {
                     root.userModeLock = false;
                     view.jumpToCurrent(true);
                 } else {
@@ -233,7 +233,7 @@ Item {
         Connections {
             target: Wallpapers
             function onActualCurrentChanged() {
-                if (root.visibilities.launcher && !root.userModeLock) {
+                if (root.visibilities.wallpaperLauncher && !root.userModeLock) {
                     view.jumpToCurrent(true);
                 }
             }
@@ -252,7 +252,7 @@ Item {
         }
         Keys.onReturnPressed: event => {
             if (currentItem)
-                (currentItem as WallpaperItem).select();
+                currentItem.select?.();
             event.accepted = true;
         }
 
@@ -264,12 +264,27 @@ Item {
             }
         }
 
+        Timer {
+            id: previewTimer
+            interval: 150
+            repeat: false
+            property string pendingPath: ""
+            onTriggered: {
+                if (pendingPath) {
+                    Wallpapers.preview(pendingPath);
+                }
+            }
+        }
+
         onCurrentItemChanged: {
             if (root.suppressPreview)
                 return;
-            const item = currentItem as WallpaperItem;
-            if (item?.hasEntry && item.modelData?.path)
-                Wallpapers.preview(item.modelData.path);
+            const item = currentItem;
+            if (item?.hasEntry && item.modelData?.path) {
+                previewTimer.stop();
+                previewTimer.pendingPath = item.modelData.path;
+                previewTimer.start();
+            }
         }
 
         readonly property int visibleItemCount: count > 0 ? Math.min(numItems, count) : 0

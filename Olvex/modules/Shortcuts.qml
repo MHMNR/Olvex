@@ -169,8 +169,7 @@ Scope {
             if (root.hasFullscreen)
                 return;
             const visibilities = Visibilities.getForActive();
-            visibilities.wallpaperLauncher = true;
-            visibilities.launcher = true;
+            visibilities.wallpaperLauncher = !visibilities.wallpaperLauncher;
             Visibilities.launcherInterrupted = true;
         }
     }

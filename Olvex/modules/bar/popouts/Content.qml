@@ -138,7 +138,7 @@ Item {
                 required property int index
 
                 name: `traymenu${index}`
-                sourceComponent: trayMenuComp
+                    sourceComponent: trayMenu.modelData ? trayMenuComp : null
 
                 Connections {
                     function onHasCurrentChanged(): void {

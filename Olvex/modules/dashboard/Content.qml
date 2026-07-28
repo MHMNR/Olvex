@@ -29,12 +29,6 @@ Item {
                 iconName: "calculate",
                 text: qsTr("Calculator"),
                 enabled: true
-            },
-            {
-                component: weatherComponent,
-                iconName: "cloud",
-                text: qsTr("Weather"),
-                enabled: Config.dashboard.showWeather
             }
         ];
         return allTabs.filter(tab => tab.enabled);
@@ -160,12 +154,6 @@ Item {
             Component {
                 id: calcComponent
                 Calculator {}
-            }
-
-            Component {
-                id: weatherComponent
-
-                WeatherTab {}
             }
 
             Behavior on contentX {

@@ -31,6 +31,24 @@ MouseArea {
     readonly property int itemCount: items ? items.length : 0
     property MenuItem active: itemCount > 0 ? items[0] : null
     property bool expanded
+    property bool highlightActive: false
+    property Item hoveredItem: null
+
+    readonly property bool _isContextMenu: true
+
+    onExpandedChanged: {
+        if (!expanded) {
+            hoveredItem = null;
+        }
+        if (expanded && parent) {
+            for (let i = 0; i < parent.children.length; i++) {
+                const child = parent.children[i];
+                if (child !== root && child._isContextMenu) {
+                    child.expanded = false;
+                }
+            }
+        }
+    }
 
     signal itemSelected(item: var)
 
@@ -63,6 +81,8 @@ MouseArea {
     Elevation {
         id: menu
 
+        readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+
         x: {
             watcher.transform; // mapToItem is not reactive so this forces updates
             const item = root.attachTo;
@@ -78,6 +98,24 @@ MouseArea {
             if (root.thisSideY === Menu.Bottom)
                 off -= height;
             return item.mapToItem(root.parent, 0, off).y + root.marginY;
+        }
+
+        Behavior on x {
+            enabled: root.expanded
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: menu.m3Emphasized
+            }
+        }
+
+        Behavior on y {
+            enabled: root.expanded
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: menu.m3Emphasized
+            }
         }
 
         radius: Tokens.rounding.normal
@@ -101,6 +139,33 @@ MouseArea {
             anchors.fill: parent
             radius: parent.radius
             color: Colours.palette.m3surfaceContainerLow
+
+            // Sliding hover highlight marker
+            StyledRect {
+                id: hoverHighlight
+                visible: root.hoveredItem !== null
+                opacity: visible ? 0.08 : 0
+                color: Colours.palette.m3onSurface
+                radius: Tokens.rounding.small
+                
+                // Position it matching the hoveredItem
+                x: root.hoveredItem ? root.hoveredItem.mapToItem(parent, 0, 0).x : 0
+                y: root.hoveredItem ? root.hoveredItem.mapToItem(parent, 0, 0).y : 0
+                width: root.hoveredItem ? root.hoveredItem.width : 0
+                height: root.hoveredItem ? root.hoveredItem.height : 0
+
+                Behavior on x {
+                    enabled: hoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on y {
+                    enabled: hoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
 
             ColumnLayout {
                 id: column
@@ -128,13 +193,13 @@ MouseArea {
                         implicitWidth: menuOptionRow.implicitWidth + Tokens.padding.normal * 2
                         implicitHeight: menuOptionRow.implicitHeight + Tokens.padding.normal * 2
 
-                        radius: active ? 12 : Tokens.rounding.extraSmall // This should use a token, but tokens are currently extremely scuffed
-                        topLeftRadius: index === 0 ? Tokens.rounding.small : radius
-                        topRightRadius: index === 0 ? Tokens.rounding.small : radius
-                        bottomLeftRadius: modelData != null && index === column.menuItemCount - 1 ? Tokens.rounding.small : radius
-                        bottomRightRadius: modelData != null && index === column.menuItemCount - 1 ? Tokens.rounding.small : radius
+                        radius: Tokens.rounding.small
+                        topLeftRadius: Tokens.rounding.small
+                        topRightRadius: Tokens.rounding.small
+                        bottomLeftRadius: Tokens.rounding.small
+                        bottomRightRadius: Tokens.rounding.small
 
-                        color: Qt.alpha(Colours.palette.m3tertiaryContainer, active ? 1 : 0)
+                        color: Qt.alpha(Colours.palette.m3primary, (root.highlightActive && active) ? 0.12 : 0)
 
                         Behavior on radius {
                             Anim {}
@@ -146,8 +211,9 @@ MouseArea {
                             bottomLeftRadius: parent.bottomLeftRadius
                             bottomRightRadius: parent.bottomRightRadius
 
-                            color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
+                            color: (root.highlightActive && item.active) ? Colours.palette.m3primary : Colours.palette.m3onSurface
                             disabled: !root.expanded
+                            hoverEnabled: false
                             onClicked: {
                                 if (!item.modelData)
                                     return;
@@ -155,6 +221,22 @@ MouseArea {
                                 root.active = item.modelData;
                                 item.modelData.clicked();
                                 root.expanded = false;
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                            onEntered: {
+                                if (root.expanded) {
+                                    root.hoveredItem = item;
+                                }
+                            }
+                            onExited: {
+                                if (root.hoveredItem === item) {
+                                    root.hoveredItem = null;
+                                }
                             }
                         }
 
@@ -168,14 +250,15 @@ MouseArea {
                             MaterialIcon {
                                 Layout.alignment: Qt.AlignVCenter
                                 text: item.modelData ? item.modelData.icon : ""
-                                color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurfaceVariant
+                                color: (root.highlightActive && item.active) ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                             }
 
                             StyledText {
                                 Layout.alignment: Qt.AlignVCenter
                                 Layout.fillWidth: true
                                 text: item.modelData ? item.modelData.text : ""
-                                color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
+                                horizontalAlignment: Text.AlignLeft
+                                color: (root.highlightActive && item.active) ? Colours.palette.m3primary : Colours.palette.m3onSurface
                             }
 
                             Loader {
@@ -186,7 +269,7 @@ MouseArea {
 
                                 sourceComponent: MaterialIcon {
                                     text: item.modelData ? item.modelData.trailingIcon : ""
-                                    color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurfaceVariant
+                                    color: item.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                                 }
                             }
                         }

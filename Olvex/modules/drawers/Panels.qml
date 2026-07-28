@@ -1,11 +1,15 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls as QCtls
+import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Hyprland
 import Olvex.Config
 import Olvex.Services
 import qs.components
 import qs.components.effects
+import qs.components.controls as Controls
 import qs.services
 import qs.modules.bar as Bar
 import qs.modules.dashboard as Dashboard
@@ -36,6 +40,7 @@ Item {
     readonly property alias session: session
     readonly property alias sessionWrapper: sessionWrapper
     readonly property alias launcher: launcher
+    readonly property alias wallpaperSelector: wallpaperSelector
     readonly property alias dashboard: dashboard
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
@@ -43,8 +48,46 @@ Item {
     readonly property alias toasts: toasts
     readonly property alias bottomPanel: bottomPanel
     readonly property alias clipboard: clipboard
+    readonly property alias pinnedLayout: layout
+
+    // App launch morph — set by ContentWindow after creation
+    property var appLaunchMorph: null
 
     readonly property bool sessionVisible: session.visible
+
+    // Focus to receive key events
+    focus: true
+    Keys.onEscapePressed: {
+        if (contextMenuVisible) {
+            hideContextMenu();
+            event.accepted = true;
+        } else if (visibilities.wallpaperLauncher) {
+            visibilities.wallpaperLauncher = false;
+            event.accepted = true;
+        } else if (visibilities.launcher) {
+            visibilities.launcher = false;
+            event.accepted = true;
+        } else if (visibilities.dashboard) {
+            visibilities.dashboard = false;
+            event.accepted = true;
+        } else if (visibilities.utilities) {
+            visibilities.utilities = false;
+            event.accepted = true;
+        } else if (visibilities.clipboard) {
+            visibilities.clipboard = false;
+            event.accepted = true;
+        } else if (visibilities.sidebar) {
+            visibilities.sidebar = false;
+            event.accepted = true;
+        } else if (visibilities.session) {
+            visibilities.session = false;
+            event.accepted = true;
+        } else if (popoutsWrapper.content.hasCurrent) {
+            popoutsWrapper.content.hasCurrent = false;
+            bar.closeTray();
+            event.accepted = true;
+        }
+    }
 
     // Expand bottom margin to 80px whenever panel is visible (any mode)
     // so the border blob expands and panel sits inside it. Only always mode
@@ -57,13 +100,96 @@ Item {
     }
 
     // Bottom panel config
-    readonly property bool bottomPanelEnabled: Config.bar.bottomPanel?.enabled ?? true
-    readonly property string bottomPanelMode: Config.bar.bottomPanel?.visibilityMode ?? "always"
+    readonly property bool bottomPanelEnabled: Config.bar.bottomPanel && Config.bar.bottomPanel.enabled !== undefined ? Config.bar.bottomPanel.enabled : true
+    readonly property string bottomPanelMode: Config.bar.bottomPanel && Config.bar.bottomPanel.visibilityMode ? Config.bar.bottomPanel.visibilityMode : "always"
 
     property bool hasWindowsOverlappingPanel: false
     property bool _lastOverlapState: false
     property int _geometryStableTicks: 0
     property int geometryPollInterval: 200
+
+    // Context menu state - for root-level popup menu
+    property string contextMenuAppId: ""
+    property bool contextMenuVisible: false
+    property real contextMenuX: 0
+    property real contextMenuY: 0
+    property var contextMenuWindows: []  // List of running windows for this app
+    property Item contextMenuHoveredItem: null
+
+    function showContextMenu(appId, sourceItem) {
+        // If same menu already open, toggle close
+        if (contextMenuVisible && contextMenuAppId === appId) {
+            hideContextMenu();
+            return;
+        }
+        
+        // Cancel any pending fade-out timer to allow smooth morphing
+        menuFadeOutTimer.stop();
+        
+        // Collect all windows for this app
+        const toplevels = Hypr.toplevels?.values ?? [];
+        const windows = [];
+        for (let i = 0; i < toplevels.length; i++) {
+            const ipc = toplevels[i].lastIpcObject;
+            if (ipc && ipc.class === appId) {
+                windows.push({
+                    title: ipc.title || "Untitled",
+                    address: normalizeAddress(ipc.address),
+                    workspaceId: ipc.workspace?.id ?? 1
+                });
+            }
+        }
+        
+        // Position menu centered horizontally on the icon, above the panel
+        const pos = sourceItem.mapToItem(bottomPanel, 0, 0);
+        const menuW = 200;
+        let mx = pos.x + sourceItem.width / 2 - menuW / 2;
+        
+        // Horizontal bounds checking
+        const panelWidth = bottomPanel.width;
+        const minMargin = 8;
+        if (mx < minMargin) {
+            mx = minMargin;
+        } else if (mx + menuW > panelWidth - minMargin) {
+            mx = panelWidth - menuW - minMargin;
+        }
+        
+        // Y will be calculated dynamically in menuContainer based on its height
+        contextMenuX = mx;
+        contextMenuY = 0;  // Not used, will calculate in binding
+        contextMenuWindows = windows;
+        contextMenuAppId = appId;
+        contextMenuVisible = true;
+    }
+
+    function hideContextMenu() {
+        contextMenuVisible = false;
+        contextMenuHoveredItem = null;
+        // Delay clearing the data so animation can complete
+        menuFadeOutTimer.restart();
+    }
+
+    function normalizeAddress(addr) {
+        if (!addr) return "";
+        const str = String(addr);
+        return str.startsWith("0x") ? str : "0x" + str;
+    }
+
+    // Resolve entry from appId at action time — never store the live object
+    function contextMenuEntry() {
+        if (!contextMenuAppId) return undefined;
+        const apps = DesktopEntries.applications.values;
+        for (let i = 0; i < apps.length; i++) {
+            if (apps[i].id === contextMenuAppId) return apps[i];
+        }
+        return undefined;
+    }
+
+    // Trigger app launch morph: flying icon from launcher to pinned dock slot
+    function triggerAppMorph(appId, iconSource, sx, sy, sw, sh) {
+        if (!root.appLaunchMorph) return;
+        root.appLaunchMorph.trigger(appId, iconSource, { x: sx, y: sy, w: sw, h: sh });
+    }
 
     function checkOverlap() {
         const mon = Hypr.monitorFor(root.screen);
@@ -128,11 +254,32 @@ Item {
         }
     }
 
+    // Close context menu when launcher opens
+    Connections {
+        target: root.visibilities
+        function onLauncherChanged(): void {
+            if (root.visibilities.launcher && root.contextMenuVisible) {
+                root.hideContextMenu();
+            }
+        }
+    }
+
+    // Timer to clear menu data after fade-out animation completes
+    Timer {
+        id: menuFadeOutTimer
+        interval: 300  // Match the opacity animation duration
+        onTriggered: {
+            contextMenuAppId = "";
+            contextMenuWindows = [];
+        }
+    }
 
     // Whether the panel should be visible based on mode
     readonly property bool bottomPanelVisible: {
         if (!bottomPanelEnabled) return false;
         if (visibilities.session) return false;
+        // Force panel visible when context menu is open (suppress autohide)
+        if (contextMenuVisible) return true;
         if (bottomPanelMode === "smarthide") {
             // If a window overlaps the bottom 80px, react like autohide (hover to show)
             // If no window overlaps, always show
@@ -217,6 +364,19 @@ Item {
 
     Launcher.Wrapper {
         id: launcher
+
+        screen: root.screen
+        visibilities: root.visibilities
+        panels: root
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenterOffset: -(bar.implicitWidth - root.borderThickness) / 2
+        anchors.bottom: parent.bottom
+    }
+
+    // Independent Wallpaper Selector drawer
+    Launcher.WallpaperWrapper {
+        id: wallpaperSelector
 
         screen: root.screen
         visibilities: root.visibilities
@@ -337,6 +497,14 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
+                    if (root.contextMenuVisible) {
+                        root.hideContextMenu();
+                        return;
+                    }
+                    if (root.visibilities.launcher) {
+                        root.visibilities.launcher = false;
+                        return;
+                    }
                     if (root.visibilities.utilities) {
                         root.visibilities.utilities = false;
                     } else if (root.visibilities.clipboard) {
@@ -348,8 +516,8 @@ Item {
             // Pill layout container — same glass bg as Quick Toggles card
             Rectangle {
                 anchors.centerIn: parent
-                height: 64
-                width: layout.implicitWidth + 20
+                height: 70  // Adjusted from 64 to accommodate 50px icons + 20px padding
+                width: layout.width + 20
                 radius: 20
                 color: Colours.tileGlassStrong
                 border.color: Colours.tileShine
@@ -364,114 +532,489 @@ Item {
                     border.width: 1
                 }
 
-                RowLayout {
+                // Manual positioning container for drag-and-drop
+                Item {
                     id: layout
                     anchors.centerIn: parent
-                    spacing: 10 // Symmetrical spacing between icons
+                    width: {
+                        const c = pinnedModel.count;
+                        return c * 52 + Math.max(0, c - 1) * 12;
+                    }
+                    height: 58  // 52px icons + 6px spacing for running indicator bar
+
+                    // ListModel.move() reorders WITHOUT recreating items — spring position preserved!
+                    ListModel { id: pinnedModel }
+
+                    // Sync ListModel when pinnedApps changes externally (not during drag)
+                    Connections {
+                        target: root.visibilities
+                        function onPinnedAppsChanged() {
+                            if (!pinnedState.isDragging && !pinnedState.isLandingNow) {
+                                pinnedState.syncModel(root.visibilities.pinnedApps || []);
+                            }
+                        }
+                    }
+
+                    Component.onCompleted: {
+                        pinnedState.syncModel(root.visibilities.pinnedApps || []);
+                    }
+
+                    QtObject {
+                        id: pinnedState
+
+                        property string draggedAppId: ""
+                        property int draggedOriginalIndex: -1
+                        property Item hoveredAppIcon: null
+                        property int hoverTargetSlot: -1
+                        property real dragStartX: 0
+                        property real dragStartY: 0
+                        property bool isDragging: false
+                        property bool isLandingNow: false
+                        property string landingAppId: ""
+                        readonly property real dragThreshold: 10
+
+                        function syncModel(apps) {
+                            // Minimal sync: update existing, add/remove as needed
+                            while (pinnedModel.count > apps.length)
+                                pinnedModel.remove(pinnedModel.count - 1);
+                            for (let i = 0; i < apps.length; i++) {
+                                if (i < pinnedModel.count) {
+                                    if (pinnedModel.get(i).appId !== apps[i])
+                                        pinnedModel.set(i, { "appId": apps[i] });
+                                } else {
+                                    pinnedModel.append({ "appId": apps[i] });
+                                }
+                            }
+                        }
+
+                        function startDrag(appId, index, startX, startY) {
+                            draggedAppId = appId;
+                            draggedOriginalIndex = index;
+                            dragStartX = startX;
+                            dragStartY = startY;
+                            hoverTargetSlot = index;
+                            isDragging = false;
+                        }
+
+                        function updateDrag(mouseX, mouseY) {
+                            if (!isDragging) {
+                                const dx = mouseX - dragStartX;
+                                const dy = mouseY - dragStartY;
+                                if (Math.sqrt(dx*dx + dy*dy) > dragThreshold)
+                                    isDragging = true;
+                            }
+                            if (isDragging) {
+                                hoverTargetSlot = Math.max(0, Math.min(pinnedModel.count - 1,
+                                    Math.round((mouseX - layout.x) / 64)));
+                            }
+                        }
+
+                        function endDrag() {
+                            if (isDragging && draggedOriginalIndex !== hoverTargetSlot) {
+                                const from = draggedOriginalIndex;
+                                const to = hoverTargetSlot;
+                                const appId = draggedAppId;
+
+                                isDragging = false;
+                                isLandingNow = true;
+                                landingAppId = appId;
+
+                                // move() reorders without recreation — spring animates smoothly to new pos!
+                                pinnedModel.move(from, to, 1);
+
+                                // Persist
+                                const newOrder = [];
+                                for (let i = 0; i < pinnedModel.count; i++)
+                                    newOrder.push(pinnedModel.get(i).appId);
+                                root.visibilities.pinnedApps = newOrder;
+
+                                draggedAppId = "";
+                                draggedOriginalIndex = -1;
+                                hoverTargetSlot = -1;
+                                landingEndTimer.restart();
+                            } else {
+                                draggedAppId = "";
+                                draggedOriginalIndex = -1;
+                                hoverTargetSlot = -1;
+                                isDragging = false;
+                                isLandingNow = false;
+                            }
+                        }
+
+                        function cancelDrag() {
+                            draggedAppId = "";
+                            draggedOriginalIndex = -1;
+                            hoverTargetSlot = -1;
+                            isDragging = false;
+                        }
+
+                        function getTargetX(currentIndex) {
+                            if (isDragging) {
+                                if (currentIndex === draggedOriginalIndex)
+                                    return hoverTargetSlot * 64;
+                                if (draggedOriginalIndex < hoverTargetSlot) {
+                                    if (currentIndex > draggedOriginalIndex && currentIndex <= hoverTargetSlot)
+                                        return (currentIndex - 1) * 64;
+                                } else {
+                                    if (currentIndex < draggedOriginalIndex && currentIndex >= hoverTargetSlot)
+                                        return (currentIndex + 1) * 64;
+                                }
+                            }
+                            return currentIndex * 64;
+                        }
+                    }
+
+                    Timer {
+                        id: landingEndTimer
+                        interval: 450
+                        onTriggered: {
+                            pinnedState.isLandingNow = false;
+                            pinnedState.landingAppId = "";
+                        }
+                    }
+
+                    // Receive landing trigger from AppLaunchMorph after flight completes
+                    Connections {
+                        target: root.visibilities
+                        function onPinnedAppsLandingAppIdChanged() {
+                            const appId = root.visibilities.pinnedAppsLandingAppId;
+                            if (appId && appId !== "") {
+                                pinnedState.isLandingNow = true;
+                                pinnedState.landingAppId = appId;
+                                root.visibilities.pinnedAppsLandingAppId = "";
+                            }
+                        }
+                    }
+
+                     // Sliding hover highlight behind pinned icons
+                     Rectangle {
+                         id: pinnedHoverHighlight
+                         visible: pinnedState.hoveredAppIcon !== null
+                         opacity: visible ? 1 : 0
+                         color: Colours.layer(Colours.palette.m3surfaceVariant, 0.8)
+                         border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                         border.width: 1
+
+                         width: 52
+                         height: 52
+                         radius: 12
+
+                         // Map coordinates of hoveredAppIcon relative to layout (offset y by +3 to align with 52x52 iconBg)
+                         x: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.x : 0
+                         y: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.y + 3 : 0
+
+                         Behavior on x {
+                             enabled: pinnedHoverHighlight.opacity > 0
+                             SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                         }
+                         Behavior on y {
+                             enabled: pinnedHoverHighlight.opacity > 0
+                             SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                         }
+                         Behavior on opacity {
+                             NumberAnimation { duration: 150 }
+                         }
+                     }
 
                     Repeater {
-                        id: pinnedRepeater
-                        model: root.visibilities.pinnedApps
+                        model: pinnedModel
 
                         Item {
                             id: appWrapper
-                            required property string modelData
+                            required property var model
+                            required property int index
+
+                            readonly property string appId: model.appId
                             property var entry: {
                                 const apps = DesktopEntries.applications.values;
                                 for (let i = 0; i < apps.length; i++) {
-                                    if (apps[i].id === modelData) return apps[i];
+                                    if (apps[i].id === appId) return apps[i];
                                 }
                                 return undefined;
                             }
 
-                            implicitWidth: 44 // Balanced item size
-                            implicitHeight: 44
-                            visible: entry !== undefined
+                            width: 52
+                            height: 52 + 6  // Add space for indicator bar
 
-                            Component.onCompleted: {
-                                console.log("App Wrapper created for:", modelData, "Entry is:", entry !== undefined);
+                            // Count running instances for this app
+                            property int runningInstances: 0
+
+                            function normalizeAddress(addr) {
+                                // Ensure consistent format: always with 0x prefix
+                                if (!addr) return "";
+                                const str = String(addr);
+                                return str.startsWith("0x") ? str : "0x" + str;
                             }
 
-                            StateLayer {
-                                id: state
-                                anchors.fill: parent
-                                anchors.margins: -4
-                                radius: Tokens.rounding.normal
-                                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                hoverEnabled: true
-
-                                onClicked: mouse => {
-                                    if (mouse.button === Qt.RightButton) {
-                                        const rawPinned = root.visibilities.pinnedApps || [];
-                                        let pinned = [];
-                                        for (let i = 0; i < rawPinned.length; i++) {
-                                            pinned.push(rawPinned[i]);
-                                        }
-                                        const idx = pinned.indexOf(appWrapper.modelData);
-                                        if (idx > -1) {
-                                            pinned.splice(idx, 1);
-                                            root.visibilities.pinnedApps = pinned;
-                                        }
-                                    } else if (appWrapper.entry) {
-                                        iconAnim.start();
-                                        LauncherServices.Apps.launch(appWrapper.entry);
-                                        root.visibilities.bottomPanel = false;
+                            function updateRunningCount() {
+                                if (!appId) {
+                                    runningInstances = 0;
+                                    return;
+                                }
+                                const toplevels = Hypr.toplevels?.values ?? [];
+                                let count = 0;
+                                for (let i = 0; i < toplevels.length; i++) {
+                                    const ipc = toplevels[i].lastIpcObject;
+                                    if (ipc && ipc.class === appId) {
+                                        count++;
                                     }
                                 }
+                                runningInstances = count;
+                            }
+
+                            // Track window changes via signal (event-based, more efficient)
+                            Connections {
+                                target: Hypr
+                                function onToplevelUpdateCounterChanged() {
+                                    appWrapper.updateRunningCount();
+                                }
+                            }
+
+                            Component.onCompleted: {
+                                updateRunningCount();
+                            }
+
+                            // Landing trigger via signal
+                            Connections {
+                                target: pinnedState
+                                function onLandingAppIdChanged() {
+                                    if (pinnedState.landingAppId === appId)
+                                        landingAnim.start();
+                                }
+                            }
+
+                            x: pinnedState.getTargetX(index)
+                            y: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? -12 : 0
+                            z: pinnedState.draggedAppId === appId ? 100 : 0
+
+                            Behavior on x {
+                                SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 }
+                            }
+                            Behavior on y {
+                                SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 }
                             }
 
                             Rectangle {
                                 id: iconBg
-                                anchors.fill: parent
-                                radius: 10 // Mathematically concentric with outer radius 20
-                                color: state.containsMouse ? Colours.layer(Colours.palette.m3surfaceVariant, 0.8) : "transparent"
-                                border.color: state.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : "transparent"
+                                objectName: "iconBg"
+                                anchors.centerIn: parent
+                                width: 52; height: 52; radius: 12
+                                smooth: false; antialiasing: true
+
+                                color: "transparent"
+                                border.color: "transparent"
                                 border.width: 1
 
-                                scale: state.containsMouse ? 1.12 : 1.0
+                                // Scale: during drag 1.25, on hover 1.1, default 1.0
+                                // But NOT during landing — animation takes over
+                                scale: (pinnedState.isLandingNow && pinnedState.landingAppId === appId)
+                                    ? 1.0  // Landing animation controls scale, don't override
+                                    : ((pinnedState.draggedAppId === appId && pinnedState.isDragging)
+                                        ? 1.25
+                                        : (dragArea.containsMouse && !pinnedState.isDragging ? 1.1 : 1.0))
 
                                 Behavior on scale {
-                                    NumberAnimation {
-                                        duration: 250
-                                        easing.type: Easing.OutBack
-                                        easing.overshoot: 1.2
-                                    }
+                                    // Only animate scale when NOT landing (landing uses explicit animation)
+                                    enabled: !(pinnedState.isLandingNow && pinnedState.landingAppId === appId)
+                                    SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 }
+                                }
+                                Behavior on color {
+                                    ColorAnimation { duration: Tokens.anim.durations.small; easing: Tokens.anim.standard }
                                 }
 
-                                Behavior on color {
-                                    ColorAnimation { duration: 150 }
-                                }
-                                Behavior on border.color {
-                                    ColorAnimation { duration: 150 }
+                                // Landing: compress → bounce using M3-Expressive motion system
+                                SequentialAnimation {
+                                    id: landingAnim
+                                    // Compress phase: fast decel using expressiveFastSpatial
+                                    NumberAnimation {
+                                        target: iconBg; property: "scale"
+                                        from: 1.0; to: 0.92; 
+                                        duration: Tokens.anim.durations.expressiveFastEffects
+                                        easing: Tokens.anim.expressiveFastSpatial
+                                    }
+                                    // Bounce phase: decel using emphasizedDecel (standard M3 bounce)
+                                    NumberAnimation {
+                                        target: iconBg; property: "scale"
+                                        from: 0.92; to: 1.0; 
+                                        duration: Tokens.anim.durations.expressiveDefaultEffects
+                                        easing: Tokens.anim.emphasizedDecel
+                                    }
                                 }
 
                                 IconImage {
                                     id: icon
                                     asynchronous: true
-                                    source: Quickshell.iconPath(appWrapper.entry?.icon, "image-missing")
-                                    anchors.fill: parent
-                                    anchors.margins: 6 // Symmetrical 6px padding inside icon background
+                                    source: Icons.resolveIcon(appWrapper.entry?.icon || "", "image-missing")
+                                    anchors.fill: parent; anchors.margins: 6
+                                    smooth: true  // Enable smooth rendering to prevent pixelation during float
+
+                                    // During drag: scale up (1.15), otherwise normal (1.0)
+                                    // Don't animate during landing — let iconBg animation control it
+                                    scale: (pinnedState.draggedAppId === appId && pinnedState.isDragging)
+                                        ? 1.15 
+                                        : (pinnedState.isLandingNow && pinnedState.landingAppId === appId)
+                                            ? 1.0  // Landing: don't scale separately, iconBg handles scale
+                                            : 1.0
                                     
-                                    // Icon animation on click
+                                    Behavior on scale {
+                                        // Skip animation during landing (landing anim on iconBg takes precedence)
+                                        enabled: !(pinnedState.isLandingNow && pinnedState.landingAppId === appId)
+                                        SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 }
+                                    }
+
                                     SequentialAnimation {
                                         id: iconAnim
                                         ScaleAnimator {
-                                            target: icon
-                                            from: 1.0
-                                            to: 1.4
-                                            duration: 150
-                                            easing.type: Easing.OutBack
-                                            easing.overshoot: 1.3
+                                            target: icon; from: 1.0; to: 1.4
+                                            duration: Tokens.anim.durations.small; easing: Tokens.anim.emphasized
                                         }
                                         ScaleAnimator {
-                                            target: icon
-                                            from: 1.4
-                                            to: 1.0
-                                            duration: 200
-                                            easing.type: Easing.OutElastic
-                                            easing.overshoot: 0.5
+                                            target: icon; from: 1.4; to: 1.0
+                                            duration: Tokens.anim.durations.normal; easing: Tokens.anim.emphasized
                                         }
                                     }
+                                }
+
+                                // Running instances indicator bar
+                                Item {
+                                    anchors.top: iconBg.bottom
+                                    anchors.topMargin: 2
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: 52
+                                    height: appWrapper.runningInstances > 0 ? 3 : 0
+                                    visible: appWrapper.runningInstances > 0
+
+                                    Behavior on height {
+                                        Anim { type: Anim.DefaultSpatial }
+                                    }
+
+                                    // Container for segments
+                                    Row {
+                                        anchors.fill: parent
+                                        spacing: appWrapper.runningInstances > 1 ? 1 : 0
+                                        
+                                        Repeater {
+                                            model: appWrapper.runningInstances
+                                            
+                                            Rectangle {
+                                                width: (52 - (appWrapper.runningInstances > 1 ? (appWrapper.runningInstances - 1) : 0)) / appWrapper.runningInstances
+                                                height: 3
+                                                radius: 1.5
+                                                color: Colours.palette.m3primary
+                                                
+                                                Behavior on color {
+                                                    ColorAnimation { duration: Tokens.anim.durations.small }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: dragArea
+                                anchors.fill: parent; anchors.margins: -4
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                hoverEnabled: true; cursorShape: Qt.ArrowCursor
+
+                                property bool isPressing: false
+
+                                onPressed: mouse => {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        isPressing = true;
+                                        pinnedState.startDrag(appId, index,
+                                            appWrapper.x + mouse.x, appWrapper.y + mouse.y);
+                                    } else if (mouse.button === Qt.RightButton) {
+                                        root.showContextMenu(appId, iconBg);
+                                    }
+                                }
+                                onContainsMouseChanged: {
+                                    if (containsMouse && !pinnedState.isDragging) {
+                                        pinnedState.hoveredAppIcon = appWrapper;
+                                    } else if (pinnedState.hoveredAppIcon === appWrapper) {
+                                        pinnedState.hoveredAppIcon = null;
+                                    }
+                                }
+                                onPositionChanged: mouse => {
+                                    if (isPressing && pinnedState.draggedAppId === appId)
+                                        pinnedState.updateDrag(appWrapper.x + mouse.x, appWrapper.y + mouse.y);
+                                }
+                                onReleased: mouse => {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        if (pinnedState.draggedAppId === appId) {
+                                            if (!pinnedState.isDragging && appWrapper.entry) {
+                                                iconAnim.start();
+                                                
+                                                // STEP 3: Smart focus/cycle logic
+                                                // Filter windows matching this app
+                                                const toplevels = Hypr.toplevels?.values ?? [];
+                                                const matches = [];
+                                                for (let i = 0; i < toplevels.length; i++) {
+                                                    const ipc = toplevels[i].lastIpcObject;
+                                                    if (ipc && ipc.class === appId) {
+                                                        matches.push(toplevels[i]);  // Store full toplevel, not just ipc
+                                                    }
+                                                }
+                                                
+                                                // Case 1: No windows running → launch new
+                                                if (matches.length === 0) {
+                                                    LauncherServices.Apps.launch(appWrapper.entry);
+                                                } 
+                                                // Case 2: Exactly 1 window → focus it directly
+                                                else if (matches.length === 1) {
+                                                    const ipc = matches[0].lastIpcObject;
+                                                    const addr = appWrapper.normalizeAddress(ipc.address);
+                                                    const wsId = ipc.workspace?.id ?? 1;
+                                                    Hyprland.dispatch(`workspace ${wsId}`);
+                                                    Hyprland.dispatch(`focuswindow address:${addr}`);
+                                                } 
+                                                // Case 3: 2+ windows → cycle through
+                                                else {
+                                                    // Get currently active window
+                                                    const activeWindow = Hyprland.activeToplevel;
+                                                    const activeIpc = activeWindow?.lastIpcObject;
+                                                    const activeAddr = appWrapper.normalizeAddress(activeIpc?.address);
+                                                    
+                                                    // Find index of active window in matches
+                                                    let activeIndex = -1;
+                                                    for (let i = 0; i < matches.length; i++) {
+                                                        const matchIpc = matches[i].lastIpcObject;
+                                                        const matchAddr = appWrapper.normalizeAddress(matchIpc?.address);
+                                                        if (matchAddr === activeAddr) {
+                                                            activeIndex = i;
+                                                            break;
+                                                        }
+                                                    }
+                                                    
+                                                    // Determine target window
+                                                    let targetWindow;
+                                                    if (activeIndex === -1) {
+                                                        // App not currently focused → focus first
+                                                        targetWindow = matches[0];
+                                                    } else {
+                                                        // App currently focused → cycle to next
+                                                        targetWindow = matches[(activeIndex + 1) % matches.length];
+                                                    }
+                                                    
+                                                    // Focus target window
+                                                    const targetIpc = targetWindow.lastIpcObject;
+                                                    const targetAddr = appWrapper.normalizeAddress(targetIpc?.address);
+                                                    const targetWsId = targetIpc?.workspace?.id ?? 1;
+                                                    Hyprland.dispatch(`workspace ${targetWsId}`);
+                                                    Hyprland.dispatch(`focuswindow address:${targetAddr}`);
+                                                }
+                                                
+                                                root.visibilities.bottomPanel = false;
+                                            }
+                                            pinnedState.endDrag();
+                                        }
+                                        isPressing = false;
+                                    }
+                                }
+                                onCanceled: {
+                                    if (pinnedState.draggedAppId === appId)
+                                        pinnedState.cancelDrag();
+                                    isPressing = false;
                                 }
                             }
                         }
@@ -629,5 +1172,452 @@ Item {
             }
         }
     }
-}
 
+    // Global backdrop to close menu when clicking outside (at root level to cover entire screen)
+    MouseArea {
+        visible: root.contextMenuVisible
+        anchors.fill: parent
+        z: 9999
+        onClicked: root.hideContextMenu()
+    }
+
+    // Menu card — positioned at root level above the panel
+    Elevation {
+        id: menuContainer
+        x: root.contextMenuX
+        y: root.height + root.bottomMargin - 80 - implicitHeight - 8
+        radius: Tokens.rounding.normal
+        level: 2
+        z: 10000
+        visible: root.contextMenuVisible
+
+        implicitWidth: Math.max(200, menuCol.implicitWidth + Tokens.padding.small * 2)
+        implicitHeight: Math.min(
+            menuCol.implicitHeight + Tokens.padding.small * 2,
+            350
+        )
+
+        scale: root.contextMenuVisible ? 1 : 0.85
+        transformOrigin: Item.Bottom
+        opacity: root.contextMenuVisible ? 1 : 0
+
+        readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+
+        Behavior on opacity {
+            NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+        }
+
+        Behavior on scale {
+            NumberAnimation { duration: 250; easing.type: Easing.BezierSpline; easing.bezierCurve: menuContainer.m3Emphasized }
+        }
+
+        Behavior on x {
+            NumberAnimation { duration: 250; easing.type: Easing.BezierSpline; easing.bezierCurve: menuContainer.m3Emphasized }
+        }
+
+        Behavior on y {
+            NumberAnimation { duration: 250; easing.type: Easing.BezierSpline; easing.bezierCurve: menuContainer.m3Emphasized }
+        }
+
+        StyledRect {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Colours.palette.m3surfaceContainerLow
+            clip: true
+
+            // Sliding hover highlight marker
+            StyledRect {
+                id: contextMenuHoverHighlight
+                visible: root.contextMenuHoveredItem !== null
+                opacity: visible ? 0.08 : 0
+                color: Colours.palette.m3onSurface
+                radius: Tokens.rounding.small
+                
+                // Position it matching the hoveredItem
+                x: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.mapToItem(parent, 0, 0).x : 0
+                y: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.mapToItem(parent, 0, 0).y : 0
+                width: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.width : 0
+                height: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.height : 0
+
+                Behavior on x {
+                    enabled: contextMenuHoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on y {
+                    enabled: contextMenuHoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
+
+            QCtls.ScrollView {
+                anchors.fill: parent
+                clip: true
+                QCtls.ScrollBar.vertical.policy: QCtls.ScrollBar.AsNeeded
+                QCtls.ScrollBar.horizontal.visible: false
+
+                ColumnLayout {
+                            id: menuCol
+                            width: parent.width
+                            spacing: 0
+                            anchors.fill: parent
+                            anchors.margins: Tokens.padding.small
+
+                            readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+
+                            // Running windows (if any)
+                            Repeater {
+                                model: root.contextMenuWindows ?? []
+
+                                StyledRect {
+                                    id: windowItem
+                                    required property int index
+                                    required property var modelData
+                                    readonly property bool active: windowState.containsMouse || windowState.pressed
+
+                                    Layout.fillWidth: true
+                                    implicitHeight: windowRow.implicitHeight + Tokens.padding.normal * 2
+
+                                    opacity: root.contextMenuVisible && visible ? 1 : 0
+                                    scale: root.contextMenuVisible && visible ? 1 : 0.95
+                                    transformOrigin: Item.Top
+                                    visible: true
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: menuCol.m3Emphasized }
+                                    }
+
+                                    Behavior on scale {
+                                        NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: menuCol.m3Emphasized }
+                                    }
+
+                                    Timer {
+                                        id: closeAnimationTimer
+                                        interval: 200
+                                        onTriggered: {
+                                            const win = windowItem.modelData;
+                                            if (win && win.address) {
+                                                Hyprland.dispatch(`closewindow address:${win.address}`);
+                                            }
+                                        }
+                                    }
+
+                                    radius: Tokens.rounding.small
+                                    topLeftRadius: Tokens.rounding.small
+                                    topRightRadius: Tokens.rounding.small
+                                    bottomLeftRadius: Tokens.rounding.small
+                                    bottomRightRadius: Tokens.rounding.small
+                                    color: "transparent"
+
+                                    Behavior on color { ColorAnimation { duration: 200 } }
+
+                                    StateLayer {
+                                        id: windowState
+                                        radius: parent.radius
+                                        topLeftRadius: parent.topLeftRadius
+                                        topRightRadius: parent.topRightRadius
+                                        bottomLeftRadius: parent.bottomLeftRadius
+                                        bottomRightRadius: parent.bottomRightRadius
+                                        color: windowItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                        disabled: !root.contextMenuVisible
+                                        hoverEnabled: false
+
+                                        onClicked: {
+                                            const win = windowItem.modelData;
+                                            if (win) {
+                                                Hyprland.dispatch(`workspace ${win.workspaceId}`);
+                                                Hyprland.dispatch(`focuswindow address:${win.address}`);
+                                                root.hideContextMenu();
+                                                root.visibilities.bottomPanel = false;
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onEntered: {
+                                            if (root.contextMenuVisible) {
+                                                root.contextMenuHoveredItem = windowItem;
+                                            }
+                                        }
+                                        onExited: {
+                                            if (root.contextMenuHoveredItem === windowItem) {
+                                                root.contextMenuHoveredItem = null;
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        id: windowRow
+                                        anchors.fill: parent
+                                        anchors.margins: Tokens.padding.normal
+                                        spacing: Tokens.spacing.normal
+
+                                        MaterialIcon {
+                                            Layout.alignment: Qt.AlignVCenter
+                                            text: "tab"
+                                            color: windowItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                                        }
+
+                                        Item {
+                                            Layout.alignment: Qt.AlignVCenter
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: windowTitle.implicitHeight
+                                            clip: true
+
+                                            StyledText {
+                                                id: windowTitle
+                                                text: windowItem.modelData?.title ?? "Untitled"
+                                                color: windowItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                x: titleScrollAnim.running ? titleScrollAnim.currentX : 0
+
+                                                readonly property real textWidth: implicitWidth
+                                                readonly property real containerWidth: parent.width
+                                                readonly property bool needsScroll: textWidth > containerWidth
+
+                                                SequentialAnimation {
+                                                    id: titleScrollAnim
+                                                    running: root.contextMenuVisible && windowTitle.needsScroll
+                                                    loops: Animation.Infinite
+
+                                                    property real currentX: 0
+
+                                                    PauseAnimation { duration: 800 }
+                                                    NumberAnimation {
+                                                        target: titleScrollAnim
+                                                        property: "currentX"
+                                                        from: 0
+                                                        to: -(windowTitle.textWidth - windowTitle.containerWidth + 20)
+                                                        duration: Math.max(2000, (windowTitle.textWidth - windowTitle.containerWidth) * 15)
+                                                        easing.type: Easing.Linear
+                                                    }
+                                                    PauseAnimation { duration: 800 }
+                                                    NumberAnimation {
+                                                        target: titleScrollAnim
+                                                        property: "currentX"
+                                                        to: 0
+                                                        duration: 400
+                                                        easing.type: Easing.InOutCubic
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Item {
+                                            Layout.alignment: Qt.AlignVCenter
+                                            Layout.preferredWidth: closeIcon.implicitWidth
+                                            Layout.preferredHeight: closeIcon.implicitHeight
+                                            visible: windowItem.active
+                                            opacity: windowItem.active ? 1 : 0
+
+                                            Behavior on opacity {
+                                                NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                            }
+
+                                            MaterialIcon {
+                                                id: closeIcon
+                                                text: "close"
+                                                color: Colours.palette.m3primary
+                                                anchors.centerIn: parent
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    anchors.margins: -4
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        windowItem.opacity = 0;
+                                                        windowItem.scale = 0.85;
+                                                        windowItem.visible = false;
+                                                        closeAnimationTimer.restart();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // "Open New Window"
+                            StyledRect {
+                                id: openItem
+                                readonly property bool active: openNewState.containsMouse || openNewState.pressed
+
+                                Layout.fillWidth: true
+                                implicitHeight: openRow.implicitHeight + Tokens.padding.normal * 2
+
+                                opacity: root.contextMenuVisible ? 1 : 0
+                                scale: root.contextMenuVisible ? 1 : 0.95
+                                transformOrigin: Item.Top
+
+                                radius: Tokens.rounding.small
+                                topLeftRadius: Tokens.rounding.small
+                                topRightRadius: Tokens.rounding.small
+                                bottomLeftRadius: Tokens.rounding.small
+                                bottomRightRadius: Tokens.rounding.small
+
+                                color: "transparent"
+
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: menuCol.m3Emphasized }
+                                }
+
+                                Behavior on scale {
+                                    NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: menuCol.m3Emphasized }
+                                }
+
+                                Behavior on color { ColorAnimation { duration: 200 } }
+
+                                StateLayer {
+                                    id: openNewState
+                                    radius: parent.radius
+                                    topLeftRadius: parent.topLeftRadius
+                                    topRightRadius: parent.topRightRadius
+                                    bottomLeftRadius: parent.bottomLeftRadius
+                                    bottomRightRadius: parent.bottomRightRadius
+
+                                    color: openItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                    disabled: !root.contextMenuVisible
+                                    hoverEnabled: false
+
+                                    onClicked: {
+                                        const e = root.contextMenuEntry();
+                                        if (e) LauncherServices.Apps.launch(e);
+                                        root.hideContextMenu();
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        if (root.contextMenuVisible) {
+                                            root.contextMenuHoveredItem = openItem;
+                                        }
+                                    }
+                                    onExited: {
+                                        if (root.contextMenuHoveredItem === openItem) {
+                                            root.contextMenuHoveredItem = null;
+                                        }
+                                    }
+                                }
+
+                                RowLayout {
+                                    id: openRow
+                                    anchors.fill: parent
+                                    anchors.margins: Tokens.padding.normal
+                                    spacing: Tokens.spacing.normal
+
+                                    MaterialIcon {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        text: "add"
+                                        color: openItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                                    }
+
+                                    StyledText {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        Layout.fillWidth: true
+                                        text: qsTr("Open New Window")
+                                        horizontalAlignment: Text.AlignLeft
+                                        color: openItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                    }
+                                }
+                            }
+
+                            // "Remove from Panel"
+                            StyledRect {
+                                id: removeItem
+                                readonly property bool active: removeState.containsMouse || removeState.pressed
+
+                                Layout.fillWidth: true
+                                implicitHeight: removeRow.implicitHeight + Tokens.padding.normal * 2
+
+                                opacity: root.contextMenuVisible ? 1 : 0
+                                scale: root.contextMenuVisible ? 1 : 0.95
+                                transformOrigin: Item.Top
+
+                                radius: Tokens.rounding.small
+                                topLeftRadius: Tokens.rounding.small
+                                topRightRadius: Tokens.rounding.small
+                                bottomLeftRadius: Tokens.rounding.small
+                                bottomRightRadius: Tokens.rounding.small
+
+                                color: "transparent"
+
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: menuCol.m3Emphasized }
+                                }
+
+                                Behavior on scale {
+                                    NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: menuCol.m3Emphasized }
+                                }
+
+                                Behavior on color { ColorAnimation { duration: 200 } }
+
+                                StateLayer {
+                                    id: removeState
+                                    radius: parent.radius
+                                    topLeftRadius: parent.topLeftRadius
+                                    topRightRadius: parent.topRightRadius
+                                    bottomLeftRadius: parent.bottomLeftRadius
+                                    bottomRightRadius: parent.bottomRightRadius
+
+                                    color: removeItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                    disabled: !root.contextMenuVisible
+                                    hoverEnabled: false
+
+                                    onClicked: {
+                                        const pinned = (root.visibilities.pinnedApps || []).slice();
+                                        const idx = pinned.indexOf(root.contextMenuAppId);
+                                        if (idx > -1) {
+                                            pinned.splice(idx, 1);
+                                            root.visibilities.pinnedApps = pinned;
+                                        }
+                                        root.hideContextMenu();
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: {
+                                        if (root.contextMenuVisible) {
+                                            root.contextMenuHoveredItem = removeItem;
+                                        }
+                                    }
+                                    onExited: {
+                                        if (root.contextMenuHoveredItem === removeItem) {
+                                            root.contextMenuHoveredItem = null;
+                                        }
+                                    }
+                                }
+
+                                RowLayout {
+                                    id: removeRow
+                                    anchors.fill: parent
+                                    anchors.margins: Tokens.padding.normal
+                                    spacing: Tokens.spacing.normal
+
+                                    MaterialIcon {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        text: "keep_off"
+                                        color: removeItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                                    }
+
+                                    StyledText {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        Layout.fillWidth: true
+                                        text: qsTr("Remove from Panel")
+                                        horizontalAlignment: Text.AlignLeft
+                                        color: removeItem.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+        }
+}

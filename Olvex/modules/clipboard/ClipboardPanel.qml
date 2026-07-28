@@ -191,16 +191,24 @@ Item {
                     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.45)
 
                     Image {
+                        id: panelThumb
                         anchors.fill: parent
                         anchors.margins: 1
-                        source: row.isImg ? `file://${row.imgPath}` : ""
+                        source: ""
                         sourceSize: Qt.size(80, 80)
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
+                        cache: false
                         opacity: status === Image.Ready ? 1 : 0
 
                         Behavior on opacity {
                             Anim { type: Anim.FastEffects }
+                        }
+
+                        Timer {
+                            interval: 400
+                            running: row.isImg && panelThumb.source === ""
+                            onTriggered: panelThumb.source = `file://${row.imgPath}`
                         }
                     }
 

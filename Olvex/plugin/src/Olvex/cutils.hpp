@@ -26,6 +26,7 @@ public:
     Q_INVOKABLE QString toLocalFile(const QUrl& url) const;
 
     Q_INVOKABLE static qreal clamp(qreal value, qreal min, qreal max);
+    Q_INVOKABLE bool fileExists(const QString& path) const;
 };
 
 } // namespace olvex

@@ -10,6 +10,8 @@ Item {
     id: root
 
     required property var list
+    required property int index
+    readonly property bool isCurrent: list.currentIndex === index
     readonly property string math: list.search.text.slice(`${GlobalConfig.launcher.actionPrefix}calc `.length)
 
     function onClicked(): void {
@@ -44,6 +46,7 @@ Item {
             text: "function"
             // removed font.pointSize to avoid point/pixel conflict warnings
             Layout.alignment: Qt.AlignVCenter
+            color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
         }
 
         StyledText {
@@ -53,12 +56,13 @@ Item {
                 if (text.includes("error: ") || text.includes("warning: "))
                     return Colours.palette.m3error;
                 if (!root.math)
-                    return Colours.palette.m3onSurfaceVariant;
-                return Colours.palette.m3onSurface;
+                    return isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant;
+                return isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface;
             }
 
             text: root.math.length > 0 ? (Qalculator.result || qsTr("Calculating...")) : qsTr("Type an expression to calculate")
             elide: Text.ElideLeft
+            font.weight: isCurrent ? Font.DemiBold : Font.Normal
 
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter

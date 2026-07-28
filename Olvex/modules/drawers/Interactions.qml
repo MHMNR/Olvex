@@ -235,7 +235,7 @@ CustomMouseArea {
                 visibilities.launcher = false;
         }
 
-        if (visibilities.wallpaperLauncher && inBottomPanel(panels.launcher, x, y))
+        if (visibilities.wallpaperLauncher && inBottomPanel(panels.wallpaperSelector, x, y))
             wallpaperShortcutActive = false;
 
         // Peek dashboard on hover
@@ -295,11 +295,6 @@ CustomMouseArea {
         function onLauncherChanged() {
             if (root.visibilities.launcher) {
                 root.launcherHoverDisabled = false;
-                if (root.visibilities.wallpaperLauncher) {
-                    const inLauncherArea = root.inBottomPanel(root.panels.launcher, root.mouseX, root.mouseY);
-                    if (!inLauncherArea)
-                        root.wallpaperShortcutActive = true;
-                }
             } else {
                 // If launcher is hidden, clear shortcut flags for dashboard and OSD
                 root.dashboardShortcutActive = false;
@@ -384,9 +379,9 @@ CustomMouseArea {
         }
 
         function onWallpaperLauncherChanged() {
-            if (root.visibilities.launcher && root.visibilities.wallpaperLauncher) {
-                const inLauncherArea = root.inBottomPanel(root.panels.launcher, root.mouseX, root.mouseY);
-                if (!inLauncherArea)
+            if (root.visibilities.wallpaperLauncher) {
+                const inWallpaperArea = root.inBottomPanel(root.panels.wallpaperSelector, root.mouseX, root.mouseY);
+                if (!inWallpaperArea)
                     root.wallpaperShortcutActive = true;
             } else {
                 root.wallpaperShortcutActive = false;

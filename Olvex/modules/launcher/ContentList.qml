@@ -19,17 +19,14 @@ Item {
     required property int rounding
 
     readonly property int appsPaneHeight: Math.min(maxHeight, 490)
-    readonly property bool showWallpapers: visibilities.wallpaperLauncher || search.text.startsWith(`${GlobalConfig.launcher.actionPrefix}wallpaper `)
-    readonly property var currentList: showWallpapers ? wallpaperList.item : appList.item
+    readonly property var currentList: appList.item
 
     function suspendLists(): void {
         appList.item?.suspend?.();
-        wallpaperList.item?.suspend?.();
     }
 
     function resumeLists(): void {
         appList.item?.resume?.();
-        wallpaperList.item?.resume?.();
     }
 
     Connections {
@@ -40,73 +37,33 @@ Item {
         }
     }
 
-    onStateChanged: {
-        if (state === "wallpapers")
-            appList.item?.suspend?.();
-        else
-            wallpaperList.item?.suspend?.();
-    }
-
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.bottom: parent.bottom
 
-    implicitWidth: showWallpapers
-        ? (wallpaperList.item?.implicitWidth ?? Tokens.sizes.launcher.itemWidth * 1.2)
-        : (appList.item?.implicitWidth ?? 590)
-    implicitHeight: showWallpapers
-        ? (wallpaperList.item?.implicitHeight ?? Tokens.sizes.launcher.wallpaperHeight)
-        : appsPaneHeight
+    implicitWidth: appList.item?.implicitWidth ?? 590
+    implicitHeight: appsPaneHeight
 
     width: implicitWidth
     height: implicitHeight
 
     clip: true
-    state: showWallpapers ? "wallpapers" : "apps"
 
-    states: [
-        State {
-            name: "apps"
-
-            AnchorChanges {
-                anchors.left: root.parent.left
-                anchors.right: root.parent.right
-            }
-        },
-        State {
-            name: "wallpapers"
-        }
-    ]
+    // Always apps mode — wallpapers live in their own independent drawer
+    anchors.left: parent.left
+    anchors.right: parent.right
 
     Loader {
         id: appList
 
-        active: root.state === "apps"
-        visible: root.state === "apps"
+        active: true
+        visible: true
 
         anchors.fill: parent
 
         sourceComponent: AppList {
             search: root.search
             visibilities: root.visibilities
-        }
-    }
-
-    Loader {
-        id: wallpaperList
-
-        asynchronous: true
-        active: root.state === "wallpapers"
-        visible: root.state === "wallpapers"
-
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-
-        sourceComponent: WallpaperList {
-            search: root.search
-            visibilities: root.visibilities
             panels: root.panels
-            content: root.content
         }
     }
 
@@ -129,7 +86,7 @@ Item {
             anchors.centerIn: parent
 
             MaterialIcon {
-                text: root.state === "wallpapers" ? "wallpaper_slideshow" : "manage_search"
+                text: "manage_search"
                 color: Colours.palette.m3onSurfaceVariant
                 iconPointSize: Tokens.font.size.extraLarge
 
@@ -140,14 +97,14 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
 
                 StyledText {
-                    text: root.state === "wallpapers" ? qsTr("No wallpapers found") : qsTr("No results")
+                    text: qsTr("No results")
                     color: Colours.palette.m3onSurfaceVariant
                     textPointSize: Tokens.font.size.larger
                     font.weight: 500
                 }
 
                 StyledText {
-                    text: root.state === "wallpapers" && Wallpapers.list.length === 0 ? qsTr("Try putting some wallpapers in %1").arg(Paths.shortenHome(Paths.wallsdir)) : qsTr("Try searching for something else")
+                    text: qsTr("Try searching for something else")
                     color: Colours.palette.m3onSurfaceVariant
                     textPointSize: Tokens.font.size.normal
                 }

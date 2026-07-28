@@ -38,28 +38,13 @@ SectionContainer {
         }
     }
 
-    RowLayout {
+    SwitchRow {
         Layout.fillWidth: true
-        spacing: Tokens.spacing.normal
-
-        SwitchRow {
-            Layout.fillWidth: true
-            label: qsTr("Show Dashboard tab")
-            checked: root.rootItem.showDashboard
-            onToggled: checked => {
-                root.rootItem.showDashboard = checked;
-                root.rootItem.saveConfig();
-            }
-        }
-
-        SwitchRow {
-            Layout.fillWidth: true
-            label: qsTr("Show Weather tab")
-            checked: root.rootItem.showWeather
-            onToggled: checked => {
-                root.rootItem.showWeather = checked;
-                root.rootItem.saveConfig();
-            }
+        label: qsTr("Show Dashboard tab")
+        checked: root.rootItem.showDashboard
+        onToggled: checked => {
+            root.rootItem.showDashboard = checked;
+            root.rootItem.saveConfig();
         }
     }
 

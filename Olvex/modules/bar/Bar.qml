@@ -20,6 +20,7 @@ ColumnLayout {
     required property bool fullscreen
     property var mediaMorph
     readonly property int vPadding: Tokens.padding.large
+    readonly property alias osIcon: osIconWrapper
 
     function expandMediaMorphFromPill(pill: Item, art: Item, controls: Item,
                                       accent: color, buttonSize: int): void {
@@ -245,6 +246,7 @@ ColumnLayout {
 
     // Hardcoded bottom launcher / OS icon (ignores bar.entries order).
     Item {
+        id: osIconWrapper
         Layout.alignment: Qt.AlignHCenter
         Layout.bottomMargin: root.vPadding
         implicitWidth: osIconLoader.implicitWidth

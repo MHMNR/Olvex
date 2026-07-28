@@ -566,22 +566,16 @@ StyledRect {
                                     running: dpMarqueeContainer.needsMarquee && root.visibilities.utilities
                                     loops: Animation.Infinite
 
-                                    PauseAnimation { duration: 2500 }
+                                    PauseAnimation { duration: 1200 }
 
                                     NumberAnimation {
                                         target: dpMarqueeRow
                                         property: "marqueeX"
                                         from: 0
                                         to: -(dpLabelText.implicitWidth + 40)
-                                        duration: Math.max(3000, (dpLabelText.implicitWidth) * 1000 / dpMarqueeContainer.speed)
-                                        easing.type: Easing.InOutQuad
+                                        duration: Math.max(1800, (dpLabelText.implicitWidth) * 1000 / dpMarqueeContainer.speed)
+                                        easing.type: Easing.Linear
                                     }
-
-                                    PauseAnimation { duration: 1500 }
-
-                                    PropertyAnimation { target: dpMarqueeRow; property: "opacity"; to: 0; duration: 400 }
-                                    PropertyAction { target: dpMarqueeRow; property: "marqueeX"; value: 0 }
-                                    PropertyAnimation { target: dpMarqueeRow; property: "opacity"; to: 1; duration: 400 }
                                 }
                             }
                         }

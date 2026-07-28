@@ -4,13 +4,17 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
+import Olvex.Components
+import M3Shapes
 import Olvex.Config
 import Olvex.Services
 import qs.components
 import qs.components.controls
 import qs.services
 import qs.utils
+import "../../../components"
 import "../../../components/effects"
+
 Item {
     id: root
 
@@ -18,6 +22,7 @@ Item {
 
     required property ShellScreen screen
 
+    // ── Backend state (untouched) ──────────────────────────────────────────────
     property bool active: false
     property bool docked: false
     property bool suppressDismiss: false
@@ -41,26 +46,24 @@ Item {
     property real startY: 0
     property real startW: 48
     property real startH: 160
-    
-    // Config properties for expanded card
-    readonly property real endW: 340
-    readonly property real endH: 160
-    readonly property real endRadius: 24
-    readonly property real startRadius: startW / 2
-    readonly property real expandedControlsY: 68
+
+    // ── Card geometry ──────────────────────────────────────────────────────────
+    readonly property real endW: 380
+    readonly property real endH: 180
+    readonly property real endRadius: 28
     readonly property real expandedPlayY: 68
     readonly property real expandedSideButtonY: 72
-    readonly property real expandedProgressY: 108
-    readonly property real expandedProgressHeight: 52
-
-    // M3 expressive spatial — same token curve/duration as rest of Olvex UI
-    readonly property int expandDur: Tokens.anim.durations.expressiveDefaultSpatial
-    readonly property int collapseDur: Tokens.anim.durations.expressiveFastSpatial
+    readonly property real expandedProgressY: 128
+    readonly property real expandedProgressHeight: 36
+    readonly property real startRadius: startW / 2
+    readonly property int expandDur: 430
+    readonly property int collapseDur: 260
     readonly property var spatialEasing: Tokens.anim.expressiveDefaultSpatial
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
-    readonly property int contentRevealDelay: Math.round(expandDur * 0.34)
-    readonly property int progressRevealDelay: Math.round(expandDur * 0.44)
+    readonly property int contentRevealDelay: 172
+    readonly property int progressRevealDelay: 200
     readonly property bool morphAnimating: expandTransition.running || collapseTransition.running
+    readonly property bool opensRight: startX < root.width / 2
 
     readonly property real playerProgress: Players.interpolatedProgress
     readonly property real playerPosition: Players.interpolatedPosition
@@ -78,49 +81,39 @@ Item {
         && (Players.active.canSeek ?? false)
         && (Players.active.positionSupported ?? false)
 
+    // ── Art source helpers ─────────────────────────────────────────────────────
     function updateArtDisplaySource(): void {
         const url = root.musicArtUrl;
-        if (!url) {
-            root.artDisplaySource = "";
-            return;
-        }
+        if (!url) { root.artDisplaySource = ""; return; }
         if (root.artIsLocal) {
             root.artDisplaySource = "";
-            Qt.callLater(() => {
-                if (root.musicArtUrl === url)
-                    root.artDisplaySource = url;
-            });
+            Qt.callLater(() => { if (root.musicArtUrl === url) root.artDisplaySource = url; });
             return;
         }
         root.artDisplaySource = url + "#olvex-art=" + Players.artReloadNonce;
     }
 
     function lengthStr(length: real): string {
-        if (length < 0)
-            return "--:--";
+        if (length < 0) return "--:--";
         let l = length;
-        if (l > 1000000)
-            l /= 1000000;
+        if (l > 1000000) l /= 1000000;
         const hours = Math.floor(l / 3600);
         const mins = Math.floor((l % 3600) / 60);
         const secs = Math.floor(l % 60).toString().padStart(2, "0");
-        if (hours > 0)
-            return `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
+        if (hours > 0) return `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
         return `${mins}:${secs}`;
     }
+
     readonly property real audioIntensity: {
         const values = Audio.cava?.values ?? [];
-        if (!values.length)
-            return Players.active?.isPlaying ? 0.25 : 0.08;
-
+        if (!values.length) return Players.active?.isPlaying ? 0.25 : 0.08;
         let total = 0;
-        for (const value of values)
-            total += Math.max(0, Math.min(1, value));
+        for (const value of values) total += Math.max(0, Math.min(1, value));
         return Math.max(0.08, Math.min(1, total / values.length));
     }
     readonly property real morphAudioIntensity: morphAnimating ? 0.12 : audioIntensity
-    
-    // Real pill element positions (set by start())
+
+    // ── Pill element positions (set by start/syncDock) ─────────────────────────
     property real realArtX: 7
     property real realArtY: 7
     property real realArtW: 34
@@ -132,45 +125,38 @@ Item {
     property real realBtn3X: 9
     property real realBtn3Y: 117
     property real realBtnSize: 30
-    
-    // We compute the expanded X and Y to center the expansion or push it inward
-    // Assuming taskbar is vertical and on the left or right:
-    
-    // Expose pill properties for Regions masking
+
     readonly property real pillX: musicPill.x
     readonly property real pillY: musicPill.y
     readonly property real pillW: musicPill.width
     readonly property real pillH: musicPill.height
-    // If startX is small (left), expand to the right. If startX is large (right), expand to the left.
-    property real endX: startX < root.width / 2 ? startX + startW + 24 : startX - endW - 24
-    // Center it vertically based on the pill
-    property real endY: startY + (startH - endH) / 2
-
-    // Dismissal Layer
-    MouseArea {
-        z: 0
-        anchors.fill: parent
-        enabled: root.active && !root.suppressDismiss
-        hoverEnabled: true
-        onClicked: close()
+    readonly property real targetEndX: opensRight ? startX + startW + 24 : startX - endW - 24
+    property real endX: {
+        const maxX = Math.max(16, root.width - root.endW - 16);
+        return Math.max(16, Math.min(maxX, root.targetEndX));
+    }
+    property real endY: {
+        const targetY = startY + (startH - endH) / 2;
+        const maxY = Math.max(16, root.height - root.endH - 16);
+        return Math.max(16, Math.min(maxY, targetY));
     }
 
+    visible: !!Players.active
+    z: 2000
+
+    // ── Layout helpers ─────────────────────────────────────────────────────────
     function applyLayout(x: real, y: real, w: real, h: real, color: color,
                          artX: real, artY: real, artW: real, artH: real,
                          btn1X: real, btn1Y: real,
                          btn2X: real, btn2Y: real,
                          btn3X: real, btn3Y: real,
                          btnSize: real): void {
-        startX = x;
-        startY = y;
-        startW = w;
-        startH = h;
+        startX = x; startY = y; startW = w; startH = h;
         realArtX = artX; realArtY = artY; realArtW = artW; realArtH = artH;
         realBtn1X = btn1X; realBtn1Y = btn1Y;
         realBtn2X = btn2X; realBtn2Y = btn2Y;
         realBtn3X = btn3X; realBtn3Y = btn3Y;
         realBtnSize = btnSize;
-
         musicPill.x = startX;
         musicPill.y = startY;
         musicPill.width = startW;
@@ -179,12 +165,9 @@ Item {
     }
 
     function resetDockLayout(): void {
-        docked = false;
-        dockLayoutReady = false;
-        _lastDockX = -1;
-        _lastDockY = -1;
-        _dockStableTicks = 0;
-        _dockSyncCount = 0;
+        docked = false; dockLayoutReady = false;
+        _lastDockX = -1; _lastDockY = -1;
+        _dockStableTicks = 0; _dockSyncCount = 0;
     }
 
     function syncDock(x: real, y: real, w: real, h: real, color: color,
@@ -193,29 +176,17 @@ Item {
                       btn2X: real, btn2Y: real,
                       btn3X: real, btn3Y: real,
                       btnSize: real): void {
-        if (root.active)
-            return;
-
+        if (root.active) return;
         applyLayout(x, y, w, h, color, artX, artY, artW, artH,
                     btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
-
-        if (w <= 0 || h <= 0)
-            return;
-
+        if (w <= 0 || h <= 0) return;
         if (Math.abs(x - _lastDockX) < 0.5 && Math.abs(y - _lastDockY) < 0.5)
             _dockStableTicks++;
         else
             _dockStableTicks = 0;
-
-        _lastDockX = x;
-        _lastDockY = y;
-        _dockSyncCount++;
-
-        if (_dockStableTicks >= 3 && _dockSyncCount >= 8)
-            dockLayoutReady = true;
-
-        if (!active)
-            musicPill.state = "compact";
+        _lastDockX = x; _lastDockY = y; _dockSyncCount++;
+        if (_dockStableTicks >= 3 && _dockSyncCount >= 8) dockLayoutReady = true;
+        if (!active) musicPill.state = "compact";
     }
 
     function start(x: real, y: real, w: real, h: real, color: color,
@@ -231,24 +202,14 @@ Item {
     }
 
     function expand(): void {
-        hideTimer.stop();
-        expandDeferred.stop();
-
+        hideTimer.stop(); expandDeferred.stop();
         const w = startW > 0 ? startW : 48;
         const h = startH > 0 ? startH : 160;
-        if (startW <= 0 || startH <= 0) {
-            startW = w;
-            startH = h;
-        }
-
-        musicPill.x = startX;
-        musicPill.y = startY;
-        musicPill.width = w;
-        musicPill.height = h;
+        if (startW <= 0 || startH <= 0) { startW = w; startH = h; }
+        musicPill.x = startX; musicPill.y = startY;
+        musicPill.width = w; musicPill.height = h;
         musicPill.radius = w / 2;
-
-        dockLayoutReady = true;
-        docked = false;
+        dockLayoutReady = true; docked = false;
         root.suppressDismiss = true;
         active = true;
         musicPill.state = "compact";
@@ -262,18 +223,12 @@ Item {
         hideTimer.start();
     }
 
-    visible: !!Players.active
-    z: 2000
-
+    // ── Connections / lifecycle ────────────────────────────────────────────────
     Connections {
         target: Players
         function onActiveChanged() {
-            if (!Players.active) {
-                root.active = false;
-                root.resetDockLayout();
-            } else {
-                root.resetDockLayout();
-            }
+            if (!Players.active) { root.active = false; root.resetDockLayout(); }
+            else root.resetDockLayout();
         }
     }
 
@@ -284,167 +239,124 @@ Item {
 
     Connections {
         target: Players
-        function onCurrentArtUrlChanged() {
-            root.updateArtDisplaySource();
-        }
-        function onArtReloadNonceChanged() {
-            root.updateArtDisplaySource();
-        }
+        function onCurrentArtUrlChanged() { root.updateArtDisplaySource(); }
+        function onArtReloadNonceChanged() { root.updateArtDisplaySource(); }
     }
 
-    Component.onDestruction: {
-        Players.unregisterMediaMorph(root.screen.name, root);
-    }
+    Component.onDestruction: { Players.unregisterMediaMorph(root.screen.name, root); }
 
     Timer {
-        id: expandDeferred
-        interval: 16
-        repeat: false
-        onTriggered: {
-            if (!root.active)
-                return;
-            musicPill.state = "expanded";
-            dismissGuard.restart();
-        }
+        id: expandDeferred; interval: 16; repeat: false
+        onTriggered: { if (!root.active) return; musicPill.state = "expanded"; dismissGuard.restart(); }
     }
-
     Timer {
-        id: hideTimer
-        interval: root.collapseDur + 40
-        onTriggered: {
-            root.active = false;
-            root.docked = false;
-            root.dockLayoutReady = false;
-        }
+        id: hideTimer; interval: root.collapseDur + 40
+        onTriggered: { root.active = false; root.docked = false; root.dockLayoutReady = false; }
     }
-
-    Timer {
-        id: dismissGuard
-        interval: 200
-        repeat: false
-        onTriggered: root.suppressDismiss = false
-    }
+    Timer { id: dismissGuard; interval: 200; repeat: false; onTriggered: root.suppressDismiss = false }
 
     Keys.onEscapePressed: close()
 
-
-
-    readonly property bool needsCava: Players.active
-        && (Players.active.isPlaying ?? false)
-
+    // ── Cava service ──────────────────────────────────────────────────────────
+    readonly property bool needsCava: Players.active && (Players.active.isPlaying ?? false)
     Loader {
         active: root.needsCava
         sourceComponent: Component {
             Item {
-                ServiceRef {
-                    service: Audio.cava
-                }
+                ServiceRef { service: Audio.cava }
                 Connections {
                     target: Audio.cava
-                    function onValuesChanged(): void {
-                        CpuProfile.bump("cavaValuesChanged");
-                    }
+                    function onValuesChanged(): void { CpuProfile.bump("cavaValuesChanged"); }
                 }
             }
         }
     }
 
+    // ── Dismiss layer ─────────────────────────────────────────────────────────
+    MouseArea {
+        z: 0; anchors.fill: parent
+        enabled: root.active && !root.suppressDismiss
+        hoverEnabled: true
+        onClicked: close()
+    }
 
-    // ── The Morphing Card ────────────────────────────────────────────────────────
+    // ── Control button — shared component (qs.components/MorphControlButton.qml),
+    //    identical to the bar music pill so the pill→card morph stays seamless ──
+
+    // ── The morphing card ──────────────────────────────────────────────────────
     Rectangle {
         id: musicPill
 
         z: 1
         opacity: root.active ? 1 : 0
         enabled: root.active
-
-        // Initial setup
-        x: root.startX
-        y: root.startY
-        width: root.startW
-        height: root.startH
+        x: root.startX; y: root.startY
+        width: root.startW; height: root.startH
         radius: root.startRadius
         clip: true
+        color: "transparent"
 
-        color: Players.musicSurfaceColor
-
-        layer.enabled: root.morphAnimating
-        layer.smooth: true
-        
-        state: "compact"
-
-        // Dynamic Island squash — subtle horizontal bloom on expand, vertical on collapse
         property real morphSquashX: 1.0
         property real morphSquashY: 1.0
+        property real morphLift: 0.0
+        // Crossfades compact visual layer → card visual layer during morph (1=compact, 0=expanded)
+        property real compactFade: 1.0
 
         transform: [
+            Translate { x: root.opensRight ? musicPill.morphLift : -musicPill.morphLift; y: 0 },
             Scale {
-                origin.x: musicPill.width / 2
+                origin.x: root.opensRight ? 0 : musicPill.width
                 origin.y: musicPill.height / 2
                 xScale: musicPill.morphSquashX
                 yScale: musicPill.morphSquashY
             }
         ]
 
+        layer.enabled: root.morphAnimating
+        layer.smooth: true
+        state: "compact"
 
+        // ── Card background — matches pill: surfaceColor + m3surfaceTint tonal ──
         Rectangle {
-            id: topShade
             anchors.fill: parent
-            opacity: 0
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Players.musicSurfaceColor }
-                GradientStop { position: 0.55; color: Qt.alpha(Players.musicSurfaceColor, 0.82) }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
+            radius: musicPill.radius
+            color: Players.musicSurfaceColor
+            Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
 
-            Behavior on opacity {
-                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
             }
         }
 
-        // ── Canvas-based Smooth Neon Visualizer (No bleed) ───────────────────────
+
+
+        // ── Neon wave visualizer ───────────────────────────────────────────────
         StyledClippingRect {
-            id: visualizerContainer
             anchors.fill: parent
-            radius: parent.radius
+            radius: musicPill.radius
             color: "transparent"
 
             NeonWaveVisualizer {
                 anchors.fill: parent
                 accentColor: root.resolvedVisualizerAccent
-                numBands: root.morphAnimating ? 16 : 32
+                numBands: 32
                 maxHeightRatio: 0.8
                 valueMultiplier: 1.5
-                active: (Players.active?.isPlaying ?? false) && !root.morphAnimating
-                frameInterval: musicPill.state === "expanded" ? 16 : 33
+                active: Players.active?.isPlaying ?? false
+                frameInterval: 33
             }
         }
 
-        // Absorb clicks on the card so the dismiss layer only fires outside the card
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            onClicked: (mouse) => {
-                mouse.accepted = true;
-                if (root.seekPreview >= 0)
-                    return;
-                if (musicPill.state === "expanded")
-                    return;
-                if (!root.active)
-                    root.expand();
-            }
-        }
-
-
+        // ── Art — StyledClippingRect (backup pattern: default pos = pill pos, states drive everything) ──
         StyledClippingRect {
             id: musicIcon
-            // No visible binding - it lives forever and morphs
+            x: 7; y: 7
             width: 34; height: 34; radius: 17
             color: root.hasMusicArt
-                ? Qt.rgba(1, 1, 1, 0.08)
-                : Qt.hsla(root.resolvedVisualizerAccent.hslHue, root.resolvedVisualizerAccent.hslSaturation, root.resolvedVisualizerAccent.hslLightness * 0.75, 1)
-            x: 7
-            y: 7
+                ? Qt.alpha(Players.musicOnSurfaceColor, 0.10)
+                : Qt.alpha(root.musicAccent, 0.22)
 
             Image {
                 id: artImage
@@ -455,254 +367,246 @@ Item {
                 cache: !root.artIsLocal
                 opacity: status === Image.Ready && source !== "" ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: 300 } }
-
             }
             MaterialIcon {
                 id: musicPlaceholderIcon
                 anchors.centerIn: parent
                 text: "music_note"
-                color: root.hasMusicArt ? Qt.rgba(1, 1, 1, 0.4) : root.musicOnAccent
-                iconPointSize: 14
+                color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.4) : root.musicOnAccent
+                font.pointSize: 14
                 visible: !root.hasMusicArt || artImage.status !== Image.Ready
             }
         }
 
-        // Track Info
+        // ── Track info (title + artist) — single Column, backup pattern ──────────
+        // titleChip = dummy for opacity animation compat with transitions
+        Item { id: titleChip; opacity: 0 }
+
         Column {
             id: trackInfo
+            x: 116; y: 18
             width: 204
             spacing: 2
-            x: 116
-            y: 18
             opacity: 0
 
             StyledText {
                 width: parent.width
-                text: Players.active ? (Players.active.trackTitle || "Unknown Title") : "Nothing Playing"
-                color: Players.musicOnSurfaceColor; textPointSize: Tokens.font.size.normal
-                font.weight: 600; elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
+                text: Players.active ? (Players.active.trackTitle || qsTr("Unknown Title")) : ""
+                color: Players.musicOnSurfaceColor
+                textPointSize: Tokens.font.size.normal
+                font.weight: 600
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignLeft
             }
             StyledText {
                 width: parent.width
-                text: Players.active ? (Players.active.trackArtist || "Unknown Artist") : ""
-                color: Qt.alpha(Players.musicOnSurfaceColor, 0.50); textPointSize: Tokens.font.size.small
-                elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
+                text: Players.active ? (Players.active.trackArtist || qsTr("Unknown Artist")) : ""
+                color: Qt.alpha(Players.musicOnSurfaceColor, 0.55)
+                textPointSize: Tokens.font.size.small
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignLeft
             }
         }
 
-        // ── Controls ──────────────────────────────────────
-        Rectangle {
+        // ── Controls surface ───────────────────────────────────────────────────
+        Item { id: controlsSurface; opacity: 0 }
+
+        // ── Buttons z:10 ──────────────────────────────────────────────────────
+        MorphControlButton {
             id: prevBtnContainer
-            width: 30; height: 30; radius: 15; color: "transparent"
-            scale: prevBtnState.pressed ? 0.85 : 1.0
-            Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
-            MaterialIcon {
-                id: prevBtn
-                anchors.centerIn: parent
-                text: "skip_previous"
-                color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                iconPointSize: 14
-            }
-            StateLayer { id: prevBtnState; showRipple: false; enabled: Players.active !== null; onClicked: Players.previous(); radius: parent.radius }
+            z: 10; iconName: "skip_previous"
+            onClicked: Players.previous()
         }
-
-        Rectangle {
+        MorphControlButton {
             id: playBtn
-            width: 30; height: 30
-            radius: (Players.active && Players.active.isPlaying) ? (musicPill.state === "expanded" ? 14 : 10) : height / 2
-            color: Players.active ? root.resolvedPlayButtonBg : "transparent"
-            clip: true
-            scale: playBtnState.pressed ? 0.85 : 1.0
-            Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
-
-            layer.enabled: !root.morphAnimating
-            layer.effect: MultiEffect {
-                maskEnabled: true
-                maskSource: ShaderEffectSource {
-                    live: !root.morphAnimating
-                    hideSource: false
-                    sourceItem: Rectangle {
-                        width: playBtn.width
-                        height: playBtn.height
-                        radius: playBtn.radius
-                        color: "black"
-                    }
-                }
-            }
-
-            MaterialIcon {
-                id: playIcon
-                anchors.centerIn: parent
-                text: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
-                color: Players.active ? root.playIconColor : Qt.rgba(1, 1, 1, 0.4)
-                iconPointSize: 16
-
-                animate: true
-                animateProp: "rotation"
-                animateFrom: 90
-                animateTo: 0
-                animateDuration: 400
-            }
-            StateLayer { id: playBtnState; showRipple: false; radius: parent.radius; enabled: Players.active !== null; onClicked: Players.togglePlaying() }
+            z: 10; emphasized: true
+            spinning: Players.active?.isPlaying ?? false
+            iconName: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
+            onClicked: Players.togglePlaying()
         }
-
-        Rectangle {
+        MorphControlButton {
             id: nextBtnContainer
-            width: 30; height: 30; radius: 15; color: "transparent"
-            scale: nextBtnState.pressed ? 0.85 : 1.0
-            Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
-            MaterialIcon {
-                id: nextBtn
-                anchors.centerIn: parent
-                text: "skip_next"
-                color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                iconPointSize: 14
-            }
-            StateLayer { id: nextBtnState; showRipple: false; enabled: Players.active !== null; onClicked: Players.next(); radius: parent.radius }
+            z: 10; iconName: "skip_next"
+            onClicked: Players.next()
         }
 
+        // ── Click absorber z:5 ────────────────────────────────────────────────
+        MouseArea {
+            z: 5; anchors.fill: parent; hoverEnabled: true
+            enabled: musicPill.state !== "expanded"
+            onClicked: (mouse) => {
+                mouse.accepted = true
+                if (root.seekPreview >= 0) return
+                if (!root.active) root.expand()
+            }
+        }
 
+        // ── Progress bar ───────────────────────────────────────────────────────
         Item {
             id: expandedContent
-            // No hardcoded visible binding — relies on opacity fades via trackInfo and expandedProgressWrap
             anchors.fill: parent
-
-            // expandedArt was removed because musicIcon now morphs seamlessly into its position
-
-            // expandedControls completely removed as morphed buttons (prevBtnContainer, playBtn, nextBtnContainer) 
-            // now serve as the actual buttons in both states.
+            opacity: 0
 
             Item {
                 id: expandedProgressWrap
-                x: 24
-                y: root.expandedProgressY
-                width: parent.width - 48
+                x: 24; y: root.expandedProgressY
+                width: musicPill.width - 48
                 height: root.expandedProgressHeight
 
-                RowLayout {
-                    id: progressTimes
-                    anchors.top: parent.top
+                Text {
+                    id: timeElapsed
                     anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.lengthStr(root.displayPosition)
+                    color: Qt.alpha(Players.musicOnSurfaceColor, 0.45)
+                    font.pixelSize: 11
+                    font.family: Tokens.font.family.mono
+                    font.weight: Font.Medium
+                }
+
+                Text {
+                    id: timeTotal
                     anchors.right: parent.right
-                    spacing: 0
-
-                    StyledText {
-                        text: root.lengthStr(Players.active ? root.displayPosition : -1)
-                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.50)
-                        textPointSize: Tokens.font.size.smaller
-                        font.weight: Font.Medium
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    StyledText {
-                        text: root.lengthStr(root.playerLength > 0 ? root.playerLength : -1)
-                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.50)
-                        textPointSize: Tokens.font.size.smaller
-                        font.weight: Font.Medium
-                    }
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.lengthStr(root.playerLength)
+                    color: Qt.alpha(Players.musicOnSurfaceColor, 0.45)
+                    font.pixelSize: 11
+                    font.family: Tokens.font.family.mono
+                    font.weight: Font.Medium
                 }
 
                 Item {
-                    id: progressBarArea
-                    anchors.top: progressTimes.bottom
-                    anchors.topMargin: 6
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
+                    id: progressTrackRow
+                    anchors.left: timeElapsed.right; anchors.right: timeTotal.left
+                    anchors.leftMargin: 10; anchors.rightMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: 28
 
-                    MouseArea {
-                        id: progressSeekArea
-                        anchors.fill: parent
-                        anchors.topMargin: -10
-                        anchors.bottomMargin: -10
-                        enabled: musicPill.state === "expanded" && root.canSeek
-                        hoverEnabled: true
-                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        preventStealing: true
-                        z: 10
+                    // M3 Expressive seekbar tokens
+                    readonly property real activeThickness: 4
+                    readonly property real inactiveThickness: 4
+                    readonly property real thumbW: dragging ? 6 : 4
+                    readonly property real thumbH: dragging ? 26 : 18
+                    readonly property real gap: 6            // thumb ↔ track gap
+                    readonly property bool isPlaying: Players.active?.isPlaying ?? false
+                    property bool dragging: false
 
-                        function fractionAt(mouseX: real): real {
-                            const w = progressBarArea.width;
-                            if (w <= 0)
-                                return 0;
-                            return Math.max(0, Math.min(1, mouseX / w));
-                        }
+                    readonly property real fillW: Math.max(0, Math.min(width, width * root.displayProgress))
+                    // Where the thumb center sits
+                    readonly property real thumbX: fillW
 
-                        onPressed: (mouse) => {
-                            root.seekPreview = fractionAt(mouse.x);
-                            mouse.accepted = true;
-                        }
-
-                        onPositionChanged: (mouse) => {
-                            if (pressed)
-                                root.seekPreview = fractionAt(mouse.x);
-                        }
-
-                        onReleased: (mouse) => {
-                            if (root.seekPreview >= 0)
-                                Players.seekTo(root.seekPreview);
-                            root.seekPreview = -1;
-                            mouse.accepted = true;
-                        }
-
-                        onCanceled: root.seekPreview = -1
-                    }
-
-                    Rectangle {
-                        id: expandedProgressTrack
+                    // ── Active indicator: thick wavy line (value-clipped, no Item clip) ──
+                    WavyLine {
+                        id: waveIndicator
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        height: 3 + root.morphAudioIntensity * 2
-                        radius: height / 2
-                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.15 + root.morphAudioIntensity * 0.05)
-                        z: 1
-                    }
+                        height: progressTrackRow.height
+                        visible: amplitudeMultiplier > 0.001
 
-                    Rectangle {
-                        id: expandedProgressFill
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: root.hasProgressFill
-                            ? Math.max(4, parent.width * root.displayProgress)
+                        lineWidth: progressTrackRow.activeThickness
+                        color: Players.musicVisualizerAccent
+                        frequency: 7
+                        startX: 0
+                        fullLength: progressTrackRow.width
+                        // Draw wave only up to fill, leaving gap before thumb
+                        value: progressTrackRow.width > 0
+                            ? Math.max(0, (progressTrackRow.fillW - progressTrackRow.gap) / progressTrackRow.width)
                             : 0
-                        height: expandedProgressTrack.height
-                        radius: height / 2
-                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.85 + root.morphAudioIntensity * 0.12)
-                        visible: root.hasProgressFill
-                        z: 2
 
-                        layer.enabled: !root.morphAnimating
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: Qt.alpha(root.resolvedVisualizerAccent, 0.92)
-                            shadowOpacity: 0.75 + root.morphAudioIntensity * 0.20
-                            shadowBlur: 0.85
-                            shadowHorizontalOffset: 0
-                            shadowVerticalOffset: 0
+                        // Playing → wavy; seeking or paused → flat (rect below takes over)
+                        // amplitude = lineWidth × mult = 4 × 1.6 = 6.4px peak (swing >> half-width → no flat baseline edge)
+                        amplitudeMultiplier: (root.seekPreview >= 0 || !progressTrackRow.isPlaying) ? 0 : 1.6
+
+                        Behavior on amplitudeMultiplier {
+                            NumberAnimation {
+                                duration: Tokens.anim.durations.expressiveDefaultEffects
+                                easing: Tokens.anim.emphasizedDecel
+                            }
+                        }
+                        Behavior on value { NumberAnimation { duration: 60; easing.type: Easing.OutCubic } }
+
+                        Anim on waveProgress {
+                            running: waveIndicator.amplitudeMultiplier > 0
+                            from: 0; to: 1
+                            duration: 900
+                            easing.type: Easing.Linear
+                            loops: Animation.Infinite
                         }
                     }
 
+                    // ── Active flat fill — shown when paused/seeking (no wave) ──────
                     Rectangle {
-                        id: expandedProgressThumb
+                        anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        x: root.hasProgressFill ? Math.max(0, expandedProgressFill.width - width / 2) : 0
-                        width: expandedProgressTrack.height + 8
-                        height: width
-                        radius: width / 2
-                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.95 + root.morphAudioIntensity * 0.03)
-                        visible: root.hasProgressFill
-                        z: 3
+                        width: Math.max(0, progressTrackRow.fillW - progressTrackRow.gap)
+                        height: progressTrackRow.activeThickness
+                        radius: height / 2
+                        color: Players.musicVisualizerAccent
+                        visible: waveIndicator.amplitudeMultiplier <= 0.001
+                        Behavior on width {
+                            enabled: !progressTrackRow.dragging
+                            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                        }
+                    }
 
-                        layer.enabled: !root.morphAnimating
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: Qt.alpha(root.resolvedVisualizerAccent, 0.88)
-                            shadowOpacity: 0.70 + root.morphAudioIntensity * 0.25
-                            shadowBlur: 0.80
-                            shadowHorizontalOffset: 0
-                            shadowVerticalOffset: 0
+                    // ── Inactive (remaining) track — from thumb gap to right edge ──
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: progressTrackRow.thumbX + progressTrackRow.gap
+                        width: Math.max(0, progressTrackRow.width - x)
+                        height: progressTrackRow.inactiveThickness
+                        radius: height / 2
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.22)
+
+                        Behavior on x {
+                            enabled: !progressTrackRow.dragging
+                            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                        }
+                    }
+
+                    // ── Stadium thumb — grows on press (M3 Expressive) ─────────────
+                    Rectangle {
+                        id: seekThumb
+                        visible: root.canSeek
+                        x: progressTrackRow.thumbX - width / 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: progressTrackRow.thumbW
+                        height: progressTrackRow.thumbH
+                        radius: width / 2
+                        color: Players.musicOnSurfaceColor
+
+                        Behavior on x {
+                            enabled: !progressTrackRow.dragging
+                            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                        }
+                        Behavior on width { SpringAnimation { spring: 5.0; damping: 0.7; epsilon: 0.01 } }
+                        Behavior on height { SpringAnimation { spring: 5.0; damping: 0.7; epsilon: 0.01 } }
+                    }
+
+                    // ── Seek interaction ───────────────────────────────────────
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.topMargin: -8; anchors.bottomMargin: -8
+                        enabled: root.canSeek && musicPill.state === "expanded"
+                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onPressed: (mouse) => {
+                            progressTrackRow.dragging = true
+                            root.seekPreview = Math.max(0, Math.min(1, mouse.x / width))
+                        }
+                        onReleased: {
+                            progressTrackRow.dragging = false
+                            if (root.seekPreview >= 0) {
+                                Players.seekTo(root.seekPreview)
+                                root.seekPreview = -1
+                            }
+                        }
+                        onPositionChanged: (mouse) => {
+                            if (pressed) root.seekPreview = Math.max(0, Math.min(1, mouse.x / width))
+                        }
+                        onCanceled: {
+                            progressTrackRow.dragging = false
+                            root.seekPreview = -1
                         }
                     }
                 }
@@ -712,228 +616,108 @@ Item {
         states: [
             State {
                 name: "compact"
-                PropertyChanges { target: musicPill; x: root.startX; y: root.startY; width: root.startW; height: root.startH; radius: root.startRadius }
-                PropertyChanges { target: musicIcon; width: root.realArtW; height: root.realArtH; radius: root.realArtH / 2; x: root.realArtX; y: root.realArtY }
-                PropertyChanges { target: trackInfo; opacity: 0 }
-                PropertyChanges { target: expandedProgressWrap; opacity: 0 }
-                // Compact buttons: visible at compact positions, compact styling
-                PropertyChanges { target: prevBtnContainer; x: root.realBtn1X; y: root.realBtn1Y; opacity: 1; width: root.realBtnSize; height: root.realBtnSize; radius: root.realBtnSize / 2; color: "transparent" }
-                PropertyChanges { target: playBtn; x: root.realBtn2X; y: root.realBtn2Y; width: root.realBtnSize; height: root.realBtnSize; color: root.resolvedPlayButtonBg }
-                PropertyChanges { target: nextBtnContainer; x: root.realBtn3X; y: root.realBtn3Y; opacity: 1; width: root.realBtnSize; height: root.realBtnSize; radius: root.realBtnSize / 2; color: "transparent" }
-                PropertyChanges { target: playIcon; iconPointSize: Tokens.font.size.larger; color: root.playIconColor }
-                PropertyChanges { target: prevBtn; iconPointSize: Tokens.font.size.large; color: Colours.palette.m3onSurfaceVariant }
-                PropertyChanges { target: nextBtn; iconPointSize: Tokens.font.size.large; color: Colours.palette.m3onSurfaceVariant }
+                PropertyChanges { target: musicPill; x: root.startX; y: root.startY; width: root.startW; height: root.startH; radius: root.startRadius; compactFade: 1.0 }
+                PropertyChanges { target: musicIcon; x: root.realArtX; y: root.realArtY; width: root.realArtW; height: root.realArtH; radius: root.realArtH / 2 }
+                PropertyChanges { target: titleChip; opacity: 0 }
+                PropertyChanges { target: trackInfo; opacity: 0; y: 26 }
+                PropertyChanges { target: controlsSurface; opacity: 0 }
+                PropertyChanges { target: expandedContent; opacity: 0 }
+                PropertyChanges { target: prevBtnContainer; x: root.realBtn1X; y: root.realBtn1Y; width: root.realBtnSize; height: root.realBtnSize; radius: root.realBtnSize / 2; iconSize: Tokens.font.size.large }
+                PropertyChanges { target: playBtn;          x: root.realBtn2X; y: root.realBtn2Y; width: root.realBtnSize; height: root.realBtnSize; radius: root.realBtnSize / 2; iconSize: Tokens.font.size.larger }
+                PropertyChanges { target: nextBtnContainer; x: root.realBtn3X; y: root.realBtn3Y; width: root.realBtnSize; height: root.realBtnSize; radius: root.realBtnSize / 2; iconSize: Tokens.font.size.large }
             },
             State {
                 name: "expanded"
-                PropertyChanges { target: musicPill; x: root.endX; y: root.endY; width: root.endW; height: root.endH; radius: root.endRadius }
-                PropertyChanges { target: musicIcon; width: 80; height: 80; radius: 16; x: 20; y: 20 }
-                PropertyChanges { target: trackInfo; opacity: 1 }
-                PropertyChanges { target: expandedProgressWrap; opacity: 1 }
-                // Compact buttons morph INTO expanded style — no second button set needed
-                PropertyChanges { target: prevBtnContainer; x: 138; y: root.expandedSideButtonY; opacity: 1; width: 40; height: 40; radius: 20; color: "transparent" }
-                PropertyChanges { target: playBtn; x: 190; y: root.expandedPlayY; width: 48; height: 48; color: root.resolvedPlayButtonBg }
-                PropertyChanges { target: nextBtnContainer; x: 250; y: root.expandedSideButtonY; opacity: 1; width: 40; height: 40; radius: 20; color: "transparent" }
-                PropertyChanges { target: playIcon; iconPointSize: 24; color: root.playIconColor }
-                PropertyChanges { target: prevBtn; iconPointSize: 20; color: Players.musicOnSurfaceColor }
-                PropertyChanges { target: nextBtn; iconPointSize: 20; color: Players.musicOnSurfaceColor }
+                PropertyChanges { target: musicPill; x: root.endX; y: root.endY; width: root.endW; height: root.endH; radius: root.endRadius; compactFade: 0.0 }
+                PropertyChanges { target: musicIcon; x: 20; y: 20; width: 80; height: 80; radius: 16 }
+                PropertyChanges { target: titleChip; opacity: 1 }
+                PropertyChanges { target: trackInfo; opacity: 1; y: 18 }
+                PropertyChanges { target: controlsSurface; opacity: 1 }
+                PropertyChanges { target: expandedContent; opacity: 1 }
+                PropertyChanges { target: prevBtnContainer; x: 138; y: root.expandedSideButtonY; width: 40; height: 40; radius: 20; iconSize: 18 }
+                PropertyChanges { target: playBtn;          x: 190; y: root.expandedPlayY;        width: 48; height: 48; radius: 24; iconSize: 22 }
+                PropertyChanges { target: nextBtnContainer; x: 250; y: root.expandedSideButtonY; width: 40; height: 40; radius: 20; iconSize: 18 }
             }
         ]
 
+        // ── Transitions ────────────────────────────────────────────────────────
         transitions: [
             Transition {
                 id: expandTransition
                 from: "compact"; to: "expanded"
                 ParallelAnimation {
-                    NumberAnimation {
-                        targets: [musicPill]
-                        properties: "width,x"
-                        duration: root.expandDur
-                        easing: root.spatialEasing
+                    // Container bounds travel — full expand duration (Layer 1)
+                    NumberAnimation { targets: [musicPill]; properties: "x,y,width,height"; duration: root.expandDur; easing: root.spatialEasing }
+                    // Shape mask completes at 75% of expand (Container Transform shapeMaskProgressThresholds 0→0.75)
+                    NumberAnimation { targets: [musicPill]; properties: "radius"; duration: Math.round(root.expandDur * 0.75); easing: root.spatialEasing }
+                    // Shared elements (art, buttons) travel full duration
+                    NumberAnimation { targets: [musicIcon]; properties: "x,y,width,height"; duration: root.expandDur; easing: root.spatialEasing }
+                    NumberAnimation { targets: [musicIcon]; properties: "radius"; duration: Math.round(root.expandDur * 0.75); easing: root.spatialEasing }
+                    NumberAnimation { targets: [prevBtnContainer, playBtn, nextBtnContainer]; properties: "x,y,width,height"; duration: root.expandDur; easing: root.spatialEasing }
+                    NumberAnimation { targets: [prevBtnContainer, playBtn, nextBtnContainer]; properties: "radius"; duration: Math.round(root.expandDur * 0.75); easing: root.spatialEasing }
+                    SequentialAnimation {
+                        PauseAnimation { duration: 60 }
+                        NumberAnimation { targets: [prevBtnContainer, playBtn, nextBtnContainer]; property: "iconSize"; duration: 250; easing: root.spatialEasing }
+                    }
+                    // Morph squash/lift
+                    SequentialAnimation {
+                        NumberAnimation { target: musicPill; property: "morphSquashX"; to: 1.045; duration: Tokens.anim.durations.expressiveFastEffects; easing: Tokens.anim.expressiveFastSpatial }
+                        NumberAnimation { target: musicPill; property: "morphSquashX"; to: 1.0; duration: Math.round(root.expandDur * 0.58); easing: root.spatialEasingDecel }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.expandDur * 0.08) }
-                        NumberAnimation {
-                            targets: [musicPill]
-                            properties: "y,height,radius"
-                            duration: Math.round(root.expandDur * 0.92)
-                            easing: root.spatialEasing
-                        }
-                    }
-                    NumberAnimation {
-                        targets: [musicIcon]
-                        properties: "width,height,radius"
-                        duration: root.expandDur
-                        easing: root.spatialEasing
+                        NumberAnimation { target: musicPill; property: "morphSquashY"; to: 0.965; duration: Tokens.anim.durations.expressiveFastEffects; easing: Tokens.anim.expressiveFastSpatial }
+                        NumberAnimation { target: musicPill; property: "morphSquashY"; to: 1.0; duration: Math.round(root.expandDur * 0.58); easing: root.spatialEasingDecel }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.expandDur * 0.07) }
-                        NumberAnimation {
-                            targets: [musicIcon]
-                            properties: "x,y"
-                            duration: Math.round(root.expandDur * 0.93)
-                            easing: root.spatialEasing
-                        }
+                        NumberAnimation { target: musicPill; property: "morphLift"; to: 8; duration: Tokens.anim.durations.expressiveFastEffects; easing: Tokens.anim.expressiveFastSpatial }
+                        NumberAnimation { target: musicPill; property: "morphLift"; to: 0; duration: Math.round(root.expandDur * 0.58); easing: root.spatialEasingDecel }
                     }
-                    SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.expandDur * 0.11) }
-                        NumberAnimation {
-                            targets: [prevBtnContainer, playBtn, nextBtnContainer]
-                            properties: "x,y,width,height,radius"
-                            duration: Math.round(root.expandDur * 0.89)
-                            easing: root.spatialEasing
-                        }
-                    }
-                    SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.expandDur * 0.14) }
-                        NumberAnimation {
-                            targets: [playIcon, prevBtn, nextBtn]
-                            property: "iconPointSize"
-                            duration: Math.round(root.expandDur * 0.55)
-                            easing: root.spatialEasing
-                        }
-                    }
-                    SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.expandDur * 0.13) }
-                        ColorAnimation {
-                            targets: [playBtn, playIcon, prevBtn, nextBtn]
-                            duration: Tokens.anim.durations.expressiveDefaultEffects
-                            easing: Tokens.anim.expressiveDefaultSpatial
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 0.97
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.0
-                            duration: Math.round(root.expandDur * 0.45)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.02
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.0
-                            duration: Math.round(root.expandDur * 0.45)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
+                    // Compact layer crossfades to card layer simultaneously with bounds morph
+                    NumberAnimation { target: musicPill; property: "compactFade"; to: 0.0; duration: Math.round(root.expandDur * 0.6); easing: root.spatialEasing }
+                    // Card content slides up from within the expanding container
                     SequentialAnimation {
                         PauseAnimation { duration: root.contentRevealDelay }
-                        NumberAnimation {
-                            target: trackInfo
-                            property: "opacity"
-                            to: 1
-                            duration: Tokens.anim.durations.expressiveDefaultEffects
-                            easing: Tokens.anim.emphasizedDecel
+                        ParallelAnimation {
+                            NumberAnimation { targets: [titleChip, trackInfo, controlsSurface]; property: "opacity"; to: 1; duration: Tokens.anim.durations.expressiveDefaultEffects; easing: Tokens.anim.emphasizedDecel }
+                            NumberAnimation { target: trackInfo; property: "y"; to: 18; duration: Tokens.anim.durations.expressiveDefaultEffects; easing: Tokens.anim.emphasizedDecel }
                         }
                     }
                     SequentialAnimation {
                         PauseAnimation { duration: root.progressRevealDelay }
-                        NumberAnimation {
-                            target: expandedProgressWrap
-                            property: "opacity"
-                            to: 1
-                            duration: Tokens.anim.durations.expressiveDefaultEffects
-                            easing: Tokens.anim.emphasizedDecel
-                        }
+                        NumberAnimation { target: expandedContent; property: "opacity"; to: 1; duration: Tokens.anim.durations.expressiveDefaultEffects; easing: Tokens.anim.emphasizedDecel }
                     }
                 }
             },
-
             Transition {
                 id: collapseTransition
                 from: "expanded"; to: "compact"
                 ParallelAnimation {
-                    NumberAnimation {
-                        targets: [trackInfo, expandedProgressWrap]
-                        property: "opacity"
-                        to: 0
-                        duration: Tokens.anim.durations.expressiveFastEffects
-                        easing: Tokens.anim.expressiveFastSpatial
-                    }
-                    NumberAnimation {
-                        targets: [musicPill, musicIcon]
-                        properties: "y,height,radius"
-                        duration: root.collapseDur
-                        easing: root.spatialEasing
-                    }
+                    // Card content fades + slides at 60–90% of collapse; compact layer restores simultaneously
                     SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.collapseDur * 0.18) }
-                        NumberAnimation {
-                            targets: [musicPill, musicIcon]
-                            properties: "width,x"
-                            duration: Math.round(root.collapseDur * 0.82)
-                            easing: root.spatialEasingDecel
+                        PauseAnimation { duration: Math.round(root.collapseDur * 0.6) }
+                        ParallelAnimation {
+                            NumberAnimation { targets: [titleChip, trackInfo, controlsSurface, expandedContent]; property: "opacity"; to: 0; duration: Math.round(root.collapseDur * 0.3); easing: root.spatialEasing }
+                            NumberAnimation { target: trackInfo; property: "y"; to: 26; duration: Math.round(root.collapseDur * 0.3); easing: root.spatialEasing }
                         }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.collapseDur * 0.12) }
-                        NumberAnimation {
-                            targets: [prevBtnContainer, playBtn, nextBtnContainer]
-                            properties: "x,y,width,height,radius"
-                            duration: Math.round(root.collapseDur * 0.88)
-                            easing: root.spatialEasing
-                        }
+                        PauseAnimation { duration: Math.round(root.collapseDur * 0.6) }
+                        NumberAnimation { target: musicPill; property: "compactFade"; to: 1.0; duration: Math.round(root.collapseDur * 0.4); easing: root.spatialEasing }
                     }
-                    NumberAnimation {
-                        targets: [playIcon, prevBtn, nextBtn]
-                        property: "iconPointSize"
-                        duration: root.collapseDur
-                        easing: root.spatialEasing
-                    }
-                    ColorAnimation {
-                        targets: [playBtn, playIcon, prevBtn, nextBtn]
-                        duration: Tokens.anim.durations.expressiveDefaultEffects
-                        easing: Tokens.anim.expressiveDefaultSpatial
+                    NumberAnimation { targets: [musicPill, musicIcon]; properties: "x,y,width,height,radius"; duration: root.collapseDur; easing: root.spatialEasing }
+                    NumberAnimation { targets: [prevBtnContainer, playBtn, nextBtnContainer]; properties: "x,y,width,height,radius"; duration: root.collapseDur; easing: root.spatialEasing }
+                    NumberAnimation { targets: [prevBtnContainer, playBtn, nextBtnContainer]; property: "iconSize"; duration: root.collapseDur; easing: root.spatialEasing }
+                    SequentialAnimation {
+                        NumberAnimation { target: musicPill; property: "morphSquashY"; to: 1.035; duration: Tokens.anim.durations.expressiveFastEffects; easing: Tokens.anim.expressiveFastSpatial }
+                        NumberAnimation { target: musicPill; property: "morphSquashY"; to: 1.0; duration: Math.round(root.collapseDur * 0.55); easing: root.spatialEasingDecel }
                     }
                     SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 0.98
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
+                        NumberAnimation { target: musicPill; property: "morphSquashX"; to: 0.965; duration: Tokens.anim.durations.expressiveFastEffects; easing: Tokens.anim.expressiveFastSpatial }
+                        NumberAnimation { target: musicPill; property: "morphSquashX"; to: 1.0; duration: Math.round(root.collapseDur * 0.55); easing: root.spatialEasingDecel }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: Math.round(root.collapseDur * 0.1) }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.02
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
+                        NumberAnimation { target: musicPill; property: "morphLift"; to: 6; duration: Tokens.anim.durations.expressiveFastEffects; easing: Tokens.anim.expressiveFastSpatial }
+                        NumberAnimation { target: musicPill; property: "morphLift"; to: 0; duration: Math.round(root.collapseDur * 0.55); easing: root.spatialEasingDecel }
                     }
                 }
             }

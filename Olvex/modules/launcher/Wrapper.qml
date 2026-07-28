@@ -24,29 +24,44 @@ Item {
 
     property real offsetScale: shouldBeActive ? 0 : 1
 
-    Component.onCompleted: Qt.callLater(() => Apps.warmCatalog())
+    Timer {
+        id: teardownGrace
+
+        interval: Tokens.anim.durations.large + 100
+    }
 
     onShouldBeActiveChanged: {
         if (shouldBeActive) {
+            teardownGrace.stop();
             implicitHeight = Qt.binding(() => content.implicitHeight);
-            content.item?.resumeLists?.();
+            implicitWidth = Qt.binding(() => content.implicitWidth || 630);
+            Qt.callLater(() => Apps.warmCatalog());
         } else {
             content.item?.suspendLists?.();
-            implicitHeight = implicitHeight;
+            teardownGrace.restart();
+            implicitHeight = implicitHeight; // Break binding during close anim
+            implicitWidth = implicitWidth; // Break binding during close anim
         }
     }
+
+    function navigateUp() { content.item?.navigateUp?.(); }
+    function navigateDown() { content.item?.navigateDown?.(); }
+    function navigateLeft() { content.item?.navigateLeft?.(); }
+    function navigateRight() { content.item?.navigateRight?.(); }
+    function navigateEnter() { content.item?.navigateEnter?.(); }
 
     visible: offsetScale < 1
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: content.implicitHeight
-    implicitWidth: content.implicitWidth || 630
-    opacity: 1 - offsetScale
+    implicitWidth: content.implicitWidth || 630 // Hard coded fallback for first open
 
     Behavior on offsetScale {
         Anim {
             type: Anim.DefaultSpatial
         }
     }
+
+    Component.onCompleted: Qt.callLater(() => Apps.warmCatalog())
 
     Component {
         id: contentComponent
@@ -65,6 +80,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
 
         active: true
+        asynchronous: true
         sourceComponent: contentComponent
     }
 }

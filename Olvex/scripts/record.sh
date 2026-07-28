@@ -11,15 +11,6 @@
 REC_DIR="$HOME/Videos/Recordings"
 mkdir -p "$REC_DIR"
 
-# Avoid portal screen-picker prompts while VS Code/Cursor is focused
-if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    if hyprctl activewindow -j | jq -e '
-        (.class | test("^(code|cursor|codium|vscodium|code-oss)$"; "i"))
-        or (.title | test("visual studio code|^cursor(\\s|$|-)"; "i"))
-    ' >/dev/null; then
-        exit 0
-    fi
-fi
 
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
 FILENAME="$REC_DIR/Recording_$TIMESTAMP.mp4"

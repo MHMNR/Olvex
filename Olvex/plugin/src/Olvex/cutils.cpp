@@ -142,4 +142,9 @@ qreal CUtils::clamp(qreal value, qreal min, qreal max) {
     return qBound(min, value, max);
 }
 
+bool CUtils::fileExists(const QString& path) const {
+    if (path.isEmpty()) return false;
+    return QFileInfo::exists(path);
+}
+
 } // namespace olvex

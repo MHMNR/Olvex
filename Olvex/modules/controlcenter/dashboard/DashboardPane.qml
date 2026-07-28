@@ -32,7 +32,6 @@ Item {
     // Dashboard Tabs
     property bool showDashboard: Config.dashboard.showDashboard ?? true
     property bool showMedia: Config.dashboard.showMedia ?? true
-    property bool showWeather: Config.dashboard.showWeather ?? true
     property bool useFahrenheit: GlobalConfig.services.useFahrenheit ?? false
     property string weatherLocation: GlobalConfig.services.weatherLocation ?? ""
 
@@ -52,7 +51,6 @@ Item {
         GlobalConfig.dashboard.dragThreshold = root.dragThreshold;
         GlobalConfig.dashboard.showDashboard = root.showDashboard;
         GlobalConfig.dashboard.showMedia = root.showMedia;
-        GlobalConfig.dashboard.showWeather = root.showWeather;
         GlobalConfig.services.useFahrenheit = root.useFahrenheit;
         GlobalConfig.services.weatherLocation = root.weatherLocation;
         GlobalConfig.dashboard.performance.showBattery = root.showBattery;

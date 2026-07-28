@@ -35,6 +35,12 @@ Region {
     }
 
     R {
+        panel: root.panels.wallpaperSelector
+        y: root.win.height - height
+        customHeight: (1 - root.panels.wallpaperSelector.offsetScale) > 0 ? (panel.height * (1 - root.panels.wallpaperSelector.offsetScale) + root.borderThickness) : 0
+    }
+
+    R {
         id: sessionRegion
 
         panel: root.panels.sessionWrapper

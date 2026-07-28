@@ -355,12 +355,20 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
 
                                 Image {
+                                    id: thumbImg
                                     anchors.fill: parent
-                                    source: delegate.isImg ? `file://${delegate.imgPath}` : ""
+                                    source: ""
                                     fillMode: Image.PreserveAspectCrop
                                     asynchronous: true
+                                    cache: false
                                     opacity: status === Image.Ready ? 1 : 0
                                     Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                                    Timer {
+                                        interval: 400
+                                        running: delegate.isImg && thumbImg.source === ""
+                                        onTriggered: thumbImg.source = `file://${delegate.imgPath}`
+                                    }
                                 }
 
                                 // Placeholder while loading

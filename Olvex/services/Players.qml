@@ -273,11 +273,10 @@ Singleton {
         const p = root.active;
         if (!p) return;
         
-        let hint = p.desktopEntry || p.identity.toLowerCase();
+        let hint = (p.desktopEntry || p.identity).toLowerCase().trim().split(/\s+/)[0];
         if (hint.includes("firefox")) hint = "firefox";
         else if (hint.includes("chrome")) hint = "chrome";
         else if (hint.includes("chromium")) hint = "chromium";
-        else hint = hint.split(" ")[0];
 
         // CLEAN BUSCTL NUDGE: Uses awk to reliably get the first column (bus name)
         const cmd = `for bus in $(busctl --user list | awk '{print $1}' | grep "org.mpris.MediaPlayer2.${hint}"); do busctl --user call $bus /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method}; done`;
@@ -289,14 +288,6 @@ Singleton {
     function togglePlaying() {
         const p = root.active;
         if (p) {
-            // Browser-optimized toggle logic: relies on D-Bus nudges to bypass unreliable internal status reporting.
-            
-            // To prevent double-triggering (Play + Toggle = Pause), we use ONLY the nudge for browsers.
-            // For local players, we use the standard toggle.
-            const isBrowser = p.identity.toLowerCase().match(/firefox|chrome|chromium/);
-            if (!isBrowser) {
-                p.playPause();
-            }
             nudge("PlayPause");
         }
     }
@@ -788,6 +779,25 @@ Singleton {
 
     property real _syncPosition: 0
     property real _syncTime: 0
+    // Length of the track the current anchor belongs to. Lets _updateInterpolation
+    // detect when _syncPosition is stale (anchored to a different/previous track)
+    // and refuse to clamp position against a mismatched length.
+    property real _syncLength: 0
+
+    // Reactive playing state. CRITICAL: this is a property BINDING that directly
+    // references the active player's reactive MPRIS properties, so QML re-evaluates it
+    // whenever playbackStatus/playbackState/isPlaying change. A function call like
+    // `_isPlaying(active)` does NOT track those inner properties — the binding would only
+    // re-run when `active` itself changes, leaving the progress tick stuck (e.g. frozen
+    // after a seek until a pause reassigns `active`). Bind tick.running to THIS instead.
+    readonly property bool isPlaying: {
+        const p = root.active;
+        if (!p)
+            return false;
+        return p.playbackStatus === "Playing"
+            || p.playbackState === 0
+            || p.isPlaying;
+    }
 
     function _isPlaying(player: MprisPlayer): bool {
         if (!player)
@@ -806,11 +816,13 @@ Singleton {
             root.interpolatedPosition = 0;
             root.interpolatedProgress = 0;
             root.interpolatedLength = 0;
+            root._syncLength = 0;
             return;
         }
 
         root._syncPosition = p.position ?? 0;
         root._syncTime = Date.now();
+        root._syncLength = p.length ?? 0;
         root._updateInterpolation();
     }
 
@@ -837,60 +849,112 @@ Singleton {
 
     function _kickStartupSync(): void {
         startupSync.attempts = 0;
-        if (root.active)
+        if (root.active) {
             startupSync.start();
-        else
+            // Immediate first read — don't wait 250ms for the first tick
+            Qt.callLater(root._syncNow);
+        } else {
             startupSync.stop();
+        }
     }
 
     function _updateInterpolation(): void {
         const p = root.active;
         if (!p) return;
-        
+
+        const rawLen = p.length ?? 0;
+
+        // Resolve the authoritative length FIRST, before clamping position against it.
+        // A fresh rawLen always wins (and overwrites a stale-large value from a previous
+        // track); only fall back to the cached value while rawLen is momentarily 0.
+        const len = rawLen > 0 ? rawLen : root.interpolatedLength;
+        root.interpolatedLength = len;
+
+        // Stale-anchor guard: if the current track length differs from the length the
+        // anchor was captured against, _syncPosition belongs to a DIFFERENT track. Do
+        // NOT advance/clamp from it — that previously pinned currentPos to len and made
+        // elapsed == total (both time labels identical) after a seek or shell restart.
+        // Re-anchor against the real position and bail out this tick.
+        const anchorStale = root._syncLength > 0 && len > 0
+            && Math.abs(len - root._syncLength) > 1.0;
+        if (anchorStale) {
+            const livePos = p.position ?? 0;
+            root._syncPosition = livePos;
+            root._syncTime = Date.now();
+            root._syncLength = len;
+            const pos0 = Math.max(0, Math.min(livePos, len));
+            root.interpolatedPosition = pos0;
+            root.interpolatedProgress = Math.max(0, Math.min(1, pos0 / len));
+            Qt.callLater(root._syncNow);
+            return;
+        }
+
         let currentPos = root._syncPosition;
         if (root._isPlaying(p)) {
             const elapsed = (Date.now() - root._syncTime) / 1000;
-            currentPos = Math.min(root._syncPosition + elapsed, p.length ?? 0);
+            currentPos = root._syncPosition + elapsed;
         }
-        
+        // Clamp against the resolved length only when we actually have one. Guarding on
+        // len > 0 avoids pinning position to a transient 0 (which previously collapsed
+        // elapsed and total to the same value). With the stale-anchor guard above, any
+        // overrun here is genuine end-of-track drift, so clamping is correct.
+        if (len > 0)
+            currentPos = Math.max(0, Math.min(currentPos, len));
+
         root.interpolatedPosition = currentPos;
-        
-        // Protect against backends that drop length metadata during seek
-        const rawLen = p.length ?? 0;
-        if (rawLen > 0 && Math.abs(rawLen - currentPos) > 1) {
-            root.interpolatedLength = rawLen;
-        } else if (root.interpolatedLength === 0) {
-            root.interpolatedLength = rawLen;
-        }
-        
-        root.interpolatedProgress = root.interpolatedLength > 0 ? Math.max(0, Math.min(1, currentPos / root.interpolatedLength)) : 0;
+        root.interpolatedProgress = len > 0 ? Math.max(0, Math.min(1, currentPos / len)) : 0;
     }
 
     // Called by UI seek bars.
     function seekTo(fraction: real): void {
         const p = root.active;
         if (!p || !p.canSeek || !p.positionSupported) return;
-        const len = root.interpolatedLength > 0 ? root.interpolatedLength : (p.length ?? 0);
-        const targetPos = fraction * len;
-        
+
+        // Use the freshest live length, NOT the cached interpolatedLength. On shell
+        // restart / track change, interpolatedLength can still hold the PREVIOUS track's
+        // (longer) length until the next _syncNow lands. Seeking against that stale value
+        // produces a targetPos that overshoots the real track end; the clamp in
+        // _updateInterpolation then pins currentPos to p.length, making elapsed == total
+        // (both labels show the same time). Always re-fetch p.length here.
+        const liveLen = p.length ?? 0;
+        const len = liveLen > 0 ? liveLen : root.interpolatedLength;
+        if (len <= 0) return;
+
+        // Clamp so we never anchor past the true end of the track.
+        const targetPos = Math.max(0, Math.min(fraction * len, len));
+
+        // Keep interpolatedLength honest before we re-anchor, so the total-time label and
+        // the progress denominator both reflect the real track length immediately.
+        root.interpolatedLength = len;
+
         // Issue D-Bus command
         p.position = targetPos;
-        
-        // Immediately update our local interpolation anchor so the UI jumps instantly
-        // and the 250ms tick continues smoothly from the new position.
+
+        // Immediately re-anchor local interpolation so the UI jumps instantly and the
+        // 250ms tick continues advancing from the new position WHILE playing. The
+        // _syncTime stamp is what makes interpolation move — without a fresh stamp the
+        // bar would freeze until the next clean _syncNow.
         root._syncPosition = targetPos;
         root._syncTime = Date.now();
+        root._syncLength = len;
         root._updateInterpolation();
-        
-        // Block incoming D-Bus position updates for 1500ms. Some players (like Spotify)
-        // are slow to process seeks and will echo back their old position, nuking the sync.
+
+        // Block incoming D-Bus position echoes for a short window. Some players (Spotify)
+        // are slow to process the seek and echo back their OLD position, which would nuke
+        // the anchor and freeze the bar until the next state change (e.g. pause). Kept
+        // short so a genuine post-seek resync lands quickly.
         seekGuard.restart();
     }
 
+    // After the echo-block window expires, force one clean resync so the anchor locks to
+    // the player's true (post-seek) position. Without this, the interpolation keeps
+    // advancing from the locally-guessed anchor and can drift / appear frozen relative to
+    // the real audio until the user pauses (which triggers its own resync).
     Timer {
         id: seekGuard
-        interval: 1500
+        interval: 700
         repeat: false
+        onTriggered: Qt.callLater(root._syncNow)
     }
 
     // Retry until MPRIS metadata is ready after shell/player attach.
@@ -908,13 +972,11 @@ Singleton {
             }
             root._syncNow();
             attempts++;
-            const playing = root._isPlaying(root.active);
             const len = root.interpolatedLength > 0 ? root.interpolatedLength : (root.active.length ?? 0);
-            // Playing after shell restart: length may arrive before position — keep polling.
-            if (playing) {
-                if (attempts >= 20)
-                    stop();
-            } else if (len > 0 || attempts >= 8) {
+            // Keep polling until length is known OR we've exhausted retries.
+            // Paused players need the same patience as playing ones — MPRIS metadata
+            // arrives late on shell restart regardless of playback state.
+            if (len > 0 || attempts >= 20) {
                 stop();
             }
         }
@@ -925,7 +987,9 @@ Singleton {
         id: progressTick
         interval: 250
         repeat: true
-        running: root._isPlaying(root.active)
+        // Bind to the reactive `isPlaying` property (not the _isPlaying() function) so the
+        // tick re-starts the instant playback resumes / a seek lands — see isPlaying note.
+        running: root.isPlaying
         triggeredOnStart: true
         property int ticks: 0
 
@@ -960,7 +1024,18 @@ Singleton {
         function onTrackArtistChanged()    { Qt.callLater(root._syncNow); root._scheduleArtPoll(); }
         function onTrackAlbumChanged()     { root._scheduleArtPoll(); }
         function onTrackArtUrlChanged()    { root._scheduleArtPoll(); }
-        function onLengthChanged()         { Qt.callLater(root._syncNow); }
+        function onLengthChanged() {
+            // Length changing means a new track. Invalidate the anchor SYNCHRONOUSLY so a
+            // progressTick firing before the async _syncNow lands can't advance/pin a
+            // stale-large _syncPosition against the new (often shorter) length.
+            const p = root.active;
+            if (p) {
+                root._syncPosition = p.position ?? 0;
+                root._syncTime = Date.now();
+                root._syncLength = p.length ?? 0;
+            }
+            Qt.callLater(root._syncNow);
+        }
         function onPositionChanged() {
             root._applySyncAnchor();
         }

@@ -15,4 +15,5 @@ PersistentProperties {
     property bool isOskDocked: false
     property string launcherSearchText
     property list<string> pinnedApps
+    property string pinnedAppsLandingAppId: ""
 }

@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Shapes
+import M3Shapes
 import Olvex
 import Olvex.Config
 import Olvex.Services
@@ -33,8 +33,8 @@ Item {
         ? Players.musicVisualizerAccent
         : Colours.palette.m3primaryContainer
     readonly property color musicOnAccent: Players.musicOnAccent
-    property color playButtonBg: "#CFBCFF"
-    property color playIconColor: Qt.rgba(0, 0, 0, 0.92)
+    property color playButtonBg: Colours.palette.m3primary
+    property color playIconColor: Colours.palette.m3onPrimary
     property bool _syncingBarAccent: false
     property bool _accentRefreshPending: false
     readonly property int musicPillWidth: 48
@@ -46,7 +46,7 @@ Item {
     function refreshAccentColors(): void {
         if (!root.showMusicPill) {
             root.playButtonBg = Colours.palette.m3primary;
-            root.playIconColor = Qt.rgba(0, 0, 0, 0.92);
+            root.playIconColor = Colours.palette.m3onPrimary;
             return;
         }
         if (barAccentPicker.accentReady) {
@@ -117,9 +117,9 @@ Item {
         const anchor = morph.parent ?? morph;
         const pos = musicPill.mapToItem(anchor, 0, 0);
         const artPos = artFrame.mapToItem(anchor, 0, 0);
-        const b1 = controlsRow.children[0].mapToItem(anchor, 0, 0);
-        const b2 = controlsRow.children[1].mapToItem(anchor, 0, 0);
-        const b3 = controlsRow.children[2].mapToItem(anchor, 0, 0);
+        const b1 = prevSkipBtn.mapToItem(anchor, 0, 0);
+        const b2 = playPillBtn.mapToItem(anchor, 0, 0);
+        const b3 = nextSkipBtn.mapToItem(anchor, 0, 0);
 
         morph.syncDock(
             pos.x, pos.y, musicPill.width, musicPill.height, root.musicAccent,
@@ -172,9 +172,9 @@ Item {
         const anchor = morph.parent ?? morph;
         const pos = musicPill.mapToItem(anchor, 0, 0);
         const artPos = artFrame.mapToItem(anchor, 0, 0);
-        const b1 = controlsRow.children[0].mapToItem(anchor, 0, 0);
-        const b2 = controlsRow.children[1].mapToItem(anchor, 0, 0);
-        const b3 = controlsRow.children[2].mapToItem(anchor, 0, 0);
+        const b1 = prevSkipBtn.mapToItem(anchor, 0, 0);
+        const b2 = playPillBtn.mapToItem(anchor, 0, 0);
+        const b3 = nextSkipBtn.mapToItem(anchor, 0, 0);
 
         morph.start(
             pos.x, pos.y, musicPill.width, musicPill.height, root.musicAccent,
@@ -348,116 +348,125 @@ Item {
         property real pillAlpha: 1
         opacity: (root.mediaMorph?.active ?? false) ? 0 : musicPill.pillAlpha
 
-        StyledClippingRect {
-            anchors.fill: parent
-            radius: width / 2
-            color: "transparent"
-
-            Rectangle {
+            // ── Pill clip + background ─────────────────────────────────────
+            StyledClippingRect {
                 anchors.fill: parent
-                color: Players.musicSurfaceColor
-            }
+                radius: width / 2
+                color: "transparent"
 
-            NeonWaveVisualizer {
-                anchors.fill: parent
-                accentColor: root.musicAccent
-                numBands: 32
-                maxHeightRatio: 0.8
-                valueMultiplier: 1.5
-                active: root.isMusicPlaying
-                frameInterval: 33
-            }
+                Rectangle {
+                    anchors.fill: parent
+                    color: Players.musicSurfaceColor
 
-            // Expand on any non-button pill body hit (buttons sit above in ColumnLayout)
-            StateLayer {
-                anchors.fill: parent
-                radius: parent.width / 2
-                showHoverBackground: false
-                onClicked: root.triggerPillExpand()
-            }
-
-            ColumnLayout {
-                id: pillRow
-
-                anchors.fill: parent
-                anchors.margins: (root.musicPillWidth - root.musicArtSize) / 2
-                spacing: 8
-
-                Item {
-                    id: artFrame
-
-                    Layout.preferredWidth: root.musicArtSize
-                    Layout.preferredHeight: root.musicArtSize
-                    Layout.minimumWidth: root.musicArtSize
-                    Layout.minimumHeight: root.musicArtSize
-
-                    StyledClippingRect {
+                    Rectangle {
                         anchors.fill: parent
-                        radius: width / 2
-                        clip: true
-                        color: root.hasMusicArt
-                            ? Qt.alpha(Players.musicOnSurfaceColor, 0.08)
-                            : Qt.hsla(root.musicAccent.hslHue,
-                                root.musicAccent.hslSaturation,
-                                root.musicAccent.hslLightness * 0.75, 1)
+                        radius: parent.radius
+                        color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
+                    }
+                }
 
-                        Image {
-                            id: barArtImage
+                Loader {
+                    anchors.fill: parent
+                    active: root.isMusicPlaying
+                    sourceComponent: Component {
+                        NeonWaveVisualizer {
                             anchors.fill: parent
-                            source: root.barArtSource
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            cache: !root.barArtIsLocal
-                            opacity: status === Image.Ready && source !== "" ? 1 : 0
-
-                            onStatusChanged: {
-                                if (status === Image.Ready)
-                                    barAccentPicker.scheduleAnalysis();
-                            }
-
-                            Behavior on opacity {
-                                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-                            }
-                        }
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "music_note"
-                            color: root.hasMusicArt
-                                ? Qt.alpha(Players.musicOnSurfaceColor, 0.4)
-                                : root.musicOnAccent
-                            iconPointSize: Tokens.font.size.normal
-                            visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
+                            accentColor: root.musicAccent
+                            numBands: 32
+                            maxHeightRatio: 0.8
+                            active: root.isMusicPlaying
+                            frameInterval: (root.mediaMorph?.active ?? false) ? 16 : 33
                         }
                     }
                 }
 
+                // ── Tap-to-expand — z:0, buttons are z:2 so they get events first ──
+                MouseArea {
+                    anchors.fill: parent
+                    z: 0
+                    onClicked: (mouse) => {
+                        mouse.accepted = true
+                        root.triggerPillExpand()
+                    }
+                }
+
+                // ── Art + controls — z:2 guarantees events hit buttons first ──
                 ColumnLayout {
                     id: controlsRow
+                    z: 2
+                    anchors.fill: parent
+                    anchors.margins: root.pillSideMargin
+                    spacing: 2
 
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    spacing: 4
-                    Layout.alignment: Qt.AlignTop | Qt.AlignHCenter
+                    Item {
+                        id: artFrame
+                        Layout.preferredWidth: root.musicArtSize
+                        Layout.preferredHeight: root.musicArtSize
+                        Layout.minimumWidth: root.musicArtSize
+                        Layout.minimumHeight: root.musicArtSize
+                        Layout.alignment: Qt.AlignHCenter
 
-                    MediaButton {
+                        StyledClippingRect {
+                            anchors.fill: parent
+                            radius: width / 2
+                            clip: true
+                            color: root.hasMusicArt
+                                ? Qt.alpha(Players.musicOnSurfaceColor, 0.10)
+                                : Qt.alpha(root.musicAccent, 0.22)
+
+                            Image {
+                                id: barArtImage
+                                anchors.fill: parent
+                                source: root.barArtSource
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                cache: !root.barArtIsLocal
+                                sourceSize: Qt.size(width, height)
+                                opacity: status === Image.Ready && source !== "" ? 1 : 0
+                                onStatusChanged: { if (status === Image.Ready) barAccentPicker.scheduleAnalysis(); }
+                                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                            }
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "music_note"
+                                color: root.hasMusicArt
+                                    ? Qt.alpha(Players.musicOnSurfaceColor, 0.4)
+                                    : root.musicOnAccent
+                                iconPointSize: Tokens.font.size.normal
+                                fill: 1
+                                visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
+                            }
+                        }
+                    }
+
+                    // prev — referenced by id in morph sync (artFrame shifts child indices)
+                    MorphControlButton {
+                        id: prevSkipBtn
                         iconName: "skip_previous"
+                        iconSize: Tokens.font.size.large
                         onClicked: Players.previous()
                     }
 
-                    MediaButton {
+                    // play — emphasized to match the card's compact play button
+                    MorphControlButton {
+                        id: playPillBtn
+                        emphasized: true
+                        spinning: root.isMusicPlaying
                         iconName: root.isMusicPlaying ? "pause" : "play_arrow"
-                        filled: true
+                        iconSize: Tokens.font.size.larger
                         onClicked: Players.togglePlaying()
                     }
 
-                    MediaButton {
+                    // next
+                    MorphControlButton {
+                        id: nextSkipBtn
                         iconName: "skip_next"
+                        iconSize: Tokens.font.size.large
                         onClicked: Players.next()
                     }
                 }
             }
-        }
 
         property real pillScale: 1.0
         transform: [
@@ -571,135 +580,4 @@ Item {
         }
     }
 
-    component MediaButton: Rectangle {
-        id: button
-
-        signal clicked()
-        required property string iconName
-        property bool filled
-
-        Layout.preferredWidth: root.musicButtonSize
-        Layout.preferredHeight: root.musicButtonSize
-        Layout.minimumWidth: root.musicButtonSize
-        Layout.minimumHeight: root.musicButtonSize
-        Layout.maximumWidth: root.musicButtonSize
-        Layout.maximumHeight: root.musicButtonSize
-        Layout.alignment: Qt.AlignHCenter
-        clip: true
-        radius: filled ? (root.isMusicPlaying ? 10 : width / 2) : width / 2
-        color: button.filled ? root.playButtonBg : "transparent"
-
-        MaterialIcon {
-            id: baseIcon
-            anchors.centerIn: parent
-            visible: !button.filled
-            text: button.iconName
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            width: parent.width
-            height: parent.height
-            fill: 0
-            color: Colours.palette.m3onSurfaceVariant
-            iconPointSize: Tokens.font.size.large
-            font.weight: 500
-            animate: true
-        }
-
-        Item {
-            id: filledVisual
-            visible: button.filled
-            anchors.centerIn: parent
-            width: 16
-            height: 16
-
-            opacity: 1.0
-            Behavior on opacity { NumberAnimation { duration: 120 } }
-
-            // Match expanded card style: rotation animation
-            MaterialIcon {
-                id: filledPlayIcon
-                anchors.fill: parent
-                anchors.margins: 0
-                text: button.iconName
-                color: root.playIconColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                
-                animate: true
-                animateProp: "rotation"
-                animateFrom: 90
-                animateTo: 0
-                animateDuration: 400
-            }
-        }
-
-        // Minimal icon-change animation: fade out -> fade in
-        SequentialAnimation {
-            id: iconChangeAnimOutlined
-            NumberAnimation { target: baseIcon; property: "opacity"; to: 0.3; duration: 100 }
-            NumberAnimation { target: baseIcon; property: "opacity"; to: 1.0; duration: 150 }
-        }
-
-        onIconNameChanged: {
-            // trigger both; only the visible one will show the effect
-            if (!button.filled)
-                iconChangeAnimOutlined.start();
-        }
-        
-        Behavior on radius {
-            enabled: !(root.mediaMorph?.active ?? false)
-            NumberAnimation {
-                duration: 400
-                easing.type: Easing.OutBack
-                easing.overshoot: 1.35
-            }
-        }
-
-        // Press animation to match lockscreen: small spring/back scale
-        ScaleAnimator {
-            id: mediaPressAnim
-            target: button
-            from: 0.88
-            to: 1.0
-            duration: 220
-            easing.type: Easing.OutBack
-            easing.overshoot: 1.4
-            running: false
-        }
-
-        StateLayer {
-            id: stateLayer
-            radius: button.radius
-
-            Behavior on radius {
-                enabled: button.filled && !(root.mediaMorph?.active ?? false)
-                NumberAnimation {
-                    duration: 400
-                    easing.type: Easing.OutBack
-                    easing.overshoot: 1.35
-                }
-            }
-
-            showHoverBackground: button.filled
-            showRipple: false
-            onClicked: {
-                // play press animation then emit clicked
-                mediaPressAnim.running = true
-                button.clicked()
-            }
-        }
-
-        // Rotation animations for filled icons (minimal lockscreen-style rotate)
-        SequentialAnimation {
-            id: filledPlayRotateAnim
-            NumberAnimation { target: filledPlayIcon; property: "rotation"; to: 180; duration: 160; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
-            NumberAnimation { target: filledPlayIcon; property: "rotation"; to: 0; duration: 220; easing.type: Easing.OutElastic; easing.overshoot: 0.6 }
-        }
-
-        SequentialAnimation {
-            id: filledPauseRotateAnim
-            NumberAnimation { target: filledPlayIcon; property: "rotation"; to: 180; duration: 160; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
-            NumberAnimation { target: filledPlayIcon; property: "rotation"; to: 0; duration: 220; easing.type: Easing.OutElastic; easing.overshoot: 0.6 }
-        }
-    }
 }

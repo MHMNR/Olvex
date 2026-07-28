@@ -16,9 +16,6 @@ Singleton {
     property bool needsPause
 
     function start(extraArgs = []): void {
-        if (Hypr.shouldBlockScreenCapture())
-            return;
-
         needsStart = true;
         startArgs = extraArgs;
         checkProc.running = true;
