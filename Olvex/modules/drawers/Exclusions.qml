@@ -21,6 +21,26 @@ Scope {
     }
 
     ExclusionZone {
+        id: topZone
+        anchors.top: true
+        anchors.left: true
+        anchors.right: true
+        exclusiveZone: contentItem?.Config?.border?.thickness ?? 0
+        implicitHeight: exclusiveZone
+        visible: exclusiveZone > 0
+    }
+
+    ExclusionZone {
+        id: rightZone
+        anchors.right: true
+        anchors.top: true
+        anchors.bottom: true
+        exclusiveZone: contentItem?.Config?.border?.thickness ?? 0
+        implicitWidth: exclusiveZone
+        visible: exclusiveZone > 0
+    }
+
+    ExclusionZone {
         id: bottomZone
         anchors.bottom: true
         anchors.left: true

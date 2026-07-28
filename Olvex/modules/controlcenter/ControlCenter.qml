@@ -255,17 +255,19 @@ Item {
                 return a + (b - a) * t;
             }
 
-            // Shape mask — full-duration spatial, settles near end (calm, not snappy)
+            // M3 shapeMaskProgressThresholds (0.0 → 0.75 on enter, 0.20 → 0.90 on return)
             readonly property real shapeT: returning
-                ? mapRange(transformProgress, 0.15, 0.95)
-                : mapRange(transformProgress, 0.0, 0.9)
+                ? mapRange(transformProgress, 0.20, 0.90)
+                : mapRange(transformProgress, 0.0, 0.75)
 
-            // Binary page content (no opacity FBO on heavy trees).
-            // Enter: show after shell grows a bit.
-            // Return: hide early so collapse is solid shell → tile, not dark page squeezed.
-            readonly property bool showPageContent: returning
-                ? transformProgress > 0.42
-                : transformProgress > 0.18
+            // M3 Container Transform fadeProgressThresholds:
+            // Enter: 0.10 → 0.40 progress fade in
+            // Return: 0.45 → 0.85 progress fade out
+            readonly property real pageContentOpacity: returning
+                ? mapRange(transformProgress, 0.45, 0.85)
+                : mapRange(transformProgress, 0.10, 0.40)
+
+            readonly property bool showPageContent: pageContentOpacity > 0.001
 
             // Origin bento tile: hide only while morph shell covers it.
             // On return, reveal tile UNDER morph before anim ends (no empty pop-in).
@@ -385,12 +387,8 @@ Item {
                             accent: PaneRegistry.accentFor(modelData)
                             kind: modelData.kind ?? ""
                             tall: (modelData.h ?? 1) >= 2
-                            // Hide only while morph covers tile — reveal early on return
-                            // so icon/title/preview are already there under the shell
-                            // !! coerces so undefined never hits bool properties
-                            containerHidden: !!(session.pageId === modelData.id && stack.morphCoversOrigin)
-                            // Freeze hover only while covered (not after early reveal)
-                            animsFrozen: !!(session.pageId === modelData.id && stack.morphCoversOrigin)
+                            containerHidden: session.pageId === modelData.id
+                            animsFrozen: session.pageId === modelData.id
                             onClicked: session.openFrom(bcard, modelData.id, stack)
                         }
                     }
@@ -536,7 +534,7 @@ Item {
                     active: session.pageId !== ""
                     // Async: never block expand first frames on page QML compile
                     asynchronous: true
-                    opacity: 1
+                    opacity: stack.pageContentOpacity
                     visible: stack.showPageContent && status === Loader.Ready
                     enabled: stack.pageOpen && !stack.returning
 
