@@ -35,6 +35,8 @@ Item {
     property bool _cacheRestoreInFlight: false
     property bool _accentNotifyPending: false
     property bool _settingArtUrl: false
+    // Stamp of artUrl at the time each analysis was kicked — used to discard stale results
+    property string _pendingAnalysisUrl: ""
 
     readonly property bool hasArt: root.artUrl !== ""
 
@@ -158,6 +160,9 @@ Item {
     }
 
     function onSeedReady(): void {
+        // Discard stale results — if artUrl changed while analysis was in flight, ignore
+        if (root._pendingAnalysisUrl && root._pendingAnalysisUrl !== root.artUrl)
+            return;
         const seed = accentAnalyser.dominantColour;
         const vis = AccentMap.vibrantAccent(seed);
         const fill = AccentMap.playButtonFill(seed, Colours.light);
@@ -278,6 +283,7 @@ Item {
     function scheduleAnalysis(): void {
         if (!root.artUrl)
             return;
+        root._pendingAnalysisUrl = root.artUrl;
         root.configureAnalyser();
         if (root.probeReady()) {
             accentAnalyser.requestUpdate();
@@ -297,10 +303,10 @@ Item {
         visible: false
         source: root.artSourceUrl
         asynchronous: true
-        cache: true
+        cache: false
 
         onStatusChanged: {
-            if (status === Image.Ready)
+            if (status === Image.Ready && !root.accentReady)
                 root.scheduleAnalysis();
         }
     }
@@ -349,7 +355,14 @@ Item {
                 tries = 0;
                 return;
             }
-            root.commitFromAnalyser();
+            // Don't re-trigger analysis if one is already running
+            if (!accentAnalyser.running) {
+                root.commitFromAnalyser();
+                if (!root.accentReady) {
+                    root.configureAnalyser();
+                    accentAnalyser.requestUpdate();
+                }
+            }
             if (root.accentReady || tries >= 50) {
                 stop();
                 tries = 0;

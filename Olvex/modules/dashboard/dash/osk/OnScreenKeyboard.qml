@@ -90,8 +90,6 @@ Item {
     // Split is only applicable to Default and Phone layouts
     readonly property bool canSplit: root.activeLayoutName === "Default" || root.activeLayoutName === "Phone"
 
-    property real dockProgress: 0
-
 
 
     // Content Wrapper for Blur Source (includes BG and Keys)
@@ -182,14 +180,13 @@ Item {
                             StyledText {
                                 text: "search"
                                 font.family: "Material Symbols Rounded"
-                                textPixelSize: 16
+                                font.pixelSize: 16
                                 color: Qt.alpha(Colours.palette.m3onSurface, 0.5)
                             }
                             TextInput {
                                 id: headerSearchInput
                                 Layout.fillWidth: true
                                 font.pixelSize: 14
-                                font.pointSize: -1
                                 color: Colours.palette.m3onSurface
                                 verticalAlignment: TextInput.AlignVCenter
                                 text: oskContent.item ? (oskContent.item.searchText || "") : ""
@@ -198,9 +195,7 @@ Item {
                                     text: "Search Emoji"
                                     visible: !headerSearchInput.text && !headerSearchInput.activeFocus
                                     color: Qt.alpha(Colours.palette.m3onSurface, 0.4)
-                                    font.pixelSize: headerSearchInput.font.pixelSize
-                                    font.pointSize: -1
-                                    font.family: headerSearchInput.font.family
+                                    font: headerSearchInput.font
                                 }
                                 
                                 onActiveFocusChanged: {
@@ -258,7 +253,7 @@ Item {
                 scaleFactor: root.oskScale
                 isDocked: root.isDocked
                 isSplit: root.isSplit && root.isDocked && root.canSplit
-                dockProgress: root.dockProgress
+                dockProgress: parent.parent.parent.parent.dockProgress // Accessing PanelWindow.dockProgress
                 wordEngine: wordEngine
                 Layout.fillWidth: true
                 onHideRequested: root.hideRequested()
@@ -361,7 +356,7 @@ Item {
                 anchors.centerIn: parent
                 text: "\ue8b8" // settings
                 color: "#ffffff"
-                iconPointSize: 13.5
+                font.pixelSize: 18
                 // Ensure icon is ONLY visible when card is in its small button state
                 opacity: (root.showingSettings || settingsCard.width > 40) ? 0 : (settingsInteraction.containsMouse ? 1 : 0.6)
                 Behavior on opacity { NumberAnimation { duration: 150 } }

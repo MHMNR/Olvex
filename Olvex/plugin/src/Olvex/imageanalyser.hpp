@@ -20,6 +20,7 @@ class ImageAnalyser : public QObject {
     Q_PROPERTY(QString profile READ profile WRITE setProfile NOTIFY profileChanged)
     Q_PROPERTY(QColor dominantColour READ dominantColour NOTIFY dominantColourChanged)
     Q_PROPERTY(qreal luminance READ luminance NOTIFY luminanceChanged)
+    Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
 
 public:
     explicit ImageAnalyser(QObject* parent = nullptr);
@@ -38,8 +39,10 @@ public:
 
     [[nodiscard]] QColor dominantColour() const;
     [[nodiscard]] qreal luminance() const;
+    [[nodiscard]] bool isRunning() const;
 
     Q_INVOKABLE void requestUpdate();
+    Q_INVOKABLE void cancel();
 
 signals:
     void sourceChanged();
@@ -48,6 +51,7 @@ signals:
     void profileChanged();
     void dominantColourChanged();
     void luminanceChanged();
+    void runningChanged();
 
 private:
     using AnalyseResult = QPair<QColor, qreal>;

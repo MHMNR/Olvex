@@ -81,7 +81,6 @@ PanelWindow {
     OnScreenKeyboard {
         id: osk
         visibilities: root.visibilities
-        dockProgress: root.dockProgress
         
         layer.enabled: osk.showingSettings
         layer.smooth: true

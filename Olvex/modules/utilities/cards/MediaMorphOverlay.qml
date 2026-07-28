@@ -73,8 +73,8 @@ Item {
     readonly property bool morphAnimating: expandTransition.running || collapseTransition.running
     readonly property bool opensRight: startX < root.width / 2
     readonly property bool ownsDockedPill: root.dockLayoutReady && !!Players.active
-    // When closingDown, bar pill shows immediately — overlay fades via Behavior
-    readonly property bool overlayRendering: (root.active && !root.closingDown) || root.morphAnimating
+    // The overlay handles the full morph animation both ways
+    readonly property bool overlayRendering: root.active || root.morphAnimating
     readonly property bool mediaVisualizerWarm: root.overlayRendering
     readonly property bool mediaVisualizerActive: root.mediaVisualizerWarm && Players.activeIsPlaying
     readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "overlay"
@@ -348,15 +348,10 @@ Item {
         id: musicPill
 
         z: 1
-        // Fade out quickly once collapse transition done (bar pill already visible)
-        opacity: (root.active && !root.closingDown) || root.morphAnimating ? 1 : 0
+        // Opacity tied directly to overlay rendering
+        opacity: root.overlayRendering ? 1 : 0
         enabled: root.overlayRendering
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 60
-                easing.type: Easing.OutCubic
-            }
-        }
+        // No Behavior on opacity — swap instantly with bar pill when morph finishes
         x: root.startX
         y: root.startY
         width: root.startW

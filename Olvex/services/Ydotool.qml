@@ -308,6 +308,11 @@ Singleton {
         _anyKeyUsedWithMod = false;
     }
 
+    function tapKey(keycode) {
+        if (!root._ydotoolAvailable) return;
+        _ydotoolKey([`${keycode}:1`, `${keycode}:0`]);
+    }
+
     function typeString(text) {
         if (!text || text.length === 0) return;
         if (root._ydotoolAvailable) {

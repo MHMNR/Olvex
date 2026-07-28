@@ -40,7 +40,7 @@ Item {
             anchors.centerIn: parent
             text: root.icon
             color: "#ffffff"
-            iconPointSize: 13.5
+            font.pixelSize: 18
             opacity: interaction.containsMouse ? 1 : 0.6
             
             Behavior on opacity { NumberAnimation { duration: 200 } }

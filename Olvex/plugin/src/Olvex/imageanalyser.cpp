@@ -6,6 +6,7 @@
 #include <qimage.h>
 #include <qloggingcategory.h>
 #include <qquickwindow.h>
+#include <QUrl>
 
 Q_LOGGING_CATEGORY(lcImageAnalyser, "olvex.imageanalyser", QtInfoMsg)
 
@@ -51,31 +52,20 @@ double scoreWallpaperPixel(int h, int s, int l, double colourCount) {
 double scoreAlbumArtPixel(int h, int s, int l, double colourCount) {
     Q_UNUSED(h);
 
-    double score = std::log(colourCount + 1.0);
+    if (l < 20 || l > 240 || s < 20) {
+        return std::sqrt(colourCount) * 0.05;
+    }
+
+    double score = std::sqrt(colourCount);
 
     const double satNorm = s / 255.0;
     const double lNorm = l / 255.0;
 
-    // Saturation-first — album covers often have bold accent colours on dark backgrounds.
-    score *= (1.0 + satNorm * satNorm * 90.0);
+    score *= (1.0 + satNorm * 3.0);
 
     const double lDist = std::abs(lNorm - 0.50);
-    const double lScore = std::max(0.0, 1.0 - lDist * 1.8);
-    score *= (0.35 + lScore * 0.85);
-
-    if (l < 20) {
-        score *= 0.08;
-    } else if (l < 45) {
-        score *= 0.35;
-    } else if (l > 235 && s < 100) {
-        score *= 0.12;
-    }
-
-    if (s < 30) {
-        score *= 0.15;
-    } else if (s < 70) {
-        score *= 0.45;
-    }
+    const double lScore = std::max(0.0, 1.0 - lDist * 2.0);
+    score *= (1.0 + lScore * 1.5);
 
     return score;
 }
@@ -92,6 +82,7 @@ ImageAnalyser::ImageAnalyser(QObject* parent)
     , m_dominantColour(0, 0, 0)
     , m_luminance(0) {
     QObject::connect(m_futureWatcher, &QFutureWatcher<AnalyseResult>::finished, this, [this]() {
+        emit runningChanged();
         if (!m_futureWatcher->future().isResultReadyAt(0)) {
             return;
         }
@@ -125,6 +116,15 @@ void ImageAnalyser::setSource(const QString& source) {
         emit sourceItemChanged();
     }
 
+    // If clearing source, cancel any in-flight analysis immediately
+    if (m_source.isEmpty() && !m_sourceItem) {
+        if (m_futureWatcher->isRunning()) {
+            m_futureWatcher->cancel();
+            emit runningChanged();
+        }
+        return;
+    }
+
     requestUpdate();
 }
 
@@ -143,6 +143,15 @@ void ImageAnalyser::setSourceItem(QQuickItem* sourceItem) {
     if (!m_source.isEmpty()) {
         m_source = "";
         emit sourceChanged();
+    }
+
+    // If clearing sourceItem with no fallback source, cancel in-flight analysis
+    if (!m_sourceItem && m_source.isEmpty()) {
+        if (m_futureWatcher->isRunning()) {
+            m_futureWatcher->cancel();
+            emit runningChanged();
+        }
+        return;
     }
 
     requestUpdate();
@@ -183,12 +192,28 @@ QColor ImageAnalyser::dominantColour() const {
     return m_dominantColour;
 }
 
-qreal ImageAnalyser::luminance() const {
+[[nodiscard]] qreal ImageAnalyser::luminance() const {
     return m_luminance;
+}
+
+bool ImageAnalyser::isRunning() const {
+    return m_futureWatcher->isRunning();
+}
+
+void ImageAnalyser::cancel() {
+    if (m_futureWatcher->isRunning()) {
+        m_futureWatcher->cancel();
+        emit runningChanged();
+    }
 }
 
 void ImageAnalyser::requestUpdate() {
     if (m_source.isEmpty() && !m_sourceItem) {
+        // Both cleared — cancel any running analysis (stale result no longer wanted)
+        if (m_futureWatcher->isRunning()) {
+            m_futureWatcher->cancel();
+            emit runningChanged();
+        }
         return;
     }
 
@@ -239,7 +264,11 @@ void ImageAnalyser::update() {
         });
     } else {
         m_futureWatcher->setFuture(QtConcurrent::run([=, this](QPromise<AnalyseResult>& promise) {
-            const QImage image(m_source);
+            QString path = m_source;
+            if (path.startsWith(QLatin1String("file://"))) {
+                path = QUrl(path).toLocalFile();
+            }
+            const QImage image(path);
             analyse(promise, image, rescaleSize, profile);
         }));
     }

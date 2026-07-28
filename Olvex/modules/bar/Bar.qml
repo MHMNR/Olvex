@@ -178,7 +178,6 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "activeWindow"
                 delegate: WrappedLoader {
-                    Layout.fillHeight: !root.fullscreen && (item ? !item.showMusicPill : true)
                     Layout.topMargin: root.vPadding
                     Layout.bottomMargin: root.vPadding
                     visible: !root.fullscreen

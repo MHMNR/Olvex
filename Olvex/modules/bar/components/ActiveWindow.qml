@@ -17,15 +17,15 @@ import "../../../components/effects"
 StyledRect {
     id: root
 
-    color: root.showMusicPill ? Players.musicSurfaceColor : Colours.tPalette.m3surfaceContainer
-    radius: root.showMusicPill ? root.musicPillRadius : Tokens.rounding.full
-    opacity: (root.mediaMorphRendering && !root.mediaMorphCollapsing) ? 0 : 1
+    color: root.playerActive ? Players.musicSurfaceColor : Colours.tPalette.m3surfaceContainer
+    radius: root.musicPillRadius
+    opacity: root.mediaMorphRendering ? 0 : 1
 
     Behavior on color {
-        ColorAnimation { duration: 420; easing.type: Easing.OutCubic }
-    }
-    Behavior on radius {
-        NumberAnimation { duration: 420; easing.type: Easing.OutCubic }
+        CAnim {
+            duration: Tokens.anim.durations.expressiveSlowSpatial
+            easing: Tokens.anim.expressiveSlowSpatial
+        }
     }
     // No Behavior on opacity — snap visible immediately on collapse so bar
     // pill is underneath the overlay crossfade with zero delay
@@ -34,19 +34,19 @@ StyledRect {
     required property Brightness.Monitor monitor
     readonly property var mediaMorph: root.bar?.mediaMorph ?? Players.mediaMorphForScreen(root.bar?.screen?.name ?? "")
     property color colour: Colours.palette.m3primary
-    property bool wantsFillHeight: !root.showMusicPill
 
     readonly property bool hasMusicPlayer: !!Players.active
     readonly property bool isMusicPlaying: Players.active && Players.activeIsPlaying
-    readonly property bool showMusicPill: hasMusicPlayer
-    readonly property bool mediaMorphOwnsPill: root.showMusicPill && (root.mediaMorph?.dockLayoutReady ?? false)
-    readonly property bool mediaMorphCollapsing: root.showMusicPill && (root.mediaMorph?.closingDown ?? false)
-    readonly property bool mediaMorphRendering: root.showMusicPill && !!(
-        (root.mediaMorph?.active ?? false) ||
-        (root.mediaMorph?.morphAnimating ?? false)
-    ) && !(root.mediaMorph?.closingDown ?? false)
-    readonly property bool mediaVisualizerWarm: root.showMusicPill
-    readonly property bool mediaVisualizerActive: root.showMusicPill && root.isMusicPlaying && !root.mediaMorphRendering
+    // Pill stays mounted permanently — it just collapses to activewindow height
+    // when no player is running instead of disappearing.
+    readonly property bool showMusicPill: true
+    // Internal: gates morph, visualizer, accent — needs actual player
+    readonly property bool playerActive: hasMusicPlayer
+    readonly property bool mediaMorphOwnsPill: root.playerActive && (root.mediaMorph?.dockLayoutReady ?? false)
+    readonly property bool mediaMorphCollapsing: root.playerActive && (root.mediaMorph?.closingDown ?? false)
+    readonly property bool mediaMorphRendering: root.playerActive && ((root.mediaMorph?.active ?? false) || (root.mediaMorph?.morphAnimating ?? false))
+    readonly property bool mediaVisualizerWarm: root.playerActive
+    readonly property bool mediaVisualizerActive: root.playerActive && root.isMusicPlaying && !root.mediaMorphRendering
     readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "pill"
     property bool mediaVisualizerLoaded: mediaVisualizerActive
     readonly property string musicArtUrl: Players.currentArtUrl
@@ -67,7 +67,7 @@ StyledRect {
     readonly property real musicPillRadius: root.musicPillWidth / 2
     // Experiment: match the monitor's native refresh rate instead of a fixed
     // 60fps cap, now that the play-button spin/wavy-line pinning is removed.
-    readonly property real _screenHz: Screen.refreshRate > 0 ? Screen.refreshRate : 60
+    readonly property real _screenHz: (root.bar && root.bar.screen && root.bar.screen.refreshRate > 0) ? root.bar.screen.refreshRate : (Screen.refreshRate > 0 ? Screen.refreshRate : 60)
     readonly property int visualizerFrameInterval: Math.max(1, Math.round(1000 / root._screenHz))
     property real _lastMorphDockX: -1
     property real _lastMorphDockY: -1
@@ -75,7 +75,7 @@ StyledRect {
     property real _lastMorphDockH: -1
 
     function refreshAccentColors(): void {
-        if (!root.showMusicPill) {
+        if (!root.playerActive) {
             root.playButtonBg = Colours.palette.m3primary;
             root.playIconColor = Colours.palette.m3onPrimary;
             return;
@@ -138,7 +138,7 @@ StyledRect {
     }
 
     function applyMorphDock(): void {
-        if (!root.mediaMorph || !root.showMusicPill || root.mediaMorph.active)
+        if (!root.mediaMorph || !root.playerActive || root.mediaMorph.active)
             return;
         if (musicPill.width <= 0 || musicPill.height <= 0)
             return;
@@ -187,7 +187,7 @@ StyledRect {
     onYChanged: syncMorphDock(false)
 
     function kickDockSync(): void {
-        if (!root.showMusicPill || !root.mediaMorph)
+        if (!root.playerActive || !root.mediaMorph)
             return;
         root._lastMorphDockX = -1;
         root._lastMorphDockY = -1;
@@ -205,7 +205,7 @@ StyledRect {
     }
 
     function expandMusicMorph(): void {
-        if (!root.showMusicPill)
+        if (!root.playerActive)
             return;
 
         const morph = root.bar?.mediaMorph ?? Players.mediaMorphForScreen(root.bar?.screen?.name ?? "");
@@ -235,7 +235,7 @@ StyledRect {
         }
     }
 
-    onShowMusicPillChanged: {
+    onPlayerActiveChanged: {
         root.syncBarAccent();
         root.kickDockSync();
     }
@@ -270,7 +270,10 @@ StyledRect {
             root.syncBarAccent();
         }
         function onCurrentTrackKeyChanged() {
-            root.syncBarAccent();
+            // Defer until next event loop tick so currentArtUrl has time to settle
+            // before setArtUrl() runs analysis. Without this, analysis fires on the
+            // OLD artUrl but with the NEW trackKey — wrong image, wrong color.
+            Qt.callLater(() => root.syncBarAccent());
         }
         function onArtReloadNonceChanged() {
             root.updateBarArtSource();
@@ -285,7 +288,7 @@ StyledRect {
 
         onTriggered: {
             CpuProfile.bump("dockSyncTimer");
-            if (!root.showMusicPill || !root.mediaMorph) {
+            if (!root.playerActive || !root.mediaMorph) {
                 stop();
                 attempts = 0;
                 return;
@@ -351,19 +354,19 @@ StyledRect {
         // Length - 2 cause repeater counts as a child
         return (bar?.height ?? 0) - otherHeight - (bar?.spacing ?? 0) * (((bar?.children?.length ?? 1) - 1)) - (bar?.vPadding ?? 0) * 2;
     }
-    readonly property int availableTitleHeight: Math.max(0, root.maxHeight - icon.height - Tokens.spacing.small)
+    readonly property int availableTitleHeight: Math.max(0, root.maxHeight - Tokens.spacing.small * 4)
     readonly property int preferredTitleHeight: Math.max(64, Math.round((bar?.height ?? 0) * 0.18))
     readonly property int titleSlotHeight: Math.min(root.availableTitleHeight, root.preferredTitleHeight)
-    property Title current: text1
 
     clip: true
-    implicitWidth: showMusicPill ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
-    implicitHeight: showMusicPill ? root.musicPillHeight : icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
+
+    implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
+    implicitHeight: root.playerActive ? root.musicPillHeight : root.maxHeight
 
     Loader {
         asynchronous: true
         anchors.fill: parent
-        active: !Config.bar.activeWindow.showOnHover && !root.showMusicPill
+        active: !Config.bar.activeWindow.showOnHover && !root.playerActive
 
         sourceComponent: MouseArea {
             cursorShape: Qt.PointingHandCursor
@@ -394,21 +397,15 @@ StyledRect {
     Item {
         id: musicPill
 
-        width: root.musicPillWidth
-        height: root.musicPillHeight
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        property real pillAlpha: root.showMusicPill ? 1 : 0
-        opacity: root.mediaMorphRendering ? 0 : musicPill.pillAlpha
-        visible: opacity > 0
-
-        Behavior on pillAlpha { Anim { type: Anim.DefaultSpatial } }
-        Behavior on opacity { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
+        anchors.fill: parent
+        property real pillAlpha: 1
+        opacity: root.mediaMorphRendering ? 0 : 1
+        visible: true
 
         // ── Pill clip + background ─────────────────────────────────────
         StyledClippingRect {
             anchors.fill: parent
-            radius: root.musicPillRadius
+            radius: Math.min(root.radius, width / 2, height / 2)
             color: "transparent"
 
             Rectangle {
@@ -459,6 +456,12 @@ StyledRect {
                 anchors.fill: parent
                 anchors.margins: 4
                 spacing: 6
+                opacity: root.playerActive ? 1 : 0
+                visible: opacity > 0
+
+                Behavior on opacity {
+                    Anim { type: Anim.DefaultSpatial }
+                }
 
                 Item {
                     id: artFrame
@@ -492,7 +495,13 @@ StyledRect {
                             color: Qt.alpha(Qt.darker(root.musicAccent, modelData.dark), modelData.alpha)
                             // Present whenever a player is loaded — not gated on
                             // isPlaying, so it doesn't disappear on pause.
-                            opacity: root.showMusicPill ? 1 : 0
+                            opacity: root.playerActive ? 1 : 0
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: Tokens.anim.durations.expressiveDefaultEffects
+                                    easing: Tokens.anim.emphasizedDecel
+                                }
+                            }
                             antialiasing: true
                             layer.enabled: true
                             layer.effect: MultiEffect {
@@ -612,9 +621,63 @@ StyledRect {
                     onClicked: Players.next()
                 }
             }
+            // ── Window info — shown when no music player is active ──
+            Item {
+                anchors.fill: parent
+                opacity: root.playerActive ? 0 : 1
+                visible: opacity > 0.01
+
+                Behavior on opacity {
+                    Anim { type: Anim.DefaultSpatial }
+                }
+
+                MaterialIcon {
+                    id: icon
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: (parent.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2
+                    animate: true
+                    text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon(Hypr.activeToplevel?.lastIpcObject.class, "desktop_windows")
+                    color: root.colour
+                }
+
+                StyledText {
+                    id: windowTitleText
+                    anchors.horizontalCenter: icon.horizontalCenter
+                    anchors.top: icon.bottom
+                    anchors.topMargin: Tokens.spacing.small
+                    textPointSize: root.Tokens.font.size.smaller
+                    font.family: root.Tokens.font.family.mono
+                    color: root.colour
+                    width: implicitHeight
+                    height: implicitWidth
+
+                    transform: [
+                        Translate {
+                            x: root.Config.bar.activeWindow.inverted ? -windowTitleText.implicitWidth + windowTitleText.implicitHeight : 0
+                        },
+                        Rotation {
+                            angle: root.Config.bar.activeWindow.inverted ? 270 : 90
+                            origin.x: windowTitleText.implicitHeight / 2
+                            origin.y: windowTitleText.implicitHeight / 2
+                        }
+                    ]
+
+                    TextMetrics {
+                        id: metrics
+                        text: root.windowTitle
+                        font.pointSize: root.Tokens.font.size.smaller
+                        font.family: root.Tokens.font.family.mono
+                        elide: Qt.ElideRight
+                        elideWidth: root.titleSlotHeight
+                        onTextChanged: windowTitleText.text = elidedText
+                        onElideWidthChanged: windowTitleText.text = elidedText
+                    }
+                }
+            }
         }
 
         property real pillScale: 1.0
+
         transform: [
             Scale {
                 origin.x: musicPill.width / 2
@@ -643,92 +706,19 @@ StyledRect {
         }
     }
 
-    MaterialIcon {
-        id: icon
-
-        opacity: !root.showMusicPill ? 1 : 0
-        Behavior on opacity { Anim { type: Anim.DefaultSpatial } }
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: (root.height - (icon.height + Tokens.spacing.small + root.current.height)) / 2
-
-        animate: true
-        text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon(Hypr.activeToplevel?.lastIpcObject.class, "desktop_windows")
-        color: root.colour
-    }
-
-    Title {
-        id: text1
-    }
-
-    Title {
-        id: text2
-    }
-
-    TextMetrics {
-        id: metrics
-
-        text: root.windowTitle
-        font.pointSize: root.Tokens.font.size.smaller
-        font.family: root.Tokens.font.family.mono
-        elide: Qt.ElideRight
-        elideWidth: root.titleSlotHeight
-
-        onTextChanged: {
-            const next = root.current === text1 ? text2 : text1;
-            next.text = elidedText;
-            root.current = next;
-        }
-        onElideWidthChanged: root.current.text = elidedText
-    }
-
     Behavior on implicitHeight {
-        SequentialAnimation {
-            NumberAnimation {
-                duration: 420
-                easing.type: Easing.OutBack
-                easing.overshoot: 0.6
-            }
+        SpringAnimation {
+            spring: 3.5
+            damping: 0.80
+            epsilon: 0.25
         }
     }
 
     Behavior on implicitWidth {
-        SequentialAnimation {
-            NumberAnimation {
-                duration: 420
-                easing.type: Easing.OutBack
-                easing.overshoot: 0.6
-            }
-        }
-    }
-
-    component Title: StyledText {
-        id: text
-
-        anchors.horizontalCenter: icon.horizontalCenter
-        anchors.top: icon.bottom
-        anchors.topMargin: Tokens.spacing.small
-
-        textPointSize: metrics.font.pointSize
-        font.family: metrics.font.family
-        color: root.colour
-        opacity: (root.current === this ? 1 : 0) * (!root.showMusicPill ? 1 : 0)
-
-        transform: [
-            Translate {
-                x: root.Config.bar.activeWindow.inverted ? -text.implicitWidth + text.implicitHeight : 0
-            },
-            Rotation {
-                angle: root.Config.bar.activeWindow.inverted ? 270 : 90
-                origin.x: text.implicitHeight / 2
-                origin.y: text.implicitHeight / 2
-            }
-        ]
-
-        width: implicitHeight
-        height: implicitWidth
-
-        Behavior on opacity {
-            Anim {}
+        SpringAnimation {
+            spring: 3.5
+            damping: 0.80
+            epsilon: 0.25
         }
     }
 }

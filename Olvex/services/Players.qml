@@ -264,40 +264,44 @@ Singleton {
         if (!p)
             return;
 
-        let hint = (p.desktopEntry || p.identity).toLowerCase().trim().split(/\s+/)[0];
-        if (hint.includes("firefox"))
-            hint = "firefox";
-        else if (hint.includes("chrome"))
-            hint = "chrome";
-        else if (hint.includes("chromium"))
-            hint = "chromium";
+        // Prefer dbusName for exact targeting (handles Plasma Integration,
+        // players registered with instance suffixes, etc.)
+        const busName = p.dbusName ? String(p.dbusName) : "";
+        let cmd;
+        if (busName && busName.startsWith("org.mpris.MediaPlayer2.")) {
+            cmd = `busctl --user call '${busName}' /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method} 2>/dev/null || true`;
+        } else {
+            // Fallback: match by player identity hint
+            let hint = (p.desktopEntry || p.identity || "").toLowerCase().trim().split(/\s+/)[0];
+            if (hint.includes("firefox"))
+                hint = "firefox";
+            else if (hint.includes("chrome"))
+                hint = "chrome";
+            else if (hint.includes("chromium"))
+                hint = "chromium";
+            else if (hint.includes("plasma") || hint.includes("browser-integration"))
+                hint = "plasma-browser-integration";
 
-        // CLEAN BUSCTL NUDGE: Uses awk to reliably get the first column (bus name)
-        const cmd = `for bus in $(busctl --user list | awk '{print $1}' | grep "org.mpris.MediaPlayer2.${hint}"); do busctl --user call $bus /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method}; done`;
+            cmd = `for bus in $(busctl --user list | awk '{print $1}' | grep "org.mpris.MediaPlayer2.${hint}"); do busctl --user call "$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method} 2>/dev/null; done`;
+        }
 
         nudgeProcess.command = ["bash", "-c", cmd];
         nudgeProcess.running = true;
     }
 
     function togglePlaying() {
-        const p = root.active;
-        if (p) {
-            nudge("PlayPause");
-        }
+        // Use direct busctl nudge — bypasses Quickshell's stale canPlay guard
+        nudge("PlayPause");
     }
 
     function next() {
-        if (root.active) {
-            root.active.next();
-            nudge("Next");
-        }
+        // Do NOT call root.active.next() — Quickshell silently rejects when
+        // canGoNext is cached-false even if D-Bus reports true. Go direct.
+        nudge("Next");
     }
 
     function previous() {
-        if (root.active) {
-            root.active.previous();
-            nudge("Previous");
-        }
+        nudge("Previous");
     }
 
     Connections {
@@ -729,9 +733,21 @@ Singleton {
         if (!artUrl)
             return null;
         const norm = root.normalizeMediaArtUrl(artUrl);
-        const session = root._mediaAccentSession[norm] ?? root._mediaAccentSession[artUrl];
+        const isLocal = norm.startsWith("file://");
+        const cacheKey = isLocal ? norm + "::" + root.currentTrackKey : norm;
+        // For local files: only match by exact trackKey to avoid stale colors from
+        // a previous track that shared the same temp art file path.
+        // For remote URLs: stable per-track so norm fallback is safe.
+        const session = isLocal
+            ? root._mediaAccentSession[cacheKey]
+            : (root._mediaAccentSession[cacheKey] ?? root._mediaAccentSession[norm] ?? root._mediaAccentSession[artUrl]);
         if (session)
             return session;
+
+        // Skip disk cache entirely for local files, because music players reuse generic 
+        // temp paths (e.g. /tmp/chromium-mpris-art.png) across entirely different tracks.
+        if (isLocal)
+            return null;
 
         const disk = root._readAccentDiskCache();
         let entry = disk[norm] ?? disk[artUrl];
@@ -745,6 +761,7 @@ Singleton {
         }
         if (!entry)
             return null;
+        // Re-hydrate to memory cache
         root._mediaAccentSession[norm] = entry;
         return entry;
     }
@@ -753,7 +770,8 @@ Singleton {
         if (!artUrl)
             return;
         const norm = root.normalizeMediaArtUrl(artUrl);
-        const existing = root._mediaAccentSession[norm];
+        const cacheKey = norm.startsWith("file://") ? norm + "::" + root.currentTrackKey : norm;
+        const existing = root._mediaAccentSession[cacheKey] ?? root._mediaAccentSession[norm];
         const iconStr = playIconColor || root.resolvePlayIconColor(Qt.color(playButtonBg), null).toString();
         if (existing?.visualizer === visualizer && existing?.playButtonBg === playButtonBg && existing?.playIconColor === iconStr && accentProps.lastArtUrl === norm && accentProps.lastVisualizer === visualizer && accentProps.lastPlayButtonBg === playButtonBg)
             return;
@@ -762,21 +780,29 @@ Singleton {
             playButtonBg: playButtonBg,
             playIconColor: iconStr
         };
-        root._mediaAccentSession[norm] = entry;
-
-        const disk = root._readAccentDiskCache();
-        disk[norm] = entry;
-        const keys = Object.keys(disk);
-        if (keys.length > 48) {
-            for (let i = 0; i < keys.length - 48; i++)
-                delete disk[keys[i]];
+        
+        const isLocal = norm.startsWith("file://");
+        root._mediaAccentSession[cacheKey] = entry;
+        if (!isLocal) {
+            root._mediaAccentSession[norm] = entry;
         }
-        accentProps.cacheJson = JSON.stringify(disk);
+
+        if (!isLocal) {
+            const disk = root._readAccentDiskCache();
+            disk[norm] = entry;
+            const keys = Object.keys(disk);
+            if (keys.length > 48) {
+                for (let i = 0; i < keys.length - 48; i++)
+                    delete disk[keys[i]];
+            }
+            accentProps.cacheJson = JSON.stringify(disk);
+            root.persistAccentFile();
+        }
+        
         accentProps.lastArtUrl = norm;
         accentProps.lastVisualizer = entry.visualizer;
         accentProps.lastPlayButtonBg = entry.playButtonBg;
         root._bumpMediaAccentRevision();
-        root.persistAccentFile();
     }
 
     FileView {
