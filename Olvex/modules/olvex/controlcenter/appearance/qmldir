@@ -1,0 +1,4 @@
+module olvex.features.controlcenter.appearance
+
+AppearancePane 1.0 AppearancePane.qml
+

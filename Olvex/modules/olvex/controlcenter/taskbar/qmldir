@@ -1,0 +1,4 @@
+module olvex.features.controlcenter.taskbar
+
+TaskbarPane 1.0 TaskbarPane.qml
+
