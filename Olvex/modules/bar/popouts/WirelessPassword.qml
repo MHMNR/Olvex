@@ -21,12 +21,12 @@ StyledRect {
         const ssidToFallback = NetworkConnection.previousSsid;
         if (ssidToFallback !== "" && (!Nmcli.active || Nmcli.active.ssid !== ssidToFallback)) {
             console.log("WirelessPassword - [HARDENED] Smart Fallback: Attempting recovery to:", ssidToFallback);
-            
+
             // Aggressive cleanup before fallback
             Nmcli.connectionCheckTimer.stop();
             Nmcli.immediateCheckTimer.stop();
             Nmcli.pendingConnection = null;
-            
+
             // Small delay to let Nmcli breathe after a failure/forget operation
             Qt.callLater(() => {
                 Nmcli.connectToNetwork(ssidToFallback, "", "", result => {
@@ -42,7 +42,8 @@ StyledRect {
     }
 
     function closeDialog(): void {
-        if (root.isClosing) return;
+        if (root.isClosing)
+            return;
 
         console.log("WirelessPassword - Closing dialog. Error state:", connectButton.hasError);
 
@@ -70,7 +71,7 @@ StyledRect {
         if (root.popouts.currentName === "wirelesspassword") {
             root.popouts.currentName = "network";
         }
-        
+
         // Final reset after a small delay
         Qt.callLater(() => {
             passwordContainer.passwordBuffer = "";
@@ -87,7 +88,9 @@ StyledRect {
     enabled: shouldBeVisible && !isClosing
     focus: enabled
 
-    Behavior on opacity { Anim {} }
+    Behavior on opacity {
+        Anim {}
+    }
     opacity: shouldBeVisible ? 1 : 0
 
     onShouldBeVisibleChanged: {
@@ -97,24 +100,13 @@ StyledRect {
             connectButton.connecting = false;
             connectButton.text = qsTr("Connect");
             isClosing = false;
-            
+
             // Force focus chain
             Qt.callLater(() => {
                 root.forceActiveFocus();
                 hiddenInput.text = "";
                 hiddenInput.forceActiveFocus();
             });
-        }
-    }
-
-    Timer {
-        interval: 500
-        repeat: true
-        running: true
-        onTriggered: {
-            if (root.shouldBeVisible && root.Window.window && root.Window.window.activeFocusItem) {
-                console.log("WirelessPassword - CURRENT activeFocusItem:", root.Window.window.activeFocusItem, "type:", root.Window.window.activeFocusItem.toString());
-            }
         }
     }
 
@@ -127,7 +119,7 @@ StyledRect {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
-            
+
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: root.network ? root.network.ssid : "WiFi Network"
@@ -150,20 +142,28 @@ StyledRect {
             Layout.fillWidth: true
             Layout.preferredHeight: 64
             radius: 20
-            
+
             // Premium Glassmorphic Gradient
             color: "transparent"
             gradient: Gradient {
                 orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: Qt.alpha(Colours.palette.m3onSurface, hiddenInput.activeFocus ? 0.12 : 0.08) }
-                GradientStop { position: 1.0; color: Qt.alpha(Colours.palette.m3onSurface, hiddenInput.activeFocus ? 0.08 : 0.04) }
+                GradientStop {
+                    position: 0.0
+                    color: Qt.alpha(Colours.palette.m3onSurface, hiddenInput.activeFocus ? 0.12 : 0.08)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Qt.alpha(Colours.palette.m3onSurface, hiddenInput.activeFocus ? 0.08 : 0.04)
+                }
             }
-            
+
             border.width: 1.5
             border.color: hiddenInput.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.15)
-            
-            Behavior on border.color { CAnim {} }
-            
+
+            Behavior on border.color {
+                CAnim {}
+            }
+
             property alias passwordBuffer: hiddenInput.text
 
             RowLayout {
@@ -177,7 +177,9 @@ StyledRect {
                     text: "lock"
                     iconPointSize: 20
                     color: hiddenInput.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.5)
-                    Behavior on color { CAnim {} }
+                    Behavior on color {
+                        CAnim {}
+                    }
                 }
 
                 Item {
@@ -192,8 +194,10 @@ StyledRect {
                         color: Qt.alpha(Colours.palette.m3onSurface, 0.3)
                         textPointSize: Tokens.font.size.normal
                         visible: hiddenInput.text.length === 0
-                        
-                        Behavior on opacity { Anim {} }
+
+                        Behavior on opacity {
+                            Anim {}
+                        }
                     }
 
                     TextInput {
@@ -206,7 +210,7 @@ StyledRect {
                         echoMode: TextInput.Normal
                         focus: true
                         clip: true
-                        
+
                         Keys.onPressed: event => {
                             if (event.key === Qt.Key_Escape) {
                                 event.accepted = true;
@@ -230,7 +234,7 @@ StyledRect {
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.4)
                     visible: hiddenInput.text.length > 0
                     opacity: mouseClear.containsMouse ? 1.0 : 0.6
-                    
+
                     MouseArea {
                         id: mouseClear
                         anchors.fill: parent
@@ -242,7 +246,7 @@ StyledRect {
                     }
                 }
             }
-            
+
             MouseArea {
                 anchors.fill: parent
                 z: -1
@@ -251,10 +255,34 @@ StyledRect {
 
             SequentialAnimation {
                 id: shakeAnim
-                NumberAnimation { target: passwordContainer; property: "anchors.horizontalCenterOffset"; from: 0; to: 10; duration: 50 }
-                NumberAnimation { target: passwordContainer; property: "anchors.horizontalCenterOffset"; from: 10; to: -10; duration: 50 }
-                NumberAnimation { target: passwordContainer; property: "anchors.horizontalCenterOffset"; from: -10; to: 10; duration: 50 }
-                NumberAnimation { target: passwordContainer; property: "anchors.horizontalCenterOffset"; from: 10; to: 0; duration: 50 }
+                NumberAnimation {
+                    target: passwordContainer
+                    property: "anchors.horizontalCenterOffset"
+                    from: 0
+                    to: 10
+                    duration: 50
+                }
+                NumberAnimation {
+                    target: passwordContainer
+                    property: "anchors.horizontalCenterOffset"
+                    from: 10
+                    to: -10
+                    duration: 50
+                }
+                NumberAnimation {
+                    target: passwordContainer
+                    property: "anchors.horizontalCenterOffset"
+                    from: -10
+                    to: 10
+                    duration: 50
+                }
+                NumberAnimation {
+                    target: passwordContainer
+                    property: "anchors.horizontalCenterOffset"
+                    from: 10
+                    to: 0
+                    duration: 50
+                }
             }
         }
 
@@ -273,8 +301,10 @@ StyledRect {
                     root.closeDialog();
                 }
                 enabled: !connectButton.connecting
-                
-                Behavior on Layout.preferredWidth { Anim {} }
+
+                Behavior on Layout.preferredWidth {
+                    Anim {}
+                }
             }
 
             TextButton {
@@ -285,21 +315,29 @@ StyledRect {
                 type: TextButton.Filled
                 property bool connecting: false
                 property bool hasError: false
-                
+
                 activeColour: {
-                    if (hasError) return Colours.palette.m3error;
-                    if (!enabled && !connecting) return Colours.palette.m3surfaceVariant;
+                    if (hasError)
+                        return Colours.palette.m3error;
+                    if (!enabled && !connecting)
+                        return Colours.palette.m3surfaceVariant;
                     return Colours.palette.m3primary;
                 }
                 inactiveColour: activeColour
-                
+
                 label.color: hasError ? Colours.palette.m3onError : (enabled || connecting ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant)
                 label.opacity: enabled || connecting ? 1.0 : 0.6
-                
+
                 enabled: passwordContainer.passwordBuffer.length >= 8 && !connecting
 
-                Behavior on Layout.preferredWidth { Anim {} }
-                Behavior on scale { Anim { type: Anim.Bouncy } }
+                Behavior on Layout.preferredWidth {
+                    Anim {}
+                }
+                Behavior on scale {
+                    Anim {
+                        type: Anim.Bouncy
+                    }
+                }
                 scale: enabled ? 1.0 : 0.95
 
                 onClicked: {
@@ -307,11 +345,12 @@ StyledRect {
                     hasError = false;
                     root.failedSsid = "";
                     text = qsTr("Connecting...");
-                    
+
                     const networkToConnect = root.network;
                     NetworkConnection.connectWithPassword(networkToConnect, passwordContainer.passwordBuffer, result => {
                         if (result.success) {
-                            if (root && !root.isClosing) root.closeDialog();
+                            if (root && !root.isClosing)
+                                root.closeDialog();
                         } else {
                             if (root && !root.isClosing) {
                                 connecting = false;
@@ -331,13 +370,23 @@ StyledRect {
                 SequentialAnimation on opacity {
                     running: connectButton.connecting
                     loops: Animation.Infinite
-                    NumberAnimation { from: 1.0; to: 0.7; duration: 600; easing.type: Easing.InOutQuad }
-                    NumberAnimation { from: 0.7; to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
+                    NumberAnimation {
+                        from: 1.0
+                        to: 0.7
+                        duration: 600
+                        easing.type: Easing.InOutQuad
+                    }
+                    NumberAnimation {
+                        from: 0.7
+                        to: 1.0
+                        duration: 600
+                        easing.type: Easing.InOutQuad
+                    }
                 }
             }
         }
     }
-    
+
     // Auto-clear error when user types
     Connections {
         target: hiddenInput

@@ -2,7 +2,6 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import qs.services
 
 Singleton {
@@ -280,6 +279,17 @@ Singleton {
         }, 100);
     }
 
+    Connections {
+        target: Nmcli
+        function onNetworksChanged(): void {
+            syncNetworksFromNmcli();
+        }
+        function onEthernetDevicesChanged(): void {
+            root.ethernetDevices = Nmcli.ethernetDevices;
+            root.ethernetDeviceCount = Nmcli.ethernetDevices.length;
+        }
+    }
+
     // Sync saved connections from Nmcli when they're updated
     Connections {
         function onSavedConnectionsChanged() {
@@ -291,26 +301,6 @@ Singleton {
         }
 
         target: Nmcli
-    }
-
-    Timer {
-        id: monitorDebounce
-
-        interval: 200
-        onTriggered: {
-            Nmcli.getNetworks(() => {
-                syncNetworksFromNmcli();
-            });
-            getEthernetDevices();
-        }
-    }
-
-    Process {
-        running: true
-        command: ["nmcli", "m"]
-        stdout: SplitParser {
-            onRead: monitorDebounce.start()
-        }
     }
 
     Component {

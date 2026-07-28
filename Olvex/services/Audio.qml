@@ -28,7 +28,12 @@ Singleton {
     readonly property real sourceVolume: source?.audio?.volume ?? 0
 
     readonly property alias cava: cava
-    readonly property alias beatTracker: beatTracker
+    readonly property int visualiserFps: Math.max(1, Math.min(GlobalConfig.services["visualiserFps"] || 30, 60))
+
+    function syncCavaFrameRate(): void {
+        if ("frameRate" in cava)
+            cava.frameRate = root.visualiserFps;
+    }
 
     function setVolume(newVolume: real): void {
         if (sink?.ready && sink?.audio) {
@@ -167,10 +172,17 @@ Singleton {
         id: cava
 
         bars: GlobalConfig.services.visualiserBars
+
+        Component.onCompleted: root.syncCavaFrameRate()
     }
 
-    BeatTracker {
-        id: beatTracker
+    Connections {
+        target: GlobalConfig.services
+        ignoreUnknownSignals: true
+
+        function onVisualiserFpsChanged(): void {
+            root.syncCavaFrameRate();
+        }
     }
 
     IpcHandler {

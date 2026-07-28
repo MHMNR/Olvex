@@ -64,13 +64,21 @@ void CircularBuffer::push(qreal value) {
     if (m_capacity <= 0)
         return;
 
+    const bool wasFull = m_count == m_capacity;
+    const qreal replacedValue = wasFull ? m_data[m_head] : 0.0;
+    const qreal previousValue = m_count > 0 ? m_data[(m_head - 1 + m_capacity) % m_capacity] : 0.0;
+
     m_data[m_head] = value;
     m_head = (m_head + 1) % m_capacity;
+    bool countDidChange = false;
     if (m_count < m_capacity) {
         m_count++;
+        countDidChange = true;
         emit countChanged();
     }
-    emit valuesChanged();
+
+    if (countDidChange || !qFuzzyCompare(previousValue + 1.0, value + 1.0) || (wasFull && !qFuzzyCompare(replacedValue + 1.0, value + 1.0)))
+        emit valuesChanged();
 }
 
 void CircularBuffer::clear() {

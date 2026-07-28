@@ -17,6 +17,7 @@ Item {
     property bool emphasized: false
     property bool expandedTone: false
     property bool spinning: false
+    property bool animateSpin: false
     property real iconSize: 14
     property real clickScale: 1.0
     // Decoupled X/Y scale for the rubber squash animation on the icon
@@ -73,7 +74,7 @@ Item {
         to: 360
         duration: 8000
         loops: Animation.Infinite
-        running: control.spinning
+        running: control.animateSpin && control.spinning && control.visible && control.opacity > 0
         easing.type: Easing.Linear
         onRunningChanged: {
             if (!running)

@@ -74,7 +74,7 @@ Singleton {
 
     Process {
         running: true
-        command: ["sh", "-c", "asdbctl get"] // To avoid warnings if asdbctl is not installed
+        command: ["sh", "-c", "command -v asdbctl >/dev/null 2>&1 && asdbctl get"]
         stdout: StdioCollector {
             onStreamFinished: root.appleDisplayPresent = text.trim().length > 0
         }

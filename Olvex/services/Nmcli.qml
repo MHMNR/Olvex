@@ -29,6 +29,7 @@ Singleton {
     property list<var> ethernetDevices: []
     readonly property var activeEthernet: ethernetDevices.find(d => d.connected) ?? null
     property list<var> activeProcesses: []
+    property bool monitorEnabled: false
 
     readonly property alias connectionCheckTimer: connectionCheckTimer
     readonly property alias immediateCheckTimer: immediateCheckTimer
@@ -1071,11 +1072,27 @@ Singleton {
         });
     }
 
+    function setMonitorEnabled(enabled: bool): void {
+        if (root.monitorEnabled === enabled)
+            return;
+
+        root.monitorEnabled = enabled;
+        monitorRestartTimer.stop();
+
+        if (enabled) {
+            if (!monitorProc.running)
+                monitorProc.running = true;
+        } else if (monitorProc.running) {
+            monitorProc.running = false;
+        }
+    }
+
     Component.onCompleted: {
         getWifiStatus(() => {});
         getNetworks(() => {});
         loadSavedConnections(() => {});
         getEthernetInterfaces(() => {});
+        setMonitorEnabled(true);
 
         Qt.callLater(() => {
             if (root.wirelessInterfaces.length > 0) {
@@ -1264,7 +1281,7 @@ Singleton {
     Process {
         id: monitorProc
 
-        running: true
+        running: root.monitorEnabled
         command: ["nmcli", "monitor"]
         environment: ({
                 LANG: "C.UTF-8",
@@ -1273,7 +1290,10 @@ Singleton {
         stdout: SplitParser {
             onRead: root.refreshOnConnectionChange()
         }
-        onExited: monitorRestartTimer.start() // qmllint disable signal-handler-parameters
+        onExited: {
+            if (root.monitorEnabled)
+                monitorRestartTimer.start();
+        } // qmllint disable signal-handler-parameters
     }
 
     Timer {

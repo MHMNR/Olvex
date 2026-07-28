@@ -44,18 +44,6 @@ QtObject {
     property color m3shadow: "#000000"
     property color m3scrim: "#000000"
     property color m3surfaceTint: "#CFBCFF"
-    property color m3primaryFixed: "#E9DDFF"
-    property color m3primaryFixedDim: "#CFBCFF"
-    property color m3onPrimaryFixed: "#22005D"
-    property color m3onPrimaryFixedVariant: "#4F378A"
-    property color m3secondaryFixed: "#E8DEF8"
-    property color m3secondaryFixedDim: "#CCC2DC"
-    property color m3onSecondaryFixed: "#1E192B"
-    property color m3onSecondaryFixedVariant: "#4A4458"
-    property color m3tertiaryFixed: "#FFD8E4"
-    property color m3tertiaryFixedDim: "#EFB8C8"
-    property color m3onTertiaryFixed: "#31111D"
-    property color m3onTertiaryFixedVariant: "#633B48"
     property color m3success: "#B5CCBA"
     property color m3onSuccess: "#213528"
     property color m3successContainer: "#374B3E"
@@ -77,6 +65,26 @@ QtObject {
     property color term13: "#f9a8c2"
     property color term14: "#ffd1c0"
     property color term15: "#ffffff"
+
+    // Smooth transitions when wallpaper changes
+    Behavior on m3primary { ColorAnimation { duration: 100 } }
+    Behavior on m3primaryContainer { ColorAnimation { duration: 100 } }
+    Behavior on m3secondaryContainer { ColorAnimation { duration: 100 } }
+    Behavior on m3tertiary { ColorAnimation { duration: 100 } }
+    Behavior on m3tertiaryContainer { ColorAnimation { duration: 100 } }
+    Behavior on m3error { ColorAnimation { duration: 100 } }
+    Behavior on m3errorContainer { ColorAnimation { duration: 100 } }
+    Behavior on m3surface { ColorAnimation { duration: 100 } }
+    Behavior on m3surfaceVariant { ColorAnimation { duration: 100 } }
+    Behavior on m3surfaceContainerLow { ColorAnimation { duration: 100 } }
+    Behavior on m3surfaceContainer { ColorAnimation { duration: 100 } }
+    Behavior on m3surfaceContainerHigh { ColorAnimation { duration: 100 } }
+    Behavior on m3surfaceContainerHighest { ColorAnimation { duration: 100 } }
+    Behavior on m3outline { ColorAnimation { duration: 100 } }
+    Behavior on m3outlineVariant { ColorAnimation { duration: 100 } }
+    Behavior on m3surfaceTint { ColorAnimation { duration: 100 } }
+    Behavior on m3success { ColorAnimation { duration: 100 } }
+    Behavior on m3successContainer { ColorAnimation { duration: 100 } }
 
     function applyScheme(scheme) {
         return Mapper.applySchemeToPalette(root, scheme);

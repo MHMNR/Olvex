@@ -13,6 +13,8 @@ Searcher {
 
     property string currentScheme
     property string currentVariant
+    property bool catalogLoaded: false
+    property bool currentLoaded: false
 
     function transformSearch(search: string): string {
         return search.slice(`${GlobalConfig.launcher.actionPrefix}scheme `.length);
@@ -23,11 +25,20 @@ Searcher {
     }
 
     function reload(): void {
+        ensureLoaded();
         getCurrent.running = true;
+    }
+
+    function ensureLoaded(): void {
+        if (!catalogLoaded && !getSchemes.running)
+            getSchemes.running = true;
+        if (!currentLoaded && !getCurrent.running)
+            getCurrent.running = true;
     }
 
     catalog: schemes.instances
     useFuzzy: GlobalConfig.launcher.useFuzzy.schemes
+    beforeQuery: function() { root.ensureLoaded(); }
     keys: ["name", "flavour"]
     weights: [0.9, 0.1]
 
@@ -40,7 +51,7 @@ Searcher {
     Process {
         id: getSchemes
 
-        running: true
+        running: false
         command: ["olvex", "scheme", "list"]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -57,6 +68,7 @@ Searcher {
                         flat.push(f);
 
                 schemes.model = flat.sort((a, b) => String(a.name + a.flavour).localeCompare((b.name + b.flavour)));
+                root.catalogLoaded = true;
             }
         }
     }
@@ -64,13 +76,14 @@ Searcher {
     Process {
         id: getCurrent
 
-        running: true
+        running: false
         command: ["olvex", "scheme", "get", "-nfv"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const [name, flavour, variant] = text.trim().split("\n");
                 root.currentScheme = `${name} ${flavour}`;
                 root.currentVariant = variant;
+                root.currentLoaded = true;
             }
         }
     }

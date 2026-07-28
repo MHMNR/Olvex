@@ -8,6 +8,10 @@ Image {
 
     property alias path: manager.path
 
+    function reload() {
+        manager.updateSource();
+    }
+
     asynchronous: true
     fillMode: Image.PreserveAspectCrop
 

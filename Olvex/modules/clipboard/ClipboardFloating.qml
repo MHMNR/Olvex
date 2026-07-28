@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Effects
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
@@ -135,14 +134,7 @@ PanelWindow {
             }
         }
 
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Qt.rgba(0, 0, 0, 0.6)
-            shadowBlur: 1.0
-            shadowVerticalOffset: 8
-            shadowHorizontalOffset: 0
-        }
+        // Shadow via Shape to avoid layer transparency issues on Wayland
 
         // ── Header ────────────────────────────────
         Item {

@@ -15,7 +15,7 @@ StyledRect {
     implicitHeight: contentColumn.implicitHeight + Tokens.padding.large * 2
 
     radius: Tokens.rounding.normal
-    color: Colours.transparency.enabled ? Colours.layer(Colours.palette.m3surfaceContainer, 2) : Colours.palette.m3surfaceContainerHigh
+    color: Colours.transparencyEnabled ? Colours.layer(Colours.palette.m3surfaceContainer, 2) : Colours.palette.m3surfaceContainerHigh
 
     ColumnLayout {
         id: contentColumn

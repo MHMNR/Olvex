@@ -72,7 +72,8 @@ void SparklineItem::connectBuffer(CircularBuffer* buffer) {
         return;
 
     connect(buffer, &CircularBuffer::valuesChanged, this, [this]() {
-        update();
+        if (isVisible())
+            update();
     });
     connect(buffer, &QObject::destroyed, this, [this, buffer]() {
         if (m_line1 == buffer) {
@@ -83,7 +84,8 @@ void SparklineItem::connectBuffer(CircularBuffer* buffer) {
             m_line2 = nullptr;
             emit line2Changed();
         }
-        update();
+        if (isVisible())
+            update();
     });
 }
 
@@ -99,7 +101,8 @@ void SparklineItem::setLine1(CircularBuffer* buffer) {
     m_line1 = buffer;
     connectBuffer(buffer);
     emit line1Changed();
-    update();
+    if (isVisible())
+        update();
 }
 
 CircularBuffer* SparklineItem::line2() const {
@@ -114,7 +117,8 @@ void SparklineItem::setLine2(CircularBuffer* buffer) {
     m_line2 = buffer;
     connectBuffer(buffer);
     emit line2Changed();
-    update();
+    if (isVisible())
+        update();
 }
 
 QColor SparklineItem::line1Color() const {
@@ -126,7 +130,8 @@ void SparklineItem::setLine1Color(const QColor& color) {
         return;
     m_line1Color = color;
     emit line1ColorChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 QColor SparklineItem::line2Color() const {
@@ -138,7 +143,8 @@ void SparklineItem::setLine2Color(const QColor& color) {
         return;
     m_line2Color = color;
     emit line2ColorChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 qreal SparklineItem::line1FillAlpha() const {
@@ -150,7 +156,8 @@ void SparklineItem::setLine1FillAlpha(qreal alpha) {
         return;
     m_line1FillAlpha = alpha;
     emit line1FillAlphaChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 qreal SparklineItem::line2FillAlpha() const {
@@ -162,7 +169,8 @@ void SparklineItem::setLine2FillAlpha(qreal alpha) {
         return;
     m_line2FillAlpha = alpha;
     emit line2FillAlphaChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 qreal SparklineItem::maxValue() const {
@@ -174,7 +182,8 @@ void SparklineItem::setMaxValue(qreal value) {
         return;
     m_maxValue = value;
     emit maxValueChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 qreal SparklineItem::slideProgress() const {
@@ -186,7 +195,8 @@ void SparklineItem::setSlideProgress(qreal progress) {
         return;
     m_slideProgress = progress;
     emit slideProgressChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 int SparklineItem::historyLength() const {
@@ -198,7 +208,8 @@ void SparklineItem::setHistoryLength(int length) {
         return;
     m_historyLength = length;
     emit historyLengthChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 qreal SparklineItem::lineWidth() const {
@@ -210,7 +221,8 @@ void SparklineItem::setLineWidth(qreal width) {
         return;
     m_lineWidth = width;
     emit lineWidthChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 } // namespace olvex::internal

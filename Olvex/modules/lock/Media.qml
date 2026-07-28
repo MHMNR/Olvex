@@ -159,8 +159,8 @@ Item {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: mouse => {
-                        const frac = mouse.x / width;
-                        Players.seekTo(frac * (Players.interpolatedLength > 0 ? Players.interpolatedLength : 1));
+                        const frac = Math.max(0, Math.min(1, mouse.x / width));
+                        Players.seekTo(frac);
                     }
                 }
 

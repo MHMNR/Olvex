@@ -17,6 +17,7 @@ Item {
 
     property url imageSource: Players.active ? Players.getArtUrl(Players.active) : ""
     property bool hadPrevious
+    property bool animateFallback: false
     property color fallbackColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
 
     layer.enabled: true
@@ -46,8 +47,7 @@ Item {
             color: Qt.alpha(root.fallbackColour, 1)
 
             Anim on rotation {
-                running: true
-                paused: !Players.active?.isPlaying
+                running: root.animateFallback && root.visible && Players.active?.isPlaying
                 from: 360
                 to: 0
                 duration: 23500

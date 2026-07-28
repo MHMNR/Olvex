@@ -16,6 +16,8 @@ CollapsibleSection {
     description: qsTr("Available color schemes")
     showBackground: true
 
+    Component.onCompleted: Schemes.ensureLoaded()
+
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Tokens.spacing.small / 2

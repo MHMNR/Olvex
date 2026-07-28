@@ -820,9 +820,23 @@ Singleton {
             return;
         }
 
-        root._syncPosition = p.position ?? 0;
+        const pos = p.position ?? 0;
+        const len = p.length ?? 0;
+
+        // Guard: if MPRIS returns position >= length while playing, and our
+        // existing anchor was valid (not at the end), the D-Bus value is stale.
+        // This happens after seek+restart where the player's cached Position
+        // still reflects the old position near track end. Skip this update and
+        // let interpolation continue from the last known-good anchor.
+        if (len > 0 && root._isPlaying(p) && pos >= len - 1
+            && root._syncLength === len
+            && root._syncPosition > 0 && root._syncPosition < len - 1) {
+            return;
+        }
+
+        root._syncPosition = pos;
         root._syncTime = Date.now();
-        root._syncLength = p.length ?? 0;
+        root._syncLength = len;
         root._updateInterpolation();
     }
 
@@ -851,8 +865,6 @@ Singleton {
         startupSync.attempts = 0;
         if (root.active) {
             startupSync.start();
-            // Immediate first read — don't wait 250ms for the first tick
-            Qt.callLater(root._syncNow);
         } else {
             startupSync.stop();
         }
@@ -864,11 +876,12 @@ Singleton {
 
         const rawLen = p.length ?? 0;
 
-        // Resolve the authoritative length FIRST, before clamping position against it.
-        // A fresh rawLen always wins (and overwrites a stale-large value from a previous
-        // track); only fall back to the cached value while rawLen is momentarily 0.
+        // Clamp against the freshest plausible track length, but do not immediately
+        // overwrite interpolatedLength with rawLen: some backends transiently report the
+        // CURRENT POSITION as the track length during seek, which collapses elapsed and
+        // total to the same value. Backup behavior kept the previous good length in that
+        // case, which is the behavior the user wants back.
         const len = rawLen > 0 ? rawLen : root.interpolatedLength;
-        root.interpolatedLength = len;
 
         // Stale-anchor guard: if the current track length differs from the length the
         // anchor was captured against, _syncPosition belongs to a DIFFERENT track. Do
@@ -884,7 +897,13 @@ Singleton {
             root._syncLength = len;
             const pos0 = Math.max(0, Math.min(livePos, len));
             root.interpolatedPosition = pos0;
-            root.interpolatedProgress = Math.max(0, Math.min(1, pos0 / len));
+            if (rawLen > 0 && Math.abs(rawLen - pos0) > 1) {
+                root.interpolatedLength = rawLen;
+            } else if (root.interpolatedLength === 0) {
+                root.interpolatedLength = rawLen;
+            }
+            const progressLen0 = root.interpolatedLength > 0 ? root.interpolatedLength : len;
+            root.interpolatedProgress = progressLen0 > 0 ? Math.max(0, Math.min(1, pos0 / progressLen0)) : 0;
             Qt.callLater(root._syncNow);
             return;
         }
@@ -902,7 +921,13 @@ Singleton {
             currentPos = Math.max(0, Math.min(currentPos, len));
 
         root.interpolatedPosition = currentPos;
-        root.interpolatedProgress = len > 0 ? Math.max(0, Math.min(1, currentPos / len)) : 0;
+        if (rawLen > 0 && Math.abs(rawLen - currentPos) > 1) {
+            root.interpolatedLength = rawLen;
+        } else if (root.interpolatedLength === 0) {
+            root.interpolatedLength = rawLen;
+        }
+        const progressLen = root.interpolatedLength > 0 ? root.interpolatedLength : len;
+        root.interpolatedProgress = progressLen > 0 ? Math.max(0, Math.min(1, currentPos / progressLen)) : 0;
     }
 
     // Called by UI seek bars.
@@ -910,22 +935,14 @@ Singleton {
         const p = root.active;
         if (!p || !p.canSeek || !p.positionSupported) return;
 
-        // Use the freshest live length, NOT the cached interpolatedLength. On shell
-        // restart / track change, interpolatedLength can still hold the PREVIOUS track's
-        // (longer) length until the next _syncNow lands. Seeking against that stale value
-        // produces a targetPos that overshoots the real track end; the clamp in
-        // _updateInterpolation then pins currentPos to p.length, making elapsed == total
-        // (both labels show the same time). Always re-fetch p.length here.
         const liveLen = p.length ?? 0;
-        const len = liveLen > 0 ? liveLen : root.interpolatedLength;
+        // Prefer the last known-good length, like the backup did. Some players briefly
+        // report the seek target/current position as `length`; trusting that live value
+        // collapses elapsed and total to the same timestamp.
+        const len = root.interpolatedLength > 0 ? root.interpolatedLength : liveLen;
         if (len <= 0) return;
 
-        // Clamp so we never anchor past the true end of the track.
         const targetPos = Math.max(0, Math.min(fraction * len, len));
-
-        // Keep interpolatedLength honest before we re-anchor, so the total-time label and
-        // the progress denominator both reflect the real track length immediately.
-        root.interpolatedLength = len;
 
         // Issue D-Bus command
         p.position = targetPos;
@@ -952,9 +969,8 @@ Singleton {
     // the real audio until the user pauses (which triggers its own resync).
     Timer {
         id: seekGuard
-        interval: 700
+        interval: 1500
         repeat: false
-        onTriggered: Qt.callLater(root._syncNow)
     }
 
     // Retry until MPRIS metadata is ready after shell/player attach.
@@ -973,10 +989,11 @@ Singleton {
             root._syncNow();
             attempts++;
             const len = root.interpolatedLength > 0 ? root.interpolatedLength : (root.active.length ?? 0);
-            // Keep polling until length is known OR we've exhausted retries.
-            // Paused players need the same patience as playing ones — MPRIS metadata
-            // arrives late on shell restart regardless of playback state.
-            if (len > 0 || attempts >= 20) {
+            const pos = root.interpolatedPosition;
+            // Keep polling until both length AND position are reasonable.
+            // Position must be > 0 (not stale zero) and < length (not stale end).
+            const posOk = len > 0 ? (pos > 0 && pos < len) : true;
+            if ((len > 0 && posOk) || attempts >= 20) {
                 stop();
             }
         }

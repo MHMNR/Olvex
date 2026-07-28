@@ -311,7 +311,7 @@ Searcher {
         const escaped = cleanPath.replace(/'/g, "'\\''");
         const smartFlags = smartArg.join(" ");
         const wallCmd = `olvex wallpaper -p '${escaped}' ${smartFlags} | ${root._jsonPipe}`;
-        return ["bash", "-lc", root.schemeSetPrefix() + wallCmd];
+        return ["bash", "-lc", wallCmd];
     }
 
     function persistColourSource(sourcePath: string): void {
@@ -708,6 +708,8 @@ Searcher {
                     root.persistColourSource(getCurrentColoursProc.targetSourcePath);
                 root.persistSchemePayload(payload);
                 root.colorsGenerated(payload, false);
+                // Theme apps asynchronously after UI colours are applied
+                themeAppsProc.running = true;
             }
         }
 
@@ -722,5 +724,10 @@ Searcher {
             if (exitCode !== 0)
                 console.log("[Wallpapers] wallpaper palette extract failed, exit:", exitCode);
         }
+    }
+
+    Process {
+        id: themeAppsProc
+        command: ["bash", "-lc", "olvex scheme set --notify >/dev/null 2>&1 || true"]
     }
 }

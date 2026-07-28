@@ -15,7 +15,9 @@ Item {
     required property ShellScreen screen
     required property Item wallpaper
 
-    readonly property bool shouldBeActive: Config.background.visualiser.enabled && !(wallpaper.item?.liveWallpaperActive ?? false) && (!Config.background.visualiser.autoHide || (Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true))
+    readonly property bool shouldBeActive: Config.background.visualiser.enabled && Players.activeIsPlaying && !(wallpaper.item?.liveWallpaperActive ?? false) && (!Config.background.visualiser.autoHide || (Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true))
+    readonly property int frameFps: Math.max(1, Math.min(GlobalConfig.services["visualiserFps"] || 30, 60))
+    readonly property int frameInterval: Math.max(16, Math.round(1000 / frameFps))
     property real offset: shouldBeActive ? 0 : screen.height * 0.2
 
     opacity: shouldBeActive ? 1 : 0
@@ -40,7 +42,8 @@ Item {
         id: wrapper
 
         anchors.fill: parent
-        layer.enabled: true
+        visible: root.opacity > 0
+        layer.enabled: root.opacity > 0
 
         Loader {
             asynchronous: true
@@ -59,7 +62,28 @@ Item {
                     id: bars
 
                     anchors.fill: parent
-                    anchors.margins: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness
+                    anchors.margins: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
+                                    thickness: 0,
+                                    rounding: 0,
+                                    minThickness: 0,
+                                    floating: false,
+                                    smoothing: 0,
+                                    clampedThickness: 0
+                                })) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
+                                thickness: 0,
+                                rounding: 0,
+                                minThickness: 0,
+                                floating: false,
+                                smoothing: 0,
+                                clampedThickness: 0
+                            }) : ({
+                                thickness: 0,
+                                rounding: 0,
+                                minThickness: 0,
+                                floating: false,
+                                smoothing: 0,
+                                clampedThickness: 0
+                            })).thickness
                     anchors.leftMargin: Visibilities.bars.get(root.screen).exclusiveZone + Tokens.spacing.small * Config.background.visualiser.spacing
 
                     values: Audio.cava.values
@@ -67,16 +91,18 @@ Item {
                     secondaryColor: Qt.alpha(Colours.palette.m3inversePrimary, 0.7)
                     rounding: Tokens.rounding.small * Config.background.visualiser.rounding
                     spacing: Tokens.spacing.small * Config.background.visualiser.spacing
-                    animationDuration: Tokens.anim.durations.normal
+                    animationDuration: Math.max(root.frameInterval * 3, 90)
 
                     Behavior on anchors.leftMargin {
                         Anim {}
                     }
                 }
 
-                FrameAnimation {
+                Timer {
+                    interval: root.frameInterval
                     running: root.opacity > 0 && !bars.settled
-                    onTriggered: bars.advance(frameTime)
+                    repeat: true
+                    onTriggered: bars.advance(interval / 1000)
                 }
             }
         }

@@ -16,6 +16,7 @@ Item {
     id: root
 
     required property DrawerVisibilities visibilities
+    required property bool dashboardActive
     property int batteryUiEpoch: 0
 
     readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
@@ -28,25 +29,25 @@ Item {
     property real batteryMeterAnim: 0
 
     function displayTemp(temp) {
-        var v = Math.ceil(GlobalConfig.services.useFahrenheitPerformance ? temp * 1.8 + 32 : temp)
-        var u = GlobalConfig.services.useFahrenheitPerformance ? "F" : "C"
-        return v + "°" + u
+        var v = Math.ceil(GlobalConfig.services.useFahrenheitPerformance ? temp * 1.8 + 32 : temp);
+        var u = GlobalConfig.services.useFahrenheitPerformance ? "F" : "C";
+        return v + "°" + u;
     }
 
     function formatSpeedCompact(b) {
-        var f = NetworkUsage.formatBytes(b ? b : 0)
+        var f = NetworkUsage.formatBytes(b ? b : 0);
         if (!f)
-            return "0"
-        var d = f.value >= 100 ? 0 : (f.value >= 10 ? 1 : 2)
-        return f.value.toFixed(d) + f.unit.replace("/s", "")
+            return "0";
+        var d = f.value >= 100 ? 0 : (f.value >= 10 ? 1 : 2);
+        return f.value.toFixed(d) + f.unit.replace("/s", "");
     }
 
     function formatTotalCompact(b) {
-        var f = NetworkUsage.formatBytesTotal(b ? b : 0)
+        var f = NetworkUsage.formatBytesTotal(b ? b : 0);
         if (!f)
-            return "0"
-        var d = f.value >= 100 ? 0 : 1
-        return f.value.toFixed(d) + f.unit
+            return "0";
+        var d = f.value >= 100 ? 0 : 1;
+        return f.value.toFixed(d) + f.unit;
     }
 
     readonly property bool showCpu: Config.dashboard.performance.showCpu
@@ -67,18 +68,10 @@ Item {
     property bool batShowChargingBolt: false
 
     readonly property bool batteryPlugged: !batOnBattery
-    readonly property bool batteryCharging: [
-        UPowerDeviceState.Charging,
-        UPowerDeviceState.PendingCharge
-    ].includes(batDeviceState)
-    readonly property bool batteryFull: batDeviceState === UPowerDeviceState.FullyCharged
-            || batteryLevel >= 0.995
+    readonly property bool batteryCharging: [UPowerDeviceState.Charging, UPowerDeviceState.PendingCharge].includes(batDeviceState)
+    readonly property bool batteryFull: batDeviceState === UPowerDeviceState.FullyCharged || batteryLevel >= 0.995
     readonly property real batteryMeter: Math.min(1, Math.max(0, batteryLevel))
-    readonly property bool batteryIconCharging: [
-        UPowerDeviceState.Charging,
-        UPowerDeviceState.FullyCharged,
-        UPowerDeviceState.PendingCharge
-    ].includes(batDeviceState)
+    readonly property bool batteryIconCharging: [UPowerDeviceState.Charging, UPowerDeviceState.FullyCharged, UPowerDeviceState.PendingCharge].includes(batDeviceState)
 
     property int diskIdx: 0
     property real stableDiskPerc: 0
@@ -107,82 +100,80 @@ Item {
         property alias selectedGpuIdx: root.gpuIdx
     }
 
+    Ref {
+        service: SystemUsage
+        active: root.dashboardActive
+    }
+
     function applyBatteryVisuals() {
-        batOnBattery = UPower.onBattery
-        batDeviceState = UPower.displayDevice.state
-        batTimeToEmpty = UPower.displayDevice.timeToEmpty
-        batTimeToFull = UPower.displayDevice.timeToFull
+        batOnBattery = UPower.onBattery;
+        batDeviceState = UPower.displayDevice.state;
+        batTimeToEmpty = UPower.displayDevice.timeToEmpty;
+        batTimeToFull = UPower.displayDevice.timeToFull;
 
-        var plugged = !batOnBattery
-        var lowPower = PowerProfiles.profile === PowerProfile.PowerSaver
-        var low = batteryLevel <= 0.20 && !plugged
-        var charging = [
-            UPowerDeviceState.Charging,
-            UPowerDeviceState.PendingCharge
-        ].includes(batDeviceState)
+        var plugged = !batOnBattery;
+        var lowPower = PowerProfiles.profile === PowerProfile.PowerSaver;
+        var low = batteryLevel <= 0.20 && !plugged;
+        var charging = [UPowerDeviceState.Charging, UPowerDeviceState.PendingCharge].includes(batDeviceState);
 
-        var shell = Colours.light ? Colours.tileFillSubtle : Qt.alpha(Colours.palette.m3onSurface, 0.06)
-        var track = Colours.light ? Colours.tileFill : Qt.alpha(Colours.palette.m3onSurface, 0.14)
-        var outline = Qt.alpha(Colours.palette.m3outline, 0.50)
-        var fill = Colours.palette.m3primary
-        var onFill = Colours.palette.m3onPrimary
-        var fillOp = 0.48
+        var shell = Colours.light ? Colours.tileFillSubtle : Qt.alpha(Colours.palette.m3onSurface, 0.06);
+        var track = Colours.light ? Colours.tileFill : Qt.alpha(Colours.palette.m3onSurface, 0.14);
+        var outline = Qt.alpha(Colours.palette.m3outline, 0.50);
+        var fill = Colours.palette.m3primary;
+        var onFill = Colours.palette.m3onPrimary;
+        var fillOp = 0.48;
 
         if (plugged) {
-            outline = Qt.alpha(batIosGreen, 0.55)
-            fill = batIosGreen
-            onFill = "#ffffff"
-            fillOp = 0.62
+            outline = Qt.alpha(batIosGreen, 0.55);
+            fill = batIosGreen;
+            onFill = "#ffffff";
+            fillOp = 0.62;
         } else if (lowPower) {
-            fill = batIosYellow
-            onFill = "#1c1c1e"
+            fill = batIosYellow;
+            onFill = "#1c1c1e";
         } else if (low) {
-            shell = Qt.alpha(Colours.palette.m3error, 0.10)
-            track = Qt.alpha(Colours.palette.m3error, 0.16)
-            outline = Qt.alpha(Colours.palette.m3error, 0.55)
-            fill = Colours.palette.m3error
-            onFill = Colours.palette.m3onError
+            shell = Qt.alpha(Colours.palette.m3error, 0.10);
+            track = Qt.alpha(Colours.palette.m3error, 0.16);
+            outline = Qt.alpha(Colours.palette.m3error, 0.55);
+            fill = Colours.palette.m3error;
+            onFill = Colours.palette.m3onError;
         }
 
-        batOnFillColor = onFill
-        batShowChargingBolt = charging
+        batOnFillColor = onFill;
+        batShowChargingBolt = charging;
 
         if (batBody) {
-            batBody.color = shell
-            batBody.border.color = outline
+            batBody.color = shell;
+            batBody.border.color = outline;
         }
         if (batCap)
-            batCap.color = outline
+            batCap.color = outline;
         if (batTrack)
-            batTrack.color = track
+            batTrack.color = track;
         if (batFill) {
-            batFill.color = fill
-            batFill.opacity = fillOp
+            batFill.color = fill;
+            batFill.opacity = fillOp;
         }
 
-        batPowerRevision++
+        batPowerRevision++;
     }
 
     Component.onCompleted: {
-        SystemUsage.refCount++
-        applyBatteryVisuals()
-        batteryMeterAnim = batteryMeter
+        applyBatteryVisuals();
+        batteryMeterAnim = batteryMeter;
         if (disk) {
-            stableDiskPerc = disk.perc
-            stableDiskMount = disk.mount
+            stableDiskPerc = disk.perc;
+            stableDiskMount = disk.mount;
         }
         if (gpu) {
-            stableGpuPerc = gpu.perc
-            stableGpuTemp = gpu.temp
+            stableGpuPerc = gpu.perc;
+            stableGpuTemp = gpu.temp;
         }
     }
-    Component.onDestruction: SystemUsage.refCount--
-
-    Ref { service: SystemUsage }
 
     onBatteryLevelChanged: {
-        batteryMeterAnim = batteryMeter
-        applyBatteryVisuals()
+        batteryMeterAnim = batteryMeter;
+        applyBatteryVisuals();
     }
 
     onBatteryUiEpochChanged: applyBatteryVisuals()
@@ -190,62 +181,62 @@ Item {
     Connections {
         target: UPower
         function onOnBatteryChanged(): void {
-            Qt.callLater(root.applyBatteryVisuals)
+            Qt.callLater(root.applyBatteryVisuals);
         }
     }
 
     Connections {
         target: UPower.displayDevice
         function onPercentageChanged(): void {
-            root.batteryMeterAnim = root.batteryMeter
-            Qt.callLater(root.applyBatteryVisuals)
+            root.batteryMeterAnim = root.batteryMeter;
+            Qt.callLater(root.applyBatteryVisuals);
         }
         function onStateChanged(): void {
-            Qt.callLater(root.applyBatteryVisuals)
+            Qt.callLater(root.applyBatteryVisuals);
         }
         function onPowerSupplyChanged(): void {
-            Qt.callLater(root.applyBatteryVisuals)
+            Qt.callLater(root.applyBatteryVisuals);
         }
         function onTimeToEmptyChanged(): void {
-            root.batTimeToEmpty = UPower.displayDevice.timeToEmpty
-            root.batPowerRevision++
+            root.batTimeToEmpty = UPower.displayDevice.timeToEmpty;
+            root.batPowerRevision++;
         }
         function onTimeToFullChanged(): void {
-            root.batTimeToFull = UPower.displayDevice.timeToFull
-            root.batPowerRevision++
+            root.batTimeToFull = UPower.displayDevice.timeToFull;
+            root.batPowerRevision++;
         }
     }
 
     Connections {
         target: PowerProfiles
         function onProfileChanged(): void {
-            Qt.callLater(root.applyBatteryVisuals)
+            Qt.callLater(root.applyBatteryVisuals);
         }
     }
 
     Connections {
         target: visibilities
         function onDashboardChanged(): void {
-            if (root.visibilities.dashboard)
-                Qt.callLater(root.applyBatteryVisuals)
+            if (root.dashboardActive)
+                Qt.callLater(root.applyBatteryVisuals);
         }
     }
 
     Connections {
         function onDisksChanged() {
             if (diskIdx >= SystemUsage.disks.length)
-                diskIdx = Math.max(0, SystemUsage.disks.length - 1)
+                diskIdx = Math.max(0, SystemUsage.disks.length - 1);
             if (root.disk) {
-                root.stableDiskPerc = root.disk.perc
-                root.stableDiskMount = root.disk.mount
+                root.stableDiskPerc = root.disk.perc;
+                root.stableDiskMount = root.disk.mount;
             }
         }
         function onGpusChanged() {
             if (gpuIdx >= SystemUsage.gpus.length)
-                gpuIdx = Math.max(0, SystemUsage.gpus.length - 1)
+                gpuIdx = Math.max(0, SystemUsage.gpus.length - 1);
             if (root.gpu) {
-                root.stableGpuPerc = root.gpu.perc
-                root.stableGpuTemp = root.gpu.temp
+                root.stableGpuPerc = root.gpu.perc;
+                root.stableGpuTemp = root.gpu.temp;
             }
         }
         target: SystemUsage
@@ -253,15 +244,15 @@ Item {
 
     onDiskChanged: {
         if (disk) {
-            stableDiskPerc = disk.perc
-            stableDiskMount = disk.mount
+            stableDiskPerc = disk.perc;
+            stableDiskMount = disk.mount;
         }
     }
 
     onGpuChanged: {
         if (gpu) {
-            stableGpuPerc = gpu.perc
-            stableGpuTemp = gpu.temp
+            stableGpuPerc = gpu.perc;
+            stableGpuTemp = gpu.temp;
         }
     }
 
@@ -336,16 +327,16 @@ Item {
                     anchors.topMargin: batBar.inset
                     anchors.bottomMargin: batBar.inset
                     anchors.leftMargin: batBar.inset
-                    width: root.batteryMeterAnim > 0
-                            ? Math.max(6, batBody.fillW)
-                            : 0
+                    width: root.batteryMeterAnim > 0 ? Math.max(6, batBody.fillW) : 0
                     radius: Math.max(2, batBar.bodyRadius - batBar.inset)
                     color: Colours.palette.m3primary
                     opacity: 0.48
                     z: 1
 
                     Behavior on width {
-                        Anim { type: Anim.StandardLarge }
+                        Anim {
+                            type: Anim.StandardLarge
+                        }
                     }
                 }
 
@@ -378,9 +369,7 @@ Item {
                         textPointSize: Tokens.font.size.smaller
                         font.family: Tokens.font.family.mono
                         font.weight: Font.Medium
-                        color: batBar.inset + batFill.width > (10 + implicitWidth)
-                                ? batOnFillColor
-                                : Colours.palette.m3onSurface
+                        color: batBar.inset + batFill.width > (10 + implicitWidth) ? batOnFillColor : Colours.palette.m3onSurface
                     }
 
                     StyledText {
@@ -409,20 +398,12 @@ Item {
             Layout.fillHeight: true
             spacing: 8
 
-            readonly property int deckCellCount: (showCpu ? 1 : 0)
-                    + (showGpu ? 1 : 0)
-                    + (showMemory ? 1 : 0)
-                    + (showStorage ? 1 : 0)
-                    + (showNetwork ? 1 : 0)
+            readonly property int deckCellCount: (showCpu ? 1 : 0) + (showGpu ? 1 : 0) + (showMemory ? 1 : 0) + (showStorage ? 1 : 0) + (showNetwork ? 1 : 0)
             readonly property int deckSepCount: Math.max(0, deckCellCount - 1)
             readonly property int deckSlotCount: deckCellCount + deckSepCount
             readonly property real deckAvailW: Math.max(0, root.width - 16)
-            readonly property real deckGapW: deckSlotCount > 1
-                    ? (deckSlotCount - 1) * spacing
-                    : 0
-            readonly property real deckUnitW: deckCellCount > 0
-                    ? Math.max(52, (deckAvailW - deckGapW - deckSepCount) / deckCellCount)
-                    : 0
+            readonly property real deckGapW: deckSlotCount > 1 ? (deckSlotCount - 1) * spacing : 0
+            readonly property real deckUnitW: deckCellCount > 0 ? Math.max(52, (deckAvailW - deckGapW - deckSepCount) / deckCellCount) : 0
             readonly property real deckCompactW: Math.max(44, deckUnitW * 0.72)
             readonly property real deckNetW: Math.max(88, deckUnitW * 1.65)
 
@@ -437,7 +418,9 @@ Item {
                 hint: displayTemp(SystemUsage.cpuTemp)
             }
 
-            DeckSep { visible: showCpu && (showGpu || showMemory || showStorage || showNetwork) }
+            DeckSep {
+                visible: showCpu && (showGpu || showMemory || showStorage || showNetwork)
+            }
 
             GpuArc {
                 visible: showGpu
@@ -451,15 +434,17 @@ Item {
                 tempText: root.gpuTempText
                 showScrollHint: root.gpuCount > 1
                 gpuCount: root.gpuCount
-                onScrollGpu: function(delta) {
+                onScrollGpu: function (delta) {
                     if (delta > 0)
-                        root.gpuIdx = (root.gpuIdx - 1 + root.gpuCount) % root.gpuCount
+                        root.gpuIdx = (root.gpuIdx - 1 + root.gpuCount) % root.gpuCount;
                     else if (delta < 0)
-                        root.gpuIdx = (root.gpuIdx + 1) % root.gpuCount
+                        root.gpuIdx = (root.gpuIdx + 1) % root.gpuCount;
                 }
             }
 
-            DeckSep { visible: showGpu && (showMemory || showStorage || showNetwork) }
+            DeckSep {
+                visible: showGpu && (showMemory || showStorage || showNetwork)
+            }
 
             RamTank {
                 visible: showMemory
@@ -470,13 +455,15 @@ Item {
                 Layout.horizontalStretchFactor: 1
                 value: SystemUsage.memPerc
                 hint: {
-                    var u = SystemUsage.formatKib(SystemUsage.memUsed)
-                    var t = SystemUsage.formatKib(SystemUsage.memTotal)
-                    return u.value.toFixed(0) + "/" + Math.floor(t.value) + t.unit
+                    var u = SystemUsage.formatKib(SystemUsage.memUsed);
+                    var t = SystemUsage.formatKib(SystemUsage.memTotal);
+                    return u.value.toFixed(0) + "/" + Math.floor(t.value) + t.unit;
                 }
             }
 
-            DeckSep { visible: showMemory && (showStorage || showNetwork) }
+            DeckSep {
+                visible: showMemory && (showStorage || showNetwork)
+            }
 
             DiskDotMatrix {
                 visible: showStorage
@@ -490,15 +477,17 @@ Item {
                 hint: diskHint
                 showScrollHint: root.diskCount > 1
                 diskCount: root.diskCount
-                onScrollDisk: function(delta) {
+                onScrollDisk: function (delta) {
                     if (delta > 0)
-                        root.diskIdx = (root.diskIdx - 1 + root.diskCount) % root.diskCount
+                        root.diskIdx = (root.diskIdx - 1 + root.diskCount) % root.diskCount;
                     else if (delta < 0)
-                        root.diskIdx = (root.diskIdx + 1) % root.diskCount
+                        root.diskIdx = (root.diskIdx + 1) % root.diskCount;
                 }
             }
 
-            DeckSep { visible: showStorage && showNetwork }
+            DeckSep {
+                visible: showStorage && showNetwork
+            }
 
             NetGauge {
                 visible: showNetwork
@@ -516,22 +505,22 @@ Item {
 
     function formatBatDuration(s, fallback) {
         if (!s)
-            return fallback
-        var h = Math.floor(s / 3600)
-        var m = Math.floor((s % 3600) / 60)
-        return h > 0 ? h + "h " + m + "m" : m + "m"
+            return fallback;
+        var h = Math.floor(s / 3600);
+        var m = Math.floor((s % 3600) / 60);
+        return h > 0 ? h + "h " + m + "m" : m + "m";
     }
 
     function batRemainingText() {
-        return Math.round(batteryLevel * 100) + "%"
+        return Math.round(batteryLevel * 100) + "%";
     }
 
     function batTimeText(rev) {
-        void rev
-        var label = batOnBattery ? qsTr("remaining") : qsTr("until charged")
-        var seconds = batOnBattery ? batTimeToEmpty : batTimeToFull
-        var fallback = batOnBattery ? qsTr("Calculating…") : qsTr("Fully charged!")
-        return qsTr("Time %1: %2").arg(label).arg(formatBatDuration(seconds, fallback))
+        void rev;
+        var label = batOnBattery ? qsTr("remaining") : qsTr("until charged");
+        var seconds = batOnBattery ? batTimeToEmpty : batTimeToFull;
+        var fallback = batOnBattery ? qsTr("Calculating…") : qsTr("Fully charged!");
+        return qsTr("Time %1: %2").arg(label).arg(formatBatDuration(seconds, fallback));
     }
 
     component DeckSep: Rectangle {
@@ -589,9 +578,7 @@ Item {
 
         readonly property real speed: 28
         readonly property bool needsMarquee: width > 0 && labelText.implicitWidth > width + 1
-        implicitHeight: labelText.implicitHeight > 0
-                ? labelText.implicitHeight
-                : Math.round(Tokens.font.size.smaller * 96 / 72)
+        implicitHeight: labelText.implicitHeight > 0 ? labelText.implicitHeight : Math.round(Tokens.font.size.smaller * 96 / 72)
 
         clip: true
 
@@ -603,9 +590,7 @@ Item {
 
             height: parent.height
             y: 0
-            x: marqueeRoot.needsMarquee
-                    ? marqueeRow.scrollX
-                    : Math.max(0, (marqueeRoot.width - marqueeRow.width) / 2)
+            x: marqueeRoot.needsMarquee ? marqueeRow.scrollX : Math.max(0, (marqueeRoot.width - marqueeRow.width) / 2)
 
             StyledText {
                 id: labelText
@@ -755,7 +740,9 @@ Item {
                     color: Colours.palette.m3primary
 
                     Behavior on height {
-                        Anim { type: Anim.StandardLarge }
+                        Anim {
+                            type: Anim.StandardLarge
+                        }
                     }
                 }
             }
@@ -796,12 +783,12 @@ Item {
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             blocking: true
             enabled: gpuCell.showScrollHint && gpuCell.gpuCount > 1
-            onWheel: function(event) {
+            onWheel: function (event) {
                 if (event.angleDelta.y > 0)
-                    gpuCell.scrollGpu(1)
+                    gpuCell.scrollGpu(1);
                 else if (event.angleDelta.y < 0)
-                    gpuCell.scrollGpu(-1)
-                event.accepted = true
+                    gpuCell.scrollGpu(-1);
+                event.accepted = true;
             }
         }
 
@@ -890,8 +877,7 @@ Item {
                         width: ramBody.width
                         height: ramBody.rowH
 
-                        readonly property real tierFill: Math.max(
-                            0, Math.min(1, ramCell.value * ramCell.tiers - index))
+                        readonly property real tierFill: Math.max(0, Math.min(1, ramCell.value * ramCell.tiers - index))
 
                         StyledRect {
                             anchors.fill: parent
@@ -908,7 +894,9 @@ Item {
                             color: Colours.palette.m3tertiary
 
                             Behavior on width {
-                                Anim { type: Anim.StandardLarge }
+                                Anim {
+                                    type: Anim.StandardLarge
+                                }
                             }
                         }
                     }
@@ -925,19 +913,19 @@ Item {
 
     function storageMountLabel(mount) {
         if (!mount || mount === "/")
-            return "root"
-        var name = mount.replace(/\/$/, "").split("/").pop()
-        return name !== "" ? name : mount
+            return "root";
+        var name = mount.replace(/\/$/, "").split("/").pop();
+        return name !== "" ? name : mount;
     }
 
     function storageVolumeHint(label, totalKib) {
         if (!label)
-            return ""
+            return "";
         if (!totalKib)
-            return label
-        const f = SystemUsage.formatKib(totalKib)
-        const d = f.value >= 100 ? 0 : (f.value >= 10 ? 1 : 2)
-        return label + " · " + f.value.toFixed(d) + " " + f.unit
+            return label;
+        const f = SystemUsage.formatKib(totalKib);
+        const d = f.value >= 100 ? 0 : (f.value >= 10 ? 1 : 2);
+        return label + " · " + f.value.toFixed(d) + " " + f.unit;
     }
 
     component DiskDotMatrix: ColumnLayout {
@@ -964,12 +952,12 @@ Item {
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             blocking: true
             enabled: diskCell.showScrollHint && diskCell.diskCount > 1
-            onWheel: function(event) {
+            onWheel: function (event) {
                 if (event.angleDelta.y > 0)
-                    diskCell.scrollDisk(1)
+                    diskCell.scrollDisk(1);
                 else if (event.angleDelta.y < 0)
-                    diskCell.scrollDisk(-1)
-                event.accepted = true
+                    diskCell.scrollDisk(-1);
+                event.accepted = true;
             }
         }
 
@@ -987,14 +975,10 @@ Item {
             Layout.minimumHeight: 46
 
             readonly property real pad: 3
-            readonly property real dotSize: Math.max(2, Math.min(
-                (width - pad * 2 - (diskCell.dotCols - 1) * diskCell.dotGap) / diskCell.dotCols,
-                (height - pad * 2 - (diskCell.dotRows - 1) * diskCell.dotGap) / diskCell.dotRows))
+            readonly property real dotSize: Math.max(2, Math.min((width - pad * 2 - (diskCell.dotCols - 1) * diskCell.dotGap) / diskCell.dotCols, (height - pad * 2 - (diskCell.dotRows - 1) * diskCell.dotGap) / diskCell.dotRows))
 
-            readonly property real gridW: diskCell.dotCols * dotSize
-                + (diskCell.dotCols - 1) * diskCell.dotGap
-            readonly property real gridH: diskCell.dotRows * dotSize
-                + (diskCell.dotRows - 1) * diskCell.dotGap
+            readonly property real gridW: diskCell.dotCols * dotSize + (diskCell.dotCols - 1) * diskCell.dotGap
+            readonly property real gridH: diskCell.dotRows * dotSize + (diskCell.dotRows - 1) * diskCell.dotGap
             readonly property real originX: Math.max(pad, (width - gridW) / 2)
             readonly property real originY: Math.max(pad, (height - gridH) / 2)
 
@@ -1013,9 +997,7 @@ Item {
                     width: diskBody.dotSize
                     height: diskBody.dotSize
                     radius: Math.max(1, diskBody.dotSize * 0.22)
-                    color: lit
-                        ? Colours.palette.m3secondary
-                        : Qt.alpha(Colours.palette.m3outlineVariant, 0.14)
+                    color: lit ? Colours.palette.m3secondary : Qt.alpha(Colours.palette.m3outlineVariant, 0.14)
                     border.width: lit ? 0 : 1
                     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.32)
                     opacity: lit ? 1.0 : 0.88
@@ -1025,9 +1007,7 @@ Item {
 
         StatFooter {
             valueText: Math.round(diskCell.value * 100) + "%"
-            hintText: hint !== ""
-                ? hint
-                : storageMountLabel(detail)
+            hintText: hint !== "" ? hint : storageMountLabel(detail)
             accent: Colours.palette.m3secondary
         }
     }
@@ -1153,7 +1133,9 @@ Item {
             color: accent
 
             Behavior on width {
-                Anim { type: Anim.StandardLarge }
+                Anim {
+                    type: Anim.StandardLarge
+                }
             }
         }
     }
@@ -1175,7 +1157,10 @@ Item {
             Layout.fillHeight: true
             Layout.minimumHeight: 44
 
-            Ref { service: NetworkUsage }
+            Ref {
+                service: NetworkUsage
+                active: root.dashboardActive
+            }
 
             SparklineItem {
                 id: netSpark
@@ -1197,10 +1182,8 @@ Item {
 
                 Connections {
                     function onValuesChanged() {
-                        netSpark.targetMax = Math.max(
-                            NetworkUsage.downloadBuffer.maximum,
-                            NetworkUsage.uploadBuffer.maximum, 1024)
-                        netSlide.restart()
+                        netSpark.targetMax = Math.max(NetworkUsage.downloadBuffer.maximum, NetworkUsage.uploadBuffer.maximum, 1024);
+                        netSlide.restart();
                     }
                     target: NetworkUsage.downloadBuffer
                 }
@@ -1217,7 +1200,9 @@ Item {
                 }
 
                 Behavior on smoothMax {
-                    Anim { type: Anim.StandardLarge }
+                    Anim {
+                        type: Anim.StandardLarge
+                    }
                 }
             }
 

@@ -15,9 +15,7 @@ Item {
 
     required property var screen
 
-    property string source: Wallpapers.perMonitorWallpaper
-        ? (Wallpapers.monitorWallpapers[screen?.name ?? ""] ?? Wallpapers.actualCurrent)
-        : Wallpapers.actualCurrent
+    property string source: Wallpapers.perMonitorWallpaper ? (Wallpapers.monitorWallpapers[screen?.name ?? ""] ?? Wallpapers.actualCurrent) : Wallpapers.actualCurrent
     readonly property bool sourceIsVideo: Wallpapers.isVideoPath(source)
     readonly property bool liveWallpaperActive: sourceIsVideo && Config.background.liveWallpaper.enabled
     property string actualTransitionType: Config.background.wallpaperTransition.type
@@ -28,7 +26,7 @@ Item {
     property bool previousSourceWasVideo: sourceIsVideo
     property string lastVideoSource: ""
     property string pendingWallpaper: ""
-    property bool debugLogging: true
+    property bool debugLogging: false
     property real edgeSmoothness: Config.background.wallpaperTransition.edgeSmoothness
     readonly property int wallpaperTransitionDuration: GlobalConfig.background?.wallpaperTransition?.duration ?? 1000
     property real wipeDirection: 0
@@ -313,11 +311,7 @@ Item {
     Image {
         id: primaryImage
         anchors.fill: parent
-        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady)
-                 && !root.effectActive
-                 && root.showingPrimary
-                 && source !== ""
-                 && (!root.holdingLiveFrame || status === Image.Ready)
+        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && !root.effectActive && root.showingPrimary && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
         asynchronous: true
@@ -333,11 +327,7 @@ Item {
         id: secondaryImage
 
         anchors.fill: parent
-        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady)
-                 && !root.effectActive
-                 && !root.showingPrimary
-                 && source !== ""
-                 && (!root.holdingLiveFrame || status === Image.Ready)
+        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && !root.effectActive && !root.showingPrimary && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
         asynchronous: true
@@ -419,10 +409,10 @@ Item {
     Component {
         id: fadeComp
 
-                ShaderEffect {
-                    anchors.fill: parent
-                    property variant source1: srcCurrent
-                    property variant source2: srcNext
+        ShaderEffect {
+            anchors.fill: parent
+            property variant source1: srcCurrent
+            property variant source2: srcNext
             property real progress: root.transitionProgress
             property real fillMode: Image.PreserveAspectCrop
             property vector4d fillColor: root.fillColor
@@ -688,10 +678,7 @@ Item {
                 if (!player)
                     return false;
 
-                return player.mediaStatus === MediaPlayer.LoadedMedia
-                    || player.mediaStatus === MediaPlayer.BufferedMedia
-                    || player.mediaStatus === MediaPlayer.BufferingMedia
-                    || (player.playbackState === MediaPlayer.PlayingState && player.position >= 0);
+                return player.mediaStatus === MediaPlayer.LoadedMedia || player.mediaStatus === MediaPlayer.BufferedMedia || player.mediaStatus === MediaPlayer.BufferingMedia || (player.playbackState === MediaPlayer.PlayingState && player.position >= 0);
             }
 
             function playerSource(player: var): string {
@@ -780,12 +767,10 @@ Item {
             Timer {
                 interval: 80
                 repeat: true
-                running: liveRoot.visible && !!liveRoot.wallpaperSource
+                running: liveRoot.visible && !!liveRoot.wallpaperSource && liveRoot.standbyPlayer && liveRoot.playerSource(liveRoot.standbyPlayer) === liveRoot.wallpaperSource && !liveRoot.isReady(liveRoot.standbyPlayer)
                 onTriggered: {
                     CpuProfile.bump("livePromoteTimer");
-                    if (liveRoot.standbyPlayer
-                            && liveRoot.playerSource(liveRoot.standbyPlayer) === liveRoot.wallpaperSource
-                            && liveRoot.isReady(liveRoot.standbyPlayer))
+                    if (liveRoot.standbyPlayer && liveRoot.playerSource(liveRoot.standbyPlayer) === liveRoot.wallpaperSource && liveRoot.isReady(liveRoot.standbyPlayer))
                         liveRoot.promotePlayer(liveRoot.standbyPlayer);
                 }
             }

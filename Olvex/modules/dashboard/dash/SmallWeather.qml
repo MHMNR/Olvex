@@ -9,6 +9,8 @@ import qs.services
 Item {
     id: root
 
+    property bool dashboardActive: true
+
     readonly property real pad: 16
     readonly property real gapSection: 8
     readonly property real gapHero: 6
@@ -17,28 +19,28 @@ Item {
     readonly property real insetPanelRadius: Tokens.rounding.small
 
     readonly property var upcomingForecast: {
-        const all = Weather.forecast ?? []
+        const all = Weather.forecast ?? [];
         if (all.length <= 1)
-            return []
-        return all.slice(1, 7)
+            return [];
+        return all.slice(1, 7);
     }
 
     readonly property string cityLabel: {
-        const raw = Weather.city || qsTr("Weather")
-        return raw.replace(/\S+/g, function(word) {
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        })
+        const raw = Weather.city || qsTr("Weather");
+        return raw.replace(/\S+/g, function (word) {
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        });
     }
 
     readonly property string detailLine: {
         if (!Weather.hasData)
-            return qsTr("Loading…")
-        const parts = []
+            return qsTr("Loading…");
+        const parts = [];
         if (Weather.description)
-            parts.push(Weather.description)
+            parts.push(Weather.description);
         if (Weather.feelsLike)
-            parts.push(qsTr("feels %1").arg(Weather.feelsLike))
-        return parts.join(" · ")
+            parts.push(qsTr("feels %1").arg(Weather.feelsLike));
+        return parts.join(" · ");
     }
 
     Component.onCompleted: Weather.reload()
@@ -47,6 +49,7 @@ Item {
         anchors.fill: parent
         z: 0
         bgOpacity: 0.2
+        active: root.dashboardActive
     }
 
     ColumnLayout {
@@ -207,27 +210,31 @@ Item {
         required property var forecast
 
         readonly property var displayRange: {
-            const days = strip.forecast ?? []
+            const days = strip.forecast ?? [];
             if (days.length === 0)
-                return { min: 0, max: 1, span: 1 }
+                return {
+                    min: 0,
+                    max: 1,
+                    span: 1
+                };
 
-            const useF = GlobalConfig.services.useFahrenheit
-            let min = Number.POSITIVE_INFINITY
-            let max = Number.NEGATIVE_INFINITY
+            const useF = GlobalConfig.services.useFahrenheit;
+            let min = Number.POSITIVE_INFINITY;
+            let max = Number.NEGATIVE_INFINITY;
 
             for (let i = 0; i < days.length; i++) {
-                const day = days[i]
-                const lo = useF ? day.minTempF : day.minTempC
-                const hi = useF ? day.maxTempF : day.maxTempC
-                min = Math.min(min, lo)
-                max = Math.max(max, hi)
+                const day = days[i];
+                const lo = useF ? day.minTempF : day.minTempC;
+                const hi = useF ? day.maxTempF : day.maxTempC;
+                min = Math.min(min, lo);
+                max = Math.max(max, hi);
             }
 
             return {
                 min: min,
                 max: max,
                 span: Math.max(1, max - min)
-            }
+            };
         }
 
         radius: root.insetPanelRadius
@@ -237,36 +244,36 @@ Item {
 
         function dayLabel(day: var): string {
             if (!day)
-                return "--"
-            const short = new Date(day.date).toLocaleDateString(Qt.locale(), "ddd")
-            return short.slice(0, 3).toUpperCase()
+                return "--";
+            const short = new Date(day.date).toLocaleDateString(Qt.locale(), "ddd");
+            return short.slice(0, 3).toUpperCase();
         }
 
         function dayHigh(day: var): string {
             if (!day)
-                return "--"
+                return "--";
             if (GlobalConfig.services.useFahrenheit)
-                return `${day.maxTempF}°`
-            return `${day.maxTempC}°`
+                return `${day.maxTempF}°`;
+            return `${day.maxTempC}°`;
         }
 
         function dayLow(day: var): string {
             if (!day)
-                return "--"
+                return "--";
             if (GlobalConfig.services.useFahrenheit)
-                return `${day.minTempF}°`
-            return `${day.minTempC}°`
+                return `${day.minTempF}°`;
+            return `${day.minTempC}°`;
         }
 
         function daySwing(day: var): real {
-            const range = strip.displayRange
+            const range = strip.displayRange;
             if (!day || !range || range.span <= 0)
-                return 0.35
+                return 0.35;
 
-            const useF = GlobalConfig.services.useFahrenheit
-            const hi = useF ? day.maxTempF : day.maxTempC
-            const lo = useF ? day.minTempF : day.minTempC
-            return Math.max(0.22, Math.min(1, (hi - lo) / range.span))
+            const useF = GlobalConfig.services.useFahrenheit;
+            const hi = useF ? day.maxTempF : day.maxTempC;
+            const lo = useF ? day.minTempF : day.minTempC;
+            return Math.max(0.22, Math.min(1, (hi - lo) / range.span));
         }
 
         readonly property real cellPad: 4

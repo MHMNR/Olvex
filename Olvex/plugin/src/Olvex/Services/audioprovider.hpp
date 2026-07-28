@@ -18,12 +18,15 @@ public:
 public slots:
     void start();
     void stop();
+    void setInterval(int intervalMs);
 
 protected:
     virtual void process() = 0;
+    int interval() const;
 
 private:
     QTimer* m_timer = nullptr;
+    int m_interval = 33;
 };
 
 class AudioProvider : public Service {
@@ -38,11 +41,11 @@ protected:
 
     void init();
 
-private:
-    QThread* m_thread;
-
     void start() override;
     void stop() override;
+
+private:
+    QThread* m_thread;
 };
 
 } // namespace olvex::services

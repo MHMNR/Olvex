@@ -16,6 +16,7 @@ Item {
     id: root
 
     required property DrawerVisibilities visibilities
+    required property bool dashboardActive
     required property FileDialog facePicker
 
     readonly property color accentColor: Colours.palette.m3primary
@@ -27,13 +28,13 @@ Item {
     readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
     readonly property string displayName: (SysInfo.user || "user").toUpperCase()
     readonly property string avatarInitial: {
-        const raw = SysInfo.user || "user"
-        return raw.charAt(0).toUpperCase()
+        const raw = SysInfo.user || "user";
+        return raw.charAt(0).toUpperCase();
     }
 
     function openFacePicker() {
-        root.visibilities.launcher = false
-        root.facePicker.open()
+        root.visibilities.launcher = false;
+        root.facePicker.open();
     }
 
     RowLayout {
@@ -73,7 +74,7 @@ Item {
                 color: Colours.layer(Colours.palette.m3primaryContainer, 1)
 
                 Anim on rotation {
-                    running: true
+                    running: root.dashboardActive
                     from: 360
                     to: 0
                     duration: 20000
@@ -96,7 +97,7 @@ Item {
                     color: "white"
 
                     Anim on rotation {
-                        running: true
+                        running: root.dashboardActive
                         from: 360
                         to: 0
                         duration: 20000
@@ -127,9 +128,7 @@ Item {
                 StyledText {
                     anchors.centerIn: parent
                     text: root.avatarInitial
-                    color: avatarLayer.containsMouse
-                            ? Colours.palette.m3primary
-                            : Colours.palette.m3onPrimaryContainer
+                    color: avatarLayer.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onPrimaryContainer
                     textPixelSize: 26
                     font.family: Tokens.font.family.sans
                     font.weight: Font.Bold
@@ -154,6 +153,13 @@ Item {
                 layer.enabled: true
                 layer.effect: Mask {
                     maskSource: avatarMaskWrap
+                }
+            }
+
+            Connections {
+                target: AccountFaces
+                function onFaceChanged() {
+                    pfp.reload();
                 }
             }
 

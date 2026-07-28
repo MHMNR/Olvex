@@ -26,14 +26,16 @@ Item {
         resetCwdOnOpen: true
 
         onAccepted: path => {
-            if (CUtils.copyFile(Qt.resolvedUrl(path), Qt.resolvedUrl(AccountFaces.customPath)))
+            if (CUtils.copyFile(Qt.resolvedUrl(path), Qt.resolvedUrl(AccountFaces.customPath))) {
+                AccountFaces.faceRevision++
+                AccountFaces.faceChanged()
                 Quickshell.execDetached([
                     "notify-send", "-a", "olvex-shell", "-u", "low",
                     "-h", `STRING:image-path:${path}`,
                     qsTr("Profile picture changed"),
                     qsTr("Profile picture changed to %1").arg(Paths.shortenHome(path))
                 ]);
-            else
+            } else
                 Quickshell.execDetached([
                     "notify-send", "-a", "olvex-shell", "-u", "critical",
                     qsTr("Unable to change profile picture"),
@@ -42,17 +44,40 @@ Item {
         }
     }
 
-    readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 480
+    property real cachedImplicitWidth: 854
+    property real cachedImplicitHeight: 480
+    readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? cachedImplicitHeight
     readonly property bool shouldBeActive: visibilities.dashboard && Config.dashboard.enabled
+    readonly property bool contentVisible: offsetScale < 1
+    readonly property bool dashboardActive: shouldBeActive || contentVisible
+    readonly property bool contentActive: dashboardActive || closeGrace.running
     property real offsetScale: shouldBeActive ? 0 : 1
     property bool hovered: false
+
+    function syncCachedSize(): void {
+        if (content.implicitWidth > 0)
+            cachedImplicitWidth = content.implicitWidth;
+        if (content.implicitHeight > 0)
+            cachedImplicitHeight = content.implicitHeight;
+    }
 
     Connections {
         target: visibilities
         function onDashboardChanged() {
-            if (!visibilities.dashboard)
+            if (visibilities.dashboard) {
+                closeGrace.stop();
+                Qt.callLater(root.syncCachedSize);
+            } else {
+                closeGrace.restart();
                 dashState.currentDate = new Date()
+            }
         }
+    }
+
+    Timer {
+        id: closeGrace
+
+        interval: Tokens.anim.durations.expressiveDefaultSpatial + 80
     }
 
     visible: offsetScale < 1 || (peekOffset > 0 && Config.dashboard.enabled)
@@ -70,13 +95,13 @@ Item {
     anchors.topMargin: (-implicitHeight - 10 + peekOffset) * offsetScale
     
     // Stabilize dimensions to prevent jitter during first load
-    implicitHeight: Math.max(480, content.implicitHeight)
-    implicitWidth: Math.max(854, content.implicitWidth)
-    opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale) // Faster fade
+    implicitHeight: Math.max(480, contentActive ? (content.implicitHeight || cachedImplicitHeight) : cachedImplicitHeight)
+    implicitWidth: Math.max(854, contentActive ? (content.implicitWidth || cachedImplicitWidth) : cachedImplicitWidth)
+    opacity: (hovered || peekOffset > 0) ? 1 : 1 - offsetScale
 
     Behavior on offsetScale {
         Anim {
-            type: Anim.DefaultSpatial
+            type: root.shouldBeActive ? Anim.DefaultSpatial : Anim.EmphasizedLarge
         }
     }
 
@@ -86,9 +111,17 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
-        active: true
+        active: root.contentActive
+
+        onImplicitWidthChanged: root.syncCachedSize()
+        onImplicitHeightChanged: root.syncCachedSize()
+        onStatusChanged: {
+            if (status === Loader.Ready)
+                root.syncCachedSize();
+        }
 
         sourceComponent: Content {
+            dashboardActive: root.dashboardActive
             visibilities: root.visibilities
             dashState: root.dashState
             facePicker: root.facePicker

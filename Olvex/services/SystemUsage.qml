@@ -218,18 +218,53 @@ Singleton {
         };
     }
 
+    function refreshFast(): void {
+        stat.reload();
+        meminfo.reload();
+        if (!gpuUsage.running)
+            gpuUsage.running = true;
+    }
+
+    function refreshSensors(): void {
+        if (!sensors.running)
+            sensors.running = true;
+    }
+
+    function refreshStorage(): void {
+        if (!storage.running)
+            storage.running = true;
+    }
+
     Timer {
+        id: fastResourceTimer
+
         running: root.refCount > 0
-        interval: GlobalConfig.dashboard.resourceUpdateInterval
+        interval: 1000
         repeat: true
         triggeredOnStart: true
-        onTriggered: {
-            stat.reload();
-            meminfo.reload();
-            storage.running = true;
-            gpuUsage.running = true;
-            sensors.running = true;
-        }
+        onTriggered: root.refreshFast()
+    }
+
+    Timer {
+        id: sensorsRefreshTimer
+
+        readonly property int baseInterval: GlobalConfig.dashboard.resourceUpdateInterval
+        running: root.refCount > 0
+        interval: Math.max(5000, baseInterval)
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.refreshSensors()
+    }
+
+    Timer {
+        id: storageRefreshTimer
+
+        readonly property int baseInterval: GlobalConfig.dashboard.resourceUpdateInterval
+        running: root.refCount > 0
+        interval: Math.max(30000, baseInterval * 10)
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.refreshStorage()
     }
 
     // One-time CPU info detection (name)

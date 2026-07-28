@@ -57,7 +57,7 @@ Item {
         Loader {
             asynchronous: true
             anchors.centerIn: parent
-            sourceComponent: SysInfo.isDefaultLogo ? olvexLogo : distroIcon
+            sourceComponent: distroIcon
         }
     }
 

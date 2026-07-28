@@ -17,6 +17,7 @@ RowLayout {
     id: root
 
     required property DrawerVisibilities visibilities
+    required property bool dashboardActive
     required property DashboardState dashState
     required property FileDialog facePicker
 
@@ -45,17 +46,17 @@ RowLayout {
     Connections {
         target: UPower
         function onOnBatteryChanged(): void {
-            root.batteryUiEpoch++
+            root.batteryUiEpoch++;
         }
     }
 
     Connections {
         target: UPower.displayDevice
         function onStateChanged(): void {
-            root.batteryUiEpoch++
+            root.batteryUiEpoch++;
         }
         function onPowerSupplyChanged(): void {
-            root.batteryUiEpoch++
+            root.batteryUiEpoch++;
         }
     }
 
@@ -65,12 +66,10 @@ RowLayout {
     readonly property int userCardX: 0
     readonly property int userCardY: 0 // aligned with Calendar top margin
     readonly property int weatherCardX: 0
-    readonly property int weatherCardY: 0 // aligned with Calendar top margin      
+    readonly property int weatherCardY: 0 // aligned with Calendar top margin
 
     spacing: root.layoutSpacing
-    implicitWidth: root.clockWidth +
-               root.calendarWidth + root.layoutSpacing + root.weatherWidth +
-               root.layoutSpacing
+    implicitWidth: root.clockWidth + root.calendarWidth + root.layoutSpacing + root.weatherWidth + root.layoutSpacing
     implicitHeight: root.column2Height
 
     // ── COLUMN 1: Vertical Clock (Tall) ──────────────────────────────────────
@@ -83,6 +82,7 @@ RowLayout {
 
         DateTime {
             anchors.fill: parent
+            dashboardVisible: root.dashboardActive
         }
     }
 
@@ -105,6 +105,7 @@ RowLayout {
                     Layout.preferredHeight: root.userHeight
                     User {
                         anchors.fill: parent
+                        dashboardActive: root.dashboardActive
                         visibilities: root.visibilities
                         facePicker: root.facePicker
                     }
@@ -128,6 +129,7 @@ RowLayout {
                 Layout.alignment: Qt.AlignTop
                 SmallWeather {
                     anchors.fill: parent
+                    dashboardActive: root.dashboardActive
                 }
             }
         }
@@ -141,6 +143,7 @@ RowLayout {
             Layout.preferredHeight: root.resourcesHeight
             Resources {
                 anchors.fill: parent
+                dashboardActive: root.dashboardActive
                 visibilities: root.visibilities
                 batteryUiEpoch: root.batteryUiEpoch
             }
@@ -161,13 +164,13 @@ RowLayout {
         property bool borderless: false
 
         implicitHeight: Layout.preferredHeight
-        
+
         // Android 16 Fluid Spring Animation (Opening Only - Bouncy)
         property bool _ready: false
         Component.onCompleted: Qt.callLater(() => _ready = true)
 
-        state: (root.visibilities.dashboard && _ready) ? "visible" : "hidden"
-        
+        state: (root.dashboardActive && _ready) ? "visible" : "hidden"
+
         transform: [
             Scale {
                 id: scale
@@ -181,25 +184,48 @@ RowLayout {
         states: [
             State {
                 name: "hidden"
-                PropertyChanges { target: cardRoot; opacity: 0 }
-                PropertyChanges { target: scale; xScale: root.isLowPower ? 1.0 : 1.2; yScale: root.isLowPower ? 1.0 : 1.2 }
+                PropertyChanges {
+                    target: cardRoot
+                    opacity: 0
+                }
+                PropertyChanges {
+                    target: scale
+                    xScale: root.isLowPower ? 1.0 : 1.2
+                    yScale: root.isLowPower ? 1.0 : 1.2
+                }
             },
             State {
                 name: "visible"
-                PropertyChanges { target: cardRoot; opacity: 1 }
-                PropertyChanges { target: scale; xScale: 1.0; yScale: 1.0 }
+                PropertyChanges {
+                    target: cardRoot
+                    opacity: 1
+                }
+                PropertyChanges {
+                    target: scale
+                    xScale: 1.0
+                    yScale: 1.0
+                }
             }
         ]
 
         transitions: Transition {
-            from: "hidden"; to: "visible"
+            from: "hidden"
+            to: "visible"
             SequentialAnimation {
-                PauseAnimation { duration: root.isLowPower ? 0 : cardRoot.staggerIndex * 40 }
+                PauseAnimation {
+                    duration: root.isLowPower ? 0 : cardRoot.staggerIndex * 40
+                }
                 ParallelAnimation {
-                    NumberAnimation { target: cardRoot; property: "opacity"; duration: root.isLowPower ? 150 : 300 }
-                    NumberAnimation { 
-                        target: scale; properties: "xScale,yScale"; duration: root.isLowPower ? 200 : 400; 
-                        easing.type: Easing.OutExpo; 
+                    NumberAnimation {
+                        target: cardRoot
+                        property: "opacity"
+                        duration: root.isLowPower ? 150 : 300
+                    }
+                    NumberAnimation {
+                        target: scale
+                        properties: "xScale,yScale"
+                        duration: root.isLowPower ? 200 : 400
+                        easing.type: Easing.OutExpo
                     }
                 }
             }
@@ -209,13 +235,11 @@ RowLayout {
             id: bg
             anchors.fill: parent
             radius: cardRoot.radius
-            
+
             color: cardRoot.tonal ? Colours.tileFillTonal : Colours.tileSurface
 
             border.width: cardRoot.borderless ? 0 : 1
-            border.color: cardRoot.subtleBorder || cardRoot.tonal
-                ? Colours.tileStrokeSubtle
-                : Colours.tileStroke
+            border.color: cardRoot.subtleBorder || cardRoot.tonal ? Colours.tileStrokeSubtle : Colours.tileStroke
 
             // Second border line as a single internal item
             StyledRect {

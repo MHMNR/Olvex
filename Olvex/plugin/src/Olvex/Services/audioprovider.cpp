@@ -2,6 +2,7 @@
 
 #include "audiocollector.hpp"
 #include "service.hpp"
+#include <algorithm>
 #include <qloggingcategory.h>
 #include <qthread.h>
 
@@ -19,7 +20,7 @@ AudioProcessor::~AudioProcessor() {
 
 void AudioProcessor::init() {
     m_timer = new QTimer(this);
-    m_timer->setInterval(static_cast<int>(ac::CHUNK_SIZE * 1000.0 / ac::SAMPLE_RATE));
+    m_timer->setInterval(m_interval);
     connect(m_timer, &QTimer::timeout, this, &AudioProcessor::process);
 }
 
@@ -35,6 +36,17 @@ void AudioProcessor::stop() {
         m_timer->stop();
     }
     QMetaObject::invokeMethod(&AudioCollector::instance(), &AudioCollector::unref, Qt::QueuedConnection, this);
+}
+
+void AudioProcessor::setInterval(int intervalMs) {
+    m_interval = std::clamp(intervalMs, 16, 1000);
+    if (m_timer) {
+        m_timer->setInterval(m_interval);
+    }
+}
+
+int AudioProcessor::interval() const {
+    return m_interval;
 }
 
 AudioProvider::AudioProvider(QObject* parent)

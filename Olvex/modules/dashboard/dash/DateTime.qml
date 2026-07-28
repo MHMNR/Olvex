@@ -10,6 +10,9 @@ import qs.utils
 Item {
     id: root
 
+    property bool dashboardVisible: true
+    readonly property bool waveActive: root.dashboardVisible && root.visible && width > 0 && height > 0
+
     readonly property color accentColor: Colours.palette.m3primary
     readonly property color fillBase: Colours.layer(Colours.palette.m3primaryContainer, 1)
 
@@ -54,9 +57,9 @@ Item {
         }
 
         Timer {
-            running: true
+            running: root.waveActive
             repeat: true
-            interval: 16
+            interval: 33
             onTriggered: {
                 waveCanvas.phase += 0.045;
                 

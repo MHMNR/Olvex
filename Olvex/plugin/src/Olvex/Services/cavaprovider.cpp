@@ -5,6 +5,7 @@
 #include <cava/cavacore.h>
 #include <cstddef>
 #include <qloggingcategory.h>
+#include <algorithm>
 
 Q_LOGGING_CATEGORY(lcCava, "olvex.services.cava", QtInfoMsg)
 Q_LOGGING_CATEGORY(lcCavaProcessor, "olvex.services.cava.processor", QtInfoMsg)
@@ -16,7 +17,8 @@ CavaProcessor::CavaProcessor(QObject* parent)
     , m_plan(nullptr)
     , m_in(new double[ac::CHUNK_SIZE])
     , m_out(nullptr)
-    , m_bars(0) {};
+    , m_bars(0)
+    , m_frameRate(30) {};
 
 CavaProcessor::~CavaProcessor() {
     cleanup();
@@ -56,7 +58,17 @@ void CavaProcessor::process() {
     }
 
     // Update values
-    if (values != m_values) {
+    bool changed = values.size() != m_values.size();
+    if (!changed) {
+        for (qsizetype i = 0; i < values.size(); ++i) {
+            if (std::abs(values[i] - m_values[i]) > 0.003) {
+                changed = true;
+                break;
+            }
+        }
+    }
+
+    if (changed) {
         m_values = std::move(values);
         emit valuesChanged(m_values);
     }
@@ -72,6 +84,11 @@ void CavaProcessor::setBars(int bars) {
         m_bars = bars;
         reload();
     }
+}
+
+void CavaProcessor::setFrameRate(int frameRate) {
+    m_frameRate = std::clamp(frameRate, 1, 60);
+    setInterval(std::max(16, 1000 / m_frameRate));
 }
 
 void CavaProcessor::reload() {
@@ -103,7 +120,9 @@ void CavaProcessor::initCava() {
 CavaProvider::CavaProvider(QObject* parent)
     : AudioProvider(parent)
     , m_bars(0)
-    , m_values(m_bars, 0.0) {
+    , m_frameRate(30)
+    , m_values(m_bars, 0.0)
+    , m_active(false) {
     m_processor = new CavaProcessor();
     init();
 
@@ -112,6 +131,23 @@ CavaProvider::CavaProvider(QObject* parent)
 
 int CavaProvider::bars() const {
     return m_bars;
+}
+
+int CavaProvider::frameRate() const {
+    return m_frameRate;
+}
+
+void CavaProvider::setFrameRate(int frameRate) {
+    frameRate = std::clamp(frameRate, 1, 60);
+    if (m_frameRate == frameRate) {
+        return;
+    }
+
+    m_frameRate = frameRate;
+    emit frameRateChanged();
+
+    QMetaObject::invokeMethod(
+        static_cast<CavaProcessor*>(m_processor), &CavaProcessor::setFrameRate, Qt::QueuedConnection, frameRate);
 }
 
 void CavaProvider::setBars(int bars) {
@@ -143,6 +179,19 @@ void CavaProvider::updateValues(QVector<double> values) {
         // qCDebug(lcCava) << "CavaProvider: values updated, first bar:" << (m_values.isEmpty() ? 0 : m_values[0]);
         emit valuesChanged();
     }
+}
+
+void CavaProvider::start() {
+    m_active = true;
+    auto* processor = static_cast<CavaProcessor*>(m_processor);
+    QMetaObject::invokeMethod(processor, &CavaProcessor::setFrameRate, Qt::QueuedConnection, m_frameRate);
+    QMetaObject::invokeMethod(processor, &CavaProcessor::setBars, Qt::QueuedConnection, m_bars);
+    AudioProvider::start();
+}
+
+void CavaProvider::stop() {
+    AudioProvider::stop();
+    m_active = false;
 }
 
 } // namespace olvex::services

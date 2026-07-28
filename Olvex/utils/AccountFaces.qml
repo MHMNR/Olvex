@@ -13,6 +13,9 @@ Singleton {
     readonly property string bundledRoot: CUtils.toLocalFile(Qt.resolvedUrl("root:/assets/account-faces"))
     readonly property string defaultRel: "animal/raccoon.png"
     readonly property string customPath: `${home}/.face`
+    property int faceRevision: 0
+
+    signal faceChanged()
 
     property var faces: []
     readonly property var categories: ["animal", "emoji", "human", "illustration", "scenery"]

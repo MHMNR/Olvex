@@ -15,7 +15,7 @@ VisualiserBars::VisualiserBars(QQuickItem* parent)
 }
 
 void VisualiserBars::advance(qreal dt) {
-    if (m_displayValues.isEmpty() || m_settled)
+    if (m_displayValues.isEmpty() || m_settled || !isVisible())
         return;
 
     // dt is in seconds (from FrameAnimation.frameTime), convert to ms
@@ -118,6 +118,18 @@ QVector<double> VisualiserBars::values() const {
 }
 
 void VisualiserBars::setValues(const QVector<double>& values) {
+    if (m_targetValues.size() == values.size()) {
+        bool changed = false;
+        for (qsizetype i = 0; i < values.size(); ++i) {
+            if (std::abs(m_targetValues[i] - values[i]) > 0.015) {
+                changed = true;
+                break;
+            }
+        }
+        if (!changed)
+            return;
+    }
+
     m_targetValues = values;
 
     if (m_displayValues.size() != values.size()) {
@@ -145,7 +157,8 @@ void VisualiserBars::setPrimaryColor(const QColor& color) {
         return;
     m_primaryColor = color;
     emit primaryColorChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 QColor VisualiserBars::secondaryColor() const {
@@ -157,7 +170,8 @@ void VisualiserBars::setSecondaryColor(const QColor& color) {
         return;
     m_secondaryColor = color;
     emit secondaryColorChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 qreal VisualiserBars::rounding() const {
@@ -169,7 +183,8 @@ void VisualiserBars::setRounding(qreal rounding) {
         return;
     m_rounding = rounding;
     emit roundingChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 qreal VisualiserBars::spacing() const {
@@ -181,7 +196,8 @@ void VisualiserBars::setSpacing(qreal spacing) {
         return;
     m_spacing = spacing;
     emit spacingChanged();
-    update();
+    if (isVisible())
+        update();
 }
 
 int VisualiserBars::animationDuration() const {

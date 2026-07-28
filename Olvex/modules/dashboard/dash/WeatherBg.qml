@@ -7,6 +7,7 @@ Item {
 
     property real bgOpacity: 0.2
     property bool animating: PowerProfiles.profile !== PowerProfile.PowerSaver
+    property bool active: visible
 
     readonly property bool shaderReady: fx.status === ShaderEffect.Ready
     readonly property real elapsed: clock.elapsed
@@ -40,7 +41,7 @@ Item {
         id: clock
 
         interval: 33
-        running: root.visible && root.animating && root.shaderReady
+        running: root.active && root.animating && root.shaderReady
         repeat: true
 
         property real elapsed: 0

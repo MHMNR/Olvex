@@ -4,6 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Olvex
 import Olvex.Config
 import qs.services
 import qs.utils
@@ -13,58 +14,154 @@ import "color/M3ColorMapper.js" as Mapper
 Singleton {
     id: root
 
-    readonly property bool legacyMode: Quickshell.env("OLVEX_COLOR_ENGINE") === "legacy"
-        || GlobalConfig.services.colorEngine === "legacy"
-
-    readonly property string activeEngine: legacyMode ? "legacy" : "expressive"
-
-    component LegacyComp: LegacyColourEngine {}
-    component ExpressiveComp: ExpressiveColourEngine {}
-
+    // ── Palette ─────────────────────────────────────
     M3ExpressivePalette {
         id: bootPalette
     }
 
-    property string _pendingWallColors: ""
-    property bool _pendingWallPreview: false
-
-    Loader {
-        id: engineLoader
-        sourceComponent: root.legacyMode ? LegacyComp : ExpressiveComp
-        onLoaded: {
-            root.flushPendingWallColors();
-            debounceTimer.restart();
-        }
-    }
-
-    readonly property var engine: engineLoader.item
-
-    function setShowPreview(value) {
-        if (engine)
-            engine.showPreview = value;
-    }
-
-    readonly property bool showPreview: Wallpapers.showPreview || (engine ? engine.showPreview : false)
-    readonly property string scheme: engine ? engine.scheme : ""
-    readonly property string flavour: engine ? engine.flavour : ""
     property string bootSchemeMode: "dark"
-    readonly property string schemeMode: engine ? engine.schemeMode : bootSchemeMode
+    readonly property string schemeMode: bootSchemeMode
     readonly property bool configLight: {
         const mode = GlobalConfig.appearance.themeMode;
-        if (mode === "light")
-            return true;
-        if (mode === "dark")
-            return false;
+        if (mode === "light") return true;
+        if (mode === "dark") return false;
         return bootSchemeMode === "light";
     }
-    readonly property bool light: engine ? engine.light : configLight
-    readonly property bool currentLight: engine ? engine.currentLight : false
-    readonly property bool previewLight: engine ? engine.previewLight : false
-    // Media-pill pattern: bootPalette is the live global source (direct applyScheme).
-    // Engine mirrors for preview + luminance; never replace bootPalette on the UI path.
-    readonly property var palette: (showPreview && engine) ? engine.palette : bootPalette
+    readonly property bool light: configLight
+    readonly property var palette: bootPalette
     readonly property var tPalette: bootTPalette
-    // M3 elevation stack: contrast-tuned RGB, then transparency.layers alpha (Caelestia-style).
+    readonly property var current: bootPalette
+    readonly property var preview: bootPalette
+
+    // ── Transparency ────────────────────────────────
+    readonly property bool transparencyEnabled: Tokens.transparency.enabled
+    readonly property real transparencyBase: Math.max(0, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
+    readonly property real transparencyLayers: Tokens.transparency.layers
+
+    // ── Wallpaper luminance ─────────────────────────
+    readonly property real wallLuminance: analyser.luminance
+
+    ImageAnalyser {
+        id: analyser
+        source: Wallpapers.colourSourcePath(Wallpapers.current)
+    }
+
+    // ── Layer / transparency math (inlined from engine) ──
+    function getLuminance(c) {
+        if (c.r === 0 && c.g === 0 && c.b === 0)
+            return 0;
+        return Math.sqrt(0.299 * (c.r ** 2) + 0.587 * (c.g ** 2) + 0.114 * (c.b ** 2));
+    }
+
+    function surfaceLayer(layerLevel) {
+        const layer = layerLevel ?? 1;
+        if (!light || layer === 0)
+            return layer;
+        return Math.min(4, layer + 1);
+    }
+
+    function contrastRatio(a, b) {
+        const la = getLuminance(a);
+        const lb = getLuminance(b);
+        const hi = Math.max(la, lb);
+        const lo = Math.min(la, lb) + 1e-6;
+        return (hi + 0.05) / (lo + 0.05);
+    }
+
+    function containerAtLevel(level) {
+        if (level <= 1)
+            return bootPalette.m3surfaceContainerLow;
+        if (level === 2)
+            return bootPalette.m3surfaceContainer;
+        if (level === 3)
+            return bootPalette.m3surfaceContainerHigh;
+        return bootPalette.m3surfaceContainerHighest;
+    }
+
+    function tintContainer(base, amount) {
+        const tint = bootPalette.m3outlineVariant;
+        return Qt.rgba(
+            Math.max(0, Math.min(1, base.r * (1 - amount) + tint.r * amount)),
+            Math.max(0, Math.min(1, base.g * (1 - amount) + tint.g * amount)),
+            Math.max(0, Math.min(1, base.b * (1 - amount) + tint.b * amount)),
+            1);
+    }
+
+    function opaqueLightContainer(layerLevel, againstColor) {
+        let level = surfaceLayer(layerLevel ?? 2);
+        let color = containerAtLevel(level);
+        const ref = againstColor ?? bootPalette.m3surface;
+        const target = againstColor ? 1.10 : 1.06;
+        const refLum = getLuminance(ref);
+
+        function needsStep(c) {
+            return contrastRatio(c, ref) < target
+                || (againstColor && getLuminance(c) >= refLum);
+        }
+
+        while (needsStep(color) && level < 4) {
+            level++;
+            color = containerAtLevel(level);
+        }
+
+        let tint = 0.06;
+        while (needsStep(color) && tint <= 0.42) {
+            color = tintContainer(color, tint);
+            tint += 0.06;
+        }
+        return color;
+    }
+
+    function alterColour(c, a, layerLevel) {
+        const luminance = getLuminance(c);
+        const layer = surfaceLayer(layerLevel);
+        const offset = (!light || layer <= 1 ? 1 : (light ? layer * 0.4 : -layer / 2))
+            * (light ? 0.2 : 0.3) * (1 - transparencyBase)
+            * (1 + wallLuminance * (light ? (layer === 1 ? 3 : 1) : 2.5));
+        const scale = (luminance + offset) / luminance;
+        return Qt.rgba(
+            Math.max(0, Math.min(1, c.r * scale)),
+            Math.max(0, Math.min(1, c.g * scale)),
+            Math.max(0, Math.min(1, c.b * scale)),
+            a);
+    }
+
+    function applyLayer(c, layerLevel) {
+        const layer = surfaceLayer(layerLevel);
+
+        if (!transparencyEnabled) {
+            if (light && layer > 0)
+                return opaqueLightContainer(layerLevel);
+            if (layer === 0)
+                return c;
+            if (layer === 1)
+                return bootPalette.m3surfaceContainerLow;
+            if (layer === 2)
+                return bootPalette.m3surfaceContainer;
+            if (layer === 3)
+                return bootPalette.m3surfaceContainerHigh;
+            return bootPalette.m3surfaceContainerHighest;
+        }
+
+        if (light && layer > 0)
+            return Qt.alpha(opaqueLightContainer(layerLevel), transparencyLayers);
+
+        return layer === 0
+            ? Qt.alpha(c, transparencyBase)
+            : alterColour(c, transparencyLayers, layer);
+    }
+
+    function layer(c, layerLevel) {
+        return applyLayer(c, layerLevel);
+    }
+
+    function on(c) {
+        if (c.hslLightness < 0.5)
+            return Qt.hsla(c.hslHue, c.hslSaturation, 0.9, 1);
+        return Qt.hsla(c.hslHue, c.hslSaturation, 0.1, 1);
+    }
+
+    // ── Tile colours (M3 elevation stack) ───────────
     readonly property color _tileSurfaceRgb: opaqueLightContainer(2)
     readonly property color _tileFillRgb: opaqueLightContainer(3, _tileSurfaceRgb)
     readonly property color _tileFillHoverRgb: opaqueLightContainer(4, _tileFillRgb)
@@ -118,48 +215,15 @@ Singleton {
     readonly property color tileIconWell: light
         ? palette.m3secondaryContainer
         : tileFillElevated
-    readonly property var current: bootPalette
-    readonly property var preview: engine ? engine.preview : bootPalette
-    readonly property var transparency: engine ? engine.transparency : bootTransparency
-    readonly property real wallLuminance: engine ? engine.wallLuminance : 0
-    readonly property string pickerState: engine && engine.pickerState !== undefined ? engine.pickerState : activeEngine
 
-    property bool cooldownPending
-    property real lastBaseTransparency
-
-    function requestReloadHyprRules() {
-        if (cooldownTimer.running) {
-            cooldownPending = true;
-        } else {
-            reloadHyprRules();
-            cooldownTimer.restart();
-        }
+    function applyTileAlpha(opaqueRgb, layerLevel) {
+        if (!transparencyEnabled)
+            return opaqueRgb;
+        const layer = surfaceLayer(layerLevel ?? 2);
+        return Qt.alpha(opaqueRgb, layer === 0 ? transparencyBase : transparencyLayers);
     }
 
-    component BootTransparency: QtObject {
-        readonly property bool enabled: Tokens.transparency.enabled
-        readonly property real base: Math.max(0, Math.min(1, Tokens.transparency.base - (root.light ? 0.1 : 0)))
-        readonly property real layers: Tokens.transparency.layers
-
-        onEnabledChanged: {
-            if (enabled)
-                root.requestReloadHyprRules();
-            else
-                cAnimCompleteTimer.start();
-        }
-        onBaseChanged: {
-            if (root.lastBaseTransparency > base)
-                root.requestReloadHyprRules();
-            else
-                cAnimCompleteTimer.start();
-            root.lastBaseTransparency = base;
-        }
-    }
-
-    BootTransparency {
-        id: bootTransparency
-    }
-
+    // ── Boot TPalette (transparency-layered) ────────
     component BootTPalette: QtObject {
         readonly property color m3background: root.layer(bootPalette.m3background, 0)
         readonly property color m3onBackground: root.layer(bootPalette.m3onBackground)
@@ -202,158 +266,25 @@ Singleton {
         readonly property color m3onSuccess: root.layer(bootPalette.m3onSuccess)
         readonly property color m3successContainer: root.layer(bootPalette.m3successContainer)
         readonly property color m3onSuccessContainer: root.layer(bootPalette.m3onSuccessContainer)
-        readonly property color m3primaryFixed: root.layer(bootPalette.m3primaryFixed)
-        readonly property color m3primaryFixedDim: root.layer(bootPalette.m3primaryFixedDim)
-        readonly property color m3onPrimaryFixed: root.layer(bootPalette.m3onPrimaryFixed)
-        readonly property color m3onPrimaryFixedVariant: root.layer(bootPalette.m3onPrimaryFixedVariant)
-        readonly property color m3secondaryFixed: root.layer(bootPalette.m3secondaryFixed)
-        readonly property color m3secondaryFixedDim: root.layer(bootPalette.m3secondaryFixedDim)
-        readonly property color m3onSecondaryFixed: root.layer(bootPalette.m3onSecondaryFixed)
-        readonly property color m3onSecondaryFixedVariant: root.layer(bootPalette.m3onSecondaryFixedVariant)
-        readonly property color m3tertiaryFixed: root.layer(bootPalette.m3tertiaryFixed)
-        readonly property color m3tertiaryFixedDim: root.layer(bootPalette.m3tertiaryFixedDim)
-        readonly property color m3onTertiaryFixed: root.layer(bootPalette.m3onTertiaryFixed)
-        readonly property color m3onTertiaryFixedVariant: root.layer(bootPalette.m3onTertiaryFixedVariant)
     }
 
     BootTPalette {
         id: bootTPalette
     }
 
-    function getLuminance(c) {
-        if (c.r === 0 && c.g === 0 && c.b === 0)
-            return 0;
-        return Math.sqrt(0.299 * (c.r ** 2) + 0.587 * (c.g ** 2) + 0.114 * (c.b ** 2));
-    }
-
-    function surfaceLayer(layerLevel) {
-        const layer = layerLevel ?? 1;
-        // Light mode: step up M3 container elevation so cards read on pale backgrounds.
-        if (!light || layer === 0)
-            return layer;
-        return Math.min(4, layer + 1);
-    }
-
-    function contrastRatio(a, b) {
-        const la = getLuminance(a);
-        const lb = getLuminance(b);
-        const hi = Math.max(la, lb);
-        const lo = Math.min(la, lb) + 1e-6;
-        return (hi + 0.05) / (lo + 0.05);
-    }
-
-    function containerAtLevel(level) {
-        if (level <= 1)
-            return bootPalette.m3surfaceContainerLow;
-        if (level === 2)
-            return bootPalette.m3surfaceContainer;
-        if (level === 3)
-            return bootPalette.m3surfaceContainerHigh;
-        return bootPalette.m3surfaceContainerHighest;
-    }
-
-    function tintContainer(base, amount) {
-        const tint = bootPalette.m3outlineVariant;
-        return Qt.rgba(
-            Math.max(0, Math.min(1, base.r * (1 - amount) + tint.r * amount)),
-            Math.max(0, Math.min(1, base.g * (1 - amount) + tint.g * amount)),
-            Math.max(0, Math.min(1, base.b * (1 - amount) + tint.b * amount)),
-            1);
-    }
-
-    function applyTileAlpha(opaqueRgb, layerLevel) {
-        if (!transparency.enabled)
-            return opaqueRgb;
-        const layer = surfaceLayer(layerLevel ?? 2);
-        return Qt.alpha(opaqueRgb, layer === 0 ? transparency.base : transparency.layers);
-    }
-
-    function opaqueLightContainer(layerLevel, againstColor) {
-        let level = surfaceLayer(layerLevel ?? 2);
-        let color = containerAtLevel(level);
-        const ref = againstColor ?? bootPalette.m3surface;
-        const target = againstColor ? 1.10 : 1.06;
-        const refLum = getLuminance(ref);
-
-        function needsStep(c) {
-            return contrastRatio(c, ref) < target
-                || (againstColor && getLuminance(c) >= refLum);
-        }
-
-        while (needsStep(color) && level < 4) {
-            level++;
-            color = containerAtLevel(level);
-        }
-
-        let tint = 0.06;
-        while (needsStep(color) && tint <= 0.42) {
-            color = tintContainer(color, tint);
-            tint += 0.06;
-        }
-        return color;
-    }
-
-    function alterColour(c, a, layerLevel) {
-        const luminance = getLuminance(c);
-        const layer = surfaceLayer(layerLevel);
-        const offset = (!light || layer <= 1 ? 1 : (light ? layer * 0.4 : -layer / 2))
-            * (light ? 0.2 : 0.3) * (1 - transparency.base)
-            * (1 + wallLuminance * (light ? (layer === 1 ? 3 : 1) : 2.5));
-        const scale = (luminance + offset) / luminance;
-        return Qt.rgba(
-            Math.max(0, Math.min(1, c.r * scale)),
-            Math.max(0, Math.min(1, c.g * scale)),
-            Math.max(0, Math.min(1, c.b * scale)),
-            a);
-    }
-
-    function applyLayer(c, layerLevel) {
-        const layer = surfaceLayer(layerLevel);
-
-        if (!transparency.enabled) {
-            if (light && layer > 0)
-                return opaqueLightContainer(layerLevel);
-            if (layer === 0)
-                return c;
-            if (layer === 1)
-                return bootPalette.m3surfaceContainerLow;
-            if (layer === 2)
-                return bootPalette.m3surfaceContainer;
-            if (layer === 3)
-                return bootPalette.m3surfaceContainerHigh;
-            return bootPalette.m3surfaceContainerHighest;
-        }
-
-        if (light && layer > 0)
-            return Qt.alpha(opaqueLightContainer(layerLevel), transparency.layers);
-
-        return layer === 0
-            ? Qt.alpha(c, transparency.base)
-            : alterColour(c, transparency.layers, layer);
-    }
-
-    function layer(c, layerLevel) {
-        if (showPreview && engine)
-            return engine.applyLayer(c, layerLevel);
-        return applyLayer(c, layerLevel);
-    }
-
-    function on(c) {
-        if (engine)
-            return engine.on(c);
-        if (c.hslLightness < 0.5)
-            return Qt.hsla(c.hslHue, c.hslSaturation, 0.9, 1);
-        return Qt.hsla(c.hslHue, c.hslSaturation, 0.1, 1);
-    }
+    // ── Wallpaper colour ingestion ──────────────────
+    property string _pendingWallColors: ""
+    property bool _pendingWallPreview: false
 
     function flushPendingWallColors(): void {
-        if (!_pendingWallColors.length || !engineLoader.item)
+        if (!_pendingWallColors.length)
             return;
-        engineLoader.item.load(_pendingWallColors, _pendingWallPreview);
-        if (_pendingWallPreview)
-            engineLoader.item.showPreview = true;
-        else
-            Wallpapers.previewColourLock = false;
+        const scheme = Mapper.parseSchemePayload(_pendingWallColors);
+        if (scheme) {
+            bootPalette.applyScheme(scheme);
+            bootSchemeMode = scheme.mode ?? "dark";
+            console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary}`);
+        }
         _pendingWallColors = "";
         _pendingWallPreview = false;
     }
@@ -364,7 +295,7 @@ Singleton {
             console.log("[Colours] Invalid wallpaper palette payload");
             return;
         }
-        console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"}, ${Object.keys(scheme.colours ?? {}).length} essential roles)`);
+        console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"}, ${Object.keys(scheme.colours ?? {}).length} scheme keys → ${Object.keys(Mapper.PALETTE_PROPS).length} QML tokens)`);
         if (!isPreview) {
             if (!bootPalette.applyScheme(scheme))
                 console.log("[Colours] bootPalette applyScheme failed");
@@ -373,56 +304,48 @@ Singleton {
                 console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary}`);
             }
         }
-
-        if (engineLoader.item) {
-            engineLoader.item.load(data, isPreview);
-            if (isPreview)
-                setShowPreview(true);
-            else
-                Wallpapers.previewColourLock = false;
-        } else {
-            _pendingWallColors = data;
-            _pendingWallPreview = isPreview;
-        }
     }
 
     function load(data, isPreview) { ingestWallpaperColors(data, isPreview) }
 
     function useFallbackPalette(): void {
         const scheme = Mapper.fallbackScheme();
-        const payload = JSON.stringify(scheme);
         bootPalette.applyScheme(scheme);
         bootSchemeMode = scheme.mode ?? "dark";
-        _pendingWallColors = "";
-        _pendingWallPreview = false;
-        if (engineLoader.item)
-            engineLoader.item.load(payload, false);
+        console.log("[Colours] Using fallback palette");
     }
+
     function refreshThemePalette() {
         const path = Wallpapers.actualCurrent || Wallpapers.current;
         if (path)
             Wallpapers.forceAccentRefresh(path, false);
     }
 
-    function setMode(mode) { if (engine) engine.setMode(mode) }
-    function reloadHyprRules() {
-        const str = "keyword layerrule %1 %2, match:namespace %3";
-        const namespaces = ["olvex-drawers", "quickshell:osk"];
-        const messages = [];
-        namespaces.forEach(ns => {
-            messages.push(str.arg("blur").arg(transparency.enabled ? 1 : 0).arg(ns));
-            messages.push(str.arg("ignore_alpha").arg(transparency.base - 0.03).arg(ns));
-        });
-        Hypr.extras.batchMessage(messages);
+    function setShowPreview(value) {
+        // No-op: preview support removed with engine unification
     }
 
+    function setMode(mode) {
+        refreshThemePalette();
+        if (mode === "auto")
+            return;
+        schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-m", mode];
+        schemeSetProc.running = true;
+    }
+
+    Process {
+        id: schemeSetProc
+        onExited: root.refreshThemePalette()
+    }
+
+    // ── Scheme file watcher ─────────────────────────
     FileView {
         id: schemeFile
 
         printErrors: false
         path: `${Paths.state}/scheme.json`
         watchChanges: true
-        onFileChanged: reload()
+        onFileChanged: schemeFile.reload()
         onLoaded: {
             if (!Wallpapers.bootstrapDone)
                 return;
@@ -432,6 +355,31 @@ Singleton {
         }
     }
 
+    // ── Hyprland blur rules ─────────────────────────
+    property bool cooldownPending
+    property real lastBaseTransparency
+
+    function requestReloadHyprRules() {
+        if (cooldownTimer.running) {
+            cooldownPending = true;
+        } else {
+            reloadHyprRules();
+            cooldownTimer.restart();
+        }
+    }
+
+    function reloadHyprRules() {
+        const str = "keyword layerrule %1 %2, match:namespace %3";
+        const namespaces = ["olvex-drawers", "quickshell:osk"];
+        const messages = [];
+        namespaces.forEach(ns => {
+            messages.push(str.arg("blur").arg(transparencyEnabled ? 1 : 0).arg(ns));
+            messages.push(str.arg("ignore_alpha").arg(transparencyBase - 0.03).arg(ns));
+        });
+        Hypr.extras.batchMessage(messages);
+    }
+
+    // ── Connections ─────────────────────────────────
     Timer {
         id: themeSchemePoll
 
@@ -458,9 +406,42 @@ Singleton {
             root.refreshThemePalette();
             themeSchemePoll.kick();
         }
+        function onSchemeVariantChanged() {
+            schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-v", GlobalConfig.appearance.schemeVariant];
+            schemeSetProc.running = true;
+        }
+        function onPrimaryColorChanged() {
+            schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-c", GlobalConfig.appearance.primaryColor];
+            schemeSetProc.running = true;
+        }
     }
 
-    Component.onCompleted: root.requestReloadHyprRules()
+    Connections {
+        target: Wallpapers
+        function onColorsGenerated(data, isPreview) {
+            root.ingestWallpaperColors(data, isPreview);
+        }
+    }
+
+    Connections {
+        target: GlobalConfig.appearance.transparency
+        function onLayersChanged() { root.requestReloadHyprRules() }
+    }
+
+    Connections {
+        target: root
+        function onLightChanged() { root.requestReloadHyprRules() }
+    }
+
+    Connections {
+        target: Hypr
+        function onConfigReloaded() { root.reloadHyprRules() }
+    }
+
+    Component.onCompleted: {
+        root.requestReloadHyprRules();
+        useFallbackPalette();
+    }
 
     Timer {
         id: cooldownTimer
@@ -478,32 +459,5 @@ Singleton {
         id: cAnimCompleteTimer
         interval: Tokens.anim.durations.expressiveSlowEffects
         onTriggered: root.requestReloadHyprRules()
-    }
-
-    Connections {
-        target: Hypr
-        function onConfigReloaded() { root.reloadHyprRules() }
-    }
-
-    Connections {
-        target: GlobalConfig.appearance.transparency
-        function onLayersChanged() { root.requestReloadHyprRules() }
-    }
-
-    Connections {
-        target: root
-        function onLightChanged() { root.requestReloadHyprRules() }
-    }
-
-    Connections {
-        target: engineLoader
-        function onItemChanged() { root.flushPendingWallColors(); }
-    }
-
-    Connections {
-        target: Wallpapers
-        function onColorsGenerated(data, isPreview) {
-            root.ingestWallpaperColors(data, isPreview);
-        }
     }
 }

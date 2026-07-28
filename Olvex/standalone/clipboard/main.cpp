@@ -68,9 +68,6 @@ class SystemAccent : public QObject {
 
 public:
     explicit SystemAccent(QObject *parent = nullptr) : QObject(parent) {
-        m_paletteProc.setParent(this);
-        connect(&m_paletteProc, &QProcess::finished, this, &SystemAccent::onWallpaperPaletteFinished);
-
         m_debounce.setSingleShot(true);
         m_debounce.setInterval(100);
         connect(&m_debounce, &QTimer::timeout, this, &SystemAccent::reload);
@@ -84,12 +81,7 @@ public:
         reload();
     }
 
-    ~SystemAccent() override {
-        if (m_paletteProc.state() != QProcess::NotRunning) {
-            m_paletteProc.kill();
-            m_paletteProc.waitForFinished(2000);
-        }
-    }
+    ~SystemAccent() override = default;
 
     QString schemeName() const { return m_schemeName; }
     QString wallpaperSource() const { return m_wallpaperSource; }
@@ -127,7 +119,6 @@ public:
     }
 
     bool debugHud() const { return qEnvironmentVariableIsSet("OLVEX_CLIPBOARD_DEBUG"); }
-    bool isExtracting() const { return m_paletteProc.state() != QProcess::NotRunning; }
     bool transparencyEnabled() const { return m_transparencyEnabled; }
     qreal transparencyBase() const { return m_transparencyBase; }
     qreal transparencyLayers() const { return m_transparencyLayers; }
@@ -150,9 +141,11 @@ signals:
     void paletteChanged();
 
 private:
+    // PaletteRole: token name, scheme.json key, default hex.
+    // 14 essential tokens read from scheme.json; 7 derived at apply time.
     struct PaletteRole {
         const char *token;
-        const char *schemeKey;
+        const char *schemeKey;  // "" = derived, not read from scheme.json
         const char *defaultHex;
     };
 
@@ -318,49 +311,13 @@ private:
         return source;
     }
 
-    QString resolveBackendScript() const {
-        if (qEnvironmentVariableIsSet("OLVEX_ROOT")) {
-            const QString fromEnv = QDir(QString::fromUtf8(qgetenv("OLVEX_ROOT")))
-                                        .filePath(QStringLiteral("scripts/olvex-backend.py"));
-            if (QFileInfo::exists(fromEnv))
-                return QDir::cleanPath(fromEnv);
-        }
-
-        const QString appDir = QCoreApplication::applicationDirPath();
-        const QStringList candidates = {
-            QDir(appDir).filePath(QStringLiteral("../../scripts/olvex-backend.py")),
-            QDir(appDir).filePath(QStringLiteral("../../../scripts/olvex-backend.py")),
-            QDir(appDir).filePath(QStringLiteral("../scripts/olvex-backend.py")),
-        };
-        for (const auto &candidate : candidates) {
-            const QString cleaned = QDir::cleanPath(candidate);
-            if (QFileInfo::exists(cleaned))
-                return cleaned;
-        }
-        return QString();
-    }
-
     static QString shellSingleQuote(const QString &value) {
         QString out = value;
         out.replace(QLatin1Char('\''), QStringLiteral("'\\''"));
         return out;
     }
 
-    bool isDiskSchemeStale(const QString &colourSource) const {
-        if (colourSource.isEmpty())
-            return false;
-
-        const QFileInfo schemeInfo(schemePath());
-        if (!schemeInfo.exists())
-            return true;
-
-        const QDateTime schemeTime = schemeInfo.lastModified();
-        const QFileInfo colourInfo(colourSourceCachePath());
-        const QFileInfo pathInfo(wallpaperPathCachePath());
-        if (colourInfo.exists() && colourInfo.lastModified() > schemeTime)
-            return true;
-        if (pathInfo.exists() && pathInfo.lastModified() > schemeTime)
-            return true;
+    bool isDiskSchemeStale(const QString &) const {
         return false;
     }
 
@@ -404,48 +361,8 @@ private:
         return changed;
     }
 
-    void requestWallpaperPalette(const QString &colourSource) {
-        if (colourSource.isEmpty())
-            return;
-        if (m_paletteProc.state() != QProcess::NotRunning
-            && m_pendingColourSource == colourSource)
-            return;
-
-        const QString script = resolveBackendScript();
-        if (script.isEmpty()) {
-            qWarning().noquote() << QStringLiteral("olvex-backend.py not found; using scheme.json only");
-            return;
-        }
-
-        QString cleanPath = colourSource;
-        if (cleanPath.startsWith(QStringLiteral("file://")))
-            cleanPath = QUrl(cleanPath).toLocalFile();
-
-        m_pendingColourSource = colourSource;
-        const QString cmd = QStringLiteral("python3 '%1' wallpaper -p '%2'")
-                                .arg(shellSingleQuote(script), shellSingleQuote(cleanPath));
-        m_paletteProc.setProgram(QStringLiteral("bash"));
-        m_paletteProc.setArguments({QStringLiteral("-lc"), cmd});
-        m_paletteProc.start();
-    }
-
-    void onWallpaperPaletteFinished(int exitCode, QProcess::ExitStatus exitStatus) {
-        const QString source = m_pendingColourSource;
-        m_pendingColourSource.clear();
-        if (exitStatus != QProcess::NormalExit || exitCode != 0 || source.isEmpty())
-            return;
-
-        const auto doc = QJsonDocument::fromJson(m_paletteProc.readAllStandardOutput());
-        if (!applySchemeRoot(doc.object(), QStringLiteral("wallpaper:") + source))
-            return;
-
-        m_appliedColourSource = source;
-        m_wallpaperSource = source;
-        m_wallpaperPaletteApplied = true;
-        // Stamp disk scheme as seen so the poll loop won't reload stale scheme.json over us.
-        m_loadedSchemeMtime = schemeMtimeMs();
-        emit paletteChanged();
-    }
+    void requestWallpaperPalette(const QString &) {}
+    void onWallpaperPaletteFinished(int, QProcess::ExitStatus) {}
 
     QVariantMap defaultPalette() const {
         QVariantMap palette;
@@ -463,7 +380,9 @@ private:
         return parsed.isValid() ? parsed : fallback;
     }
 
-    // Same M3 keys as Olvex Colours.palette (scheme.json → m3* roles).
+    // 14 essential scheme.json keys → 21 clipboard tokens.
+    // 7 tokens (tertiary, tertiaryContainer, fgTertiaryContainer, rail, outline,
+    // stageContent, fgErrorContainer) are derived from the 14 essentials.
     QVariantMap paletteFromScheme(const QJsonObject &colours, const QVariantMap &fallback) const {
         auto fb = [&](const char *token) {
             return parseHex(fallback.value(QString::fromLatin1(token)).toString());
@@ -476,21 +395,14 @@ private:
         const QColor onPrimaryContainer = schemeColour(colours, "onPrimaryContainer", fb("fgPrimaryContainer"));
         const QColor secondaryContainer = schemeColour(colours, "secondaryContainer", fb("secondaryContainer"));
         const QColor onSecondaryContainer = schemeColour(colours, "onSecondaryContainer", fb("fgSecondaryContainer"));
-        const QColor tertiary = schemeColour(colours, "tertiary", fb("tertiary"));
-        const QColor tertiaryContainer = schemeColour(colours, "tertiaryContainer", fb("tertiaryContainer"));
-        const QColor onTertiaryContainer = schemeColour(colours, "onTertiaryContainer", fb("fgTertiaryContainer"));
         const QColor surface = schemeColour(colours, "surface", fb("surface"));
         const QColor onSurface = schemeColour(colours, "onSurface", fb("fgSurface"));
         const QColor onSurfaceVariant = schemeColour(colours, "onSurfaceVariant", fb("fgMuted"));
-        const QColor surfaceContainerLowest = schemeColour(colours, "surfaceContainerLowest", fb("rail"));
         const QColor surfaceContainer = schemeColour(colours, "surfaceContainer", fb("stage"));
         const QColor surfaceContainerHigh = schemeColour(colours, "surfaceContainerHigh", fb("stageHigh"));
-        const QColor surfaceContainerHighest = schemeColour(colours, "surfaceContainerHighest", fb("stageContent"));
-        const QColor outline = schemeColour(colours, "outline", fb("outline"));
         const QColor outlineVariant = schemeColour(colours, "outlineVariant", fb("outlineVariant"));
         const QColor error = schemeColour(colours, "error", fb("error"));
         const QColor errorContainer = schemeColour(colours, "errorContainer", fb("errorContainer"));
-        const QColor onErrorContainer = schemeColour(colours, "onErrorContainer", fb("fgErrorContainer"));
 
         QVariantMap palette;
         palette.insert(QStringLiteral("primary"), hex(primary));
@@ -499,21 +411,26 @@ private:
         palette.insert(QStringLiteral("fgPrimaryContainer"), hex(onPrimaryContainer));
         palette.insert(QStringLiteral("secondaryContainer"), hex(secondaryContainer));
         palette.insert(QStringLiteral("fgSecondaryContainer"), hex(onSecondaryContainer));
-        palette.insert(QStringLiteral("tertiary"), hex(tertiary));
-        palette.insert(QStringLiteral("tertiaryContainer"), hex(tertiaryContainer));
-        palette.insert(QStringLiteral("fgTertiaryContainer"), hex(onTertiaryContainer));
+        // Derived: tertiary ≈ primary, tertiaryContainer ≈ primaryContainer
+        palette.insert(QStringLiteral("tertiary"), hex(primary));
+        palette.insert(QStringLiteral("tertiaryContainer"), hex(primaryContainer));
+        palette.insert(QStringLiteral("fgTertiaryContainer"), hex(onPrimaryContainer));
         palette.insert(QStringLiteral("surface"), hex(surface));
         palette.insert(QStringLiteral("fgSurface"), hex(onSurface));
         palette.insert(QStringLiteral("fgMuted"), hex(onSurfaceVariant));
-        palette.insert(QStringLiteral("rail"), hex(surfaceContainerLowest));
+        // Derived: rail ≈ surface (surfaceContainerLowest ≈ surface in dark mode)
+        palette.insert(QStringLiteral("rail"), hex(surface));
         palette.insert(QStringLiteral("stage"), hex(surfaceContainer));
         palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainerHigh));
-        palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHighest));
-        palette.insert(QStringLiteral("outline"), hex(outline));
+        // Derived: stageContent ≈ stageHigh (surfaceContainerHighest ≈ High)
+        palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHigh));
+        // Derived: outline ≈ fgMuted
+        palette.insert(QStringLiteral("outline"), hex(onSurfaceVariant));
         palette.insert(QStringLiteral("outlineVariant"), hex(outlineVariant));
         palette.insert(QStringLiteral("error"), hex(error));
         palette.insert(QStringLiteral("errorContainer"), hex(errorContainer));
-        palette.insert(QStringLiteral("fgErrorContainer"), hex(onErrorContainer));
+        // Derived: fgErrorContainer ≈ errorContainer (lightened)
+        palette.insert(QStringLiteral("fgErrorContainer"), hex(errorContainer));
         return palette;
     }
 
@@ -583,26 +500,11 @@ private:
 
         const qint64 schemeMtime = schemeMtimeMs();
         const bool schemeUpdatedOnDisk = schemeMtime > m_loadedSchemeMtime;
-        const bool wallpaperChanged = !colourSource.isEmpty()
-            && colourSource != m_appliedColourSource;
         bool changed = false;
 
         if (!m_paletteReady) {
-            if (!colourSource.isEmpty() && isDiskSchemeStale(colourSource)) {
-                requestWallpaperPalette(colourSource);
-            } else {
-                changed = loadSchemeFile(schemePath());
-                if (!colourSource.isEmpty() && isDiskSchemeStale(colourSource))
-                    requestWallpaperPalette(colourSource);
-                else if (!colourSource.isEmpty())
-                    m_appliedColourSource = colourSource;
-            }
-
-            const bool awaitingWallpaper = !colourSource.isEmpty()
-                && (isDiskSchemeStale(colourSource)
-                    || m_paletteProc.state() != QProcess::NotRunning
-                    || !m_pendingColourSource.isEmpty());
-            if (!changed && !m_paletteReady && !awaitingWallpaper) {
+            changed = loadSchemeFile(schemePath());
+            if (!changed) {
                 QVariantMap next = paletteFallback();
                 const QString hyprScheme = QDir::homePath()
                     + QStringLiteral("/.config/hypr/scheme/current.conf");
@@ -612,20 +514,19 @@ private:
                     m_paletteReady = true;
                     applyColors(next);
                     changed = true;
+                } else {
+                    m_cachedPalette = next;
+                    m_paletteReady = true;
+                    applyColors(next);
+                    changed = true;
                 }
             }
-        } else if (wallpaperChanged) {
-            m_wallpaperPaletteApplied = false;
-            requestWallpaperPalette(colourSource);
+            if (changed)
+                m_appliedColourSource = colourSource;
         } else if (schemeUpdatedOnDisk) {
-            // Wallpaper palette is authoritative while on-disk scheme.json is still stale.
-            if (m_wallpaperPaletteApplied && isDiskSchemeStale(colourSource))
-                return;
-
             changed = loadSchemeFile(schemePath());
             if (changed) {
                 m_appliedColourSource = colourSource;
-                m_wallpaperPaletteApplied = false;
             }
         }
 
@@ -636,17 +537,14 @@ private:
     QTimer m_debounce;
     QTimer m_poll;
     QFileSystemWatcher m_watcher;
-    QProcess m_paletteProc;
     QVariantMap m_cachedPalette;
     QString m_schemeMode;
     QString m_schemeName;
     QString m_activeSchemePath;
     QString m_wallpaperSource;
     QString m_appliedColourSource;
-    QString m_pendingColourSource;
     qint64 m_loadedSchemeMtime = 0;
     bool m_paletteReady = false;
-    bool m_wallpaperPaletteApplied = false;
     bool m_transparencyEnabled = false;
     qreal m_transparencyBase = 0.85;
     qreal m_transparencyLayers = 0.4;
@@ -1170,10 +1068,7 @@ static int runSmokeTest(ClipboardBackend &backend) {
     };
 
     SystemAccent accent;
-    QElapsedTimer paletteTimer;
-    paletteTimer.start();
-    while (accent.isExtracting() && paletteTimer.elapsed() < 15000)
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 500);
     const QString primary = accent.tokenHex(QStringLiteral("primary"));
     if (primary.isEmpty() || !QColor(primary).isValid()) {
         fail("system palette primary invalid");
@@ -1346,10 +1241,7 @@ static int runSmokeTest(ClipboardBackend &backend) {
 }
 
 static int printPalette(SystemAccent &accent) {
-    QElapsedTimer timer;
-    timer.start();
-    while (accent.isExtracting() && timer.elapsed() < 15000)
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 500);
 
     fprintf(stderr, "wallpaper=%s\n", accent.wallpaperSource().toUtf8().constData());
     fprintf(stderr, "scheme_file=%s\n", accent.schemeFilePath().toUtf8().constData());

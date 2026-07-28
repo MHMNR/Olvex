@@ -23,24 +23,35 @@ Item {
     }
 
     property real offsetScale: shouldBeActive ? 0 : 1
+    property bool contentPreloaded: false
+    property real cachedImplicitHeight: 0
+    property real cachedImplicitWidth: 630
+    readonly property bool closingAnimationActive: !shouldBeActive && teardownGrace.running
+
+    function syncCachedSize(): void {
+        if (content.implicitHeight > 0)
+            cachedImplicitHeight = content.implicitHeight;
+        if (content.implicitWidth > 0)
+            cachedImplicitWidth = content.implicitWidth;
+    }
 
     Timer {
         id: teardownGrace
 
         interval: Tokens.anim.durations.large + 100
+        onTriggered: {
+            if (!root.shouldBeActive)
+                content.item?.suspendLists?.();
+        }
     }
 
     onShouldBeActiveChanged: {
         if (shouldBeActive) {
             teardownGrace.stop();
-            implicitHeight = Qt.binding(() => content.implicitHeight);
-            implicitWidth = Qt.binding(() => content.implicitWidth || 630);
-            Qt.callLater(() => Apps.warmCatalog());
+            contentPreloaded = true;
+            Qt.callLater(() => content.item?.resumeLists?.());
         } else {
-            content.item?.suspendLists?.();
             teardownGrace.restart();
-            implicitHeight = implicitHeight; // Break binding during close anim
-            implicitWidth = implicitWidth; // Break binding during close anim
         }
     }
 
@@ -52,8 +63,9 @@ Item {
 
     visible: offsetScale < 1
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
-    implicitHeight: content.implicitHeight
-    implicitWidth: content.implicitWidth || 630 // Hard coded fallback for first open
+    implicitHeight: closingAnimationActive ? cachedImplicitHeight : (content.implicitHeight || cachedImplicitHeight)
+    implicitWidth: closingAnimationActive ? cachedImplicitWidth : (content.implicitWidth || cachedImplicitWidth)
+    opacity: 1 - offsetScale
 
     Behavior on offsetScale {
         Anim {
@@ -61,7 +73,10 @@ Item {
         }
     }
 
-    Component.onCompleted: Qt.callLater(() => Apps.warmCatalog())
+    Component.onCompleted: {
+        Qt.callLater(() => Apps.warmCatalog());
+        Qt.callLater(() => contentPreloaded = true);
+    }
 
     Component {
         id: contentComponent
@@ -79,8 +94,18 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        active: true
+        active: root.contentPreloaded || root.shouldBeActive || root.visible || teardownGrace.running
         asynchronous: true
         sourceComponent: contentComponent
+
+        onImplicitHeightChanged: root.syncCachedSize()
+        onImplicitWidthChanged: root.syncCachedSize()
+        onStatusChanged: {
+            if (status === Loader.Ready) {
+                root.syncCachedSize();
+                if (root.shouldBeActive)
+                    content.item?.resumeLists?.();
+            }
+        }
     }
 }

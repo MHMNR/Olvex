@@ -22,11 +22,13 @@ StyledRect {
     property Item contentRoot
 
     property bool warpConnected: false
+    readonly property bool warpToggleEnabled: root.quickToggles.some(item => item.id === "warp")
+    readonly property bool warpStatusActive: root.visibilities.utilities && warpToggleEnabled
 
     Process {
         id: warpStatusProc
         command: ["/usr/bin/warp-cli", "status"]
-        running: true
+        running: root.warpStatusActive
         stdout: SplitParser {
             onRead: line => {
                 const lower = line.toLowerCase();
@@ -38,7 +40,10 @@ StyledRect {
 
     Process {
         id: warpActionProc
-        onExited: code => warpStatusProc.running = true
+        onExited: code => {
+            if (root.warpStatusActive)
+                warpStatusProc.running = true;
+        }
     }
 
     readonly property var quickToggles: {
@@ -52,7 +57,7 @@ StyledRect {
             return true;
         });
 
-        const forceIds = ["warp", "airplane", "idleInhibit", "gameMode", "dnd"];
+        const forceIds = ["airplane", "idleInhibit", "gameMode", "dnd"];
         forceIds.forEach(id => {
             if (!seenIds.has(id)) filtered.push({ id: id, enabled: true });
         });

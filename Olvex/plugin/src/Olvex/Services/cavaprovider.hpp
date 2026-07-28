@@ -14,6 +14,7 @@ public:
     ~CavaProcessor();
 
     void setBars(int bars);
+    void setFrameRate(int frameRate);
 
 signals:
     void valuesChanged(QVector<double> values);
@@ -27,6 +28,7 @@ private:
     double* m_out;
 
     int m_bars;
+    int m_frameRate;
     QVector<double> m_values;
 
     void reload();
@@ -39,6 +41,7 @@ class CavaProvider : public AudioProvider {
     QML_ELEMENT
 
     Q_PROPERTY(int bars READ bars WRITE setBars NOTIFY barsChanged)
+    Q_PROPERTY(int frameRate READ frameRate WRITE setFrameRate NOTIFY frameRateChanged)
 
     Q_PROPERTY(QVector<double> values READ values NOTIFY valuesChanged)
 
@@ -47,18 +50,25 @@ public:
 
     [[nodiscard]] int bars() const;
     void setBars(int bars);
+    [[nodiscard]] int frameRate() const;
+    void setFrameRate(int frameRate);
 
     [[nodiscard]] QVector<double> values() const;
 
 signals:
     void barsChanged();
+    void frameRateChanged();
     void valuesChanged();
 
 private:
     int m_bars;
+    int m_frameRate;
     QVector<double> m_values;
+    bool m_active;
 
     void updateValues(QVector<double> values);
+    void start() override;
+    void stop() override;
 };
 
 } // namespace olvex::services

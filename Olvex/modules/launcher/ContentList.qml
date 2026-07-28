@@ -37,7 +37,8 @@ Item {
         }
     }
 
-    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.left: parent.left
+    anchors.right: parent.right
     anchors.bottom: parent.bottom
 
     implicitWidth: appList.item?.implicitWidth ?? 590
@@ -47,10 +48,6 @@ Item {
     height: implicitHeight
 
     clip: true
-
-    // Always apps mode — wallpapers live in their own independent drawer
-    anchors.left: parent.left
-    anchors.right: parent.right
 
     Loader {
         id: appList

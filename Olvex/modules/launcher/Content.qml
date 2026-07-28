@@ -16,6 +16,7 @@ Item {
 
     readonly property int padding: Tokens.padding.large
     readonly property int rounding: Tokens.rounding.large
+    readonly property bool launcherVisible: root.visibilities.launcher
 
     function navigateUp() { list.currentList?.decrementCurrentIndex?.(); }
     function navigateDown() { list.currentList?.incrementCurrentIndex?.(); }
@@ -183,11 +184,11 @@ Item {
 
             Timer {
                 id: focusTimer
-                interval: 50
+                interval: 80
                 repeat: true
                 property int attempts: 0
                 onTriggered: {
-                    if (search.activeFocus || attempts >= 20) {
+                    if (!root.launcherVisible || search.activeFocus || attempts >= 20) {
                         stop();
                     } else {
                         search.forceActiveFocus();
@@ -207,16 +208,20 @@ Item {
                             root.visibilities.launcherSearchText = "";
                         }
                         search.forceActiveFocus();
-                        focusTimer.attempts = 0;
-                        focusTimer.start();
+                        if (!search.activeFocus) {
+                            focusTimer.attempts = 0;
+                            focusTimer.start();
+                        }
                     }
                 }
 
                 function onSessionChanged(): void {
-                    if (!root.visibilities.session) {
+                    if (!root.visibilities.session && root.launcherVisible) {
                         search.forceActiveFocus();
-                        focusTimer.attempts = 0;
-                        focusTimer.start();
+                        if (!search.activeFocus) {
+                            focusTimer.attempts = 0;
+                            focusTimer.start();
+                        }
                     }
                 }
 

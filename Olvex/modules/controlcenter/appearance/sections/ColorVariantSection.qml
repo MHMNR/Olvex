@@ -16,6 +16,8 @@ CollapsibleSection {
     description: qsTr("Material theme variant")
     showBackground: true
 
+    Component.onCompleted: Schemes.ensureLoaded()
+
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Tokens.spacing.small / 2

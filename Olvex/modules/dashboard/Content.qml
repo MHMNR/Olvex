@@ -12,6 +12,7 @@ Item {
     id: root
 
     required property DrawerVisibilities visibilities
+    required property bool dashboardActive
     readonly property bool needsKeyboard: false
     required property DashboardState dashState
     required property FileDialog facePicker
@@ -128,15 +129,8 @@ Item {
 
                         Layout.alignment: Qt.AlignTop
 
+                        active: index === view.currentIndex
                         sourceComponent: modelData.component
-
-                        Component.onCompleted: active = Qt.binding(() => {
-                            if (index === view.currentIndex)
-                                return true;
-                            const vx = Math.floor(view.visibleArea.xPosition * view.contentWidth);
-                            const vex = Math.floor(vx + view.visibleArea.widthRatio * view.contentWidth);
-                            return (vx >= x && vx <= x + implicitWidth) || (vex >= x && vex <= x + implicitWidth);
-                        })
                     }
                 }
             }
@@ -145,6 +139,7 @@ Item {
                 id: dashComponent
 
                 Dash {
+                    dashboardActive: root.dashboardActive
                     visibilities: root.visibilities
                     dashState: root.dashState
                     facePicker: root.facePicker

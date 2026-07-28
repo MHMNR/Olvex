@@ -52,12 +52,20 @@ MouseArea {
 
     signal itemSelected(item: var)
 
-    parent: {
+    readonly property Item overlayParent: {
         const win = QsWindow.window;
-        const contentWin = win as ContentWindow; // If inside the drawer content window, put it inside the interaction wrapper so hover works
-        return contentWin ? contentWin.interactionWrapper : (win as QsWindow).contentItem;
+        if (!win)
+            return null;
+        const contentWin = win as ContentWindow;
+        if (contentWin?.interactionWrapper)
+            return contentWin.interactionWrapper;
+        return (win as QsWindow)?.contentItem ?? null;
     }
-    anchors.fill: parent
+
+    parent: {
+        return root.overlayParent;
+    }
+    anchors.fill: parent ?? undefined
 
     enabled: expanded
     onClicked: expanded = false
@@ -86,6 +94,8 @@ MouseArea {
         x: {
             watcher.transform; // mapToItem is not reactive so this forces updates
             const item = root.attachTo;
+            if (!item || !root.parent)
+                return 0;
             let off = root.attachSideX === Menu.Left ? 0 : item.width;
             if (root.thisSideX === Menu.Right)
                 off -= width;
@@ -94,6 +104,8 @@ MouseArea {
         y: {
             watcher.transform; // mapToItem is not reactive so this forces updates
             const item = root.attachTo;
+            if (!item || !root.parent)
+                return 0;
             let off = root.attachSideY === Menu.Top ? 0 : item.height;
             if (root.thisSideY === Menu.Bottom)
                 off -= height;

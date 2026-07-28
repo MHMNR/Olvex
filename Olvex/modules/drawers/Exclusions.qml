@@ -21,18 +21,6 @@ Scope {
     }
 
     ExclusionZone {
-        anchors.top: true
-        anchors.left: true
-        anchors.right: true
-    }
-
-    ExclusionZone {
-        anchors.right: true
-        anchors.top: true
-        anchors.bottom: true
-    }
-
-    ExclusionZone {
         id: bottomZone
         anchors.bottom: true
         anchors.left: true
@@ -48,8 +36,6 @@ Scope {
             return contentItem?.Config?.border?.thickness ?? 0;
         }
         implicitHeight: exclusiveZone
-        onExclusiveZoneChanged: console.log("BOTTOM EXCLUSION ZONE CHANGED TO:", exclusiveZone)
-        Component.onCompleted: console.log("BOTTOM EXCLUSION ZONE INIT TO:", exclusiveZone)
     }
 
     component ExclusionZone: StyledWindow {

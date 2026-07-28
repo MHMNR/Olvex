@@ -18,7 +18,14 @@ import "../utilities/cards" as Cards
 StyledWindow {
     id: root
 
-    readonly property var safeBorder: (contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}
+    readonly property var safeBorder: (contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border : {
+        thickness: 0,
+        rounding: 0,
+        minThickness: 0,
+        floating: false,
+        smoothing: 0,
+        clampedThickness: 0
+    }
 
     readonly property bool _initApps: {
         Qt.application.name = "Olvex";
@@ -50,11 +57,14 @@ StyledWindow {
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : safeBorder.thickness
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
+    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (morph.active || visibilities.utilities || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.session || visibilities.sidebar || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible)
 
     property real bottomBorderHeight: {
-        if (hasFullscreen) return 0;
+        if (hasFullscreen)
+            return 0;
         // Expand blob border to 80px whenever panel is visible (any mode)
-        if (panels.bottomPanelVisible) return 80;
+        if (panels.bottomPanelVisible)
+            return 80;
         return root.borderThickness;
     }
 
@@ -63,7 +73,6 @@ StyledWindow {
             type: Anim.DefaultSpatial
         }
     }
-
 
     readonly property int dragMaskPadding: {
         if (focusGrab.active || panels.popouts.isDetached)
@@ -95,7 +104,6 @@ StyledWindow {
         interval: 350
         onTriggered: root.launchTransition = false
     }
-
 
     mask: (morph.active || visibilities.utilities || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
 
@@ -133,13 +141,20 @@ StyledWindow {
     Shortcut {
         sequence: "Escape"
         onActivated: {
-            if (visibilities.wallpaperLauncher) visibilities.wallpaperLauncher = false;
-            else if (visibilities.launcher) visibilities.launcher = false;
-            else if (visibilities.dashboard) visibilities.dashboard = false;
-            else if (visibilities.utilities) visibilities.utilities = false;
-            else if (visibilities.clipboard) visibilities.clipboard = false;
-            else if (visibilities.sidebar) visibilities.sidebar = false;
-            else if (visibilities.session) visibilities.session = false;
+            if (visibilities.wallpaperLauncher)
+                visibilities.wallpaperLauncher = false;
+            else if (visibilities.launcher)
+                visibilities.launcher = false;
+            else if (visibilities.dashboard)
+                visibilities.dashboard = false;
+            else if (visibilities.utilities)
+                visibilities.utilities = false;
+            else if (visibilities.clipboard)
+                visibilities.clipboard = false;
+            else if (visibilities.sidebar)
+                visibilities.sidebar = false;
+            else if (visibilities.session)
+                visibilities.session = false;
             else if (panels.popouts.hasCurrent) {
                 panels.popouts.hasCurrent = false;
                 bar.closeTray();
@@ -159,7 +174,8 @@ StyledWindow {
             }
         }
         onCleared: {
-            if (root.launchTransition) return;
+            if (root.launchTransition)
+                return;
             visibilities.launcher = false;
             visibilities.wallpaperLauncher = false;
             visibilities.session = false;
@@ -182,8 +198,8 @@ StyledWindow {
 
     Item {
         anchors.fill: parent
-        opacity: Colours.transparency.enabled ? Colours.transparency.base : 1
-        layer.enabled: true
+        opacity: Colours.transparencyEnabled ? Colours.transparencyBase : 1
+        layer.enabled: root.effectLayerActive
         layer.effect: MultiEffect {
             shadowEnabled: true
             blurMax: 15
@@ -193,13 +209,18 @@ StyledWindow {
         Item {
             id: blobContainer
             anchors.fill: parent
-            
+
             // Background fade-in on unlock
             opacity: root.isVisible ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
-                    PauseAnimation { duration: 300 }
-                    NumberAnimation { duration: 1000; easing.type: Easing.OutCubic }
+                    PauseAnimation {
+                        duration: 300
+                    }
+                    NumberAnimation {
+                        duration: 1000
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
 
@@ -207,23 +228,27 @@ StyledWindow {
                 id: blobGroup
                 color: Colours.palette.m3surface
                 smoothing: safeBorder.smoothing
-                Behavior on color { CAnim {} }
+                Behavior on color {
+                    CAnim {}
+                }
             }
-
-
 
             BlobGroup {
                 id: drawerGroup
                 color: Colours.palette.m3surface
                 smoothing: safeBorder.smoothing
-                Behavior on color { CAnim {} }
+                Behavior on color {
+                    CAnim {}
+                }
             }
 
             BlobGroup {
                 id: osdGroup
                 color: Colours.palette.m3surface
                 smoothing: safeBorder.smoothing
-                Behavior on color { CAnim {} }
+                Behavior on color {
+                    CAnim {}
+                }
             }
 
             BlobInvertedRect {
@@ -267,9 +292,6 @@ StyledWindow {
                 implicitWidth: visibilities.session ? panels.session.width : 0
                 implicitHeight: visibilities.session ? panels.session.height : 0
             }
-
-
-
 
             PanelBg {
                 id: osdBg
@@ -351,14 +373,13 @@ StyledWindow {
 
     // Entrance Animation State
     readonly property bool isVisible: !LockState.locked
-    
+
     Item {
         id: revealContainer
         anchors.fill: parent
         opacity: isVisible ? 1 : 0
-        
-        // Removed global behavior to fix jitter on QS Panel and other drawers
 
+        // Removed global behavior to fix jitter on QS Panel and other drawers
 
         Interactions {
             id: interactions
@@ -428,14 +449,16 @@ StyledWindow {
                 safeBorder: root.safeBorder
                 enabled: !visibilities.session
                 visible: opacity > 0
-                
+
                 // Staggered entry for bar
                 opacity: visibilities.session ? 0 : (root.isVisible ? 1 : 0)
                 transform: Translate {
                     x: root.isVisible ? 0 : -30
                     Behavior on x {
                         SequentialAnimation {
-                            PauseAnimation { duration: 50 }
+                            PauseAnimation {
+                                duration: 50
+                            }
                             NumberAnimation {
                                 duration: 800
                                 easing.type: Easing.OutExpo
@@ -445,16 +468,19 @@ StyledWindow {
                 }
                 Behavior on opacity {
                     SequentialAnimation {
-                        PauseAnimation { duration: 50 }
-                        NumberAnimation { duration: 600; easing.type: Easing.OutCubic }
+                        PauseAnimation {
+                            duration: 50
+                        }
+                        NumberAnimation {
+                            duration: 600
+                            easing.type: Easing.OutCubic
+                        }
                     }
                 }
 
                 Component.onCompleted: Visibilities.bars.set(root.screen, this)
             }
         }
-
-
 
         // Dismiss layer: closes QS panel when clicking outside it
         MouseArea {
@@ -463,24 +489,21 @@ StyledWindow {
             hoverEnabled: false
             z: 50 // above panels (z:0) but below morph (z:1000)
             propagateComposedEvents: true
-            onPressed: (mouse) => {
+            onPressed: mouse => {
                 // map utilities panel rect to root coordinates
                 const util = panels.utilities;
                 const mapped = util.mapToItem(revealContainer, 0, 0);
-                const inUtil = mouse.x >= mapped.x && mouse.x <= mapped.x + util.width
-                             && mouse.y >= mapped.y && mouse.y <= mapped.y + util.height;
+                const inUtil = mouse.x >= mapped.x && mouse.x <= mapped.x + util.width && mouse.y >= mapped.y && mouse.y <= mapped.y + util.height;
 
                 // also exclude the bottom panel so toggle buttons can receive clicks
                 const bp = panels.bottomPanel;
                 const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width
-                                   && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
 
                 // also exclude clipboard panel
                 const cb = panels.clipboard;
                 const cbMapped = cb.mapToItem(revealContainer, 0, 0);
-                const inClipboard = cb.visible && mouse.x >= cbMapped.x && mouse.x <= cbMapped.x + cb.width
-                                  && mouse.y >= cbMapped.y && mouse.y <= cbMapped.y + cb.height;
+                const inClipboard = cb.visible && mouse.x >= cbMapped.x && mouse.x <= cbMapped.x + cb.width && mouse.y >= cbMapped.y && mouse.y <= cbMapped.y + cb.height;
 
                 if (!inUtil && !inBottomPanel && !inClipboard) {
                     visibilities.utilities = false;
@@ -501,15 +524,13 @@ StyledWindow {
             hoverEnabled: false
             z: 49
             propagateComposedEvents: true
-            onPressed: (mouse) => {
+            onPressed: mouse => {
                 const cb = panels.clipboard;
                 const cbMapped = cb.mapToItem(revealContainer, 0, 0);
-                const inClipboard = mouse.x >= cbMapped.x && mouse.x <= cbMapped.x + cb.width
-                                 && mouse.y >= cbMapped.y && mouse.y <= cbMapped.y + cb.height;
+                const inClipboard = mouse.x >= cbMapped.x && mouse.x <= cbMapped.x + cb.width && mouse.y >= cbMapped.y && mouse.y <= cbMapped.y + cb.height;
                 const bp = panels.bottomPanel;
                 const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width
-                                   && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
                 if (!inClipboard && !inBottomPanel) {
                     visibilities.clipboard = false;
                     mouse.accepted = true;
@@ -517,9 +538,10 @@ StyledWindow {
                     mouse.accepted = false;
                 }
             }
-            onClicked: mouse => { mouse.accepted = false; }
+            onClicked: mouse => {
+                mouse.accepted = false;
+            }
         }
-
 
         // Dismiss layer: closes launcher when clicking outside it
         MouseArea {
@@ -528,21 +550,18 @@ StyledWindow {
             hoverEnabled: false
             z: 48
             propagateComposedEvents: true
-            onPressed: (mouse) => {
+            onPressed: mouse => {
                 const launcher = panels.launcher;
                 const mapped = launcher.mapToItem(revealContainer, 0, 0);
-                const inLauncher = mouse.x >= mapped.x && mouse.x <= mapped.x + launcher.width
-                                 && mouse.y >= mapped.y && mouse.y <= mapped.y + launcher.height;
+                const inLauncher = mouse.x >= mapped.x && mouse.x <= mapped.x + launcher.width && mouse.y >= mapped.y && mouse.y <= mapped.y + launcher.height;
                 const bp = panels.bottomPanel;
                 const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width
-                                   && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
-                
+                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+
                 let inOsIcon = false;
                 if (bar.osIcon) {
                     const osMapped = bar.osIcon.mapToItem(revealContainer, 0, 0);
-                    inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width
-                            && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
+                    inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
                 }
 
                 if (!inLauncher && !inBottomPanel && !inOsIcon) {
@@ -552,7 +571,9 @@ StyledWindow {
                     mouse.accepted = false;
                 }
             }
-            onClicked: mouse => { mouse.accepted = false; }
+            onClicked: mouse => {
+                mouse.accepted = false;
+            }
         }
 
         // Dismiss layer: closes wallpaper selector when clicking outside it
@@ -562,21 +583,18 @@ StyledWindow {
             hoverEnabled: false
             z: 47
             propagateComposedEvents: true
-            onPressed: (mouse) => {
+            onPressed: mouse => {
                 const ws = panels.wallpaperSelector;
                 const mapped = ws.mapToItem(revealContainer, 0, 0);
-                const inWS = mouse.x >= mapped.x && mouse.x <= mapped.x + ws.width
-                                 && mouse.y >= mapped.y && mouse.y <= mapped.y + ws.height;
+                const inWS = mouse.x >= mapped.x && mouse.x <= mapped.x + ws.width && mouse.y >= mapped.y && mouse.y <= mapped.y + ws.height;
                 const bp = panels.bottomPanel;
                 const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width
-                                   && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
-                
+                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+
                 let inOsIcon = false;
                 if (bar.osIcon) {
                     const osMapped = bar.osIcon.mapToItem(revealContainer, 0, 0);
-                    inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width
-                            && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
+                    inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
                 }
 
                 if (!inWS && !inBottomPanel && !inOsIcon) {
@@ -586,7 +604,9 @@ StyledWindow {
                     mouse.accepted = false;
                 }
             }
-            onClicked: mouse => { mouse.accepted = false; }
+            onClicked: mouse => {
+                mouse.accepted = false;
+            }
         }
 
         Cards.MediaMorphOverlay {
@@ -604,7 +624,6 @@ StyledWindow {
             pinnedLayout: panels.pinnedLayout
         }
     }
-
 
     component PanelBg: BlobRect {
         required property Item panel

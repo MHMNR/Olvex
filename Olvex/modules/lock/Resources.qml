@@ -16,7 +16,10 @@ ColumnLayout {
     // ── Hidden Ref to trigger service ────────────────────────────────────────
     Item {
         visible: false
-        Ref { service: SystemUsage }
+        Ref {
+            service: SystemUsage
+            active: LockState.locked
+        }
     }
 
     // ── Header ───────────────────────────────────────────────────────────────

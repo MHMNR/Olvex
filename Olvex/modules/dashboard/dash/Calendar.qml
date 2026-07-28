@@ -83,6 +83,7 @@ Item {
                 anchors.fill: parent
                 anchors.leftMargin: 10
                 anchors.rightMargin: 6
+                anchors.topMargin: -3
                 spacing: 10
 
                 Rectangle {
@@ -104,6 +105,7 @@ Item {
                     ColumnLayout {
                         id: todayCol
                         anchors.verticalCenter: parent.verticalCenter
+                        anchors.verticalCenterOffset: -3
                         spacing: -2
 
                         StyledText {
