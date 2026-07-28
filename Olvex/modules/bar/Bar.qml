@@ -181,6 +181,14 @@ ColumnLayout {
                     Layout.topMargin: root.vPadding
                     Layout.bottomMargin: root.vPadding
                     visible: !root.fullscreen
+                    // Fill leftover column space, but cap to the pill's natural
+                    // compact height so it never pushes pills below. When the
+                    // workspace pill above expands, the ColumnLayout compresses
+                    // this loader down to its min instead of overflowing
+                    // downward.
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: item ? item.implicitHeight : 0
+                    Layout.maximumHeight: item ? item.implicitHeight : 0
                     sourceComponent: ActiveWindow {
                         bar: root
                         monitor: Brightness.getMonitorForScreen(root.screen)

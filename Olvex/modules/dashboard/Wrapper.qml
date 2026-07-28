@@ -76,11 +76,12 @@ Item {
     // Stabilize dimensions to prevent jitter during first load
     implicitHeight: Math.max(480, content.implicitHeight)
     implicitWidth: Math.max(854, content.implicitWidth)
-    opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)
+    // Match launcher: linear 1-offsetScale (snaps to fully opaque at rest).
+    opacity: 1 - offsetScale
 
     Behavior on offsetScale {
         Anim {
-            type: root.shouldBeActive ? Anim.DefaultSpatial : Anim.EmphasizedLarge
+            type: Anim.DefaultSpatial
         }
     }
 

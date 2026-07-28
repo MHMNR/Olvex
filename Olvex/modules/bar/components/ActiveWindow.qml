@@ -198,6 +198,11 @@ StyledRect {
     }
 
     function triggerPillExpand(): void {
+        // No-op without music: skip the press spring and the morph entirely.
+        // Otherwise a click on the active-window state would squeeze the pill
+        // and try to start a morph that returns early anyway.
+        if (!root.playerActive)
+            return;
         dockSyncDebounce.stop();
         dockSyncTimer.stop();
         pillPressSpring.start();
@@ -363,29 +368,12 @@ StyledRect {
     implicitHeight: root.playerActive ? root.musicPillHeight : icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
 
     Loader {
+        // No click handler — clicking the active-window pill must NOT pop a
+        // popout ("pill choto + niche pill" symptom). The hover-driven popout
+        // path lives in Bar.qml's checkPopout (gated on Config.bar.activeWindow.showOnHover).
         asynchronous: true
         anchors.fill: parent
-        active: !Config.bar.activeWindow.showOnHover && !root.playerActive
-
-        sourceComponent: MouseArea {
-            cursorShape: Qt.PointingHandCursor
-            hoverEnabled: true
-            onPositionChanged: {
-                const popouts = root.bar.popouts;
-                if (popouts.hasCurrent && popouts.currentName !== "activewindow")
-                    popouts.hasCurrent = false;
-            }
-            onClicked: {
-                const popouts = root.bar.popouts;
-                if (popouts.hasCurrent) {
-                    popouts.hasCurrent = false;
-                } else {
-                    popouts.currentName = "activewindow";
-                    popouts.currentCenter = root.mapToItem(root.bar, 0, root.implicitHeight / 2).y;
-                    popouts.hasCurrent = true;
-                }
-            }
-        }
+        active: false
     }
 
     MediaThumbnailAccentPicker {
