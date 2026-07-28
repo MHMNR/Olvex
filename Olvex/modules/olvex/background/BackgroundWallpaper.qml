@@ -17,8 +17,7 @@ Item {
 
     property string source: Wallpapers.perMonitorWallpaper ? (Wallpapers.monitorWallpapers[screen?.name ?? ""] ?? Wallpapers.actualCurrent) : Wallpapers.actualCurrent
     readonly property bool sourceIsVideo: Wallpapers.isVideoPath(source)
-    // Prefer GlobalConfig so Settings (control center) writes apply immediately
-    readonly property bool liveWallpaperActive: sourceIsVideo && (GlobalConfig.background?.liveWallpaper?.enabled ?? Config.background.liveWallpaper.enabled)
+    readonly property bool liveWallpaperActive: sourceIsVideo
     property string actualTransitionType: Config.background.wallpaperTransition.type
     property real transitionProgress: 0
     property bool effectActive: false
@@ -763,12 +762,15 @@ Item {
                 standbyPlayer.source = path;
                 if (playbackActive && standbyPlayer.play)
                     standbyPlayer.play();
+
+                if (isReady(standbyPlayer))
+                    promotePlayer(standbyPlayer);
             }
 
             Timer {
-                interval: 80
+                interval: 50
                 repeat: true
-                running: liveRoot.visible && !!liveRoot.wallpaperSource && liveRoot.standbyPlayer && liveRoot.playerSource(liveRoot.standbyPlayer) === liveRoot.wallpaperSource && !liveRoot.isReady(liveRoot.standbyPlayer)
+                running: liveRoot.visible && !!liveRoot.wallpaperSource && liveRoot.standbyPlayer && liveRoot.playerSource(liveRoot.standbyPlayer) === liveRoot.wallpaperSource && liveRoot.currentPlayer !== liveRoot.standbyPlayer
                 onTriggered: {
                     CpuProfile.bump("livePromoteTimer");
                     if (liveRoot.standbyPlayer && liveRoot.playerSource(liveRoot.standbyPlayer) === liveRoot.wallpaperSource && liveRoot.isReady(liveRoot.standbyPlayer))

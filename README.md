@@ -46,20 +46,57 @@ Olvex includes a comprehensive suite of shell interfaces:
 
 ---
 
-## System Requirements
+## Prerequisites & Dependencies
 
-Ensure the following dependencies are installed prior to deploying Olvex:
+### Package Requirements (Arch Linux / CachyOS)
 
-- **Compositor**: `hyprland`
-- **Shell Engine**: `quickshell-git` (Qt 6.7+ QML framework)
-- **Audio Infrastructure**: `pipewire`, `wireplumber`, `cava`, `aubio`
-- **System Utilities**: `fastfetch`, `micro`, `fish`, `bash`, `python3`, `cliphist`, `slurp`, `grim`, `wf-recorder`
+Ensure the following packages are installed before compiling and launching Olvex:
+
+#### 1. Core Build & Qt6 Framework
+- `base-devel`, `cmake`, `ninja`, `git`, `pkgconf`, `gcc-libs`, `glibc`
+- `qt6-base`, `qt6-declarative`, `qt6-shadertools`, `qt6-wayland`, `qt6-5compat`, `qt6-svg`, `qt6-imageformats`
+
+#### 2. Compositor, Shell & Wallpaper Engine
+- `hyprland` (Wayland Compositor)
+- `quickshell-git` (AUR) (Qt6 QML Desktop Shell Framework)
+- `swww` (Wallpaper Daemon)
+- `matugen` (Material Design 3 Dynamic Color Generator)
+- `m3shapes` (C++ Shape Mask Library)
+
+#### 3. Audio, Display & Hardware Services
+- `pipewire`, `libpipewire`, `wireplumber`
+- `cava`, `libcava`, `aubio` (Audio Spectral Analysis & Beat Tracking)
+- `brightnessctl`, `ddcutil` (Backlight & Monitor DDC Controls)
+- `lm-sensors`, `upower` (Hardware Temperature & Battery)
+- `networkmanager`, `bluez`, `bluez-utils` (Network & Bluetooth)
+- `fprintd` (Fingerprint PAM Integration)
+
+#### 4. Desktop Utilities, Capture & Terminal
+- `cliphist`, `wl-clipboard` (Clipboard History & Selection)
+- `grim`, `slurp`, `swappy` (Interactive Screenshot & Annotation)
+- `gpu-screen-recorder` (Hardware-Accelerated Screen Recorder)
+- `ydotool` (Virtual Input Controls & Gestures)
+- `libqalculate` (Launcher Calculator Backend)
+- `libnotify` (Desktop Notification Protocol)
+- `mpv` (Media Engine)
+- `app2unit` (Systemd Application Unit Manager)
+- `foot` (Terminal Emulator)
+- `bash`, `fish`, `xdg-utils`
+
+#### 5. Fonts & Icon Typography
+- `ttf-material-symbols` / `material-symbols`
+- `caskaydia-cove-nerd`
+- `ttf-rubik`
+
+#### 6. Python Runtime & Image Libraries
+- `python3`, `python-pip`, `python-pillow`
 
 ---
 
-## Installation
+## Installation Guide
 
-### Automated Deployment
+### Option A: Automated Setup
+
 Clone the repository and run the setup script:
 
 ```bash
@@ -68,27 +105,127 @@ cd QS-Config/Github
 ./setup.sh
 ```
 
-### Manual Configuration
-To configure the shell manually:
+---
 
-1. **Deploy Configuration Files**:
-   ```bash
-   cp -r .config/* ~/.config/
-   ```
+### Option B: Full Manual Installation (Step-by-Step)
 
-2. **Configure Bash Shell Environment**:
-   Include the XDG bash entry point in your user `~/.bashrc`:
-   ```bash
-   echo '[ -f "$HOME/.config/bash/bashrc" ] && source "$HOME/.config/bash/bashrc"' >> ~/.bashrc
-   ```
+If you prefer building and installing all components manually, follow these detailed steps:
 
-3. **Configure Fish Shell Environment**:
-   Fish configuration is automatically loaded from `~/.config/fish/config.fish`.
+#### Step 1: Install Package Dependencies
 
-4. **Initialize Olvex Daemon**:
-   ```bash
-   olvex shell -d
-   ```
+**Arch Linux / CachyOS Repository Packages:**
+```bash
+sudo pacman -S --needed \
+    base-devel cmake ninja git pkgconf gcc-libs glibc \
+    qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-5compat qt6-svg qt6-imageformats \
+    hyprland swww pipewire libpipewire wireplumber cava aubio \
+    brightnessctl ddcutil lm-sensors upower networkmanager bluez bluez-utils fprintd \
+    cliphist wl-clipboard grim slurp swappy gpu-screen-recorder ydotool \
+    libqalculate libnotify mpv foot bash fish xdg-utils \
+    ttf-rubik python3 python-pip python-pillow
+```
+
+**AUR Packages (via `yay` or `paru`):**
+```bash
+yay -S --needed \
+    quickshell-git matugen m3shapes app2unit \
+    material-symbols caskaydia-cove-nerd
+```
+
+---
+
+#### Step 2: Clone the Repository
+```bash
+git clone https://github.com/your-username/QS-Config.git
+cd QS-Config/Github
+```
+
+---
+
+#### Step 3: Build & Install C++ Plugins
+
+Olvex relies on custom native C++ QML plugins (`Olvex`, `Olvex.Config`, `Olvex.Services`, `Olvex.Internal`, etc.) located in `plugin/`:
+
+```bash
+# Create build directory
+mkdir -p build && cd build
+
+# Configure CMake project with Ninja generator
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+
+# Build C++ modules
+ninja
+
+# Install plugin to Qt QML import path
+sudo cmake --install .
+cd ..
+```
+
+---
+
+#### Step 4: Deploy Shell Files & Executable Scripts
+
+Copy the QML shell code to Quickshell's configuration path and install the `olvex` CLI helper:
+
+```bash
+# Create configuration directories
+mkdir -p ~/.config/quickshell/olvex
+mkdir -p ~/.config/olvex
+mkdir -p ~/.local/bin
+
+# Copy QML shell files
+cp -r Olvex/* ~/.config/quickshell/olvex/
+
+# Install olvex CLI executable
+cp scripts/olvex ~/.local/bin/
+chmod +x ~/.local/bin/olvex
+
+# Ensure ~/.local/bin is in your PATH
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+---
+
+#### Step 5: Setup Virtual Input (`ydotool`)
+
+Olvex uses `ydotool` for virtual keypresses and gesture controls:
+
+```bash
+# Enable and start ydotool daemon
+sudo systemctl enable --now ydotool
+
+# Add current user to input group for permissions
+sudo usermod -aG input $USER
+```
+
+---
+
+#### Step 6: Configure Hyprland Autostart
+
+Add the following execution lines to your Hyprland configuration file (`~/.config/hypr/hyprland.conf` or `~/.config/hypr/hyprland/execs.conf`):
+
+```ini
+# Start ydotool daemon
+exec-once = ydotool daemon
+
+# Launch Olvex Shell via Quickshell
+exec-once = quickshell -p ~/.config/quickshell/olvex/
+```
+
+---
+
+#### Step 7: Launch Olvex Shell
+
+Start the shell manually for testing or live usage:
+
+```bash
+quickshell -p ~/.config/quickshell/olvex/
+```
+
+Or run via the CLI dispatcher:
+```bash
+olvex shell -d
+```
 
 ---
 
@@ -140,6 +277,7 @@ olvex shell kill                          # Terminate shell process
 
 ## Configuration Paths
 
+- **QML Shell Target**: `~/.config/quickshell/olvex/`
 - **Global Configuration**: `~/.config/olvex/shell.json`
 - **Per-Monitor Overrides**: `~/.config/olvex/monitors/<MONITOR_NAME>/shell.json`
 - **System Accent Tokens**: `~/.local/state/olvex/scheme.json`
