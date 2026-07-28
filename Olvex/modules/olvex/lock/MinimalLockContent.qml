@@ -6,10 +6,12 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.UPower
+import M3Shapes
 import Olvex.Config
 import "../../lock"
 import qs.components
 import qs.components.controls
+import qs.components.effects
 import qs.components.images
 import qs.services
 import qs.utils
@@ -1020,39 +1022,92 @@ Item {
                     width: parent.width - 56
                     spacing: 22
 
-                    // Avatar
+                    // Avatar with Dashboard-style spinning mask
                     Item {
+                        id: avatarHost
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: 100
                         height: 100
 
-                        StyledClippingRect {
+                        // Spinning 12-sided ring
+                        MaterialShape {
+                            id: avatarRing
                             anchors.fill: parent
-                            radius: Tokens.rounding.full
-                            color: Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
+                            z: 0
+                            implicitSize: 100
+                            shape: MaterialShape.Cookie12Sided
+                            color: Colours.layer(Colours.palette.m3primaryContainer, 1)
+
+                            Anim on rotation {
+                                running: true
+                                from: 360
+                                to: 0
+                                duration: 20000
+                                easing.type: Easing.Linear
+                                loops: Animation.Infinite
+                            }
+                        }
+
+                        // Spinning mask for clipping
+                        Item {
+                            id: avatarMaskWrap
+                            anchors.fill: parent
+                            visible: false
+                            z: 0
+                            layer.enabled: true
+
+                            MaterialShape {
+                                implicitSize: 100
+                                shape: MaterialShape.Cookie12Sided
+                                color: "white"
+
+                                Anim on rotation {
+                                    running: true
+                                    from: 360
+                                    to: 0
+                                    duration: 20000
+                                    easing.type: Easing.Linear
+                                    loops: Animation.Infinite
+                                }
+                            }
+                        }
+
+                        // Fallback avatar (when no image)
+                        Item {
+                            id: avatarFallback
+                            anchors.fill: parent
+                            visible: face.status !== Image.Ready
+                            z: 1
+                            layer.enabled: true
+                            layer.effect: Mask {
+                                maskSource: avatarMaskWrap
+                            }
+
+                            MaterialShape {
+                                anchors.centerIn: parent
+                                implicitSize: 72
+                                shape: MaterialShape.Circle
+                                color: Qt.alpha(Colours.palette.m3secondaryContainer, 0.55)
+                            }
 
                             MaterialIcon {
                                 anchors.centerIn: parent
                                 text: "person"
-                                color: Colours.current.m3onSurfaceVariant
+                                color: Colours.palette.m3onPrimaryContainer
                                 iconPointSize: 34
-                                visible: face.status !== Image.Ready
-                            }
-
-                            CachingImage {
-                                id: face
-                                anchors.fill: parent
-                                path: `${Paths.home}/.face`
                             }
                         }
 
-                        // Primary-coloured ring
-                        Rectangle {
+                        // Actual user face image
+                        CachingImage {
+                            id: face
                             anchors.fill: parent
-                            radius: width / 2
-                            color: "transparent"
-                            border.color: Colours.current.m3primary
-                            border.width: 2
+                            z: 1
+                            path: `${Paths.home}/.face`
+                            layer.enabled: true
+                            layer.effect: Mask {
+                                maskSource: avatarMaskWrap
+                            }
                         }
                     }
 

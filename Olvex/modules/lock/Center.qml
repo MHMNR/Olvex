@@ -2,9 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.components.controls
+import qs.components.effects
 import qs.components.images
 import qs.services
 import qs.utils
@@ -204,27 +206,92 @@ ColumnLayout {
             anchors.centerIn: parent
             spacing: Tokens.spacing.large
 
-            StyledClippingRect {
+            // ── Spinning Cookie Avatar (matches dashboard & minimal lockscreen) ──
+            Item {
+                id: avatarHost
                 Layout.alignment: Qt.AlignHCenter
                 implicitWidth: 100
                 implicitHeight: 100
-                color: Qt.alpha(Colours.current.m3surface, 0.2)
-                radius: 50
-                border.width: 1
-                border.color: Qt.alpha(Colours.current.m3outlineVariant, 0.5)
 
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "person"
-                    color: Colours.current.m3onSurfaceVariant
-                    iconPointSize: 40
-                    visible: pfp.status !== Image.Ready
+                // Outer spinning ring
+                MaterialShape {
+                    id: avatarRing
+                    anchors.fill: parent
+                    z: 0
+                    implicitSize: 100
+                    shape: MaterialShape.Cookie12Sided
+                    color: Colours.layer(Colours.current.m3primaryContainer, 1)
+
+                    Anim on rotation {
+                        running: true
+                        from: 360
+                        to: 0
+                        duration: 20000
+                        easing.type: Easing.Linear
+                        loops: Animation.Infinite
+                    }
                 }
 
+                // Invisible spinning mask (clips pfp + fallback icon)
+                Item {
+                    id: avatarMaskWrap
+                    anchors.fill: parent
+                    visible: false
+                    z: 0
+                    layer.enabled: true
+
+                    MaterialShape {
+                        implicitSize: 100
+                        shape: MaterialShape.Cookie12Sided
+                        color: "white"
+
+                        Anim on rotation {
+                            running: true
+                            from: 360
+                            to: 0
+                            duration: 20000
+                            easing.type: Easing.Linear
+                            loops: Animation.Infinite
+                        }
+                    }
+                }
+
+                // Fallback — shown when no .face image
+                Item {
+                    id: avatarFallback
+                    anchors.fill: parent
+                    visible: pfp.status !== Image.Ready
+                    z: 1
+                    layer.enabled: true
+                    layer.effect: Mask {
+                        maskSource: avatarMaskWrap
+                    }
+
+                    MaterialShape {
+                        anchors.centerIn: parent
+                        implicitSize: 72
+                        shape: MaterialShape.Circle
+                        color: Qt.alpha(Colours.current.m3surface, 0.2)
+                    }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "person"
+                        color: Colours.current.m3onSurfaceVariant
+                        iconPointSize: 40
+                    }
+                }
+
+                // Profile picture clipped to spinning Cookie mask
                 CachingImage {
                     id: pfp
                     anchors.fill: parent
+                    z: 1
                     path: `${Paths.home}/.face`
+                    layer.enabled: true
+                    layer.effect: Mask {
+                        maskSource: avatarMaskWrap
+                    }
                 }
             }
 
