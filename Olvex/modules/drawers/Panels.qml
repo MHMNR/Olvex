@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 import Olvex.Config
 import Olvex.Services
 import qs.components
+import qs.components.effects
 import qs.services
 import qs.modules.bar as Bar
 import qs.modules.dashboard as Dashboard
@@ -131,6 +132,7 @@ Item {
     // Whether the panel should be visible based on mode
     readonly property bool bottomPanelVisible: {
         if (!bottomPanelEnabled) return false;
+        if (visibilities.session) return false;
         if (bottomPanelMode === "smarthide") {
             // If a window overlaps the bottom 80px, react like autohide (hover to show)
             // If no window overlaps, always show
@@ -252,6 +254,20 @@ Item {
         anchors.right: parent.right
     }
 
+    // Hot corner: bottom-right click opens QS panel when bottom panel is off
+    MouseArea {
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        width: 32
+        height: 32
+        visible: !(root.bottomPanelEnabled) && !root.visibilities.utilities
+        z: 20
+
+        onClicked: {
+            root.visibilities.utilities = true;
+        }
+    }
+
     Clipboard.ClipboardPanel {
         id: clipboard
 
@@ -267,11 +283,11 @@ Item {
 
         visible: root.visibilities.clipboard
         opacity: visible ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+        Behavior on opacity { Anim { type: Anim.Emphasized } }
 
         transform: Translate {
             y: root.visibilities.clipboard ? 0 : 16
-            Behavior on y { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+            Behavior on y { Anim { type: Anim.Emphasized } }
         }
     }
 
@@ -317,22 +333,34 @@ Item {
             anchors.fill: parent
             color: "transparent"
 
-            // Pill layout container — background provided by blob border expansion
+            // Dismiss QS panel and clipboard if clicking empty space in the bottom panel
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    if (root.visibilities.utilities) {
+                        root.visibilities.utilities = false;
+                    } else if (root.visibilities.clipboard) {
+                        root.visibilities.clipboard = false;
+                    }
+                }
+            }
+
+            // Pill layout container — same glass bg as Quick Toggles card
             Rectangle {
                 anchors.centerIn: parent
                 height: 64
                 width: layout.implicitWidth + 20
                 radius: 20
-                color: "transparent"
-                border.color: "transparent"
-                border.width: 0
+                color: Colours.tileGlassStrong
+                border.color: Colours.tileShine
+                border.width: 1
 
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
                     radius: parent.radius - 1
                     color: "transparent"
-                    border.color: Qt.rgba(1.0, 1.0, 1.0, 0.05)
+                    border.color: Colours.tileShineSoft
                     border.width: 1
                 }
 

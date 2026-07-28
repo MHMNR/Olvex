@@ -319,7 +319,7 @@ Item {
 
                                     StateLayer {
                                         onClicked: {
-                                            if (Audio.sink?.audio) {
+                                            if (Audio.sink?.ready && Audio.sink?.audio) {
                                                 Audio.sink.audio.muted = !Audio.sink.audio.muted;
                                             }
                                         }
@@ -437,7 +437,7 @@ Item {
 
                                     StateLayer {
                                         onClicked: {
-                                            if (Audio.source?.audio) {
+                                            if (Audio.source?.ready && Audio.source?.audio) {
                                                 Audio.source.audio.muted = !Audio.source.audio.muted;
                                             }
                                         }
@@ -545,13 +545,14 @@ Item {
                                             }
 
                                             Connections {
+                                                target: modelData.audio
+                                                enabled: modelData?.audio != null
+
                                                 function onVolumeChanged() {
-                                                    if (!streamVolumeInput.hasFocus && modelData?.audio) {
+                                                    if (!streamVolumeInput.hasFocus) {
                                                         streamVolumeInput.text = Math.round(modelData.audio.volume * 100).toString();
                                                     }
                                                 }
-
-                                                target: modelData?.audio
                                             }
                                         }
 
@@ -600,13 +601,12 @@ Item {
                                         }
 
                                         Connections {
-                                            function onVolumeChanged() {
-                                                if (modelData?.audio) {
-                                                    value = modelData.audio.volume;
-                                                }
-                                            }
+                                            target: modelData.audio
+                                            enabled: modelData?.audio != null
 
-                                            target: modelData?.audio
+                                            function onVolumeChanged() {
+                                                value = modelData.audio.volume;
+                                            }
                                         }
                                     }
                                 }

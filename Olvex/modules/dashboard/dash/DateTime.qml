@@ -11,12 +11,13 @@ Item {
     id: root
 
     readonly property color accentColor: Colours.palette.m3primary
+    readonly property color fillBase: Colours.layer(Colours.palette.m3primaryContainer, 1)
 
     // --- Animated Wave Background (Minute Progress) ---
     Canvas {
         id: waveCanvas
         anchors.fill: parent
-        opacity: 0.55
+        opacity: 0.62
         z: 0
 
         property real phase: 0
@@ -47,10 +48,9 @@ Item {
                 ctx.fill();
             }
 
-            // Use System Accent Palette
-            drawWave(String(Colours.palette.m3tertiary), 10, 0.016, 0);
-            drawWave(String(Colours.palette.m3secondary), 7,  0.022, 1.2);
-            drawWave(String(Colours.palette.m3primary), 5,  0.028, 2.5);
+            drawWave(String(Qt.alpha(root.fillBase, 0.92)), 10, 0.016, 0);
+            drawWave(String(Qt.alpha(root.fillBase, 0.68)), 7,  0.022, 1.2);
+            drawWave(String(Qt.alpha(root.fillBase, 0.44)), 5,  0.028, 2.5);
         }
 
         Timer {
@@ -88,16 +88,18 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
+        anchors.margins: 12
         spacing: 0
         z: 1
 
         // Top Clock Icon — top-left
         StyledRect {
             Layout.alignment: Qt.AlignLeft
-            width: 36; height: 36; radius: 18
-            color: Qt.alpha(root.accentColor, 0.10)
-            border.color: Qt.alpha(root.accentColor, 0.18)
+            width: 36
+            height: 36
+            radius: Tokens.rounding.small
+            color: Colours.layer(Colours.palette.m3primaryContainer, 1)
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
             border.width: 1
             MaterialIcon {
                 anchors.centerIn: parent
@@ -117,8 +119,8 @@ Item {
             StyledText {
                 text: Time.hourStr
                 textPointSize: 48
-                font.weight: 800
-                color: "#ffffff"
+                font.weight: Font.Black
+                color: Colours.palette.m3onSurface
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
@@ -129,8 +131,12 @@ Item {
                 Repeater {
                     model: 3
                     Rectangle {
-                        width: 5; height: 5; radius: 2.5
-                        color: index === 1 ? "#ffffff" : root.accentColor
+                        width: 5
+                        height: 5
+                        radius: 2.5
+                        color: index === 1
+                            ? Colours.palette.m3onSurface
+                            : root.accentColor
                         opacity: 0.7
                     }
                 }
@@ -139,41 +145,47 @@ Item {
             StyledText {
                 text: Time.minuteStr
                 textPointSize: 48
-                font.weight: 800
-                color: "#ffffff"
+                font.weight: Font.Black
+                color: Colours.palette.m3onSurface
                 anchors.horizontalCenter: parent.horizontalCenter
             }
         }
 
         Item { Layout.preferredHeight: 6 }
 
-        // AM/PM + Day row
-        Column {
+        // AM · Friday · 12
+        RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 1
+            spacing: 0
 
             StyledText {
+                visible: Time.amPmStr.length > 0
                 text: Time.amPmStr
-                textPointSize: 18
-                font.weight: 700
-                color: root.accentColor
-                anchors.horizontalCenter: parent.horizontalCenter
+                textPointSize: Tokens.font.size.small
+                font.weight: Font.Medium
+                color: Colours.palette.m3onSurfaceVariant
+            }
+
+            MetaDot {
+                visible: Time.amPmStr.length > 0
             }
 
             StyledText {
                 text: Time.format("dddd")
-                textPointSize: 10
-                font.weight: 400
-                color: Qt.alpha("#ffffff", 0.55)
-                anchors.horizontalCenter: parent.horizontalCenter
+                textPointSize: Tokens.font.size.smaller
+                font.weight: Font.Medium
+                color: Colours.palette.m3onSurface
             }
+
+            MetaDot {}
 
             StyledText {
                 text: Time.format("dd")
-                textPointSize: 28
-                font.weight: 800
-                color: root.accentColor
-                anchors.horizontalCenter: parent.horizontalCenter
+                textPointSize: Tokens.font.size.small
+                font.weight: Font.Normal
+                font.family: Tokens.font.family.mono
+                color: Colours.palette.m3onSurfaceVariant
+                opacity: 0.65
             }
         }
 
@@ -198,5 +210,12 @@ Item {
         }
 
         Item { Layout.preferredHeight: 8 }
+    }
+
+    component MetaDot: StyledText {
+        text: " · "
+        textPointSize: Tokens.font.size.small
+        color: Colours.palette.m3onSurfaceVariant
+        opacity: 0.4
     }
 }

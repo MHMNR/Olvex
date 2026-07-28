@@ -176,8 +176,8 @@ Item {
         width: root.savedStartSize.width
         height: root.savedStartSize.height
         radius: 32
-        color: Qt.rgba(1.0, 1.0, 1.0, 0.03)
-        border.color: Qt.alpha("#ff99cc", 0.12)
+        color: Colours.tileGlass
+        border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
         border.width: 1
         clip: true
 
@@ -207,8 +207,8 @@ Item {
                     width: root.width
                     height: root.expandedHeight
                     radius: Tokens.rounding.large
-                    color: Qt.rgba(1.0, 1.0, 1.0, 0.05) // Slightly more visible when expanded
-                    border.color: Qt.alpha("#ff99cc", 0.2)
+                    color: Colours.tileFill
+                    border.color: Colours.light ? Colours.tileStroke : Qt.alpha("#ff99cc", 0.2)
                 }
                 PropertyChanges {
                     target: iconPill
@@ -253,8 +253,8 @@ Item {
                     width: root.savedStartSize.width
                     height: root.savedStartSize.height
                     radius: 32
-                    color: Qt.rgba(1.0, 1.0, 1.0, 0.03)
-                    border.color: Qt.alpha("#ff99cc", 0.12)
+                    color: Colours.tileGlass
+                    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
                 }
                 PropertyChanges {
                     target: iconPill
@@ -817,9 +817,9 @@ Item {
 
         readonly property bool isActive: PowerProfiles.profile === profile
 
-        color: isActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.05)
+        color: isActive ? Colours.palette.m3primary : Colours.tileFill
         border.width: isActive ? 0 : 1
-        border.color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
+        border.color: Colours.tileStroke
 
         RowLayout {
             anchors.fill: parent
@@ -928,9 +928,9 @@ Item {
 
         readonly property bool isActive: DisplayProjection.activeProjection === mode
 
-        color: isActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.05)
+        color: isActive ? Colours.palette.m3primary : Colours.tileFill
         border.width: isActive ? 0 : 1
-        border.color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
+        border.color: Colours.tileStroke
 
         RowLayout {
             anchors.fill: parent
@@ -1040,7 +1040,7 @@ Item {
 
             StyledText {
                 text: marqueeContainer.text
-                font: labelText.font
+                textPointSize: labelText.textPointSize
                 color: labelText.color
                 visible: marqueeContainer.needsMarquee
                 height: parent.height

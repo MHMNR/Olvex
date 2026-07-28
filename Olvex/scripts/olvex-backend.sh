@@ -6,33 +6,52 @@ set -euo pipefail
 
 _olvex_home="${HOME:?}"
 
-_olvex_ensure_path_link() {
+# Olvex uses native XDG dirs (~/.config/olvex, ~/.local/state/olvex, …).
+# Never symlink olvex → caelestia; break stale migration symlinks from older builds.
+_olvex_ensure_native_tree() {
     local base="$1"
-    local name="$2"
-    local target="${base}/${name}"
     local link="${base}/olvex"
 
     [ -e "$base" ] || mkdir -p "$base"
 
     if [ -L "$link" ]; then
-        return 0
+        echo "[olvex] Removing stale symlink: ${link}" >&2
+        rm -f "$link"
     fi
 
-    if [ -d "$target" ] || [ -f "$target" ]; then
-        ln -sfn "$target" "$link"
-    fi
+    mkdir -p "$link"
 }
 
-_olvex_ensure_xdg_links() {
+# Drop nested caelestia symlinks inside ~/.cache/olvex (legacy split-cache layout).
+_olvex_prune_caelestia_links() {
+    local root="$1"
+    [ -d "$root" ] || return 0
+
+    local entry target
+    for entry in "$root"/*; do
+        [ -e "$entry" ] || continue
+        [ -L "$entry" ] || continue
+        target="$(readlink -f "$entry" 2>/dev/null || readlink "$entry")"
+        case "$target" in
+            *caelestia*)
+                echo "[olvex] Removing nested caelestia symlink: ${entry}" >&2
+                rm -f "$entry"
+                ;;
+        esac
+    done
+}
+
+_olvex_ensure_xdg_dirs() {
     local state_base="${XDG_STATE_HOME:-${_olvex_home}/.local/state}"
     local config_base="${XDG_CONFIG_HOME:-${_olvex_home}/.config}"
     local cache_base="${XDG_CACHE_HOME:-${_olvex_home}/.cache}"
     local data_base="${XDG_DATA_HOME:-${_olvex_home}/.local/share}"
 
-    _olvex_ensure_path_link "$state_base" "caelestia"
-    _olvex_ensure_path_link "$config_base" "caelestia"
-    _olvex_ensure_path_link "$cache_base" "caelestia"
-    _olvex_ensure_path_link "$data_base" "caelestia"
+    _olvex_ensure_native_tree "$state_base"
+    _olvex_ensure_native_tree "$config_base"
+    _olvex_ensure_native_tree "$cache_base"
+    _olvex_ensure_native_tree "$data_base"
+    _olvex_prune_caelestia_links "${cache_base}/olvex"
 }
 
 if ! python3 -c "import caelestia" >/dev/null 2>&1; then
@@ -40,7 +59,8 @@ if ! python3 -c "import caelestia" >/dev/null 2>&1; then
     exit 1
 fi
 
-_olvex_ensure_xdg_links
+_olvex_ensure_xdg_dirs
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+export OLVEX_QS_INSTANCE="${OLVEX_QS_INSTANCE:-olvex}"
 exec python3 "${SCRIPT_DIR}/olvex-backend.py" "$@"

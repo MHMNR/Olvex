@@ -50,12 +50,19 @@ QtObject {
     property FileView loadFile: FileView {
         path: root.savePath
         watchChanges: false
+        printErrors: false
         onLoaded: {
             try {
                 root.learnedWords = JSON.parse(loadFile.text()) || {};
             } catch(e) {
                 root.learnedWords = {};
             }
+        }
+        onLoadFailed: err => {
+            if (err !== FileViewError.FileNotFound)
+                return;
+            root.learnedWords = {};
+            root.save();
         }
     }
 

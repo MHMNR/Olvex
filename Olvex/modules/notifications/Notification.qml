@@ -21,7 +21,9 @@ StyledRect {
     readonly property int nonAnimHeight: summary.implicitHeight + (root.expanded ? appName.height + body.height + actions.height + actions.anchors.topMargin : bodyPreview.height) + inner.anchors.margins * 2
     property bool expanded: Config.notifs.openExpanded
 
-    color: root.modelData.urgency === NotificationUrgency.Critical ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainer
+    color: root.modelData.urgency === NotificationUrgency.Critical ? Colours.palette.m3secondaryContainer : Colours.notifTileFill
+    border.width: Colours.light ? 1 : 0
+    border.color: Colours.tileStrokeSubtle
     radius: Tokens.rounding.normal
     implicitWidth: Tokens.sizes.notifs.width
     implicitHeight: inner.implicitHeight

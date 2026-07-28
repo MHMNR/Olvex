@@ -31,12 +31,6 @@ Item {
                 enabled: true
             },
             {
-                component: performanceComponent,
-                iconName: "speed",
-                text: qsTr("Performance"),
-                enabled: Config.dashboard.showPerformance && (Config.dashboard.performance.showCpu || Config.dashboard.performance.showGpu || Config.dashboard.performance.showMemory || Config.dashboard.performance.showStorage || Config.dashboard.performance.showNetwork || Config.dashboard.performance.showBattery)
-            },
-            {
                 component: weatherComponent,
                 iconName: "cloud",
                 text: qsTr("Weather"),
@@ -166,12 +160,6 @@ Item {
             Component {
                 id: calcComponent
                 Calculator {}
-            }
-
-            Component {
-                id: performanceComponent
-
-                Performance {}
             }
 
             Component {

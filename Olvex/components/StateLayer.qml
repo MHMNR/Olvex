@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import Olvex
 import Olvex.Config
 import qs.services
 
@@ -9,6 +10,7 @@ MouseArea {
     property bool disabled
     property bool showHoverBackground: true
     property bool showRipple: true
+    property bool manualPressOverride
     readonly property alias rect: base
 
     property bool shapeMorph
@@ -30,7 +32,7 @@ MouseArea {
         const d2 = distSq(width, 0);
         const d3 = distSq(0, height);
         const d4 = distSq(width, height);
-        return Math.sqrt(Math.max(d1, d2, d3, d4)) * (shapeMorph ? 1.16 : 1);
+        return (Math.sqrt(Math.max(d1, d2, d3, d4)) + (shapeMorph ? 24 : 0)) * 1.3;
     }
     property real endRadiusAtPress
 
@@ -62,12 +64,17 @@ MouseArea {
     onPressed: e => press(e.x, e.y)
 
     onPressedChanged: {
-        if (!pressed && !rippleAnim.running && circle.opacity > 0)
+        if (!(pressed || manualPressOverride) && !rippleAnim.running && circle.opacity > 0)
+            fadeAnim.start();
+    }
+
+    onManualPressOverrideChanged: {
+        if (!(pressed || manualPressOverride) && circleRadius > endRadiusAtPress * 0.99 && !fadeAnim.running)
             fadeAnim.start();
     }
 
     onCircleRadiusChanged: {
-        if (!pressed && circleRadius > endRadiusAtPress * 0.99 && !fadeAnim.running)
+        if (!(pressed || manualPressOverride) && circleRadius > endRadiusAtPress * 0.99 && !fadeAnim.running)
             fadeAnim.start();
     }
 
@@ -78,7 +85,7 @@ MouseArea {
         target: root
         property: "circleRadius"
         to: root.endRadius
-        easing: Tokens.anim.expressiveSlowEffects
+        easing: Tokens.anim.standard
         duration: Tokens.anim.durations.expressiveSlowEffects * 2
     }
 
@@ -88,8 +95,7 @@ MouseArea {
         target: circle
         property: "opacity"
         to: 0
-        easing: Tokens.anim.expressiveSlowEffects
-        duration: Tokens.anim.durations.expressiveSlowEffects
+        type: Anim.SlowEffects
     }
 
     StyledRect {
@@ -98,8 +104,13 @@ MouseArea {
         anchors.fill: parent
         opacity: root.stateOpacity
         color: Colours.palette.m3onSurface
-        // Pick up radius from parent if it has one (parent can be anything with a radius property)
-        radius: root.parent?.radius ?? 0 // qmllint disable missing-property
+        // qmllint disable missing-property
+        radius: root.parent?.radius ?? 0
+        topLeftRadius: root.parent?.topLeftRadius ?? radius ?? 0
+        topRightRadius: root.parent?.topRightRadius ?? radius ?? 0
+        bottomLeftRadius: root.parent?.bottomLeftRadius ?? radius ?? 0
+        bottomRightRadius: root.parent?.bottomRightRadius ?? radius ?? 0
+        // qmllint enable missing-property
     }
 
     Shape {
@@ -126,12 +137,12 @@ MouseArea {
                     color: Qt.alpha(base.color, 1)
                 }
                 GradientStop {
-                    position: 0.99
+                    position: CUtils.clamp(1 - 0.2 * root.endRadius / root.circleRadius, 0.01, 0.99)
                     color: Qt.alpha(base.color, 1)
                 }
                 GradientStop {
                     position: 1
-                    color: Qt.alpha(base.color, 0)
+                    color: Qt.alpha(base.color, CUtils.clamp((root.circleRadius / root.endRadius - 0.9) / 0.1, 0, 1))
                 }
             }
 
@@ -139,14 +150,14 @@ MouseArea {
             startY: 0
 
             PathLine {
-                x: root.width - root.clamp(base.topLeftRadius)
+                x: root.width - root.clamp(base.topRightRadius)
                 y: 0
             }
             PathArc {
-                relativeX: root.clamp(base.topLeftRadius)
-                relativeY: root.clamp(base.topLeftRadius)
-                radiusX: root.clamp(base.topLeftRadius)
-                radiusY: root.clamp(base.topLeftRadius)
+                relativeX: root.clamp(base.topRightRadius)
+                relativeY: root.clamp(base.topRightRadius)
+                radiusX: root.clamp(base.topRightRadius)
+                radiusY: root.clamp(base.topRightRadius)
             }
             PathLine {
                 x: root.width
@@ -183,8 +194,7 @@ MouseArea {
 
     Behavior on stateOpacity {
         Anim {
-            easing: Tokens.anim.expressiveDefaultEffects
-            duration: Tokens.anim.durations.expressiveDefaultEffects
+            type: Anim.DefaultEffects
         }
     }
 }

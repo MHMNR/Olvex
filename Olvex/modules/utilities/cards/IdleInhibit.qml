@@ -12,8 +12,8 @@ StyledRect {
     implicitHeight: layout.implicitHeight + (IdleInhibitor.enabled ? activeChip.implicitHeight + activeChip.anchors.topMargin : 0) + Tokens.padding.large * 2
 
     radius: Tokens.rounding.normal
-    color: Qt.rgba(1.0, 1.0, 1.0, 0.03)
-    border.color: Qt.alpha("#ff99cc", 0.12)
+    color: Colours.tileSurface
+    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
     border.width: 1
     clip: true
 

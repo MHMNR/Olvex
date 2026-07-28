@@ -24,28 +24,22 @@ Item {
 
     property real offsetScale: shouldBeActive ? 0 : 1
 
-    Timer {
-        id: teardownGrace
-
-        interval: Tokens.anim.durations.large + 100
-    }
+    Component.onCompleted: Qt.callLater(() => Apps.warmCatalog())
 
     onShouldBeActiveChanged: {
         if (shouldBeActive) {
-            teardownGrace.stop();
             implicitHeight = Qt.binding(() => content.implicitHeight);
-            Qt.callLater(() => Apps);
+            content.item?.resumeLists?.();
         } else {
             content.item?.suspendLists?.();
-            teardownGrace.restart();
-            implicitHeight = implicitHeight; // Break binding during close anim
+            implicitHeight = implicitHeight;
         }
     }
 
     visible: offsetScale < 1
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: content.implicitHeight
-    implicitWidth: content.implicitWidth || 630 // Hard coded fallback for first open
+    implicitWidth: content.implicitWidth || 630
     opacity: 1 - offsetScale
 
     Behavior on offsetScale {
@@ -70,8 +64,7 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        active: root.shouldBeActive || root.offsetScale < 1 || teardownGrace.running
-        asynchronous: true
+        active: true
         sourceComponent: contentComponent
     }
 }

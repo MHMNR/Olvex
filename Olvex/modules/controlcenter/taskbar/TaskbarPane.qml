@@ -51,6 +51,8 @@ Item {
     property bool popoutActiveWindow: Config.bar.popouts.activeWindow ?? true
     property bool popoutTray: Config.bar.popouts.tray ?? true
     property bool popoutStatusIcons: Config.bar.popouts.statusIcons ?? true
+    property bool bottomPanelEnabled: Config.bar.bottomPanel?.enabled ?? true
+    property string bottomPanelMode: Config.bar.bottomPanel?.visibilityMode ?? "always"
     property bool netSpeedShowIcons: GlobalConfig.bar?.netSpeed?.showIcons ?? true
     property bool netSpeedBackground: GlobalConfig.bar?.netSpeed?.background ?? false
     property int netSpeedInterval: GlobalConfig.bar?.netSpeed?.refreshInterval ?? 1000
@@ -59,8 +61,6 @@ Item {
     property bool netSpeedEnabled: false
     property list<string> monitorNames: Hypr.monitorNames()
     property list<string> excludedScreens: Config.bar.excludedScreens ?? []
-    property bool bottomPanelEnabled: Config.bar.bottomPanel.enabled ?? true
-    property string bottomPanelVisibilityMode: Config.bar.bottomPanel.visibilityMode ?? "always"
 
     function saveConfig(entryIndex, entryEnabled) {
         GlobalConfig.bar.activeWindow.compact = root.activeWindowCompact;
@@ -94,6 +94,9 @@ Item {
         GlobalConfig.bar.popouts.activeWindow = root.popoutActiveWindow;
         GlobalConfig.bar.popouts.tray = root.popoutTray;
         GlobalConfig.bar.popouts.statusIcons = root.popoutStatusIcons;
+        if (!GlobalConfig.bar.bottomPanel) GlobalConfig.bar.bottomPanel = {};
+        GlobalConfig.bar.bottomPanel.enabled = root.bottomPanelEnabled;
+        GlobalConfig.bar.bottomPanel.visibilityMode = root.bottomPanelMode;
         if (GlobalConfig.bar?.netSpeed) {
             GlobalConfig.bar.netSpeed.showIcons = root.netSpeedShowIcons;
             GlobalConfig.bar.netSpeed.background = root.netSpeedBackground;
@@ -103,8 +106,6 @@ Item {
         }
         GlobalConfig.services.useTwelveHourClock = root.useTwelveHourClock;
         GlobalConfig.bar.excludedScreens = root.excludedScreens;
-        GlobalConfig.bar.bottomPanel.enabled = root.bottomPanelEnabled;
-        GlobalConfig.bar.bottomPanel.visibilityMode = root.bottomPanelVisibilityMode;
 
         const entries = [];
         for (let i = 0; i < entriesModel.count; i++) {
@@ -705,71 +706,6 @@ Item {
                             alignTop: true
 
                             StyledText {
-                                text: qsTr("Bottom Panel")
-                                textPointSize: Tokens.font.size.normal
-                            }
-
-                            SwitchRow {
-                                label: qsTr("Enabled")
-                                checked: root.bottomPanelEnabled
-                                onToggled: checked => {
-                                    root.bottomPanelEnabled = checked;
-                                    root.saveConfig();
-                                }
-                            }
-
-                            StyledRect {
-                                Layout.fillWidth: true
-                                implicitHeight: bpModeLayout.implicitHeight + Tokens.padding.large * 2
-                                radius: Tokens.rounding.normal
-                                color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-
-                                ColumnLayout {
-                                    id: bpModeLayout
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.margins: Tokens.padding.large
-                                    spacing: Tokens.spacing.normal
-
-                                    StyledText {
-                                        Layout.fillWidth: true
-                                        text: qsTr("Visibility Mode")
-                                    }
-
-                                    StyledRadioButton {
-                                        text: qsTr("Always Show")
-                                        checked: root.bottomPanelVisibilityMode === "always"
-                                        onClicked: {
-                                            root.bottomPanelVisibilityMode = "always";
-                                            root.saveConfig();
-                                        }
-                                    }
-                                    StyledRadioButton {
-                                        text: qsTr("Auto Hide")
-                                        checked: root.bottomPanelVisibilityMode === "autohide"
-                                        onClicked: {
-                                            root.bottomPanelVisibilityMode = "autohide";
-                                            root.saveConfig();
-                                        }
-                                    }
-                                    StyledRadioButton {
-                                        text: qsTr("Smart Hide")
-                                        checked: root.bottomPanelVisibilityMode === "smarthide"
-                                        onClicked: {
-                                            root.bottomPanelVisibilityMode = "smarthide";
-                                            root.saveConfig();
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        SectionContainer {
-                            Layout.fillWidth: true
-                            alignTop: true
-
-                            StyledText {
                                 text: qsTr("Network Speed")
                                 textPointSize: Tokens.font.size.normal
                             }
@@ -923,7 +859,6 @@ Item {
                                     root.saveConfig();
                                 }
                             }
-
                             SectionContainer {
                                 contentSpacing: Tokens.spacing.normal
 
@@ -948,6 +883,83 @@ Item {
                                     }
                                 }
                             }
+                        }
+
+                        SectionContainer {
+                            Layout.fillWidth: true
+                            alignTop: true
+
+                            StyledText {
+                                text: qsTr("Bottom Panel")
+                                textPointSize: Tokens.font.size.normal
+                            }
+
+                            SwitchRow {
+                                label: qsTr("Enabled")
+                                checked: root.bottomPanelEnabled
+                                onToggled: checked => {
+                                    root.bottomPanelEnabled = checked;
+                                    root.saveConfig();
+                                }
+                            }
+
+                            StyledRect {
+                                Layout.fillWidth: true
+                                implicitHeight: bpModeRow.implicitHeight + Tokens.padding.large * 2
+                                radius: Tokens.rounding.normal
+                                color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                                visible: root.bottomPanelEnabled
+
+                                RowLayout {
+                                    id: bpModeRow
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.margins: Tokens.padding.large
+                                    spacing: Tokens.spacing.normal
+
+                                    StyledText {
+                                        Layout.fillWidth: true
+                                        text: qsTr("Mode")
+                                    }
+
+                                    RowLayout {
+                                        spacing: Tokens.spacing.small
+
+                                        TextButton {
+                                            text: qsTr("Always")
+                                            checked: root.bottomPanelMode === "always"
+                                            toggle: false
+                                            type: TextButton.Tonal
+                                            onClicked: {
+                                                root.bottomPanelMode = "always";
+                                                root.saveConfig();
+                                            }
+                                        }
+                                        TextButton {
+                                            text: qsTr("Autohide")
+                                            checked: root.bottomPanelMode === "autohide"
+                                            toggle: false
+                                            type: TextButton.Tonal
+                                            onClicked: {
+                                                root.bottomPanelMode = "autohide";
+                                                root.saveConfig();
+                                            }
+                                        }
+                                        TextButton {
+                                            text: qsTr("Smarthide")
+                                            checked: root.bottomPanelMode === "smarthide"
+                                            toggle: false
+                                            type: TextButton.Tonal
+                                            onClicked: {
+                                                root.bottomPanelMode = "smarthide";
+                                                root.saveConfig();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                         }
 
                         SectionContainer {

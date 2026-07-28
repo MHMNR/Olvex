@@ -5,6 +5,7 @@ qml_module(olvex-internal
         cachingimagemanager.hpp cachingimagemanager.cpp
         circularbuffer.hpp circularbuffer.cpp
         circularindicatormanager.hpp circularindicatormanager.cpp
+        linearindicatormanager.hpp linearindicatormanager.cpp
         hyprdevices.hpp hyprdevices.cpp
         hyprextras.hpp hyprextras.cpp
         logindmanager.hpp logindmanager.cpp

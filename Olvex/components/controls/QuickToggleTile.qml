@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Services.UPower
 import Olvex.Config
 import qs.components
 import qs.services
@@ -79,10 +80,10 @@ StyledRect {
     opacity: isExpanding ? 0 : 1
 
     property color activeColour:    Colours.palette.m3primary
-    property color inactiveColour:  Colours.tPalette.m3surfaceVariant
+    property color inactiveColour: Colours.tileIconWell
     property color activeOnColour:  Colours.palette.m3onPrimary
     property color inactiveOnColour: Colours.palette.m3onSurface
-    property color disabledColour:  Qt.alpha(Colours.palette.m3onSurface, 0.12)
+    property color disabledColour:  Colours.light ? Colours.tileFillSubtle : Qt.alpha(Colours.palette.m3onSurface, 0.12)
     property color disabledOnColour: Qt.alpha(Colours.palette.m3onSurface, 0.38)
 
     signal clicked
@@ -91,8 +92,8 @@ StyledRect {
     implicitWidth: 100
     implicitHeight: 110
     radius: 32
-    color: Qt.rgba(1.0, 1.0, 1.0, 0.03)
-    border.color: Qt.alpha("#ff99cc", 0.12)
+    color: Colours.tileFill
+    border.color: Colours.light ? Colours.tileStroke : Qt.alpha("#ff99cc", 0.12)
     border.width: 1
 
     Behavior on radius { Anim { type: Anim.FastSpatial } }
@@ -124,6 +125,8 @@ StyledRect {
             color: root.disabled ? root.disabledColour
                  : root.checked ? root.activeColour
                  : root.inactiveColour
+            border.width: Colours.light && !root.checked ? 1 : 0
+            border.color: Colours.tileStrokeSubtle
 
             Behavior on Layout.preferredWidth { Anim { type: Anim.FastSpatial } }
             Behavior on Layout.preferredHeight { Anim { type: Anim.FastSpatial } }
@@ -196,7 +199,8 @@ StyledRect {
                         // Duplicate text for seamless loop
                         StyledText {
                             text: labelText.text
-                            font: labelText.font
+                            textPointSize: labelText.textPointSize
+                            font.bold: labelText.font.bold
                             color: labelText.color
                             visible: marqueeContainer.needsMarquee
                         }

@@ -59,29 +59,34 @@ StyledRect {
         return filtered;
     }
 
+    function toggleStagger(toggleId: string): int {
+        for (let i = 0; i < root.quickToggles.length; i++) {
+            if (root.quickToggles[i].id === toggleId)
+                return i * 50;
+        }
+        return 0;
+    }
+
     Layout.fillWidth: true
     implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
     radius: Tokens.rounding.normal
     
-    // Premium Glass Background
-    color: Qt.rgba(1.0, 1.0, 1.0, 0.06)
-    
-    // Outer Shine Border
+    color: Colours.tileGlassStrong
+
     StyledRect {
         anchors.fill: parent
         radius: parent.radius
         color: "transparent"
-        border.color: Qt.rgba(1.0, 1.0, 1.0, 0.15)
+        border.color: Colours.tileShine
         border.width: 1
     }
 
-    // Inner Soft Glow
     StyledRect {
         anchors.fill: parent
         anchors.margins: 1
         radius: parent.radius - 1
         color: "transparent"
-        border.color: Qt.rgba(1.0, 1.0, 1.0, 0.05)
+        border.color: Colours.tileShineSoft
         border.width: 1
     }
 
@@ -134,7 +139,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "wifi"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("wifi")
                             isPanelVisible: root.visibilities.utilities
                             id: wifiTile
                             Layout.fillWidth: true
@@ -157,7 +162,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "bluetooth"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("bluetooth")
                             isPanelVisible: root.visibilities.utilities
                             id: btTile
                             Layout.fillWidth: true
@@ -186,7 +191,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "mic"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("mic")
                             isPanelVisible: root.visibilities.utilities
                             Layout.fillWidth: true
                             icon: "mic"
@@ -194,15 +199,15 @@ StyledRect {
                             stateText: !Audio.sourceMuted ? qsTr("Active") : qsTr("Off")
                             checked: !Audio.sourceMuted
                             onClicked: {
-                                const audio = Audio.source?.audio;
-                                if (audio) audio.muted = !audio.muted;
+                                const src = Audio.source;
+                                if (src?.ready && src?.audio) src.audio.muted = !src.audio.muted;
                             }
                         }
                     }
                     DelegateChoice {
                         roleValue: "warp"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("warp")
                             isPanelVisible: root.visibilities.utilities
                             Layout.fillWidth: true
                             icon: "vpn_lock"
@@ -220,7 +225,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "airplane"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("airplane")
                             isPanelVisible: root.visibilities.utilities
                             Layout.fillWidth: true
                             icon: checked ? "airplanemode_active" : "airplanemode_inactive"
@@ -234,7 +239,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "gameMode"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("gameMode")
                             isPanelVisible: root.visibilities.utilities
                             Layout.fillWidth: true
                             icon: "gamepad"
@@ -247,7 +252,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "dnd"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("dnd")
                             isPanelVisible: root.visibilities.utilities
                             Layout.fillWidth: true
                             icon: "notifications_off"
@@ -260,7 +265,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "idleInhibit"
                         delegate: QuickToggleTile {
-                            staggerIndex: index * 50
+                            staggerIndex: root.toggleStagger("idleInhibit")
                             isPanelVisible: root.visibilities.utilities
                             Layout.fillWidth: true
                             icon: "coffee"
@@ -273,7 +278,7 @@ StyledRect {
                     DelegateChoice {
                         roleValue: "vpn"
                         delegate: QuickToggleTile {
-                            staggerIndex: index
+                            staggerIndex: root.toggleStagger("vpn")
                             isPanelVisible: root.visibilities.utilities
                             Layout.fillWidth: true
                             icon: "vpn_key"
@@ -300,10 +305,49 @@ StyledRect {
                     id: powerProfilePill
                     Layout.fillWidth: true
                     implicitHeight: (110 - customPillsColumn.spacing) / 2
-                    color: Qt.rgba(1.0, 1.0, 1.0, 0.03)
-                    border.color: Qt.alpha("#ff99cc", 0.12)
+                    color: Colours.tileFill
+                    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
                     border.width: 1
                     radius: Tokens.rounding.full
+
+                    // === Kinetic bloom animation (same as QuickToggleTile) ===
+                    property bool _ready: false
+                    Component.onCompleted: Qt.callLater(() => _ready = true)
+                    readonly property bool isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
+                    state: (root.visibilities.utilities && _ready) ? "visible" : "hidden"
+
+                    states: [
+                        State {
+                            name: "hidden"
+                            PropertyChanges { target: powerProfilePill; opacity: 0 }
+                            PropertyChanges { target: ppTrans; x: -20; y: 20 }
+                            PropertyChanges { target: ppScale; xScale: 0.8; yScale: 1.1 }
+                        },
+                        State {
+                            name: "visible"
+                            PropertyChanges { target: powerProfilePill; opacity: 1 }
+                            PropertyChanges { target: ppTrans; x: 0; y: 0 }
+                            PropertyChanges { target: ppScale; xScale: 1.0; yScale: 1.0 }
+                        }
+                    ]
+
+                    transitions: Transition {
+                        from: "hidden"; to: "visible"
+                        SequentialAnimation {
+                            PauseAnimation { duration: powerProfilePill.isLowPower ? 0 : 400 }
+                            ParallelAnimation {
+                                NumberAnimation { target: powerProfilePill; property: "opacity"; duration: powerProfilePill.isLowPower ? 150 : 400; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: ppTrans; properties: "x,y"; duration: powerProfilePill.isLowPower ? 200 : 900; easing.type: Easing.OutExpo }
+                                NumberAnimation { target: ppScale; properties: "xScale,yScale"; duration: powerProfilePill.isLowPower ? 200 : 1000; easing.type: Easing.OutExpo }
+                            }
+                        }
+                    }
+
+                    transform: [
+                        Translate { id: ppTrans; x: -20; y: 20 },
+                        Scale { id: ppScale; origin.x: powerProfilePill.width / 2; origin.y: powerProfilePill.height / 2; xScale: 0.8; yScale: 1.1 }
+                    ]
+                    // === End animation ===
 
                     property string current: {
                         const p = PowerProfiles.profile;
@@ -366,8 +410,8 @@ StyledRect {
                     id: displayProjectionPill
                     Layout.fillWidth: true
                     implicitHeight: (110 - customPillsColumn.spacing) / 2
-                    color: Qt.rgba(1.0, 1.0, 1.0, 0.03)
-                    border.color: Qt.alpha("#ff99cc", 0.12)
+                    color: Colours.tileFill
+                    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
                     border.width: 1
                     radius: Tokens.rounding.full
                     clip: true
@@ -376,6 +420,51 @@ StyledRect {
                     property bool checked: true
                     property bool isExpanding: root.props.expansionActive === "displayprojection" || (root.props.isTransitioning && root.props.expansionSourceItem === displayProjectionPill)
                     opacity: isExpanding ? 0 : 1
+
+                    // === Kinetic bloom animation (same as QuickToggleTile) ===
+                    property bool _ready: false
+                    Component.onCompleted: Qt.callLater(() => _ready = true)
+                    readonly property bool _isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
+                    state: isExpanding ? "expanding" : ((root.visibilities.utilities && _ready) ? "visible" : "hidden")
+
+                    states: [
+                        State {
+                            name: "hidden"
+                            PropertyChanges { target: displayProjectionPill; opacity: 0 }
+                            PropertyChanges { target: dpTrans; x: -20; y: 20 }
+                            PropertyChanges { target: dpScale; xScale: 0.8; yScale: 1.1 }
+                        },
+                        State {
+                            name: "visible"
+                            PropertyChanges { target: displayProjectionPill; opacity: isExpanding ? 0 : 1 }
+                            PropertyChanges { target: dpTrans; x: 0; y: 0 }
+                            PropertyChanges { target: dpScale; xScale: 1.0; yScale: 1.0 }
+                        },
+                        State {
+                            name: "expanding"
+                            PropertyChanges { target: displayProjectionPill; opacity: 0 }
+                            PropertyChanges { target: dpTrans; x: 0; y: 0 }
+                            PropertyChanges { target: dpScale; xScale: 1.0; yScale: 1.0 }
+                        }
+                    ]
+
+                    transitions: Transition {
+                        from: "hidden"; to: "visible"
+                        SequentialAnimation {
+                            PauseAnimation { duration: displayProjectionPill._isLowPower ? 0 : 450 }
+                            ParallelAnimation {
+                                NumberAnimation { target: displayProjectionPill; property: "opacity"; duration: displayProjectionPill._isLowPower ? 150 : 400; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: dpTrans; properties: "x,y"; duration: displayProjectionPill._isLowPower ? 200 : 900; easing.type: Easing.OutExpo }
+                                NumberAnimation { target: dpScale; properties: "xScale,yScale"; duration: displayProjectionPill._isLowPower ? 200 : 1000; easing.type: Easing.OutExpo }
+                            }
+                        }
+                    }
+
+                    transform: [
+                        Translate { id: dpTrans; x: -20; y: 20 },
+                        Scale { id: dpScale; origin.x: displayProjectionPill.width / 2; origin.y: displayProjectionPill.height / 2; xScale: 0.8; yScale: 1.1 }
+                    ]
+                    // === End animation ===
 
                     StateLayer {
                         radius: parent.radius
@@ -464,7 +553,8 @@ StyledRect {
                                 // Duplicate text for seamless loop
                                 StyledText {
                                     text: dpLabelText.text
-                                    font: dpLabelText.font
+                                    textPointSize: dpLabelText.textPointSize
+                                    font.bold: dpLabelText.font.bold
                                     color: dpLabelText.color
                                     visible: dpMarqueeContainer.needsMarquee
                                     verticalAlignment: Text.AlignVCenter

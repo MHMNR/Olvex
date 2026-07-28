@@ -366,7 +366,7 @@ Item {
         radius: root.startRadius
         clip: true
 
-        color: Qt.rgba(0, 0, 0, 0.96)
+        color: Players.musicSurfaceColor
 
         layer.enabled: root.morphAnimating
         layer.smooth: true
@@ -392,8 +392,8 @@ Item {
             anchors.fill: parent
             opacity: 0
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.96) }
-                GradientStop { position: 0.55; color: Qt.rgba(0, 0, 0, 0.82) }
+                GradientStop { position: 0.0; color: Players.musicSurfaceColor }
+                GradientStop { position: 0.55; color: Qt.alpha(Players.musicSurfaceColor, 0.82) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
 
@@ -479,13 +479,13 @@ Item {
             StyledText {
                 width: parent.width
                 text: Players.active ? (Players.active.trackTitle || "Unknown Title") : "Nothing Playing"
-                color: Qt.rgba(1, 1, 1, 0.96); textPointSize: Tokens.font.size.normal
+                color: Players.musicOnSurfaceColor; textPointSize: Tokens.font.size.normal
                 font.weight: 600; elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
             }
             StyledText {
                 width: parent.width
                 text: Players.active ? (Players.active.trackArtist || "Unknown Artist") : ""
-                color: Qt.rgba(1, 1, 1, 0.50); textPointSize: Tokens.font.size.small
+                color: Qt.alpha(Players.musicOnSurfaceColor, 0.50); textPointSize: Tokens.font.size.small
                 elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
             }
         }
@@ -588,7 +588,7 @@ Item {
 
                     StyledText {
                         text: root.lengthStr(Players.active ? root.displayPosition : -1)
-                        color: Qt.rgba(1, 1, 1, 0.50)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.50)
                         textPointSize: Tokens.font.size.smaller
                         font.weight: Font.Medium
                     }
@@ -597,7 +597,7 @@ Item {
 
                     StyledText {
                         text: root.lengthStr(root.playerLength > 0 ? root.playerLength : -1)
-                        color: Qt.rgba(1, 1, 1, 0.50)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.50)
                         textPointSize: Tokens.font.size.smaller
                         font.weight: Font.Medium
                     }
@@ -656,7 +656,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         height: 3 + root.morphAudioIntensity * 2
                         radius: height / 2
-                        color: Qt.rgba(1, 1, 1, 0.10 + root.morphAudioIntensity * 0.05)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.15 + root.morphAudioIntensity * 0.05)
                         z: 1
                     }
 
@@ -669,7 +669,7 @@ Item {
                             : 0
                         height: expandedProgressTrack.height
                         radius: height / 2
-                        color: Qt.rgba(1, 1, 1, 0.85 + root.morphAudioIntensity * 0.12)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.85 + root.morphAudioIntensity * 0.12)
                         visible: root.hasProgressFill
                         z: 2
 
@@ -691,7 +691,7 @@ Item {
                         width: expandedProgressTrack.height + 8
                         height: width
                         radius: width / 2
-                        color: Qt.rgba(1, 1, 1, 0.95 + root.morphAudioIntensity * 0.03)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.95 + root.morphAudioIntensity * 0.03)
                         visible: root.hasProgressFill
                         z: 3
 
@@ -735,8 +735,8 @@ Item {
                 PropertyChanges { target: playBtn; x: 190; y: root.expandedPlayY; width: 48; height: 48; color: root.resolvedPlayButtonBg }
                 PropertyChanges { target: nextBtnContainer; x: 250; y: root.expandedSideButtonY; opacity: 1; width: 40; height: 40; radius: 20; color: "transparent" }
                 PropertyChanges { target: playIcon; iconPointSize: 24; color: root.playIconColor }
-                PropertyChanges { target: prevBtn; iconPointSize: 20; color: Qt.rgba(1, 1, 1, 0.88) }
-                PropertyChanges { target: nextBtn; iconPointSize: 20; color: Qt.rgba(1, 1, 1, 0.88) }
+                PropertyChanges { target: prevBtn; iconPointSize: 20; color: Players.musicOnSurfaceColor }
+                PropertyChanges { target: nextBtn; iconPointSize: 20; color: Players.musicOnSurfaceColor }
             }
         ]
 

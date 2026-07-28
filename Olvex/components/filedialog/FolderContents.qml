@@ -91,12 +91,14 @@ Item {
         Keys.onEscapePressed: currentIndex = -1
 
         Keys.onReturnPressed: {
-            if (root.dialog.selectionValid)
-                root.dialog.accepted((currentItem as FileEntry).modelData.path);
+            const file = (currentItem as FileEntry)?.modelData;
+            if (root.dialog.selectionValid && file)
+                root.dialog.accepted(file.path);
         }
         Keys.onEnterPressed: {
-            if (root.dialog.selectionValid)
-                root.dialog.accepted((currentItem as FileEntry).modelData.path);
+            const file = (currentItem as FileEntry)?.modelData;
+            if (root.dialog.selectionValid && file)
+                root.dialog.accepted(file.path);
         }
 
         StyledScrollBar.vertical: StyledScrollBar {
@@ -104,6 +106,8 @@ Item {
         }
 
         model: FileSystemModel {
+            id: fsModel
+
             path: {
                 if (root.dialog.cwd[0] === "Home")
                     return Paths.home + `/${root.dialog.cwd.slice(1).join("/")}`;
@@ -162,10 +166,26 @@ Item {
         required property int index
         required property FileSystemEntry modelData
 
-        readonly property real nonAnimHeight: icon.implicitHeight + name.anchors.topMargin + name.implicitHeight + Tokens.padding.normal * 2
+        readonly property bool hasEntry: item.modelData !== null && item.modelData !== undefined
+        readonly property bool hidden: {
+            const entry = item.modelData;
+            if (!entry)
+                return true;
+            if (AccountFaces.shouldHideEntry(entry.name, entry.path))
+                return true;
+            return !root.dialog.matchesFilter(entry);
+        }
+        readonly property string displayName: {
+            const entry = item.modelData;
+            if (!entry)
+                return "";
+            return AccountFaces.displayNameFor(entry.name, entry.path, entry.isDir);
+        }
+        readonly property real nonAnimHeight: iconFrame.implicitHeight + name.anchors.topMargin + name.implicitHeight + Tokens.padding.normal * 2
 
-        implicitWidth: Sizes.itemWidth
-        implicitHeight: nonAnimHeight
+        implicitWidth: hidden ? 0 : Sizes.itemWidth
+        implicitHeight: hidden ? 0 : nonAnimHeight
+        visible: !hidden
 
         radius: Tokens.rounding.normal
         color: Qt.alpha(Colours.tPalette.m3surfaceContainerHighest, GridView.isCurrentItem ? Colours.tPalette.m3surfaceContainerHighest.a : 0)
@@ -173,34 +193,93 @@ Item {
         clip: true
 
         StateLayer {
+            enabled: item.hasEntry
             onClicked: view.currentIndex = item.index
             onDoubleClicked: {
+                if (!item.hasEntry)
+                    return;
                 if (item.modelData.isDir)
-                    root.dialog.cwd.push(item.modelData.name);
+                    root.dialog.enterDirectory(item.modelData.name);
                 else if (root.dialog.selectionValid)
                     root.dialog.accepted(item.modelData.path);
             }
         }
 
-        CachingIconImage {
-            id: icon
+        Item {
+            id: iconFrame
 
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.topMargin: Tokens.padding.normal
 
-            implicitSize: Sizes.itemWidth - Tokens.padding.normal * 2
+            implicitWidth: Sizes.itemWidth - Tokens.padding.normal * 2
+            implicitHeight: implicitWidth
 
-            Component.onCompleted: {
-                const file = item.modelData;
-                if (file.isImage)
-                    source = Qt.resolvedUrl(file.path);
-                else if (!file.isDir)
-                    source = Quickshell.iconPath(file.mimeType.replace("/", "-"), "application-x-zerosize");
-                else if (root.dialog.cwd.length === 1 && ["Desktop", "Documents", "Downloads", "Music", "Pictures", "Public", "Templates", "Videos"].includes(file.name))
-                    source = Quickshell.iconPath(`folder-${file.name.toLowerCase()}`);
-                else
-                    source = Quickshell.iconPath("inode-directory");
+            readonly property bool isDirEntry: item.hasEntry && item.modelData.isDir
+            readonly property bool isBundledDir: iconFrame.isDirEntry
+                                                 && AccountFaces.isBundledPath(item.modelData.path)
+            readonly property string bundledPreview: iconFrame.isBundledDir
+                                                     ? AccountFaces.folderPreviewFor(item.modelData.name, item.modelData.path)
+                                                     : ""
+            FolderShapeIcon {
+                anchors.fill: parent
+                visible: iconFrame.isDirEntry
+                glyphIcon: "folder"
+                previewPath: iconFrame.bundledPreview
+                badgeIcon: iconFrame.isBundledDir && item.hasEntry
+                    ? AccountFaces.folderCategoryIcon(item.modelData.name) : ""
+            }
+
+            StyledClippingRect {
+                anchors.fill: parent
+                visible: item.hasEntry && !item.modelData.isDir
+                radius: Tokens.rounding.normal
+                color: Colours.tPalette.m3surfaceContainerHigh
+
+                CachingIconImage {
+                    id: icon
+
+                    anchors.fill: parent
+                    implicitSize: parent.width
+
+                    function refreshSource(): void {
+                        const file = item.modelData;
+                        if (!file || file.isDir) {
+                            source = "";
+                            return;
+                        }
+                        if (file.isImage) {
+                            source = Qt.resolvedUrl(file.path);
+                            return;
+                        }
+                        const mimeIcon = file.mimeType.replace("/", "-");
+                        const suffixIcon = file.suffix.length
+                            ? `application-x-${file.suffix.toLowerCase()}`
+                            : "application-x-zerosize";
+                        source = Quickshell.iconPath(mimeIcon, suffixIcon);
+                    }
+
+                    Component.onCompleted: refreshSource()
+
+                    Connections {
+                        target: item
+                        function onModelDataChanged(): void {
+                            icon.refreshSource();
+                        }
+                    }
+
+                    Connections {
+                        target: icon
+                        function onStatusChanged(): void {
+                            if (icon.status !== Image.Error || !item.hasEntry || item.modelData.isDir)
+                                return;
+                            const file = item.modelData;
+                            const fallback = Quickshell.iconPath("application-x-zerosize", "text-x-generic");
+                            if (icon.source.toString() !== fallback.toString())
+                                icon.source = fallback;
+                        }
+                    }
+                }
             }
         }
 
@@ -209,7 +288,7 @@ Item {
 
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.top: icon.bottom
+            anchors.top: iconFrame.bottom
             anchors.topMargin: Tokens.spacing.small
             anchors.margins: Tokens.padding.normal
 
@@ -217,11 +296,12 @@ Item {
             elide: item.GridView.isCurrentItem ? Text.ElideNone : Text.ElideRight
             wrapMode: item.GridView.isCurrentItem ? Text.WrapAtWordBoundaryOrAnywhere : Text.NoWrap
 
-            Component.onCompleted: text = item.modelData.name
+            text: item.displayName
         }
 
         Behavior on implicitHeight {
             Anim {}
         }
     }
+
 }

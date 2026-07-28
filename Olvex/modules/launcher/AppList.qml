@@ -16,7 +16,10 @@ Item {
     required property StyledTextField search
     required property DrawerVisibilities visibilities
 
-    property bool suspended: false
+    readonly property int appsRowHeight: 120
+    readonly property int appsColumns: 5
+    readonly property int appsVisibleRows: 4
+    readonly property int appsPaneHeight: appsVisibleRows * appsRowHeight + 10
 
     readonly property string state: {
         const text = search.text;
@@ -33,19 +36,55 @@ Item {
     }
 
     onStateChanged: {
-        suspended = false;
         if (state === "scheme" || state === "variant")
             Schemes.reload();
+        syncModels();
     }
 
-    // Dynamic reactive model values binding
-    readonly property var modelValues: {
-        if (state === "apps") return Apps.search(search.text);
-        if (state === "actions") return Actions.query(search.text);
-        if (state === "calc") return [0];
-        if (state === "scheme") return Schemes.query(search.text);
-        if (state === "variant") return M3Variants.query(search.text);
-        return [];
+    Connections {
+        target: search
+        function onTextChanged(): void {
+            searchDebounce.restart();
+        }
+    }
+
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged(): void {
+            Apps.invalidateCatalog();
+            syncModels();
+        }
+    }
+
+    Timer {
+        id: searchDebounce
+        interval: 32
+        repeat: false
+        onTriggered: syncModels()
+    }
+
+    ScriptModel {
+        id: appScriptModel
+    }
+
+    ScriptModel {
+        id: actionScriptModel
+    }
+
+    function syncModels(): void {
+        const text = search.text;
+        if (state === "apps")
+            appScriptModel.values = Apps.search(text);
+        else if (state === "actions")
+            actionScriptModel.values = Actions.query(text);
+        else if (state === "calc")
+            actionScriptModel.values = [0];
+        else if (state === "scheme")
+            actionScriptModel.values = Schemes.query(text);
+        else if (state === "variant")
+            actionScriptModel.values = M3Variants.query(text);
+        else
+            actionScriptModel.values = [];
     }
 
     readonly property int count: state === "apps" ? appGrid.count : actionList.count
@@ -53,187 +92,218 @@ Item {
     readonly property var currentItem: state === "apps" ? appGrid.currentItem : actionList.currentItem
 
     function decrementCurrentIndex() {
-        if (state === "apps") {
-            appGrid.currentIndex = Math.max(0, appGrid.currentIndex - 5);
-        } else {
+        if (state === "apps")
+            appGrid.currentIndex = Math.max(0, appGrid.currentIndex - appsColumns);
+        else
             actionList.decrementCurrentIndex();
-        }
     }
 
     function incrementCurrentIndex() {
-        if (state === "apps") {
-            appGrid.currentIndex = Math.min(appGrid.count - 1, appGrid.currentIndex + 5);
-        } else {
+        if (state === "apps")
+            appGrid.currentIndex = Math.min(appGrid.count - 1, appGrid.currentIndex + appsColumns);
+        else
             actionList.incrementCurrentIndex();
-        }
+    }
+
+    property int revealEpoch: 0
+
+    readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+
+    function playOpenReveal(): void {
+        if (root.state !== "apps" || !root.visibilities.launcher)
+            return;
+        jellySpring.stop();
+        scrollVelocity = 0;
+        scrollJellyActive = false;
+        revealEpoch++;
+    }
+
+    property bool scrollJellyActive: false
+    property real scrollVelocity: 0
+    property real lastContentY: 0
+
+    function bumpScrollVelocity(impulse: real): void {
+        if (!root.scrollJellyActive)
+            return;
+        scrollVelocity = Math.max(-72, Math.min(72, scrollVelocity + impulse));
+        jellySpring.stop();
+        jellySpring.from = scrollVelocity;
+        jellySpring.to = 0;
+        jellySpring.start();
     }
 
     function suspend(): void {
-        suspended = true;
-        decayTimer.stop();
-        scrollSpeed = 0;
+        smoothScrollAnim.stop();
+        jellySpring.stop();
+        scrollVelocity = 0;
+        scrollJellyActive = false;
+        lastContentY = 0;
+        appGrid.contentY = 0;
         appGrid.currentIndex = 0;
         actionList.currentIndex = 0;
     }
 
-    // ── ELASTIC SCROLL PHYSICS TRACKING ──────────────────────────────────────
-    property real scrollSpeed: 0
-    property real lastContentY: 0
+    function resume(): void {
+        if (appScriptModel.values.length === 0 && state === "apps")
+            syncModels();
+        playOpenReveal();
+    }
 
-    // ── CASCADING SPRING CHAIN ROW OFFSETS ───────────────────────────────────
-    property real row0Offset: -scrollSpeed * 0.75
-    property real row1Offset: -scrollSpeed * 0.75
-    property real row2Offset: -scrollSpeed * 0.75
-    property real row3Offset: -scrollSpeed * 0.75
-    property real row4Offset: -scrollSpeed * 0.75
+    Connections {
+        target: visibilities
+        function onLauncherChanged(): void {
+            if (visibilities.launcher)
+                Qt.callLater(playOpenReveal);
+            else
+                suspend();
+        }
+    }
 
-    Behavior on row0Offset {
-        SequentialAnimation {
-            NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
-        }
+    NumberAnimation {
+        id: smoothScrollAnim
+        target: appGrid
+        property: "contentY"
+        duration: 260
+        easing.type: Easing.OutCubic
     }
-    Behavior on row1Offset {
-        SequentialAnimation {
-            PauseAnimation { duration: 30 } // Staggered delay!
-            NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
-        }
-    }
-    Behavior on row2Offset {
-        SequentialAnimation {
-            PauseAnimation { duration: 60 } // Staggered delay!
-            NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
-        }
-    }
-    Behavior on row3Offset {
-        SequentialAnimation {
-            PauseAnimation { duration: 90 } // Staggered delay!
-            NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
-        }
-    }
-    Behavior on row4Offset {
-        SequentialAnimation {
-            PauseAnimation { duration: 120 } // Staggered delay!
-            NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
-        }
+
+    SpringAnimation {
+        id: jellySpring
+        target: root
+        property: "scrollVelocity"
+        to: 0
+        spring: 3.4
+        damping: 0.72
+        epsilon: 0.04
+
+        onStopped: root.scrollJellyActive = false
     }
 
     Connections {
         target: appGrid
         enabled: appGrid.visible
         ignoreUnknownSignals: true
-        function onContentYChanged() {
-            const currentY = appGrid.contentY;
-            const delta = currentY - lastContentY;
-            // Amplify native scroll deltas (8.0x) so they produce highly visible spring offsets!
-            scrollSpeed = Math.max(-120, Math.min(120, delta * 8.0));
-            lastContentY = currentY;
-            decayTimer.restart();
+
+        function onContentYChanged(): void {
+            if (!root.scrollJellyActive)
+                return;
+            const dy = appGrid.contentY - root.lastContentY;
+            root.lastContentY = appGrid.contentY;
+            if (Math.abs(dy) < 0.05)
+                return;
+            root.bumpScrollVelocity(Math.max(-72, Math.min(72, dy * 5.0)));
+        }
+
+        function onMovementStarted(): void {
+            root.scrollJellyActive = true;
+        }
+
+        function onFlickStarted(): void {
+            root.scrollJellyActive = true;
         }
     }
 
-    Timer {
-        id: decayTimer
-        interval: 16
-        repeat: true
-        running: false
-        onTriggered: {
-            scrollSpeed = scrollSpeed * 0.90; // Slower decay for more elastic wobble recoil!
-            if (Math.abs(scrollSpeed) < 0.1) {
-                scrollSpeed = 0;
-                stop();
-            }
-        }
+    Component.onCompleted: {
+        Apps.warmCatalog();
+        syncModels();
     }
 
     implicitWidth: state === "apps" ? 590 : Tokens.sizes.launcher.itemWidth
     implicitHeight: {
-        if (state === "apps") {
-            const rows = Math.ceil(count / 5);
-            const visibleRows = Math.max(1, Math.min(rows, 4)); // Show at least 1 row, max 4 rows
-            return visibleRows * 120 + 10;
-        } else {
-            const maxShown = Config.launcher.maxShown ?? 6;
-            return (Tokens.sizes.launcher.itemHeight + 8) * Math.min(maxShown, count) - 8;
-        }
+        if (state === "apps")
+            return appsPaneHeight;
+        const maxShown = Config.launcher.maxShown ?? 6;
+        return (Tokens.sizes.launcher.itemHeight + 8) * Math.min(maxShown, count) - 8;
     }
 
-    // ── GRID STYLE: Application Grid ────────────────────────────────────────
-    GridView {
-        id: appGrid
+    Item {
+        id: appGridHost
 
         visible: root.state === "apps"
-
-        // Buttery-smooth discrete scroll animation
-        NumberAnimation {
-            id: smoothScrollAnim
-            target: appGrid
-            property: "contentY"
-            duration: 280
-            easing.type: Easing.OutCubic
-        }
-
-        // Next-level scroll handler: smooths mouse wheel scrolling, preserves trackpad responsiveness
-        WheelHandler {
-            id: smoothScrollHandler
-            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-            function onWheel(event) {
-                const delta = event.angleDelta.y;
-                const isDiscrete = Math.abs(delta) >= 120;
-                
-                // 110px step matches the icon column height beautifully!
-                const step = isDiscrete ? 110 : Math.abs(delta) * 1.2;
-                const direction = delta > 0 ? -1 : 1;
-                
-                const maxScroll = Math.max(0, appGrid.contentHeight - appGrid.height);
-                const currentTargetY = smoothScrollAnim.running ? smoothScrollAnim.to : appGrid.contentY;
-                const targetY = Math.max(0, Math.min(maxScroll, currentTargetY + direction * step));
-                
-                if (isDiscrete) {
-                    smoothScrollAnim.stop();
-                    smoothScrollAnim.to = targetY;
-                    smoothScrollAnim.start();
-                } else {
-                    appGrid.contentY = targetY;
-                }
-                
-                // Spike scrollSpeed for immediate tactile spring wobble!
-                root.scrollSpeed = Math.max(-120, Math.min(120, direction * 85));
-                decayTimer.restart();
-                
-                event.accepted = true; // Block jumpy native scrolling!
-            }
-        }
-
         width: 550
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
+        height: root.appsPaneHeight - 8
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
         anchors.topMargin: 4
-        anchors.bottomMargin: 4
         clip: true
 
-        boundsBehavior: Flickable.DragAndOvershootBounds // Super premium rubber-band edges!
-        interactive: true
+        GridView {
+            id: appGrid
 
-        cellWidth: 110
-        cellHeight: 120
+            anchors.fill: parent
 
-        model: !root.suspended && root.state === "apps" ? root.modelValues : null
+            cellWidth: 110
+            cellHeight: root.appsRowHeight
+            cacheBuffer: root.appsRowHeight * 2
+            reuseItems: true
+            boundsBehavior: Flickable.DragAndOvershootBounds
+            flickDeceleration: 2200
+            maximumFlickVelocity: 3200
 
-        delegate: gridAppItemComponent
+            model: root.state === "apps" ? appScriptModel : null
+            delegate: gridAppItemComponent
 
-        // Skip view transitions during teardown to avoid incubator races.
-        add: Transition {
-            enabled: root.state === "apps"
-            NumberAnimation { properties: "opacity,scale"; from: 0; to: 1; duration: 200; easing.type: Easing.OutBack }
-        }
-        remove: Transition {
-            enabled: root.state === "apps"
-            NumberAnimation { properties: "opacity,scale"; from: 1; to: 0; duration: 150; easing.type: Easing.InQuad }
-        }
-        displaced: Transition {
-            enabled: root.state === "apps"
-            NumberAnimation { properties: "x,y"; duration: 250; easing.type: Easing.OutBack }
+            add: Transition {
+                enabled: root.search.text.length > 0
+                NumberAnimation {
+                    properties: "opacity,scale"
+                    from: 0.65
+                    to: 1
+                    duration: 160
+                    easing.type: Easing.OutQuad
+                }
+            }
+
+            remove: Transition {
+                NumberAnimation {
+                    properties: "opacity,scale"
+                    from: 1
+                    to: 0
+                    duration: 150
+                    easing.type: Easing.InQuad
+                }
+            }
+
+            displaced: Transition {
+                NumberAnimation {
+                    properties: "x,y"
+                    duration: 220
+                    easing.type: Easing.OutBack
+                }
+            }
+
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+                onWheel: event => {
+                    const delta = event.angleDelta.y;
+                    if (!delta)
+                        return;
+
+                    root.scrollJellyActive = true;
+                    root.lastContentY = appGrid.contentY;
+
+                    const maxScroll = Math.max(0, appGrid.contentHeight - appGrid.height);
+                    const isDiscrete = Math.abs(delta) >= 120;
+                    const direction = delta > 0 ? -1 : 1;
+                    const step = isDiscrete ? root.appsRowHeight : Math.max(18, Math.abs(delta) * 0.65);
+                    const currentY = smoothScrollAnim.running ? smoothScrollAnim.to : appGrid.contentY;
+                    const rawTarget = currentY + direction * step;
+                    const targetY = Math.max(0, Math.min(maxScroll, rawTarget));
+
+                    if (isDiscrete) {
+                        smoothScrollAnim.stop();
+                        smoothScrollAnim.from = appGrid.contentY;
+                        smoothScrollAnim.to = targetY;
+                        smoothScrollAnim.start();
+                    } else {
+                        smoothScrollAnim.stop();
+                        appGrid.contentY = targetY;
+                    }
+
+                    event.accepted = true;
+                }
+            }
         }
     }
 
@@ -242,27 +312,20 @@ Item {
         GridAppItem {
             visibilities: root.visibilities
             gridView: appGrid
-            rowOffset: {
-                const row = Math.floor(index / 5);
-                if (row === 0) return root.row0Offset;
-                if (row === 1) return root.row1Offset;
-                if (row === 2) return root.row2Offset;
-                if (row === 3) return root.row3Offset;
-                return root.row4Offset;
-            }
+            revealEpoch: root.revealEpoch
+            scrollVelocity: root.scrollVelocity
         }
     }
 
     StyledScrollBar {
         id: gridScrollBar
         flickable: appGrid
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        visible: appGrid.visible && appGrid.contentHeight > appGrid.height
+        anchors.right: appGridHost.right
+        anchors.top: appGridHost.top
+        anchors.bottom: appGridHost.bottom
+        visible: appGridHost.visible && appGrid.contentHeight > appGrid.height
     }
 
-    // ── LIST STYLE: Fallback List for Actions / Calculations ──────────────────
     StyledListView {
         id: actionList
 
@@ -271,7 +334,7 @@ Item {
         clip: true
         spacing: 8
 
-        model: !root.suspended && root.state !== "apps" ? root.modelValues : null
+        model: root.state !== "apps" ? actionScriptModel : null
 
         delegate: {
             if (root.state === "actions") return actionItem;
@@ -290,12 +353,6 @@ Item {
             y: actionList.currentItem?.y ?? 0
             implicitWidth: actionList.width
             implicitHeight: actionList.currentItem?.implicitHeight ?? 0
-
-            Behavior on y {
-                Anim {
-                    type: Anim.DefaultSpatial
-                }
-            }
         }
 
         StyledScrollBar.vertical: StyledScrollBar {
@@ -304,7 +361,6 @@ Item {
         }
     }
 
-    // ── DELEGATES FOR FALLBACK LIST ──────────────────────────────────────────
     Component {
         id: actionItem
         ActionItem { list: actionList }

@@ -28,7 +28,8 @@ MouseArea {
     property real marginY
 
     property list<MenuItem> items
-    property MenuItem active: items[0] ?? null
+    readonly property int itemCount: items ? items.length : 0
+    property MenuItem active: itemCount > 0 ? items[0] : null
     property bool expanded
 
     signal itemSelected(item: var)
@@ -104,6 +105,8 @@ MouseArea {
             ColumnLayout {
                 id: column
 
+                readonly property int menuItemCount: root.itemCount
+
                 anchors.fill: parent
                 anchors.margins: Tokens.padding.small
                 spacing: 0
@@ -111,15 +114,16 @@ MouseArea {
                 Repeater {
                     id: repeater
 
-                    model: root.items
+                    model: root.items ?? []
 
                     StyledRect {
                         id: item
 
                         required property int index
                         required property MenuItem modelData
-                        readonly property bool active: modelData === root.active
+                        readonly property bool active: modelData != null && modelData === root.active
 
+                        visible: modelData != null
                         Layout.fillWidth: true
                         implicitWidth: menuOptionRow.implicitWidth + Tokens.padding.normal * 2
                         implicitHeight: menuOptionRow.implicitHeight + Tokens.padding.normal * 2
@@ -127,8 +131,8 @@ MouseArea {
                         radius: active ? 12 : Tokens.rounding.extraSmall // This should use a token, but tokens are currently extremely scuffed
                         topLeftRadius: index === 0 ? Tokens.rounding.small : radius
                         topRightRadius: index === 0 ? Tokens.rounding.small : radius
-                        bottomLeftRadius: index === repeater.count - 1 ? Tokens.rounding.small : radius
-                        bottomRightRadius: index === repeater.count - 1 ? Tokens.rounding.small : radius
+                        bottomLeftRadius: modelData != null && index === column.menuItemCount - 1 ? Tokens.rounding.small : radius
+                        bottomRightRadius: modelData != null && index === column.menuItemCount - 1 ? Tokens.rounding.small : radius
 
                         color: Qt.alpha(Colours.palette.m3tertiaryContainer, active ? 1 : 0)
 
@@ -145,6 +149,8 @@ MouseArea {
                             color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
                             disabled: !root.expanded
                             onClicked: {
+                                if (!item.modelData)
+                                    return;
                                 root.itemSelected(item.modelData);
                                 root.active = item.modelData;
                                 item.modelData.clicked();
@@ -161,25 +167,25 @@ MouseArea {
 
                             MaterialIcon {
                                 Layout.alignment: Qt.AlignVCenter
-                                text: item.modelData.icon
+                                text: item.modelData ? item.modelData.icon : ""
                                 color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurfaceVariant
                             }
 
                             StyledText {
                                 Layout.alignment: Qt.AlignVCenter
                                 Layout.fillWidth: true
-                                text: item.modelData.text
+                                text: item.modelData ? item.modelData.text : ""
                                 color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurface
                             }
 
                             Loader {
                                 asynchronous: true
                                 Layout.alignment: Qt.AlignVCenter
-                                active: item.modelData.trailingIcon.length > 0
+                                active: item.modelData && item.modelData.trailingIcon.length > 0
                                 visible: active
 
                                 sourceComponent: MaterialIcon {
-                                    text: item.modelData.trailingIcon
+                                    text: item.modelData ? item.modelData.trailingIcon : ""
                                     color: item.active ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onSurfaceVariant
                                 }
                             }

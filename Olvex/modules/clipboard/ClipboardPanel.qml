@@ -7,6 +7,7 @@ import Quickshell
 import Olvex.Config
 import qs.components
 import qs.components.controls
+import qs.components.effects
 import qs.services
 
 // Bottom panel clipboard popup — toggled via DrawerVisibilities.clipboard
@@ -17,6 +18,7 @@ Item {
     readonly property bool visible_: visibilities.clipboard ?? false
     property var filteredEntries: []
     property string searchText: ""
+    property int hoveredIndex: -1
 
     function isImage(entry) { return Cliphist.entryIsImage(entry) }
     function entryText(entry) {
@@ -50,14 +52,226 @@ Item {
         if (visible_) { Cliphist.refresh() }
     }
 
+    // M3 list row — tonal surface, radius morph, emphasized motion
+    component PanelClipRow : Item {
+        id: row
+
+        required property var modelData
+        required property int index
+
+        readonly property bool isImg: root.isImage(modelData)
+        readonly property string imgPath: `/tmp/olvex-clip/${root.entryId(modelData)}.png`
+        readonly property string preview: root.entryText(modelData)
+        readonly property bool isHovered: root.hoveredIndex === index
+
+        signal activated()
+        signal deleteRequested()
+        signal hoverSelected()
+
+        width: ListView.view ? ListView.view.width : 0
+        implicitHeight: 56
+        property real rowOpacity
+        property real rowScale
+        opacity: rowOpacity
+        scale: rowScale
+
+        Component.onCompleted: {
+            if (isImg)
+                root.decodeImage(modelData)
+            rowOpacity = 0
+            rowScale = 0.96
+            rowReveal.start()
+        }
+
+        ParallelAnimation {
+            id: rowReveal
+
+            Anim {
+                target: row
+                property: "rowOpacity"
+                to: 1
+                type: Anim.Emphasized
+            }
+            Anim {
+                target: row
+                property: "rowScale"
+                to: 1
+                type: Anim.Emphasized
+            }
+        }
+
+        Item {
+            id: rowBody
+
+            anchors.fill: parent
+            anchors.leftMargin: Tokens.spacing.small / 2
+            anchors.rightMargin: Tokens.spacing.small / 2
+            scale: rowMa.pressed ? 0.98
+                : (row.isHovered ? 1.01 : (rowMa.containsMouse ? 1.005 : 1.0))
+            transformOrigin: Item.Center
+
+            Behavior on scale {
+                SpringAnimation {
+                    spring: rowMa.pressed ? 5.0 : 4.2
+                    damping: rowMa.pressed ? 0.65 : 0.70
+                    mass: 1.0
+                    epsilon: 0.005
+                }
+            }
+
+            StyledRect {
+                id: rowSurface
+
+                anchors.fill: parent
+                radius: rowMa.pressed ? (height / 2) : Tokens.rounding.normal
+                color: row.isHovered
+                    ? Colours.tileHoverAccent
+                    : (rowMa.containsMouse
+                        ? Colours.tileHoverSecondary
+                        : Colours.tileFillSubtle)
+                border.width: row.isHovered ? 1 : 0
+                border.color: Qt.alpha(Colours.palette.m3primary, 0.22)
+
+                Behavior on radius {
+                    Anim { type: Anim.Emphasized }
+                }
+                Behavior on color {
+                    CAnim {}
+                }
+            }
+
+            MouseArea {
+                id: rowMa
+
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: row.activated()
+                onContainsMouseChanged: {
+                    if (containsMouse)
+                        row.hoverSelected()
+                }
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: Tokens.padding.normal
+                anchors.rightMargin: Tokens.padding.small
+                spacing: Tokens.spacing.small
+                z: 1
+
+                StyledRect {
+                    Layout.preferredWidth: 36
+                    Layout.preferredHeight: 24
+                    radius: height / 2
+                    color: row.isHovered
+                        ? Colours.palette.m3primary
+                        : Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: root.entryId(row.modelData)
+                        textPointSize: Tokens.font.size.tiny ?? 9
+                        font.weight: Font.DemiBold
+                        color: row.isHovered
+                            ? Colours.palette.m3onPrimary
+                            : Colours.palette.m3onSurfaceVariant
+
+                        Behavior on color { CAnim {} }
+                    }
+                }
+
+                StyledClippingRect {
+                    visible: row.isImg
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                    radius: Tokens.rounding.small
+                    color: Colours.palette.m3tertiaryContainer
+                    border.width: 1
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.45)
+
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        source: row.isImg ? `file://${row.imgPath}` : ""
+                        sourceSize: Qt.size(80, 80)
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        opacity: status === Image.Ready ? 1 : 0
+
+                        Behavior on opacity {
+                            Anim { type: Anim.FastEffects }
+                        }
+                    }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "image"
+                        color: Qt.alpha(Colours.palette.m3onTertiaryContainer, 0.45)
+                        iconPointSize: 16
+                        visible: parent.children[0].status !== Image.Ready
+                    }
+                }
+
+                StyledRect {
+                    visible: row.isImg
+                    Layout.preferredWidth: imgChipLbl.implicitWidth + Tokens.padding.normal
+                    Layout.preferredHeight: 22
+                    radius: height / 2
+                    color: Colours.palette.m3tertiaryContainer
+
+                    StyledText {
+                        id: imgChipLbl
+
+                        anchors.centerIn: parent
+                        text: "Image"
+                        textPointSize: Tokens.font.size.tiny ?? 9
+                        font.weight: Font.Medium
+                        color: Colours.palette.m3onTertiaryContainer
+                    }
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: row.isImg
+                        ? (row.preview.length > 0 ? row.preview : "Image clip")
+                        : row.preview
+                    textPointSize: Tokens.font.size.small
+                    font.weight: row.isHovered ? Font.DemiBold : Font.Normal
+                    color: row.isHovered
+                        ? Colours.palette.m3onSurface
+                        : Colours.palette.m3onSurfaceVariant
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+
+                    Behavior on color { CAnim {} }
+                }
+
+                IconButton {
+                    type: IconButton.Text
+                    icon: "close"
+                    iconPointSize: 12
+                    inactiveOnColour: Colours.palette.m3error
+                    opacity: rowMa.containsMouse || row.isHovered ? 1 : 0
+                    visible: opacity > 0
+                    onClicked: row.deleteRequested()
+
+                    Behavior on opacity {
+                        Anim { type: Anim.FastEffects }
+                    }
+                }
+            }
+        }
+    }
+
     // ── Panel container ───────────────────────────
-    Rectangle {
+    StyledRect {
         id: panel
         anchors.fill: parent
-        radius: 16
-        color: Qt.rgba(0.09, 0.08, 0.12, 0.97)
-        border.color: Qt.rgba(1, 1, 1, 0.07)
+        radius: Tokens.rounding.large
+        color: Colours.tileSurface
         border.width: 1
+        border.color: Colours.tileStroke
         clip: true
 
         // ── Header row ────────────────────────────
@@ -66,43 +280,38 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 44
+            height: 48
 
             Row {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 14
-                spacing: 8
+                anchors.leftMargin: Tokens.padding.normal
+                spacing: Tokens.spacing.small
 
                 MaterialIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "content_paste"
                     color: Colours.palette.m3primary
-                    iconPointSize: 13
+                    iconPointSize: 14
                 }
                 StyledText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Clipboard"
-                    color: Qt.rgba(1, 1, 1, 0.88)
+                    color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.normal
-                    font.weight: 600
+                    font.weight: Font.DemiBold
                 }
             }
 
-            // Clear all
-            Item {
+            IconButton {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.rightMargin: 10
-                width: 28; height: 28
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "delete_sweep"
-                    color: Qt.rgba(1, 0.5, 0.5, 0.55)
-                    iconPointSize: 14
-                }
-                StateLayer { radius: 14; onClicked: Cliphist.wipe() }
+                anchors.rightMargin: Tokens.padding.small
+                type: IconButton.Text
+                icon: "delete_sweep"
+                iconPointSize: 14
+                inactiveOnColour: Colours.palette.m3error
+                onClicked: Cliphist.wipe()
             }
         }
 
@@ -110,49 +319,51 @@ Item {
             anchors.top: panelHeader.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 10
-            anchors.rightMargin: 10
+            anchors.leftMargin: Tokens.padding.normal
+            anchors.rightMargin: Tokens.padding.normal
             height: 1
-            color: Qt.rgba(1, 1, 1, 0.06)
+            color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
         }
 
         // ── Search ────────────────────────────────
         Item {
             id: panelSearch
             anchors.top: panelHeader.bottom
-            anchors.topMargin: 6
+            anchors.topMargin: Tokens.spacing.small
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 10
-            anchors.rightMargin: 10
-            height: 36
+            anchors.leftMargin: Tokens.padding.normal
+            anchors.rightMargin: Tokens.padding.normal
+            height: 40
 
-            Rectangle {
+            StyledRect {
                 anchors.fill: parent
-                radius: 10
-                color: Qt.rgba(1, 1, 1, 0.05)
+                radius: Tokens.rounding.normal
+                color: Colours.tileFillHover
                 border.color: panelSearchInput.activeFocus
-                    ? Qt.alpha(Colours.palette.m3primary, 0.5)
-                    : Qt.rgba(1, 1, 1, 0.07)
+                    ? Qt.alpha(Colours.palette.m3primary, 0.55)
+                    : Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
                 border.width: 1
+
+                Behavior on border.color { CAnim {} }
 
                 Row {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 10
-                    spacing: 8
+                    anchors.leftMargin: Tokens.padding.normal
+                    spacing: Tokens.spacing.small
 
                     MaterialIcon {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "search"
-                        color: Qt.rgba(1, 1, 1, 0.3)
-                        iconPointSize: 11
+                        color: Colours.palette.m3onSurfaceVariant
+                        iconPointSize: 12
                     }
 
                     TextInput {
                         id: panelSearchInput
-                        width: panel.width - 80
-                        color: Qt.rgba(1, 1, 1, 0.85)
+                        width: panel.width - 88
+                        color: Colours.palette.m3onSurface
                         font.pixelSize: Math.round(Tokens.font.size.small * 96 / 72)
                         font.family: Tokens.font.family.sans
                         clip: true
@@ -160,8 +371,9 @@ Item {
                         StyledText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Search..."
-                            color: Qt.rgba(1, 1, 1, 0.22)
+                            color: Colours.palette.m3onSurfaceVariant
                             textPointSize: Tokens.font.size.small
+                            opacity: 0.55
                             visible: !panelSearchInput.text.length
                         }
 
@@ -181,140 +393,33 @@ Item {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.topMargin: 6
-            anchors.bottomMargin: 6
+            anchors.topMargin: Tokens.spacing.small
+            anchors.bottomMargin: Tokens.spacing.small
             clip: true
 
             model: root.filteredEntries
-            spacing: 1
+            spacing: Tokens.spacing.small
+
+            displaced: Transition {
+                Anim {
+                    properties: "x,y"
+                    type: Anim.Emphasized
+                }
+            }
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
                 contentItem: Rectangle {
                     radius: 2
-                    color: Qt.rgba(1, 1, 1, 0.15)
+                    color: Qt.alpha(Colours.palette.m3primary, 0.45)
                     implicitWidth: 3
                 }
             }
 
-            delegate: Item {
-                id: pd
-                required property var modelData
-                required property int index
-                width: panelList.width
-                height: isImg ? 88 : 40
-
-                readonly property bool isImg: root.isImage(modelData)
-                readonly property string imgPath: `/tmp/olvex-clip/${root.entryId(modelData)}.png`
-
-                Component.onCompleted: {
-                    if (isImg) root.decodeImage(modelData)
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.leftMargin: 6
-                    anchors.rightMargin: 6
-                    radius: 8
-                    color: "transparent"
-
-                    // Image entry
-                    Row {
-                        visible: pd.isImg
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: 10
-
-                        StyledClippingRect {
-                            width: 110; height: 64
-                            radius: 6
-                            color: Qt.rgba(1, 1, 1, 0.05)
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Image {
-                                anchors.fill: parent
-                                source: pd.isImg ? `file://${pd.imgPath}` : ""
-                                fillMode: Image.PreserveAspectCrop
-                                asynchronous: true
-                                opacity: status === Image.Ready ? 1 : 0
-                                Behavior on opacity { NumberAnimation { duration: 150 } }
-                            }
-
-                            MaterialIcon {
-                                anchors.centerIn: parent
-                                text: "image"
-                                color: Qt.rgba(1, 1, 1, 0.18)
-                                iconPointSize: 18
-                                visible: parent.children[0].status !== Image.Ready
-                            }
-                        }
-
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 3
-                            StyledText {
-                                text: "Image"
-                                color: Qt.rgba(1, 1, 1, 0.5)
-                                textPointSize: Tokens.font.size.small
-                                font.weight: Font.Medium
-                            }
-                            StyledText {
-                                text: {
-                                    const m = pd.modelData.match(/(\d+x\d+)/)
-                                    return m ? m[1] : ""
-                                }
-                                color: Qt.rgba(1, 1, 1, 0.25)
-                                textPointSize: Tokens.font.size.tiny ?? 9
-                            }
-                        }
-                    }
-
-                    // Text entry
-                    Item {
-                        visible: !pd.isImg
-                        anchors.fill: parent
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 36
-
-                        StyledText {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width
-                            text: root.entryText(pd.modelData)
-                            color: Qt.rgba(1, 1, 1, 0.72)
-                            textPointSize: Tokens.font.size.small
-                            elide: Text.ElideRight
-                            maximumLineCount: 1
-                        }
-                    }
-
-                    // Delete on hover
-                    Item {
-                        id: deleteBtn
-                        visible: deleteHover.containsMouse
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.rightMargin: 6
-                        width: 26; height: 26
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "close"
-                            color: Qt.rgba(1, 0.45, 0.45, 0.7)
-                            iconPointSize: 11
-                        }
-                        MouseArea {
-                            id: deleteHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: Cliphist.deleteEntry(pd.modelData)
-                        }
-                    }
-
-                    StateLayer {
-                        radius: 8
-                        onClicked: Cliphist.copy(pd.modelData)
-                    }
-                }
+            delegate: PanelClipRow {
+                onActivated: Cliphist.copy(modelData)
+                onHoverSelected: root.hoveredIndex = index
+                onDeleteRequested: Cliphist.deleteEntry(modelData)
             }
 
             // Empty state
@@ -322,23 +427,24 @@ Item {
                 visible: root.filteredEntries.length === 0
                 anchors.centerIn: parent
                 width: parent.width
-                height: 80
+                height: 96
 
                 Column {
                     anchors.centerIn: parent
-                    spacing: 8
+                    spacing: Tokens.spacing.small
 
                     MaterialIcon {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "content_paste_off"
-                        color: Qt.rgba(1, 1, 1, 0.12)
-                        iconPointSize: 24
+                        color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.35)
+                        iconPointSize: 28
                     }
                     StyledText {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "Nothing copied yet"
-                        color: Qt.rgba(1, 1, 1, 0.22)
+                        color: Colours.palette.m3onSurfaceVariant
                         textPointSize: Tokens.font.size.small
+                        opacity: 0.65
                     }
                 }
             }

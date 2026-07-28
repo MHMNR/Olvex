@@ -46,11 +46,73 @@ Item {
         return Math.sqrt(0.299 * (c.r ** 2) + 0.587 * (c.g ** 2) + 0.114 * (c.b ** 2));
     }
 
-    function alterColour(c: color, a: real, layer: int): color {
+    function surfaceLayer(layerLevel: int): int {
+        const layer = layerLevel ?? 1;
+        if (!light || layer === 0)
+            return layer;
+        return Math.min(4, layer + 1);
+    }
+
+    function contrastRatio(a: color, b: color): real {
+        const la = getLuminance(a);
+        const lb = getLuminance(b);
+        const hi = Math.max(la, lb);
+        const lo = Math.min(la, lb) + 1e-6;
+        return (hi + 0.05) / (lo + 0.05);
+    }
+
+    function containerAtLevel(level: int): color {
+        if (level <= 1)
+            return root.palette.m3surfaceContainerLow;
+        if (level === 2)
+            return root.palette.m3surfaceContainer;
+        if (level === 3)
+            return root.palette.m3surfaceContainerHigh;
+        return root.palette.m3surfaceContainerHighest;
+    }
+
+    function tintContainer(base: color, amount: real): color {
+        const tint = root.palette.m3outlineVariant;
+        return Qt.rgba(
+            Math.max(0, Math.min(1, base.r * (1 - amount) + tint.r * amount)),
+            Math.max(0, Math.min(1, base.g * (1 - amount) + tint.g * amount)),
+            Math.max(0, Math.min(1, base.b * (1 - amount) + tint.b * amount)),
+            1);
+    }
+
+    function opaqueLightContainer(layerLevel: int, againstColor: color): color {
+        let level = surfaceLayer(layerLevel ?? 2);
+        let color = containerAtLevel(level);
+        const ref = againstColor ?? root.palette.m3surface;
+        const target = againstColor ? 1.10 : 1.06;
+        const refLum = getLuminance(ref);
+
+        function needsStep(c: color): bool {
+            return contrastRatio(c, ref) < target
+                || (againstColor && getLuminance(c) >= refLum);
+        }
+
+        while (needsStep(color) && level < 4) {
+            level++;
+            color = containerAtLevel(level);
+        }
+
+        let tint = 0.06;
+        while (needsStep(color) && tint <= 0.42) {
+            color = tintContainer(color, tint);
+            tint += 0.06;
+        }
+        return color;
+    }
+
+    function alterColour(c: color, a: real, layerLevel: int): color {
         const luminance = getLuminance(c);
         const calcBase = transparency.enabled ? transparency.base : 0.8;
+        const layer = surfaceLayer(layerLevel);
 
-        const offset = (light ? (layer == 1 ? 1 : -layer / 2) : (layer / 1.5)) * (light ? 0.2 : 0.3) * (1 - calcBase) * (1 + wallLuminance * (light ? (layer == 1 ? 3 : 1) : 2.5));
+        const offset = (!light || layer <= 1 ? 1 : (light ? layer * 0.4 : -layer / 2))
+            * (light ? 0.2 : 0.3) * (1 - calcBase)
+            * (1 + wallLuminance * (light ? (layer === 1 ? 3 : 1) : 2.5));
         const scale = (luminance + offset) / luminance;
         const r = Math.max(0, Math.min(1, c.r * scale));
         const g = Math.max(0, Math.min(1, c.g * scale));
@@ -60,17 +122,26 @@ Item {
     }
 
     function applyLayer(c: color, layer: var): color {
-        if (layer === 0)
-            return transparency.enabled ? Qt.alpha(c, transparency.base) : c;
+        const level = surfaceLayer(layer ?? 1);
 
-        // If transparency is disabled, use official M3 surface roles for layering
         if (!transparency.enabled) {
-            if (layer === 1) return root.palette.m3surfaceContainer;
-            if (layer === 2) return root.palette.m3surfaceContainerHigh;
+            if (light && level > 0)
+                return opaqueLightContainer(layer ?? 2);
+            if (level === 0)
+                return c;
+            if (level === 1) return root.palette.m3surfaceContainerLow;
+            if (level === 2) return root.palette.m3surfaceContainer;
+            if (level === 3) return root.palette.m3surfaceContainerHigh;
             return root.palette.m3surfaceContainerHighest;
         }
 
-        return alterColour(c, transparency.enabled ? transparency.layers : 1.0, layer ?? 1);
+        if (light && level > 0)
+            return Qt.alpha(opaqueLightContainer(layer ?? 2), transparency.layers);
+
+        if (level === 0)
+            return Qt.alpha(c, transparency.base);
+
+        return alterColour(c, transparency.layers, level);
     }
 
     function on(c: color): color {
@@ -109,13 +180,28 @@ Item {
         }
     }
 
+    function refreshAccentAfterSchemeSet(): void {
+        const path = Wallpapers.actualCurrent || Wallpapers.current;
+        if (path)
+            Wallpapers.forceAccentRefresh(path, false);
+    }
+
+    function runSchemeSet(args: list<string>): void {
+        schemeSetProc.command = ["olvex", "scheme", "set", "--notify"].concat(args);
+        schemeSetProc.running = true;
+    }
+
     function setMode(mode: string): void {
-        if (mode === "auto") {
-            if (Wallpapers.actualCurrent)
-                Wallpapers.requestAccentRefresh(Wallpapers.actualCurrent, false);
+        root.refreshAccentAfterSchemeSet();
+        if (mode === "auto")
             return;
-        }
-        Quickshell.execDetached(["olvex", "scheme", "set", "--notify", "-m", mode]);
+        root.runSchemeSet(["-m", mode]);
+    }
+
+    Process {
+        id: schemeSetProc
+
+        onExited: root.refreshAccentAfterSchemeSet()
     }
 
     Connections {
@@ -123,20 +209,16 @@ Item {
 
         function onThemeModeChanged(): void {
             const mode = GlobalConfig.appearance.themeMode;
-            root.setMode(mode);
-            Wallpapers.requestAccentRefresh(Wallpapers.current, false);
+            if (mode !== "auto")
+                root.runSchemeSet(["-m", mode]);
         }
 
         function onSchemeVariantChanged(): void {
-            const variant = GlobalConfig.appearance.schemeVariant;
-            Quickshell.execDetached(["olvex", "scheme", "set", "--notify", "-v", variant]);
-            Wallpapers.requestAccentRefresh(Wallpapers.current, false);
+            root.runSchemeSet(["-v", GlobalConfig.appearance.schemeVariant]);
         }
 
         function onPrimaryColorChanged(): void {
-            const color = GlobalConfig.appearance.primaryColor;
-            Quickshell.execDetached(["olvex", "scheme", "set", "--notify", "-c", color]);
-            Wallpapers.requestAccentRefresh(Wallpapers.current, false);
+            root.runSchemeSet(["-c", GlobalConfig.appearance.primaryColor]);
         }
     }
 

@@ -73,6 +73,20 @@ var PALETTE_PROPS = {
     term15: true
 };
 
+// Konsole / Qt colour templates — must stay in scheme.json for `apply_colours`.
+var KONSOLE_PROPS = {
+    klink: true,
+    klinkSelection: true,
+    kvisited: true,
+    kvisitedSelection: true,
+    knegative: true,
+    knegativeSelection: true,
+    kneutral: true,
+    kneutralSelection: true,
+    kpositive: true,
+    kpositiveSelection: true
+};
+
 function hexColour(value) {
     if (!value)
         return "";
@@ -88,6 +102,8 @@ function snakeToM3Prop(name) {
 }
 
 function mapsToPalette(name) {
+    if (KONSOLE_PROPS[name])
+        return true;
     return !!PALETTE_PROPS[snakeToM3Prop(name)];
 }
 

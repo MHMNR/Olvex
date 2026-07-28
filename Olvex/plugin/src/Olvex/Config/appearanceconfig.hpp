@@ -50,6 +50,7 @@ class AppearanceSpacing : public ConfigObject {
 
     CONFIG_PROPERTY(qreal, scale, 1)
 
+    Q_PROPERTY(int extraSmall READ extraSmall NOTIFY valuesChanged)
     Q_PROPERTY(int small READ small NOTIFY valuesChanged)
     Q_PROPERTY(int smaller READ smaller NOTIFY valuesChanged)
     Q_PROPERTY(int normal READ normal NOTIFY valuesChanged)
@@ -62,6 +63,7 @@ public:
 
     void bindTokens(SpacingTokens* tokens);
 
+    [[nodiscard]] int extraSmall() const;
     [[nodiscard]] int small() const;
     [[nodiscard]] int smaller() const;
     [[nodiscard]] int normal() const;

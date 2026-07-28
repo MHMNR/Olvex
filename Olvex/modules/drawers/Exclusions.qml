@@ -21,6 +21,12 @@ Scope {
     }
 
     ExclusionZone {
+        anchors.top: true
+        anchors.left: true
+        anchors.right: true
+    }
+
+    ExclusionZone {
         anchors.right: true
         anchors.top: true
         anchors.bottom: true

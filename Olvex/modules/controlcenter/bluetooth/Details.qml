@@ -610,7 +610,7 @@ StyledFlickable {
                     type: Anim.FastSpatial
                 }
                 Anim {
-                    properties: "radius,font.pointSize"
+                    properties: "radius,iconPointSize"
                 }
             }
 

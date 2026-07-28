@@ -333,6 +333,11 @@ Searcher {
         getPreviewColoursProc.targetWallPath = "";
     }
 
+    function forceAccentRefresh(path: string, isPreview: bool): void {
+        root._forceNextAccentRefresh = true;
+        root.requestAccentRefresh(path, isPreview);
+    }
+
     function requestAccentRefresh(path: string, isPreview: bool): void {
         if (!path)
             return;

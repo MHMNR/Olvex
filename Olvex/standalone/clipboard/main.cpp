@@ -15,6 +15,7 @@
 #include <QCoreApplication>
 #include <QStringList>
 #include <QSet>
+#include <QHash>
 #include <QVariantMap>
 #include <QUrl>
 #include <QEventLoop>
@@ -248,7 +249,6 @@ private:
         const QStringList candidates = {
             configBase + QStringLiteral("/olvex/shell.json"),
             configBase + QStringLiteral("/olvex-shell/shell.json"),
-            configBase + QStringLiteral("/caelestia/shell.json"),
         };
         for (const auto &candidate : candidates) {
             if (QFileInfo::exists(candidate))
@@ -701,26 +701,18 @@ static QString defaultCliphistDbPath() {
     return QDir::homePath() + QStringLiteral("/.cache/cliphist/db");
 }
 
-static QString resolveCliphistDbPath() {
-    QProcess proc;
-    proc.setProgram(QStringLiteral("cliphist"));
-    proc.setArguments({QStringLiteral("version")});
-    proc.start();
-    if (proc.waitForFinished(3000) && proc.exitStatus() == QProcess::NormalExit
-        && proc.exitCode() == 0) {
-        static const QRegularExpression re(QStringLiteral(R"(db-path\s*(\S+))"));
-        const QStringList lines =
-            QString::fromUtf8(proc.readAllStandardOutput()).split(QLatin1Char('\n'));
-        for (const auto &line : lines) {
-            const auto match = re.match(line.trimmed());
-            if (match.hasMatch()) {
-                const QString path = match.captured(1).trimmed();
-                if (!path.isEmpty())
-                    return path;
-            }
+static QString parseCliphistDbPathFromVersionOutput(const QByteArray &output) {
+    static const QRegularExpression re(QStringLiteral(R"(db-path\s*(\S+))"));
+    const QStringList lines = QString::fromUtf8(output).split(QLatin1Char('\n'));
+    for (const auto &line : lines) {
+        const auto match = re.match(line.trimmed());
+        if (match.hasMatch()) {
+            const QString path = match.captured(1).trimmed();
+            if (!path.isEmpty())
+                return path;
         }
     }
-    return defaultCliphistDbPath();
+    return {};
 }
 
 class ClipboardBackend : public QObject {
@@ -737,7 +729,8 @@ public:
         m_refreshProc.setParent(this);
         connect(&m_refreshProc, &QProcess::finished, this, &ClipboardBackend::onRefreshFinished);
 
-        m_dbPath = resolveCliphistDbPath();
+        // Use default immediately — probing cliphist version synchronously blocked startup.
+        m_dbPath = defaultCliphistDbPath();
         m_refreshDebounce.setSingleShot(true);
         m_refreshDebounce.setInterval(200);
         connect(&m_refreshDebounce, &QTimer::timeout, this, &ClipboardBackend::refresh);
@@ -747,6 +740,8 @@ public:
         connect(&m_dbWatcher, &QFileSystemWatcher::directoryChanged, this,
                 &ClipboardBackend::onDbPathChanged);
         ensureDbWatch();
+        QTimer::singleShot(0, this, &ClipboardBackend::refresh);
+        QTimer::singleShot(0, this, &ClipboardBackend::probeDbPathAsync);
     }
 
     QStringList entries() const { return m_entries; }
@@ -929,10 +924,74 @@ public:
         return written.isFile() && written.size() > 0 ? outPngPath : QString();
     }
 
+    Q_INVOKABLE void requestDecodeTextById(const QString &id) {
+        if (id.isEmpty() || m_pendingTextDecode.contains(id))
+            return;
+
+        m_pendingTextDecode.insert(id);
+        auto *proc = new QProcess(this);
+        proc->setProgram(QStringLiteral("cliphist"));
+        proc->setArguments(cliphistArgs({QStringLiteral("decode"), id}));
+        connect(proc, &QProcess::finished, this, [this, id, proc](int exitCode, QProcess::ExitStatus st) {
+            m_pendingTextDecode.remove(id);
+            QString text;
+            if (st == QProcess::NormalExit && exitCode == 0)
+                text = QString::fromUtf8(proc->readAllStandardOutput());
+            emit textDecoded(id, text);
+            proc->deleteLater();
+        });
+        proc->start();
+    }
+
+    Q_INVOKABLE void requestDecodeImageById(const QString &id, const QString &outPngPath) {
+        if (id.isEmpty() || outPngPath.isEmpty())
+            return;
+
+        const QFileInfo existing(outPngPath);
+        if (existing.isFile() && existing.size() > 0) {
+            emit imageDecoded(id, outPngPath, true);
+            return;
+        }
+
+        const QString key = id + QLatin1Char('\n') + outPngPath;
+        if (m_pendingImageDecode.contains(key))
+            return;
+
+        QDir().mkpath(QFileInfo(outPngPath).absolutePath());
+        m_pendingImageDecode.insert(key);
+
+        auto *proc = new QProcess(this);
+        proc->setProgram(QStringLiteral("cliphist"));
+        proc->setArguments(cliphistArgs({QStringLiteral("decode"), id}));
+        connect(proc, &QProcess::finished, this, [this, id, outPngPath, key, proc](int exitCode, QProcess::ExitStatus st) {
+            m_pendingImageDecode.remove(key);
+            bool ok = false;
+            if (st == QProcess::NormalExit && exitCode == 0) {
+                const QByteArray data = proc->readAllStandardOutput();
+                if (!data.isEmpty()) {
+                    QFile out(outPngPath);
+                    if (out.open(QIODevice::WriteOnly | QIODevice::Truncate)
+                        && out.write(data) == data.size()) {
+                        out.close();
+                        ok = true;
+                    } else {
+                        out.close();
+                        QFile::remove(outPngPath);
+                    }
+                }
+            }
+            emit imageDecoded(id, outPngPath, ok);
+            proc->deleteLater();
+        });
+        proc->start();
+    }
+
 signals:
     void entriesChanged();
     void loadingChanged();
     void errorChanged();
+    void textDecoded(const QString &id, const QString &text);
+    void imageDecoded(const QString &id, const QString &path, bool ok);
 
 private slots:
     void onDbPathChanged(const QString &path) {
@@ -1049,6 +1108,24 @@ private:
             m_dbWatcher.addPath(m_dbPath);
     }
 
+    void probeDbPathAsync() {
+        auto *proc = new QProcess(this);
+        proc->setProgram(QStringLiteral("cliphist"));
+        proc->setArguments({QStringLiteral("version")});
+        connect(proc, &QProcess::finished, this, [this, proc](int exitCode, QProcess::ExitStatus st) {
+            if (st == QProcess::NormalExit && exitCode == 0) {
+                const QString resolved = parseCliphistDbPathFromVersionOutput(proc->readAllStandardOutput());
+                if (!resolved.isEmpty() && resolved != m_dbPath) {
+                    m_dbPath = resolved;
+                    ensureDbWatch();
+                    refresh();
+                }
+            }
+            proc->deleteLater();
+        });
+        proc->start();
+    }
+
 private:
     QProcess m_refreshProc;
     QFileSystemWatcher m_dbWatcher;
@@ -1056,6 +1133,8 @@ private:
     QString m_dbPath;
     QStringList m_entries;
     QVariantList m_items;
+    QSet<QString> m_pendingTextDecode;
+    QSet<QString> m_pendingImageDecode;
     bool m_loading = false;
     bool m_error = false;
     bool m_refreshPending = false;
@@ -1313,13 +1392,14 @@ int main(int argc, char **argv) {
     const QString appDir = QCoreApplication::applicationDirPath();
 
     const QStringList candidates = {
-        QStringLiteral("qrc:/") + qmlName,
-        QDir(appDir).filePath(QStringLiteral("../../standalone/clipboard/") + qmlName),
-        QDir::current().filePath(qmlName),
-        QDir(appDir).filePath(QStringLiteral("clipboard/") + qmlName),
-        QDir(appDir).filePath(QStringLiteral("../share/olvex/standalone/clipboard/") + qmlName),
+        QDir(appDir).filePath(QStringLiteral("../../../standalone/clipboard/") + qmlName),
         QDir(appDir).filePath(QStringLiteral("../../etc/xdg/quickshell/olvex/standalone/clipboard/") + qmlName),
+        QDir(appDir).filePath(QStringLiteral("../share/olvex/standalone/clipboard/") + qmlName),
+        QDir(appDir).filePath(QStringLiteral("../../standalone/clipboard/") + qmlName),
+        QDir(appDir).filePath(QStringLiteral("clipboard/") + qmlName),
+        QDir::current().filePath(qmlName),
         QDir(appDir).filePath(qmlName),
+        QStringLiteral("qrc:/") + qmlName,
     };
 
     for (const auto &path : candidates) {

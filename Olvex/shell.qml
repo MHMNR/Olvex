@@ -19,8 +19,9 @@ import QtQuick
 import qs.utils
 
 ShellRoot {
-    settings.watchFiles: Quickshell.env("OLVEX_DEV") === "1"
+    settings.watchFiles: true
     readonly property bool _cpuProfileInit: CpuProfile.enabled
+    readonly property bool _accountFacesInit: AccountFaces.faces.length >= 0
     readonly property bool _initApps: {
         Qt.application.name = "Olvex";
         Qt.application.organization = "Olvex";

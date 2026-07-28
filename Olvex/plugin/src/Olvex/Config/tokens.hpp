@@ -60,6 +60,7 @@ class SpacingTokens : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
+    CONFIG_PROPERTY(int, extraSmall, 4)
     CONFIG_PROPERTY(int, small, 7)
     CONFIG_PROPERTY(int, smaller, 10)
     CONFIG_PROPERTY(int, normal, 12)

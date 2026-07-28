@@ -37,6 +37,8 @@ Item {
         id: iconImage
 
         IconImage {
+            anchors.fill: parent
+            anchors.margins: Math.max(2, root.actualSize * 0.08)
             source: root.source
             asynchronous: true
         }

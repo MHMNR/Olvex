@@ -21,6 +21,7 @@ Item {
     signal primaryFailed(string reason)
 
     property string state: "idle"
+    property string activeUrl: ""
     property string lastSource: ""
     property string lastConfigKey: ""
     property color lastPrimary
@@ -46,6 +47,10 @@ Item {
 
     function pickFromArt(artUrl: string, localPath: string): void {
         const stripped = Players.sanitizeArtUrl(artUrl);
+        if (root.activeUrl === stripped && (root.state === "fetching" || root.state === "extracting"))
+            return;
+        root.activeUrl = stripped;
+
         const local = root.cleanPath(localPath);
         if (local) {
             root.pickFromPath(local);
@@ -99,7 +104,7 @@ Item {
         root.state = "extracting";
 
         extractProc.running = false;
-        extractProc.command = Wallpapers.dynamicPaletteCommand(clean);
+        extractProc.command = ["bash", "-lc", `olvex wallpaper -p '${clean.replace(/'/g, "'\\''")}' --no-smart | ${Wallpapers._jsonPipe}`];
         extractProc.running = true;
     }
 
@@ -107,6 +112,7 @@ Item {
         fetchProc.running = false;
         extractProc.running = false;
         root.state = "idle";
+        root.activeUrl = "";
     }
 
     M3ExpressivePalette {

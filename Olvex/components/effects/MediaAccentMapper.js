@@ -21,16 +21,33 @@ function vibrantAccent(seed) {
     return Qt.hsla(hue, sat, lit, 1);
 }
 
-// Play/pause fill — m3primary with slightly richer chroma on light pill.
-function playButtonFill(primary) {
+// Tinted surface color based on global theme
+function surfaceColor(seed, isLight) {
+    if (!isValidSeed(seed))
+        return null;
+
+    const hue = seed.hslHue;
+    const sat = Math.min(0.20, seed.hslSaturation * 0.4); 
+    const lit = isLight ? 0.94 : 0.12;
+
+    return Qt.hsla(hue, sat, lit, 1);
+}
+
+function onSurfaceColor(isLight) {
+    return isLight ? Qt.rgba(0, 0, 0, 0.90) : Qt.rgba(1, 1, 1, 0.90);
+}
+
+// Play/pause fill — adapts to global theme
+function playButtonFill(primary, isLight) {
     if (!isValidSeed(primary))
         return null;
 
     const sat = Math.min(1.0, primary.hslSaturation * 1.22 + 0.08);
-    return Qt.hsla(primary.hslHue, sat, primary.hslLightness, primary.a);
+    const lit = isLight ? Math.min(0.35, primary.hslLightness) : Math.max(0.82, primary.hslLightness);
+    return Qt.hsla(primary.hslHue, sat, lit, primary.a);
 }
 
-// Light primary fill — fixed dark icon for contrast.
-function playIconOnFill() {
-    return Qt.rgba(0, 0, 0, 0.92);
+// Play icon on fill
+function playIconOnFill(isLight) {
+    return isLight ? Qt.rgba(1, 1, 1, 0.92) : Qt.rgba(0, 0, 0, 0.92);
 }

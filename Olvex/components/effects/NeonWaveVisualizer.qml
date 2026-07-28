@@ -15,7 +15,8 @@ Canvas {
     property real maxHeightRatio: 0.85
     property real valueMultiplier: 1.5
     property bool active: true
-    property int frameInterval: 16
+    // Auto-match display refresh rate; can be overridden by parent
+    property int frameInterval: Screen.refreshRate > 0 ? Math.round(1000 / Screen.refreshRate) : 16
 
     // Internal state for smooth animation
     property var smoothValues: {

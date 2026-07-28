@@ -247,6 +247,8 @@ DeviceDetails {
     Popup {
         id: editVpnDialog
 
+        Tokens.screen: root.session.root.screen.name
+
         property int editIndex: -1
         property string providerName: ""
         property string displayName: ""

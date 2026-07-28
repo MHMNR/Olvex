@@ -7,6 +7,7 @@ import Olvex.Services
 import qs.components
 import qs.components.controls
 import qs.components.effects
+import qs.components.widgets
 import qs.services
 import qs.utils
 
@@ -47,39 +48,13 @@ Item {
             Layout.fillWidth: true
             spacing: Tokens.spacing.large
 
-            // Expressive Squircle Art
-            StyledClippingRect {
+            CoverArt {
                 id: artContainer
                 implicitWidth: 84
                 implicitHeight: 84
                 Layout.alignment: Qt.AlignVCenter
-                
-                // M3 Expressive shape morphing: more rounded when playing
-                radius: root.hasActiveMedia && Players.active?.isPlaying ? 42 : 24
-                
-                Behavior on radius {
-                    Anim { type: Anim.FastSpatial }
-                }
-
-                color: Colours.palette.m3surfaceContainerHigh
-                border.color: Qt.rgba(1, 1, 1, 0.1); border.width: 1
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "music_note"
-                    color: Colours.palette.m3onSurfaceVariant
-                    iconPointSize: 24
-                    visible: artImage.status !== Image.Ready
-                }
-
-                Image {
-                    id: artImage
-                    anchors.fill: parent
-                    source: Players.getArtUrl(Players.active)
-                    asynchronous: true
-                    fillMode: Image.PreserveAspectCrop
-                    visible: status === Image.Ready && root.hasActiveMedia
-                }
+                imageSource: root.hasActiveMedia ? Players.getArtUrl(Players.active) : ""
+                fallbackColour: Colours.tPalette.m3surfaceContainerHigh
             }
 
             // Typography & Controls Stack
@@ -167,26 +142,32 @@ Item {
             spacing: 4
             visible: root.hasActiveMedia
 
-            StyledSlider {
-                id: slider
+            StyledProgressBar {
+                id: progressBar
                 Layout.fillWidth: true
-                implicitHeight: Tokens.padding.large
+                implicitHeight: 6
                 enabled: !!Players.active
-                
-                // M3 Expressive: slightly thicker track
-                
-                onPressedChanged: {
-                    if (!pressed) {
-                        Players.seekTo(value);
+                wavy: Players.active?.isPlaying ?? false
+                wavePaused: !Players.active?.isPlaying
+                from: 0
+                to: 1
+                value: root.playerProgress
+                fgColour: Colours.palette.m3primary
+                bgColour: Colours.palette.m3secondaryContainer
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: mouse => {
+                        const frac = mouse.x / width;
+                        Players.seekTo(frac * (Players.interpolatedLength > 0 ? Players.interpolatedLength : 1));
                     }
                 }
 
                 Connections {
                     target: root
                     function onPlayerProgressChanged() {
-                        if (!slider.pressed) {
-                            slider.value = root.playerProgress;
-                        }
+                        progressBar.value = root.playerProgress;
                     }
                 }
             }

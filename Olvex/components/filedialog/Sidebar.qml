@@ -55,9 +55,9 @@ StyledRect {
                     color: place.selected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
                     onClicked: {
                         if (place.modelData === "Home")
-                            root.dialog.cwd = ["Home"];
+                            root.dialog.navigateTo(["Home"]);
                         else
-                            root.dialog.cwd = ["Home", place.modelData];
+                            root.dialog.navigateTo(["Home", place.modelData]);
                     }
                 }
 

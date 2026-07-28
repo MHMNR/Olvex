@@ -55,6 +55,10 @@ void AppearanceSpacing::bindTokens(SpacingTokens* tokens) {
     connectTokenSignals(tokens, this);
 }
 
+int AppearanceSpacing::extraSmall() const {
+    return m_tokens ? static_cast<int>(m_tokens->extraSmall() * m_scale) : 0;
+}
+
 int AppearanceSpacing::small() const {
     return m_tokens ? static_cast<int>(m_tokens->small() * m_scale) : 0;
 }

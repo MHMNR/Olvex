@@ -39,11 +39,27 @@ Item {
     property real sidebarLerp
     readonly property bool needsKeyboard: (content.item as Content)?.needsKeyboard ?? false
 
-    visible: offsetScale < 1
-    anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
+    // Peek behavior: when hovered while closed and bottom panel is off, slide 7px into view
+    property bool hovered: false
+    readonly property bool bottomPanelOff: !(Config.bar.bottomPanel?.enabled ?? true)
+    property real peekOffset: (hovered && !shouldBeActive && bottomPanelOff) ? 17 : 0
+
+    Behavior on peekOffset {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    visible: offsetScale < 1 || (peekOffset > 0 && Config.utilities.enabled)
+    // Render to offscreen layer during peek so the rounded corner is anti-aliased
+    // at the screen-edge clip boundary instead of appearing jaggy
+    layer.enabled: peekOffset > 0 && !shouldBeActive
+    layer.smooth: true
+    // peekOffset pushes it INTO view from bottom; normal hide uses offsetScale
+    anchors.bottomMargin: (-implicitHeight - 5) * offsetScale + peekOffset * offsetScale
     implicitHeight: content.implicitHeight + content.anchors.margins * 2
     implicitWidth: Tokens.sizes.utilities.width
-    opacity: 1 - offsetScale
+    opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)
 
     states: State {
         name: "attachedToSidebar"
@@ -89,7 +105,7 @@ Item {
         anchors.margins: Tokens.padding.large
 
         asynchronous: true
-        active: root.shouldBeActive || root.visible
+        active: true
 
         sourceComponent: Content {
             implicitWidth: root.implicitWidth - content.anchors.margins * 2

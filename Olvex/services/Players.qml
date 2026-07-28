@@ -347,13 +347,14 @@ Singleton {
     readonly property string mediaAccentPath: `${Paths.state}/media/accent.json`
 
     property bool bootAccentLoaded: false
-    property color bootVisualizerAccent: Colours.palette.m3primaryContainer
-    property color bootPlayButtonBg: Colours.palette.m3primary
+    // Stored accents — never bind to Colours.palette (caused binding recursion with pickers).
+    property color bootVisualizerAccent: "#4F378A"
+    property color bootPlayButtonBg: "#CFBCFF"
     property color bootPlayIconColor: Qt.rgba(0, 0, 0, 0.92)
 
-    property color liveVisualizerAccent: bootVisualizerAccent
-    property color livePlayButtonBg: bootPlayButtonBg
-    property color livePlayIconColor: bootPlayIconColor
+    property color liveVisualizerAccent: "#4F378A"
+    property color livePlayButtonBg: "#CFBCFF"
+    property color livePlayIconColor: Qt.rgba(0, 0, 0, 0.92)
     property bool liveAccentReady: false
 
     readonly property color musicVisualizerAccent: liveAccentReady
@@ -365,11 +366,39 @@ Singleton {
     readonly property color musicPlayIconColor: liveAccentReady
         ? livePlayIconColor
         : bootPlayIconColor
+        
+    property color bootSurfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color bootOnSurfaceColor: Colours.palette.m3onSurface
+    property color liveSurfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color liveOnSurfaceColor: Colours.palette.m3onSurface
+    readonly property color musicSurfaceColor: liveAccentReady ? liveSurfaceColor : bootSurfaceColor
+    readonly property color musicOnSurfaceColor: liveAccentReady ? liveOnSurfaceColor : bootOnSurfaceColor
+
     readonly property bool musicAccentReady: liveAccentReady || bootAccentLoaded
-    readonly property color musicOnAccent: Colours.on(musicVisualizerAccent)
+    property color musicOnAccent: "#E9DDFF"
 
     function resolvePlayIconColor(playButtonBg: color, playIconColor: color): color {
         return Qt.rgba(0, 0, 0, 0.92);
+    }
+
+    function _updateMusicOnAccent(): void {
+        root.musicOnAccent = Colours.on(root.musicVisualizerAccent);
+    }
+
+    function syncBootAccentsFromSystem(): void {
+        if (root.liveAccentReady || root.bootAccentLoaded)
+            return;
+        root.bootVisualizerAccent = Colours.palette.m3primaryContainer;
+        root.bootPlayButtonBg = Colours.palette.m3primary;
+        root.bootSurfaceColor = Colours.palette.m3surfaceContainerHigh;
+        root.bootOnSurfaceColor = Colours.palette.m3onSurface;
+        root.bootPlayIconColor = root.resolvePlayIconColor(root.bootPlayButtonBg, null);
+        root.liveVisualizerAccent = root.bootVisualizerAccent;
+        root.livePlayButtonBg = root.bootPlayButtonBg;
+        root.liveSurfaceColor = root.bootSurfaceColor;
+        root.liveOnSurfaceColor = root.bootOnSurfaceColor;
+        root.livePlayIconColor = root.bootPlayIconColor;
+        root._updateMusicOnAccent();
     }
 
     property var _mediaAccentSession: ({})
@@ -388,8 +417,9 @@ Singleton {
 
     property bool _publishingAccent: false
     property bool _ingestingAccent: false
+    property bool _suppressAccentFileIngest: false
 
-    function publishLiveAccent(visualizer: color, playButtonBg: color, artUrl: string, playIconColor: color): void {
+    function publishLiveAccent(visualizer: color, playButtonBg: color, artUrl: string, playIconColor: color, surfaceColor: color, onSurfaceColor: color): void {
         if (root._publishingAccent)
             return;
 
@@ -400,10 +430,15 @@ Singleton {
         const nextIcon = playValid
             ? root.resolvePlayIconColor(nextPlay, playIconColor)
             : root.livePlayIconColor;
+            
+        const nextSurface = (surfaceColor && surfaceColor.a > 0) ? surfaceColor : root.liveSurfaceColor;
+        const nextOnSurface = (onSurfaceColor && onSurfaceColor.a > 0) ? onSurfaceColor : root.liveOnSurfaceColor;
 
         const unchanged = root.liveAccentReady
             && root.liveVisualizerAccent === nextVis
             && root.livePlayButtonBg === nextPlay
+            && root.liveSurfaceColor === nextSurface
+            && root.liveOnSurfaceColor === nextOnSurface
             && root.livePlayIconColor === nextIcon;
         if (unchanged && !artUrl)
             return;
@@ -411,10 +446,14 @@ Singleton {
         root._publishingAccent = true;
         root.liveVisualizerAccent = nextVis;
         root.livePlayButtonBg = nextPlay;
+        root.liveSurfaceColor = nextSurface;
+        root.liveOnSurfaceColor = nextOnSurface;
         root.livePlayIconColor = nextIcon;
         root.liveAccentReady = true;
         root.bootVisualizerAccent = nextVis;
         root.bootPlayButtonBg = nextPlay;
+        root.bootSurfaceColor = nextSurface;
+        root.bootOnSurfaceColor = nextOnSurface;
         root.bootPlayIconColor = nextIcon;
         root.bootAccentLoaded = true;
         if (artUrl && visValid && playValid)
@@ -423,6 +462,7 @@ Singleton {
             root._bumpMediaAccentRevision();
         else if (!unchanged)
             root._bumpMediaAccentRevision();
+        root._updateMusicOnAccent();
         root._publishingAccent = false;
     }
 
@@ -440,7 +480,7 @@ Singleton {
         root.bootPlayIconColor = nextIcon;
         root.liveAccentReady = true;
         root.bootAccentLoaded = true;
-        root._bumpMediaAccentRevision();
+        root._updateMusicOnAccent();
         root._publishingAccent = false;
     }
 
@@ -448,8 +488,10 @@ Singleton {
         root.liveAccentReady = false;
         root.liveVisualizerAccent = root.bootVisualizerAccent;
         root.livePlayButtonBg = root.bootPlayButtonBg;
+        root.liveSurfaceColor = root.bootSurfaceColor;
+        root.liveOnSurfaceColor = root.bootOnSurfaceColor;
         root.livePlayIconColor = root.bootPlayIconColor;
-        root._bumpMediaAccentRevision();
+        root._updateMusicOnAccent();
     }
 
     property string _lastIngestHash: ""
@@ -490,6 +532,7 @@ Singleton {
                 root.livePlayButtonBg = root.bootPlayButtonBg;
                 root.livePlayIconColor = root.bootPlayIconColor;
             }
+            root._updateMusicOnAccent();
         }
 
         for (const key of Object.keys(cache)) {
@@ -515,6 +558,7 @@ Singleton {
         });
         const escaped = payload.replace(/'/g, "'\\''");
         const dir = root.mediaAccentPath.replace(/\/[^/]+$/, "");
+        root._suppressAccentFileIngest = true;
         persistAccentProc.command = ["bash", "-lc",
             `mkdir -p '${dir.replace(/'/g, "'\\''")}' && printf '%s' '${escaped}' > '${root.mediaAccentPath.replace(/'/g, "'\\''")}'`];
         persistAccentProc.running = true;
@@ -693,6 +737,10 @@ Singleton {
         watchChanges: true
         onFileChanged: reload()
         onLoaded: {
+            if (root._suppressAccentFileIngest) {
+                root._suppressAccentFileIngest = false;
+                return;
+            }
             try {
                 root.ingestAccentPayload(JSON.parse(text()));
             } catch (e) {
@@ -948,7 +996,18 @@ Singleton {
         }
     }
 
+    Connections {
+        target: GlobalConfig.appearance
+        function onSchemeVariantChanged() {
+            root.syncBootAccentsFromSystem();
+        }
+        function onThemeModeChanged() {
+            root.syncBootAccentsFromSystem();
+        }
+    }
+
     Component.onCompleted: {
+        root.syncBootAccentsFromSystem();
         root._recomputeActive();
         root.prewarmMediaAccent();
         Qt.callLater(root._syncNow);

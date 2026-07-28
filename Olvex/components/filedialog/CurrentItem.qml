@@ -3,11 +3,14 @@ import QtQuick.Shapes
 import Olvex.Config
 import qs.components
 import qs.services
+import qs.utils
 
 Item {
     id: root
 
     required property var currentItem
+
+    readonly property real cornerRadius: Tokens.rounding.small
 
     implicitWidth: content.implicitWidth + Tokens.padding.larger + content.anchors.rightMargin
     implicitHeight: currentItem ? content.implicitHeight + Tokens.padding.normal + content.anchors.bottomMargin : 0
@@ -18,7 +21,7 @@ Item {
         ShapePath {
             id: path
 
-            readonly property real rounding: Tokens.rounding.small
+            readonly property real rounding: root.cornerRadius
             readonly property bool flatten: root.implicitHeight < rounding * 2
             readonly property real roundingY: flatten ? root.implicitHeight / 2 : rounding
 
@@ -81,8 +84,17 @@ Item {
 
             Connections {
                 function onCurrentItemChanged(): void {
-                    if (root.currentItem)
-                        content.text = qsTr(`"%1" selected`).arg(root.currentItem.modelData.name);
+                    if (!root.currentItem) {
+                        content.text = "";
+                        return;
+                    }
+                    const file = root.currentItem?.modelData;
+                    if (!file) {
+                        content.text = "";
+                        return;
+                    }
+                    content.text = qsTr(`"%1" selected`).arg(
+                        AccountFaces.displayNameFor(file.name, file.path, file.isDir));
                 }
 
                 target: root

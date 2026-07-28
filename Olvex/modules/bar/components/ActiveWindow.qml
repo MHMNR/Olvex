@@ -7,6 +7,7 @@ import Olvex
 import Olvex.Config
 import Olvex.Services
 import qs.components
+import qs.components.images
 import qs.services
 import qs.utils
 import "../../../components/effects"
@@ -32,20 +33,48 @@ Item {
         ? Players.musicVisualizerAccent
         : Colours.palette.m3primaryContainer
     readonly property color musicOnAccent: Players.musicOnAccent
-    readonly property color playButtonBg: root.showMusicPill
-        ? barAccentPicker.playButtonBg
-        : Colours.palette.m3primary
-    readonly property color playIconColor: root.showMusicPill
-        ? barAccentPicker.playIconColor
-        : Qt.rgba(0, 0, 0, 0.92)
+    property color playButtonBg: "#CFBCFF"
+    property color playIconColor: Qt.rgba(0, 0, 0, 0.92)
+    property bool _syncingBarAccent: false
+    property bool _accentRefreshPending: false
     readonly property int musicPillWidth: 48
     readonly property int musicPillHeight: 160
     readonly property int musicArtSize: 34
     readonly property int musicButtonSize: 30
     readonly property int pillSideMargin: (root.musicPillWidth - root.musicArtSize) / 2
 
+    function refreshAccentColors(): void {
+        if (!root.showMusicPill) {
+            root.playButtonBg = Colours.palette.m3primary;
+            root.playIconColor = Qt.rgba(0, 0, 0, 0.92);
+            return;
+        }
+        if (barAccentPicker.accentReady) {
+            root.playButtonBg = barAccentPicker.playButtonBg;
+            root.playIconColor = barAccentPicker.playIconColor;
+        } else if (Players.musicAccentReady) {
+            root.playButtonBg = Players.musicPlayButtonBg;
+            root.playIconColor = Players.musicPlayIconColor;
+        }
+    }
+
+    function queueAccentRefresh(): void {
+        if (root._accentRefreshPending)
+            return;
+        root._accentRefreshPending = true;
+        Qt.callLater(() => {
+            root._accentRefreshPending = false;
+            root.refreshAccentColors();
+        });
+    }
+
     function syncBarAccent(): void {
+        if (root._syncingBarAccent)
+            return;
+        root._syncingBarAccent = true;
         barAccentPicker.setArtUrl(Players.currentArtUrl);
+        root.refreshAccentColors();
+        root._syncingBarAccent = false;
     }
 
     function updateBarArtSource(): void {
@@ -167,6 +196,13 @@ Item {
         root.kickDockSync();
     }
 
+    Connections {
+        target: barAccentPicker
+        function onAccentColorsChanged() {
+            root.queueAccentRefresh();
+        }
+    }
+
     Component.onCompleted: {
         root.updateBarArtSource();
         root.syncBarAccent();
@@ -217,7 +253,8 @@ Item {
                 root.kickDockSync();
         }
         function onMediaAccentPrewarmed() {
-            root.syncBarAccent();
+            if (!barAccentPicker.accentReady)
+                root.syncBarAccent();
         }
         function onMediaAccentRevisionChanged() {
             if (!barAccentPicker.accentReady)
@@ -264,8 +301,10 @@ Item {
     property Title current: text1
 
     clip: true
-    implicitWidth: showMusicPill ? root.musicPillWidth : Math.max(icon.implicitWidth, current.implicitHeight)
-    implicitHeight: showMusicPill ? root.musicPillHeight : icon.implicitHeight + current.implicitWidth + current.anchors.topMargin
+    // Use TextMetrics — Title width/height swap caused implicitWidth ↔ implicitHeight binding recursion.
+    implicitWidth: showMusicPill ? root.musicPillWidth : Math.max(icon.implicitWidth, metrics.height)
+    implicitHeight: showMusicPill ? root.musicPillHeight
+        : Math.min(root.maxHeight, icon.implicitHeight + metrics.width + Tokens.spacing.small)
 
     Loader {
         asynchronous: true
@@ -307,7 +346,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         visible: root.showMusicPill
         property real pillAlpha: 1
-        opacity: !(root.mediaMorph?.active ?? false) ? musicPill.pillAlpha : 0
+        opacity: (root.mediaMorph?.active ?? false) ? 0 : musicPill.pillAlpha
 
         StyledClippingRect {
             anchors.fill: parent
@@ -316,22 +355,17 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: Qt.rgba(0, 0, 0, 0.96)
+                color: Players.musicSurfaceColor
             }
 
-            Loader {
+            NeonWaveVisualizer {
                 anchors.fill: parent
-                active: root.isMusicPlaying && !(root.mediaMorph?.active ?? false)
-                sourceComponent: Component {
-                    NeonWaveVisualizer {
-                        anchors.fill: parent
-                        accentColor: root.musicAccent
-                        numBands: 32
-                        maxHeightRatio: 0.8
-                        active: root.isMusicPlaying
-                        frameInterval: 33
-                    }
-                }
+                accentColor: root.musicAccent
+                numBands: 32
+                maxHeightRatio: 0.8
+                valueMultiplier: 1.5
+                active: root.isMusicPlaying
+                frameInterval: 33
             }
 
             // Expand on any non-button pill body hit (buttons sit above in ColumnLayout)
@@ -362,7 +396,7 @@ Item {
                         radius: width / 2
                         clip: true
                         color: root.hasMusicArt
-                            ? Qt.rgba(1, 1, 1, 0.08)
+                            ? Qt.alpha(Players.musicOnSurfaceColor, 0.08)
                             : Qt.hsla(root.musicAccent.hslHue,
                                 root.musicAccent.hslSaturation,
                                 root.musicAccent.hslLightness * 0.75, 1)
@@ -390,7 +424,7 @@ Item {
                             anchors.centerIn: parent
                             text: "music_note"
                             color: root.hasMusicArt
-                                ? Qt.rgba(1, 1, 1, 0.4)
+                                ? Qt.alpha(Players.musicOnSurfaceColor, 0.4)
                                 : root.musicOnAccent
                             iconPointSize: Tokens.font.size.normal
                             visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
@@ -519,17 +553,18 @@ Item {
 
         transform: [
             Translate {
-                x: root.Config.bar.activeWindow.inverted ? -text.implicitWidth + text.implicitHeight : 0
+                x: root.Config.bar.activeWindow.inverted
+                    ? -metrics.width + metrics.height : 0
             },
             Rotation {
                 angle: root.Config.bar.activeWindow.inverted ? 270 : 90
-                origin.x: text.implicitHeight / 2
-                origin.y: text.implicitHeight / 2
+                origin.x: metrics.height / 2
+                origin.y: metrics.height / 2
             }
         ]
 
-        width: implicitHeight
-        height: implicitWidth
+        width: metrics.height
+        height: metrics.width
 
         Behavior on opacity {
             Anim {}
@@ -612,8 +647,11 @@ Item {
         }
         
         Behavior on radius {
-            Anim {
-                type: Anim.DefaultSpatial
+            enabled: !(root.mediaMorph?.active ?? false)
+            NumberAnimation {
+                duration: 400
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.35
             }
         }
 
@@ -632,6 +670,16 @@ Item {
         StateLayer {
             id: stateLayer
             radius: button.radius
+
+            Behavior on radius {
+                enabled: button.filled && !(root.mediaMorph?.active ?? false)
+                NumberAnimation {
+                    duration: 400
+                    easing.type: Easing.OutBack
+                    easing.overshoot: 1.35
+                }
+            }
+
             showHoverBackground: button.filled
             showRipple: false
             onClicked: {

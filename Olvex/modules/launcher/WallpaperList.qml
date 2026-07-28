@@ -48,6 +48,11 @@ Item {
         scriptModel.values = [];
     }
 
+    function resume(): void {
+        scriptModel.updateValues();
+        Qt.callLater(() => view.jumpToCurrent(true));
+    }
+
     implicitWidth: view.implicitWidth
     implicitHeight: tabs.height + view.implicitHeight + Tokens.padding.normal
 

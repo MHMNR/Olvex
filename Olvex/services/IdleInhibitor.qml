@@ -3,101 +3,123 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Wayland as QSWayland
+import Quickshell.Wayland
 import Olvex.Config
 
 Singleton {
     id: root
 
-    property bool enabled: GlobalConfig.utilities.keepAwake
+    property alias enabled: props.enabled
     readonly property alias enabledSince: props.enabledSince
 
+    function applyState(active) {
+        waylandInhibitor.enabled = active
+        inhibitProcess.running = active
+        if (active)
+            props.enabledSince = new Date()
+    }
+
+    function syncFromConfig() {
+        if (props.enabled === GlobalConfig.utilities.keepAwake)
+            return
+        props.enabled = GlobalConfig.utilities.keepAwake
+    }
+
+    function syncToConfig() {
+        if (GlobalConfig.utilities.keepAwake === props.enabled)
+            return
+        GlobalConfig.utilities.keepAwake = props.enabled
+    }
+
     property Process inhibitProcess: Process {
-        id: inhibitProc
-        command: ["systemd-inhibit", "--what=idle:sleep:handle-lid-switch", "--who=Olvex", "--why=Keep Awake enabled", "sleep", "infinity"]
-        onExited: {
-            if (root.enabled) {
-                // Restart if it exited unexpectedly
-                restartTimer.start();
-            }
+        id: inhibitProcess
+
+        command: [
+            "systemd-inhibit",
+            "--what=idle:sleep:handle-lid-switch:handle-power-key",
+            "--who=Olvex",
+            "--why=Keep Awake enabled",
+            "sleep", "infinity"
+        ]
+        running: false
+
+        onExited: function (exitCode) {
+            if (root.enabled && exitCode !== 0)
+                restartTimer.start()
         }
     }
 
     Timer {
         id: restartTimer
-        interval: 2000
+
+        interval: 500
+        repeat: false
         onTriggered: {
-            if (root.enabled)
-                inhibitProc.running = true;
+            if (root.enabled && !inhibitProcess.running)
+                inhibitProcess.running = true
         }
     }
 
     Component.onCompleted: {
-        // Migrate old persistent state if present
-        if (props.enabled && !GlobalConfig.utilities.keepAwake) {
-            GlobalConfig.utilities.keepAwake = true;
-            GlobalConfig.save();
-        }
-
-        // Delay startup inhibition slightly to ensure system services are ready
-        if (root.enabled) {
-            if (!props.enabledSince) props.enabledSince = new Date();
-            restartTimer.start();
-        }
+        syncFromConfig()
+        applyState(props.enabled)
     }
 
     onEnabledChanged: {
-        if (GlobalConfig.utilities.keepAwake !== enabled) {
-            GlobalConfig.utilities.keepAwake = enabled;
-            GlobalConfig.save();
-        }
+        syncToConfig()
+        applyState(enabled)
+    }
 
-        if (enabled) {
-            props.enabledSince = new Date();
-            inhibitProcess.running = true;
-        } else {
-            inhibitProcess.running = false;
+    Connections {
+        target: GlobalConfig.utilities
+        function onKeepAwakeChanged() {
+            root.syncFromConfig()
+            root.applyState(root.enabled)
         }
     }
 
     PersistentProperties {
         id: props
 
-        property bool enabled
+        property bool enabled: false
         property date enabledSince
 
         reloadableId: "idleInhibitor"
     }
 
-    QSWayland.IdleInhibitor {
-        enabled: root.enabled
+    IdleInhibitor {
+        id: waylandInhibitor
+
+        enabled: false
         window: PanelWindow {
-            screen: Screens.screens[0]
-            visible: root.enabled
-            implicitWidth: 1
-            implicitHeight: 1
+            implicitWidth: 0
+            implicitHeight: 0
             color: "transparent"
-            QSWayland.WlrLayershell.exclusionMode: QSWayland.ExclusionMode.Ignore
-            
-            anchors: Anchor.Top | Anchor.Left
+
+            anchors {
+                right: true
+                bottom: true
+            }
+
+            mask: Region {}
         }
     }
 
     IpcHandler {
         function isEnabled(): bool {
-            return root.enabled;
+            return root.enabled
         }
 
         function toggle(): void {
-            root.enabled = !root.enabled;
+            root.enabled = !root.enabled
         }
 
         function enable(): void {
-            root.enabled = true;
+            root.enabled = true
         }
 
         function disable(): void {
-            root.enabled = false;
+            root.enabled = false
         }
 
         target: "idleInhibitor"

@@ -50,7 +50,11 @@ StyledRect {
 
             StateLayer {
                 disabled: !root.dialog.selectionValid
-                onClicked: root.dialog.accepted(root.folder.currentItem.modelData.path)
+                onClicked: {
+                    const file = root.folder.currentItem?.modelData;
+                    if (file)
+                        root.dialog.accepted(file.path);
+                }
             }
 
             StyledText {

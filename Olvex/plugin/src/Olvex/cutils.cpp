@@ -138,4 +138,8 @@ QString CUtils::toLocalFile(const QUrl& url) const {
     return url.toLocalFile();
 }
 
+qreal CUtils::clamp(qreal value, qreal min, qreal max) {
+    return qBound(min, value, max);
+}
+
 } // namespace olvex

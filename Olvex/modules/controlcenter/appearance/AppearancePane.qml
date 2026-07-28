@@ -35,9 +35,9 @@ Item {
     property bool transparencyEnabled: GlobalConfig.appearance.transparency.enabled ?? false
     property real transparencyBase: GlobalConfig.appearance.transparency.base ?? 0.85
     property real transparencyLayers: GlobalConfig.appearance.transparency.layers ?? 0.4
-    property real borderRounding: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding ?? 1
-    property real borderThickness: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness ?? 1
-    property bool borderFloating: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ?? true
+    property real borderRounding: ((Config && Config.border) ? Config.border : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding ?? 1
+    property real borderThickness: ((Config && Config.border) ? Config.border : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness ?? 1
+    property bool borderFloating: ((Config && Config.border) ? Config.border : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ?? true
 
     property bool desktopClockEnabled: Config.background.desktopClock.enabled ?? false
     property real desktopClockScale: Config.background.desktopClock.scale ?? 1

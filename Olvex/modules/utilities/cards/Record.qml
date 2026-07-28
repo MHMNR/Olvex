@@ -41,25 +41,24 @@ StyledRect {
 
     radius: Tokens.rounding.normal
     
-    // Premium Glass Background
-    color: Qt.alpha(Colours.palette.m3onSurface, 0.05)
-    
-    // Outer Shine Border
+    color: Colours.tileSurface
+    border.width: Colours.light ? 1 : 0
+    border.color: Colours.tileStrokeSubtle
+
     StyledRect {
         anchors.fill: parent
         radius: parent.radius
         color: "transparent"
-        border.color: Qt.rgba(1.0, 1.0, 1.0, 0.15)
+        border.color: Colours.tileShine
         border.width: 1
     }
 
-    // Inner Soft Glow
     StyledRect {
         anchors.fill: parent
         anchors.margins: 1
         radius: parent.radius - 1
         color: "transparent"
-        border.color: Qt.rgba(1.0, 1.0, 1.0, 0.05)
+        border.color: Colours.tileShineSoft
         border.width: 1
     }
     clip: true
@@ -307,7 +306,7 @@ StyledRect {
                         implicitHeight: 36
                         implicitWidth: 108
                         radius: 18
-                        color: Qt.alpha(Colours.palette.m3onSurface, 0.1) // Subtle background pill
+                        color: Colours.tileFill
                         
                         // Sliding Indicator
                         StyledRect {

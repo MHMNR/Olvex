@@ -82,6 +82,10 @@ QtObject {
         Olvex.WallpapersOlvex.requestAccentRefresh(path, isPreview);
     }
 
+    function forceAccentRefresh(path: string, isPreview: bool): void {
+        Olvex.WallpapersOlvex.forceAccentRefresh(path, isPreview);
+    }
+
     function dynamicPaletteCommand(cleanPath: string): list<string> {
         return Olvex.WallpapersOlvex.dynamicPaletteCommand(cleanPath);
     }

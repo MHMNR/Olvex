@@ -87,7 +87,7 @@ StyledWindow {
 
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: visibilities.launcher || visibilities.session || panels.dashboard.needsKeyboard || panels.utilities.needsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: focusGrab.active ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: (morph.active || visibilities.utilities) ? null : regions
 
@@ -122,10 +122,26 @@ StyledWindow {
         }
     }
 
+    Shortcut {
+        sequence: "Escape"
+        onActivated: {
+            if (visibilities.launcher) visibilities.launcher = false;
+            else if (visibilities.dashboard) visibilities.dashboard = false;
+            else if (visibilities.utilities) visibilities.utilities = false;
+            else if (visibilities.clipboard) visibilities.clipboard = false;
+            else if (visibilities.sidebar) visibilities.sidebar = false;
+            else if (visibilities.session) visibilities.session = false;
+            else if (panels.popouts.hasCurrent) {
+                panels.popouts.hasCurrent = false;
+                bar.closeTray();
+            }
+        }
+    }
+
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || (!root.contentItem.Config.dashboard.showOnHover && visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || panels.utilities.needsKeyboard
+        active: (visibilities.launcher && root.contentItem.Config.launcher.enabled) || (visibilities.session && root.contentItem.Config.session.enabled) || (visibilities.sidebar && root.contentItem.Config.sidebar.enabled) || (visibilities.dashboard && root.contentItem.Config.dashboard.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.utilities || visibilities.clipboard
         windows: root.oskWindow && visibilities.osk ? [root, root.oskWindow] : [root]
         onCleared: {
             visibilities.launcher = false;

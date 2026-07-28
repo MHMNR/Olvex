@@ -8,6 +8,17 @@ import qs.utils
 Searcher {
     id: root
 
+    property var _allAppsCache: []
+
+    function warmCatalog(): void {
+        if (_allAppsCache.length === 0)
+            _allAppsCache = query("").map(e => e.entry);
+    }
+
+    function invalidateCatalog(): void {
+        _allAppsCache = [];
+    }
+
     function launch(entry: DesktopEntry): void {
         appDb.incrementFrequency(entry.id);
 
@@ -51,8 +62,13 @@ Searcher {
             keys = ["name"];
             weights = [1];
 
-            if (!search.startsWith(`${prefix}t `))
+            if (!search.startsWith(`${prefix}t `)) {
+                if (!search) {
+                    warmCatalog();
+                    return _allAppsCache;
+                }
                 return query(search).map(e => e.entry);
+            }
         }
 
         const results = query(search.slice(prefix.length + 2)).map(e => e.entry);

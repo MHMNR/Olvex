@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
 import qs.components
+import qs.components.containers
 import qs.components.controls
 import qs.components.effects
 import qs.services
@@ -15,6 +16,13 @@ Item {
     implicitWidth: 980
     implicitHeight: 460
 
+    readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+    readonly property color glassFill: Colours.tileSurface
+    readonly property color glassStroke: Colours.tileStroke
+    readonly property color glassHighlight: Colours.tileInnerLine
+    readonly property color glassTileFill: Colours.tileFillElevated
+    readonly property color glassTileStroke: Colours.tileStroke
+
     property string expression: ""
     property string liveResult: ""
     property bool isFinalized: false
@@ -22,6 +30,7 @@ Item {
     // History State
     property var historyList: []
     property bool showHistory: false
+    readonly property int historyLimit: 100
 
     Settings {
         id: calcSettings
@@ -55,6 +64,48 @@ Item {
 
     onHistoryListChanged: {
         calcSettings.historyJson = JSON.stringify(root.historyList);
+    }
+
+    function syncExprDisplay(moveCursorToEnd) {
+        exprText.text = root.expression === "" ? "0" : formatExpression(root.expression);
+        if (moveCursorToEnd)
+            exprText.cursorPosition = exprText.text.length;
+    }
+
+    function parseHistoryEquation(equation) {
+        if (!equation)
+            return "";
+        return equation.replace(/\s*=$/, "").replace(/,/g, "").trim();
+    }
+
+    function selectHistoryResult(index) {
+        const entry = root.historyList[index];
+        if (!entry?.result)
+            return;
+
+        const clean = entry.result.replace(/,/g, "");
+        root.expression = clean;
+        root.liveResult = entry.result;
+        root.isFinalized = true;
+        syncExprDisplay(true);
+        root.showHistory = false;
+    }
+
+    function selectHistoryEquation(index) {
+        const entry = root.historyList[index];
+        if (!entry?.equation)
+            return;
+
+        const expr = parseHistoryEquation(entry.equation);
+        root.expression = expr;
+        root.isFinalized = false;
+        root.liveResult = evaluateExpression(expr);
+        syncExprDisplay(true);
+        root.showHistory = false;
+    }
+
+    function clearHistory() {
+        root.historyList = [];
     }
 
     function formatNumberString(str) {
@@ -117,15 +168,19 @@ Item {
         let result = evaluateExpression(root.expression);
         if (result === "" || result === "Error") return;
 
-        let currentHistory = root.historyList.slice();
-        currentHistory.unshift({
-            "equation": formatExpression(root.expression) + " =",
-            "result": result
-        });
-        root.historyList = currentHistory;
-        
+        const equation = formatExpression(root.expression) + " =";
+        const last = root.historyList[0];
+        if (!last || last.equation !== equation || last.result !== result) {
+            let currentHistory = root.historyList.slice();
+            currentHistory.unshift({ equation, result });
+            if (currentHistory.length > root.historyLimit)
+                currentHistory = currentHistory.slice(0, root.historyLimit);
+            root.historyList = currentHistory;
+        }
+
         liveResult = result;
         isFinalized = true;
+        syncExprDisplay(true);
     }
 
     function insertAtCursor(str) {
@@ -241,359 +296,508 @@ Item {
         liveResult = evaluateExpression(root.expression);
     }
 
-    // ── CalcButton defined at top level for pragma ComponentBehavior: Bound ────
-    component CalcButton : Item {
-        id: btn
-        property string text: ""
-        property string iconName: ""
-        property bool isOperator: false
-        property bool isPrimary: false
-        property bool isTertiary: false
-        signal clicked()
+    component CalcKey : ButtonBase {
+        id: key
+
+        property string label: ""
+        property string iconGlyph: ""
+        property int role: 0 // 0 digit, 1 operator, 2 utility, 3 equals
 
         Layout.fillWidth: true
         Layout.fillHeight: true
-        Layout.preferredWidth: 40
-        Layout.preferredHeight: 40
-        clip: true
+        Layout.minimumHeight: 56
+        Layout.preferredHeight: role === 3 ? 68 : 60
+        implicitWidth: 68
+        implicitHeight: role === 3 ? 68 : 60
 
-        property real currentRadius: btnState.pressed ? (height / 2) * 0.8 : height / 2
-        Behavior on currentRadius { Anim { type: Anim.FastSpatial } }
+        shapeMorph: true
+        radiusMorph: true
+        defaultRadius: Tokens.rounding.normal
+        pressedRadius: (height || implicitHeight) / 2
+        padding: 0
 
-        scale: btnState.pressed ? 0.85 : 1.0
-        Behavior on scale { Anim { type: Anim.FastSpatial } }
+        type: role === 3 ? ButtonBase.Filled : ButtonBase.Tonal
 
-        Rectangle {
-            anchors.fill: parent
-            radius: btn.currentRadius
-            color: btn.isPrimary
-                ? Colours.palette.m3primary
-                : btn.isTertiary
-                    ? Qt.rgba(Colours.palette.m3tertiary.r, Colours.palette.m3tertiary.g, Colours.palette.m3tertiary.b, 0.22)
-                    : btn.isOperator
-                        ? Qt.rgba(Colours.palette.m3secondary.r, Colours.palette.m3secondary.g, Colours.palette.m3secondary.b, 0.22)
-                        : Qt.rgba(Colours.palette.m3onSurface.r, Colours.palette.m3onSurface.g, Colours.palette.m3onSurface.b, 0.07)
+        inactiveColour: role === 3 ? Colours.palette.m3primary
+            : role === 0 ? Colours.tileFillElevated
+            : role === 2 ? (Colours.light ? Colours.palette.m3tertiaryContainer : Qt.alpha(Colours.palette.m3tertiaryContainer, 0.72))
+            : (Colours.light ? Colours.palette.m3secondaryContainer : Qt.alpha(Colours.palette.m3secondaryContainer, 0.72))
+        inactiveOnColour: role === 3 ? Colours.palette.m3onPrimary
+            : role === 0 ? Colours.palette.m3onSurface
+            : role === 2 ? Colours.palette.m3onTertiaryContainer
+            : Colours.palette.m3onSecondaryContainer
+
+        scale: stateLayer.pressed ? 0.96 : (stateLayer.containsMouse ? 1.02 : 1.0)
+        transformOrigin: Item.Center
+
+        Behavior on scale {
+            SpringAnimation {
+                spring: stateLayer.pressed ? 5.0 : 4.2
+                damping: stateLayer.pressed ? 0.65 : 0.70
+                mass: 1.0
+                epsilon: 0.01
+            }
         }
 
         StyledText {
             anchors.centerIn: parent
-            text: btn.text
-            color: btn.isPrimary
-                ? Colours.palette.m3onPrimary
-                : btn.isTertiary
-                    ? Colours.palette.m3tertiary
-                    : btn.isOperator
-                        ? Colours.palette.m3secondary
-                        : Colours.palette.m3onSurface
-            textPointSize: 22
-            font.weight: 600
-            visible: btn.text !== ""
+            visible: key.label !== ""
+            text: key.label
+            color: key.onColour
+            textPointSize: role === 3 ? 26 : 22
+            font.weight: role === 3 ? Font.Bold : Font.DemiBold
+            font.family: Tokens.font.family.mono
         }
 
         MaterialIcon {
             anchors.centerIn: parent
-            text: btn.iconName
-            color: btn.isPrimary
-                ? Colours.palette.m3onPrimary
-                : btn.isTertiary
-                    ? Colours.palette.m3tertiary
-                    : btn.isOperator
-                        ? Colours.palette.m3secondary
-                        : Colours.palette.m3onSurface
+            visible: key.iconGlyph !== ""
+            text: key.iconGlyph
+            color: key.onColour
             iconPointSize: 24
-            visible: btn.iconName !== ""
         }
 
-        StateLayer {
-            id: btnState
-            radius: btn.currentRadius
-            color: btn.isPrimary
-                ? Colours.palette.m3onPrimary
-                : btn.isTertiary
-                    ? Colours.palette.m3tertiary
-                    : btn.isOperator
-                        ? Colours.palette.m3secondary
-                        : Colours.palette.m3onSurface
-            onClicked: btn.clicked()
+        StyledRect {
+            anchors.fill: parent
+            radius: key.radius
+            color: "transparent"
+            border.width: 1
+            border.color: root.glassTileStroke
+            opacity: key.stateLayer.containsMouse || key.stateLayer.pressed ? 1 : 0.55
+
+            Behavior on opacity {
+                Anim { type: Anim.DefaultEffects }
+            }
+        }
+    }
+
+    component GlassPanel: Item {
+        id: panel
+
+        default property alias content: innerContent.data
+        property int staggerIndex: 0
+        property real radius: Tokens.rounding.large
+
+        property bool _ready: false
+        Component.onCompleted: Qt.callLater(() => panel._ready = true)
+
+        state: panel._ready ? "visible" : "hidden"
+
+        transform: [
+            Scale {
+                id: panelScale
+                origin.x: panel.width / 2
+                origin.y: panel.height / 2
+                xScale: 1.05
+                yScale: 1.05
+            }
+        ]
+
+        states: [
+            State {
+                name: "hidden"
+                PropertyChanges { target: panel; opacity: 0 }
+                PropertyChanges { target: panelScale; xScale: 1.05; yScale: 1.05 }
+            },
+            State {
+                name: "visible"
+                PropertyChanges { target: panel; opacity: 1 }
+                PropertyChanges { target: panelScale; xScale: 1.0; yScale: 1.0 }
+            }
+        ]
+
+        transitions: Transition {
+            from: "hidden"
+            to: "visible"
+            SequentialAnimation {
+                PauseAnimation { duration: panel.staggerIndex * 60 }
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: panel
+                        property: "opacity"
+                        duration: 400
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: root.m3Emphasized
+                    }
+                    NumberAnimation {
+                        target: panelScale
+                        properties: "xScale,yScale"
+                        duration: 400
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: root.m3Emphasized
+                    }
+                }
+            }
+        }
+
+        StyledRect {
+            id: panelBg
+            anchors.fill: parent
+            radius: panel.radius
+            color: root.glassFill
+            border.width: 1
+            border.color: root.glassStroke
+
+            StyledRect {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: parent.radius - 1
+                color: "transparent"
+                border.color: root.glassHighlight
+                border.width: 1
+            }
+
+            StyledClippingRect {
+                id: innerContent
+                anchors.fill: parent
+                anchors.margins: 4
+                radius: panelBg.radius - 4
+                color: "transparent"
+                clip: true
+            }
         }
     }
 
     RowLayout {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
-        spacing: Tokens.spacing.large
+        spacing: Tokens.spacing.normal
 
-        // ── Left Column (Display Card) ──────────────────────────────────
-        StyledRect {
+        GlassPanel {
+            id: displayCard
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredWidth: 1
-            radius: Tokens.rounding.large
-            color: Qt.alpha(Colours.palette.m3onSurface, 0.05)
-            border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
-            clip: true
-
-            StyledRect {
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: parent.radius - 1
-                color: "transparent"
-                border.color: Qt.rgba(1.0, 1.0, 1.0, 0.04)
-                border.width: 1
-            }
+            Layout.preferredWidth: 1.1
+            staggerIndex: 0
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Tokens.padding.large
                 spacing: Tokens.spacing.normal
 
-            // History Header
-            RowLayout {
-                Layout.fillWidth: true
-                Item { Layout.fillWidth: true } // Spacer
-                
-                Item {
-                    id: histBtn
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
-                    
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: stateLayer.pressed ? 10 : 20
-                        color: root.showHistory ? Colours.palette.m3primaryContainer : "transparent"
-                        Behavior on radius { Anim { type: Anim.FastSpatial } }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.small
+
+                    StyledText {
+                        visible: root.showHistory
+                        text: qsTr("History")
+                        color: Colours.palette.m3onSurface
+                        textPointSize: Tokens.font.size.normal
+                        font.weight: Font.DemiBold
                     }
-                    
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "history"
-                        iconPointSize: 22
-                        color: root.showHistory ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+
+                    Item { Layout.fillWidth: true }
+
+                    ButtonBase {
+                        id: clearHistoryBtn
+                        visible: root.showHistory && root.historyList.length > 0
+                        implicitWidth: 36
+                        implicitHeight: 36
+                        isRound: true
+                        inactiveColour: "transparent"
+                        inactiveOnColour: Colours.palette.m3onSurfaceVariant
+                        onClicked: root.clearHistory()
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "delete_sweep"
+                            iconPointSize: Tokens.font.size.large
+                            color: clearHistoryBtn.onColour
+                        }
                     }
-                    
-                    CustomMouseArea {
-                        id: stateLayer
-                        anchors.fill: parent
+
+                    ButtonBase {
+                        id: historyBtn
+                        checked: root.showHistory
+                        isRound: true
+                        radiusMorph: true
+                        shapeMorph: true
+                        checkedRadius: Tokens.rounding.normal
+                        implicitWidth: 36
+                        implicitHeight: 36
+                        inactiveColour: "transparent"
+                        activeColour: Colours.tileFillHover
+                        inactiveOnColour: Colours.palette.m3onSurfaceVariant
+                        activeOnColour: Colours.palette.m3onSurface
                         onClicked: root.showHistory = !root.showHistory
-                    }
-                }
-            }
 
-            // History List
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                ListView {
-                    id: historyView
-                    anchors.fill: parent
-                    clip: true
-                    model: root.historyList
-                    spacing: Tokens.spacing.large
-                    
-                    visible: opacity > 0
-                    opacity: root.showHistory ? 1.0 : 0.0
-                    Behavior on opacity { Anim { type: Anim.FastSpatial } }
-
-                    delegate: Item {
-                        width: historyView.width
-                        height: col.implicitHeight
-                        
-                        ColumnLayout {
-                            id: col
-                            anchors.right: parent.right
-                            spacing: 4
-
-                            StyledText {
-                                Layout.alignment: Qt.AlignRight
-                                text: modelData?.equation ?? ""
-                                color: Colours.palette.m3onSurfaceVariant
-                                textPointSize: 14
-                            }
-                            StyledText {
-                                Layout.alignment: Qt.AlignRight
-                                text: modelData?.result ?? ""
-                                color: Colours.palette.m3onSurface
-                                textPointSize: 24
-                                font.weight: 600
-                            }
-                        }
-
-                        CustomMouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                const result = modelData?.result ?? "";
-                                if (!result)
-                                    return;
-                                root.expression = result.replace(/,/g, '');
-                                root.isFinalized = true;
-                                root.liveResult = result;
-                            }
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "history"
+                            iconPointSize: Tokens.font.size.large
+                            color: historyBtn.onColour
                         }
                     }
                 }
-            }
 
-            // Main Display
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 140
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
 
-                // TOP TEXT: Expression
-                // TOP TEXT: Expression Input with Cursor
-                TextInput {
-                    id: exprText
-                    anchors.right: parent.right
-                    anchors.bottom: bottomText.top
-                    anchors.bottomMargin: Tokens.spacing.normal
-
-                    text: root.expression === "" ? "0" : formatExpression(root.expression)
-                    color: root.isFinalized ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface
-                    font.pixelSize: root.isFinalized ? 24 : 42
-                    font.weight: root.isFinalized ? 600 : 700
-                    font.family: Tokens.font.family.sans
-                    renderType: Text.QtRendering
-                    
-                    // Smooth font size transition when switching between edit/final state
-                    Behavior on font.pixelSize {
-                        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
-                    }
-                    
-                    cursorVisible: !root.isFinalized
-                    cursorDelegate: Rectangle {
-                        width: 3
-                        color: Colours.palette.m3primary
-                        visible: exprText.cursorVisible
-                    }
-                    
-                    selectionColor: Colours.palette.m3primaryContainer
-                    selectedTextColor: Colours.palette.m3onPrimaryContainer
-                    
-                    // We prevent native keyboard input here since we have on-screen buttons, 
-                    // but we allow cursor movement via clicks.
-                    readOnly: true 
-
-                    scale: Math.min(1.0, parent.width / (implicitWidth + 20))
-                    transformOrigin: Item.BottomRight
-
-                    MouseArea {
+                    VerticalFadeFlickable {
+                        id: historyScroll
                         anchors.fill: parent
-                        cursorShape: Qt.IBeamCursor
-                        onPressed: (mouse) => {
-                            if (root.isFinalized) root.isFinalized = false;
-                            exprText.forceActiveFocus();
-                            exprText.cursorPosition = exprText.positionAt(mouse.x, mouse.y);
+                        visible: root.showHistory && root.historyList.length > 0
+                        opacity: visible ? 1 : 0
+                        scale: visible ? 1 : 0.96
+                        contentWidth: width
+                        contentHeight: historyColumn.height
+                        flickableDirection: Flickable.VerticalFlick
+                        transformOrigin: Item.TopRight
+
+                        Behavior on opacity {
+                            Anim { type: Anim.Emphasized }
+                        }
+
+                        Behavior on scale {
+                            Anim { type: Anim.Emphasized }
+                        }
+
+                        onVisibleChanged: {
+                            if (visible)
+                                contentY = 0;
+                        }
+
+                        Column {
+                            id: historyColumn
+                            width: historyScroll.width
+                            spacing: Tokens.spacing.normal
+
+                            Repeater {
+                                model: root.historyList
+
+                                StyledRect {
+                                    id: histRow
+
+                                    required property int index
+                                    required property var modelData
+
+                                    width: historyColumn.width
+                                    radius: Tokens.rounding.normal
+                                    color: root.glassTileFill
+                                    border.width: 1
+                                    border.color: root.glassTileStroke
+                                    implicitHeight: histCol.implicitHeight + Tokens.padding.normal * 2
+
+                                    ColumnLayout {
+                                        id: histCol
+                                        anchors.fill: parent
+                                        anchors.margins: Tokens.padding.normal
+                                        spacing: 2
+
+                                        StyledText {
+                                            Layout.fillWidth: true
+                                            Layout.alignment: Qt.AlignRight
+                                            horizontalAlignment: Text.AlignRight
+                                            text: histRow.modelData?.equation ?? ""
+                                            color: Colours.palette.m3onSurfaceVariant
+                                            textPointSize: Tokens.font.size.small
+                                            font.family: Tokens.font.family.mono
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.selectHistoryEquation(histRow.index)
+                                            }
+                                        }
+
+                                        StyledText {
+                                            Layout.fillWidth: true
+                                            Layout.alignment: Qt.AlignRight
+                                            horizontalAlignment: Text.AlignRight
+                                            text: histRow.modelData?.result ?? ""
+                                            color: Colours.palette.m3onSurface
+                                            textPointSize: Tokens.font.size.large
+                                            font.weight: Font.DemiBold
+                                            font.family: Tokens.font.family.mono
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.selectHistoryResult(histRow.index)
+                                            }
+                                        }
+                                    }
+
+                                    StateLayer {
+                                        radius: Tokens.rounding.normal
+                                        color: Colours.palette.m3onSurface
+                                        showRipple: false
+                                        onClicked: root.selectHistoryResult(histRow.index)
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    property bool _fin: root.isFinalized
-                    on_FinChanged: scaleAnim.restart()
-                    SequentialAnimation {
-                        id: scaleAnim
-                        NumberAnimation { target: exprText; property: "scale"; to: 0.92; duration: 80; easing.type: Easing.OutQuad }
-                        NumberAnimation { target: exprText; property: "scale"; to: Math.min(1.0, parent.width / (exprText.implicitWidth + 20)); duration: 280; easing.type: Easing.OutBack; easing.overshoot: 1.5 }
-                    }
-                }
+                    StyledText {
+                        anchors.centerIn: parent
+                        visible: root.showHistory && root.historyList.length === 0
+                        opacity: visible ? 1 : 0
+                        scale: visible ? 1 : 0.96
+                        horizontalAlignment: Text.AlignHCenter
+                        text: qsTr("No calculations yet")
+                        color: Colours.palette.m3onSurfaceVariant
+                        textPointSize: Tokens.font.size.normal
 
-                // BOTTOM TEXT: Live Result
-                StyledText {
-                    id: bottomText
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    renderType: Text.QtRendering
+                        Behavior on opacity {
+                            Anim { type: Anim.Emphasized }
+                        }
 
-                    // Smooth font size transition for result display
-                    Behavior on font.pixelSize {
-                        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
-                    }
-                    // Fade result smoothly when switching edit state
-                    Behavior on opacity {
-                        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+                        Behavior on scale {
+                            Anim { type: Anim.Emphasized }
+                        }
                     }
 
-                    text: root.isFinalized ? root.liveResult : (root.liveResult !== "" ? "= " + root.liveResult : "")
-                    color: root.isFinalized ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                    textPointSize: root.isFinalized ? 54 : 32
-                    font.weight: root.isFinalized ? 700 : 600
-                    font.family: Tokens.font.family.sans
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: Tokens.spacing.small
+                        visible: !root.showHistory
+                        opacity: visible ? 1 : 0
+                        scale: visible ? 1 : 0.96
+                        transformOrigin: Item.BottomRight
 
-                    scale: Math.min(1.0, parent.width / (implicitWidth + 20))
-                    transformOrigin: Item.BottomRight
+                        Behavior on opacity {
+                            Anim { type: Anim.Emphasized }
+                        }
 
-                    property bool _fin: root.isFinalized
-                    on_FinChanged: resultScaleAnim.restart()
-                    SequentialAnimation {
-                        id: resultScaleAnim
-                        NumberAnimation { target: bottomText; property: "scale"; to: 0.92; duration: 80; easing.type: Easing.OutQuad }
-                        NumberAnimation { target: bottomText; property: "scale"; to: Math.min(1.0, parent.width / (bottomText.implicitWidth + 20)); duration: 280; easing.type: Easing.OutBack; easing.overshoot: 1.5 }
+                        Behavior on scale {
+                            Anim { type: Anim.Emphasized }
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            TextInput {
+                                id: exprText
+                                anchors.right: parent.right
+                                anchors.bottom: bottomText.top
+                                anchors.bottomMargin: Tokens.spacing.small
+
+                                text: root.expression === "" ? "0" : formatExpression(root.expression)
+                                color: root.isFinalized
+                                    ? Colours.palette.m3onSurfaceVariant
+                                    : Colours.palette.m3onSurface
+                                font.pixelSize: root.isFinalized ? 28 : 44
+                                font.weight: root.isFinalized ? Font.DemiBold : Font.Bold
+                                font.family: Tokens.font.family.mono
+                                renderType: Text.NativeRendering
+
+                                Behavior on color {
+                                    CAnim {}
+                                }
+
+                                Behavior on font.pixelSize {
+                                    Anim { type: Anim.Emphasized }
+                                }
+
+                                cursorVisible: !root.isFinalized
+                                cursorDelegate: Rectangle {
+                                    width: 3
+                                    radius: 1
+                                    color: Colours.palette.m3primary
+                                    visible: exprText.cursorVisible
+                                }
+
+                                selectionColor: Colours.palette.m3primaryContainer
+                                selectedTextColor: Colours.palette.m3onPrimaryContainer
+                                readOnly: true
+
+                                scale: Math.min(1.0, parent.width / (implicitWidth + 24))
+                                transformOrigin: Item.BottomRight
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.IBeamCursor
+                                    onPressed: mouse => {
+                                        if (root.isFinalized)
+                                            root.isFinalized = false;
+                                        exprText.forceActiveFocus();
+                                        exprText.cursorPosition = exprText.positionAt(mouse.x, mouse.y);
+                                    }
+                                }
+                            }
+
+                            StyledText {
+                                id: bottomText
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+
+                                text: root.isFinalized
+                                    ? root.liveResult
+                                    : (root.liveResult !== "" ? "= " + root.liveResult : "")
+                                color: root.isFinalized
+                                    ? Colours.tPalette.m3primary
+                                    : Colours.palette.m3onSurface
+                                textPointSize: root.isFinalized ? 56 : 30
+                                font.weight: Font.Bold
+                                font.family: Tokens.font.family.mono
+
+                                Behavior on color {
+                                    CAnim {}
+                                }
+
+                                Behavior on textPointSize {
+                                    Anim { type: Anim.Emphasized }
+                                }
+
+                                scale: Math.min(1.0, parent.width / (implicitWidth + 24))
+                                transformOrigin: Item.BottomRight
+                            }
+                        }
                     }
                 }
             }
         }
-        }
 
-        // ── Right Column (Numpad Card) ───────────────────────────────────────
-        StyledRect {
+        GlassPanel {
+            id: keypadCard
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredWidth: 1
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-            radius: Tokens.rounding.large
-            color: Qt.alpha(Colours.palette.m3onSurface, 0.05)
-            border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
-            clip: true
-
-            StyledRect {
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: parent.radius - 1
-                color: "transparent"
-                border.color: Qt.rgba(1.0, 1.0, 1.0, 0.04)
-                border.width: 1
-            }
+            staggerIndex: 1
 
             GridLayout {
                 anchors.fill: parent
-                anchors.margins: Tokens.padding.large
+                anchors.margins: Tokens.padding.normal
                 columns: 4
-                rowSpacing: Tokens.spacing.normal
-                columnSpacing: Tokens.spacing.normal
+                rowSpacing: Tokens.spacing.small
+                columnSpacing: Tokens.spacing.small
 
-            // Row 1
-            CalcButton { text: "AC"; isTertiary: true; onClicked: root.clear() }
-            CalcButton { text: "("; isTertiary: true; onClicked: root.inputBracket("(") }
-            CalcButton { text: ")"; isTertiary: true; onClicked: root.inputBracket(")") }
-            CalcButton { text: "%"; isTertiary: true; onClicked: root.inputOperator("%") }
+                CalcKey { label: "AC"; role: 2; onClicked: root.clear() }
+                CalcKey { label: "("; role: 2; onClicked: root.inputBracket("(") }
+                CalcKey { label: ")"; role: 2; onClicked: root.inputBracket(")") }
+                CalcKey { label: "%"; role: 2; onClicked: root.inputOperator("%") }
 
-            // Row 2
-            CalcButton { text: "7"; onClicked: root.inputDigit("7") }
-            CalcButton { text: "8"; onClicked: root.inputDigit("8") }
-            CalcButton { text: "9"; onClicked: root.inputDigit("9") }
-            CalcButton { text: "÷"; isOperator: true; onClicked: root.inputOperator("÷") }
+                CalcKey { label: "7"; role: 0; onClicked: root.inputDigit("7") }
+                CalcKey { label: "8"; role: 0; onClicked: root.inputDigit("8") }
+                CalcKey { label: "9"; role: 0; onClicked: root.inputDigit("9") }
+                CalcKey { label: "÷"; role: 1; onClicked: root.inputOperator("÷") }
 
-            // Row 3
-            CalcButton { text: "4"; onClicked: root.inputDigit("4") }
-            CalcButton { text: "5"; onClicked: root.inputDigit("5") }
-            CalcButton { text: "6"; onClicked: root.inputDigit("6") }
-            CalcButton { text: "×"; isOperator: true; onClicked: root.inputOperator("×") }
+                CalcKey { label: "4"; role: 0; onClicked: root.inputDigit("4") }
+                CalcKey { label: "5"; role: 0; onClicked: root.inputDigit("5") }
+                CalcKey { label: "6"; role: 0; onClicked: root.inputDigit("6") }
+                CalcKey { label: "×"; role: 1; onClicked: root.inputOperator("×") }
 
-            // Row 4
-            CalcButton { text: "1"; onClicked: root.inputDigit("1") }
-            CalcButton { text: "2"; onClicked: root.inputDigit("2") }
-            CalcButton { text: "3"; onClicked: root.inputDigit("3") }
-            CalcButton { text: "-"; isOperator: true; onClicked: root.inputOperator("-") }
+                CalcKey { label: "1"; role: 0; onClicked: root.inputDigit("1") }
+                CalcKey { label: "2"; role: 0; onClicked: root.inputDigit("2") }
+                CalcKey { label: "3"; role: 0; onClicked: root.inputDigit("3") }
+                CalcKey { label: "-"; role: 1; onClicked: root.inputOperator("-") }
 
-            // Row 5
-            CalcButton { text: "0"; onClicked: root.inputDigit("0") }
-            CalcButton { text: "."; onClicked: root.inputDecimal() }
-            CalcButton { iconName: "backspace"; onClicked: root.backspace() }
-            CalcButton { text: "+"; isOperator: true; onClicked: root.inputOperator("+") }
+                CalcKey { label: "0"; role: 0; onClicked: root.inputDigit("0") }
+                CalcKey { label: "."; role: 0; onClicked: root.inputDecimal() }
+                CalcKey { iconGlyph: "backspace"; role: 2; onClicked: root.backspace() }
+                CalcKey { label: "+"; role: 1; onClicked: root.inputOperator("+") }
 
-            // Row 6
-            CalcButton { text: "="; isPrimary: true; Layout.columnSpan: 4; onClicked: root.calculateResult() }
-        }
+                CalcKey {
+                    label: "="
+                    role: 3
+                    Layout.columnSpan: 4
+                    onClicked: root.calculateResult()
+                }
+            }
         }
     }
 }

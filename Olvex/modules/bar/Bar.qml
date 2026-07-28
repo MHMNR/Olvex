@@ -44,6 +44,8 @@ ColumnLayout {
         );
     }
     readonly property bool netSpeedEnabled: GlobalConfig.bar?.netSpeed?.enabled ?? false
+    // OS/launcher icon is pinned to the bar bottom — never part of reorderable entries.
+    readonly property var barEntries: (Config.bar.entries ?? []).filter(entry => entry.id !== "logo")
 
     function closeTray(): void {
         if (!Config.bar.tray.compact)
@@ -144,7 +146,7 @@ ColumnLayout {
     Repeater {
         id: repeater
 
-        model: Config.bar.entries
+        model: root.barEntries
 
         DelegateChooser {
             role: "id"
@@ -153,12 +155,6 @@ ColumnLayout {
                 roleValue: "spacer"
                 delegate: WrappedLoader {
                     Layout.fillHeight: enabled
-                }
-            }
-            DelegateChoice {
-                roleValue: "logo"
-                delegate: WrappedLoader {
-                    sourceComponent: OsIcon {}
                 }
             }
             DelegateChoice {
@@ -237,23 +233,29 @@ ColumnLayout {
             return null;
         }
 
-        function findLastEnabled(): Item {
-            for (let i = repeater.count - 1; i >= 0; i--) {
-                const item = repeater.itemAt(i);
-                if (item?.enabled)
-                    return item;
-            }
-            return null;
-        }
-
         asynchronous: true
         Layout.alignment: Qt.AlignHCenter
 
-        // Cursed ahh thing to add padding to first and last enabled components
+        // Top padding on first entry; bottom padding is on the hardcoded OsIcon below.
         Layout.topMargin: findFirstEnabled() === this ? root.vPadding : 0
-        Layout.bottomMargin: findLastEnabled() === this ? root.vPadding : 0
 
         visible: enabled
         active: enabled
+    }
+
+    // Hardcoded bottom launcher / OS icon (ignores bar.entries order).
+    Item {
+        Layout.alignment: Qt.AlignHCenter
+        Layout.bottomMargin: root.vPadding
+        implicitWidth: osIconLoader.implicitWidth
+        implicitHeight: osIconLoader.implicitHeight
+
+        Loader {
+            id: osIconLoader
+
+            anchors.centerIn: parent
+            asynchronous: true
+            sourceComponent: OsIcon {}
+        }
     }
 }

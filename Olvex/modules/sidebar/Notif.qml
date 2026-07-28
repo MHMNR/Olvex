@@ -22,19 +22,19 @@ StyledRect {
 
     radius: Tokens.rounding.small
     color: {
-        const c = root.modelData?.urgency === "critical" ? Colours.palette.m3secondaryContainer : Qt.alpha(Colours.palette.m3onSurface, 0.08);
+        const c = root.modelData?.urgency === "critical" ? Colours.palette.m3secondaryContainer : Colours.tileFill;
         return expanded ? c : "transparent";
     }
 
     border.width: expanded ? 1 : 0
-    border.color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
+    border.color: Colours.tileStroke
 
     StyledRect {
         anchors.fill: parent
         anchors.margins: 1
         radius: parent.radius - 1
         color: "transparent"
-        border.color: Qt.rgba(1.0, 1.0, 1.0, 0.04)
+        border.color: Colours.tileInnerLine
         border.width: expanded ? 1 : 0
         visible: expanded
     }
@@ -64,7 +64,10 @@ StyledRect {
     TextMetrics {
         id: summaryHeightMetrics
 
-        font: summary.font
+        font.pixelSize: summary.resolvedPixelSize
+        font.pointSize: -1
+        font.family: summary.font.family
+        font.weight: summary.font.weight
         text: " " // Use this height to prevent weird characters from changing the line height
     }
 

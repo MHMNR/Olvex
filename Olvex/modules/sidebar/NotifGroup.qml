@@ -58,17 +58,17 @@ StyledRect {
 
     clip: true
     radius: Tokens.rounding.normal
-    color: Qt.alpha(Colours.palette.m3onSurface, 0.05)
+    color: Colours.tileSurface
 
     border.width: 1
-    border.color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
+    border.color: Colours.tileStroke
 
     StyledRect {
         anchors.fill: parent
         anchors.margins: 1
         radius: parent.radius - 1
         color: "transparent"
-        border.color: Qt.rgba(1.0, 1.0, 1.0, 0.04)
+        border.color: Colours.tileInnerLine
         border.width: 1
     }
 

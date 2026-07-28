@@ -73,6 +73,13 @@ CustomMouseArea {
             return;
         if (event.x < bar.implicitWidth) {
             bar.handleWheel(event.y, event.angleDelta);
+            event.accepted = true;
+            return;
+        }
+        if (visibilities.launcher
+                && inBottomPanel(panels.launcher, event.x, event.y)
+                && withinPanelWidth(panels.launcher, event.x, event.y)) {
+            event.accepted = false;
         }
     }
 
@@ -83,7 +90,34 @@ CustomMouseArea {
     propagateComposedEvents: true
     onPressed: event => {
         dragStart = Qt.point(event.x, event.y);
-        
+
+        // Click peeked dashboard to open
+        if (Config.dashboard.showOnHover && inTopPanel(panels.dashboard, event.x, event.y) && !visibilities.dashboard) {
+            visibilities.dashboard = true;
+            dashboardShortcutActive = true;
+            event.accepted = true;
+            return;
+        }
+
+        // Click peeked utilities to open (only when bottom panel is off and utilities is peeking)
+        const bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
+        if (bottomPanelOff && panels.utilities.hovered && !visibilities.utilities
+                && inBottomPanel(panels.utilities, event.x, event.y, true)) {
+            visibilities.utilities = true;
+            utilitiesShortcutActive = true;
+            event.accepted = true;
+            return;
+        }
+
+        // Bottom-right corner click opens utilities (only when bottom panel is off)
+        if (bottomPanelOff && !visibilities.utilities
+                && event.x >= width - 60 && event.y >= height - 60) {
+            visibilities.utilities = true;
+            utilitiesShortcutActive = true;
+            event.accepted = true;
+            return;
+        }
+
         // NUCLEAR FIX: If dashboard is open, DO NOT accept clicks in the main area.
         // This forces events to propagate to the buttons.
         if (visibilities.dashboard && event.y > root.borderThickness && event.x > bar.implicitWidth) {
@@ -120,12 +154,15 @@ CustomMouseArea {
                 root.panels.osd.hovered = false;
             }
 
-            if (!dashboardShortcutActive)
+            if (!dashboardShortcutActive) {
                 visibilities.dashboard = false;
+            }
+            root.panels.dashboard.hovered = false;
 
             // Close utilities on hover-away
             if (!utilitiesShortcutActive)
                 visibilities.utilities = false;
+            root.panels.utilities.hovered = false;
 
             if (!bottomPanelShortcutActive)
                 visibilities.bottomPanel = false;
@@ -201,15 +238,19 @@ CustomMouseArea {
         if (visibilities.wallpaperLauncher && inBottomPanel(panels.launcher, x, y))
             wallpaperShortcutActive = false;
 
-        // Show dashboard on hover
+        // Peek dashboard on hover
         const showDashboard = Config.dashboard.showOnHover && inTopPanel(panels.dashboard, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!dashboardShortcutActive) {
-            visibilities.dashboard = showDashboard;
+            panels.dashboard.hovered = showDashboard;
+            if (!showDashboard) {
+                visibilities.dashboard = false;
+            }
         } else if (showDashboard) {
             // If hovering over dashboard area while in shortcut mode, transition to hover control
             dashboardShortcutActive = false;
+            panels.dashboard.hovered = true;
         }
 
         // Show/hide dashboard on drag (for touchscreen devices)
@@ -220,20 +261,17 @@ CustomMouseArea {
                 visibilities.dashboard = false;
         }
 
-        // Show utilities on hover
-        const showUtilities = inBottomPanel(panels.utilities, x, y, true);
+        // Show/hide utilities hover peek when bottom panel is off
+        const _bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
+        if (_bottomPanelOff && !visibilities.utilities && !utilitiesShortcutActive) {
+            const inUtilitiesHover = inBottomPanel(panels.utilities, x, y, true);
+            panels.utilities.hovered = inUtilitiesHover;
+        } else if (!_bottomPanelOff) {
+            panels.utilities.hovered = false;
+        }
 
-        // Always update visibility based on hover if not in shortcut mode
-        // DISABLED: Remove hover-to-open for utilities (button-only control)
-        // if (!utilitiesShortcutActive) {
-        //     visibilities.utilities = showUtilities;
-        // } else if (showUtilities) {
-        //     // If hovering over utilities area while in shortcut mode, transition to hover control
-        //     utilitiesShortcutActive = false;
-        // }
-
-        // Show bottomPanel on hover
-        const showBottomPanel = root.inBottomPanelArea(x, y);
+        // Show bottomPanel on hover (suppressed while session/power menu is open)
+        const showBottomPanel = !visibilities.session && root.inBottomPanelArea(x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!bottomPanelShortcutActive) {
@@ -279,6 +317,7 @@ CustomMouseArea {
 
                 if (!inDashboardArea) {
                     root.visibilities.dashboard = false;
+                    root.panels.dashboard.hovered = false;
                 }
                 if (!inOsdArea) {
                     root.visibilities.osd = false;
@@ -333,6 +372,13 @@ CustomMouseArea {
                     root.bottomPanelShortcutActive = true;
                 }
             } else {
+                root.bottomPanelShortcutActive = false;
+            }
+        }
+
+        function onSessionChanged() {
+            if (root.visibilities.session) {
+                root.visibilities.bottomPanel = false;
                 root.bottomPanelShortcutActive = false;
             }
         }

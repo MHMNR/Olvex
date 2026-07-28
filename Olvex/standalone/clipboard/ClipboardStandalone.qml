@@ -22,6 +22,7 @@ Window {
     ListModel { id: clipListModel }
     property string searchQuery: ""
     property int selectedIndex: 0
+    property string selectedEntryId: ""
     property string statusMessage: ""
     property bool busy: false
     property string filterMode: "all"
@@ -29,9 +30,9 @@ Window {
     property int selectionPulse: 0
     property int previewRev: 0
     property int imageRev: 0
-    property real shellOpacity: 0
-    property real shellScale: 1
-    property real previewOpacity: 0
+    property real shellOpacity: 1
+    property real shellScale: 0.96
+    property real previewOpacity: 1
     property string previewEditText: ""
     property string previewAppliedText: ""
     property string previewLastText: ""
@@ -109,6 +110,10 @@ Window {
             readonly property int spatialFastMs: 150
             readonly property int spatialDefaultMs: 250
             readonly property real expressiveOvershoot: 1.15
+            // M3 emphasized — spatial + effects (m3.material.io)
+            readonly property var emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+            readonly property int emphasizedLong: 400
+            readonly property int emphasizedMedium: 250
         }
         readonly property QtObject type: QtObject {
             readonly property font title: Qt.font({ family: "Sans Serif", pixelSize: 15, weight: Font.DemiBold })
@@ -392,15 +397,14 @@ Window {
         id: pbtn
         property string label: ""
         property string glyph: ""
-        property bool enabled: true
         signal triggered()
 
         implicitHeight: 40
-        implicitWidth: Math.max(96, pbtnRow.implicitWidth + 28)
+        implicitWidth: Math.max(92, pbtnRow.implicitWidth + 28)
         radius: tok.shape.full
         color: pMa.pressed ? Qt.darker(tok.palette.primary, 1.1) : tok.palette.primary
-        opacity: pbtn.enabled ? 1 : 0.38
-        scale: pbtn.enabled && pMa.pressed ? 0.92 : (pbtn.enabled && pMa.containsMouse ? 1.05 : 1.0)
+        opacity: enabled ? 1 : 0.38
+        scale: enabled && pMa.pressed ? 0.92 : (enabled && pMa.containsMouse ? 1.05 : 1.0)
 
         Behavior on scale {
             enabled: !win.reducedMotion
@@ -423,14 +427,26 @@ Window {
             id: pbtnRow
             anchors.centerIn: parent
             spacing: 6
-            Text {
+
+            Item {
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 22
+                Layout.alignment: Qt.AlignVCenter
                 visible: pbtn.glyph.length > 0
-                text: pbtn.glyph
-                font.pixelSize: 12
-                font.weight: Font.Bold
-                color: tok.palette.fgPrimary
+
+                Text {
+                    anchors.centerIn: parent
+                    text: pbtn.glyph
+                    font.pixelSize: 12
+                    font.weight: Font.Bold
+                    font.family: pbtn.glyph.length > 1 ? "Monospace" : "Sans Serif"
+                    horizontalAlignment: Text.AlignHCenter
+                    color: tok.palette.fgPrimary
+                }
             }
+
             Text {
+                Layout.alignment: Qt.AlignVCenter
                 text: pbtn.label
                 font: tok.type.labelEmph
                 color: tok.palette.fgPrimary
@@ -443,7 +459,7 @@ Window {
             enabled: pbtn.enabled
             hoverEnabled: pbtn.enabled
             cursorShape: pbtn.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: pbtn.triggered()
+            onClicked: if (pbtn.enabled) pbtn.triggered()
         }
 
         Accessible.role: Accessible.Button
@@ -455,20 +471,19 @@ Window {
         property string label: ""
         property string glyph: ""
         property string tone: "neutral"
-        property bool enabled: true
         signal triggered()
 
         implicitHeight: 40
-        implicitWidth: Math.max(88, tbtnRow.implicitWidth + 24)
+        implicitWidth: Math.max(92, tbtnRow.implicitWidth + 28)
         radius: tok.shape.full
         color: {
             if (tbtn.tone === "error")
                 return tMa.pressed ? Qt.rgba(1, 0.46, 0.49, 0.35) : tok.palette.errorContainer
             return tMa.pressed ? tok.palette.stageHigh : tok.palette.secondaryContainer
         }
-        opacity: tbtn.enabled ? 1 : 0.38
-        scale: tbtn.enabled && tMa.pressed ? 0.92
-            : (tbtn.enabled && tMa.containsMouse ? 1.04 : 1.0)
+        opacity: enabled ? 1 : 0.38
+        scale: enabled && tMa.pressed ? 0.92
+            : (enabled && tMa.containsMouse ? 1.04 : 1.0)
 
         Behavior on scale {
             enabled: !win.reducedMotion
@@ -490,18 +505,34 @@ Window {
         RowLayout {
             id: tbtnRow
             anchors.centerIn: parent
-            spacing: 5
-            Text {
+            spacing: 6
+
+            Item {
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 22
+                Layout.alignment: Qt.AlignVCenter
                 visible: tbtn.glyph.length > 0
-                text: tbtn.glyph
-                font.pixelSize: 11
-                font.weight: Font.Bold
-                color: tbtn.tone === "error" ? tok.palette.fgErrorContainer : tok.palette.fgSecondaryContainer
+
+                Text {
+                    anchors.centerIn: parent
+                    text: tbtn.glyph
+                    font.pixelSize: 12
+                    font.weight: Font.Bold
+                    font.family: tbtn.glyph.length > 1 ? "Monospace" : "Sans Serif"
+                    horizontalAlignment: Text.AlignHCenter
+                    color: tbtn.tone === "error"
+                        ? tok.palette.fgErrorContainer
+                        : tok.palette.fgSecondaryContainer
+                }
             }
+
             Text {
+                Layout.alignment: Qt.AlignVCenter
                 text: tbtn.label
                 font: tok.type.label
-                color: tbtn.tone === "error" ? tok.palette.fgErrorContainer : tok.palette.fgSecondaryContainer
+                color: tbtn.tone === "error"
+                    ? tok.palette.fgErrorContainer
+                    : tok.palette.fgSecondaryContainer
             }
         }
 
@@ -511,7 +542,7 @@ Window {
             enabled: tbtn.enabled
             hoverEnabled: tbtn.enabled
             cursorShape: tbtn.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: tbtn.triggered()
+            onClicked: if (tbtn.enabled) tbtn.triggered()
         }
 
         Accessible.role: Accessible.Button
@@ -555,6 +586,232 @@ Window {
         }
     }
 
+    // M3 list row — tonal surface, radius morph, emphasized motion
+    component ClipListRow : Item {
+        id: row
+
+        required property int index
+        required property string entryId
+        required property string entryPreview
+        required property string entryRaw
+        required property string entryText
+        required property bool isImage
+        required property string imagePath
+        required property bool imageDecodeFailed
+        required property bool decoded
+        required property bool edited
+        property bool isCurrent: false
+
+        signal activated()
+        signal deleteRequested()
+
+        width: ListView.view ? ListView.view.width : implicitWidth
+        height: 56
+        implicitHeight: 56
+        opacity: 1
+
+        // Hit target stays unscaled — scaled visuals were stealing hover from adjacent rows.
+        MouseArea {
+            id: rowMa
+
+            anchors.fill: parent
+            hoverEnabled: false
+            cursorShape: Qt.PointingHandCursor
+            onClicked: row.activated()
+        }
+
+        Item {
+            id: rowBody
+
+            anchors.fill: parent
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
+            scale: rowMa.pressed ? 0.98 : (row.isCurrent ? 1.01 : 1.0)
+            transformOrigin: Item.Center
+
+            Behavior on scale {
+                enabled: !win.reducedMotion
+                SpringAnimation {
+                    spring: rowMa.pressed ? 5.0 : 4.2
+                    damping: rowMa.pressed ? 0.65 : 0.70
+                    mass: tok.motion.springMass
+                    epsilon: tok.motion.springEpsilon
+                }
+            }
+
+            Connections {
+                target: win
+                function onSelectionPulseChanged() {
+                    if (row.isCurrent && !win.reducedMotion)
+                        rowPulse.restart()
+                }
+            }
+
+            SequentialAnimation {
+                id: rowPulse
+
+                running: false
+                NumberAnimation {
+                    target: rowBody
+                    property: "scale"
+                    to: 1.03
+                    duration: 80
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    target: rowBody
+                    property: "scale"
+                    to: row.isCurrent ? 1.01 : 1.0
+                    duration: 180
+                    easing.type: Easing.OutBack
+                    easing.overshoot: 1.1
+                }
+            }
+
+            Rectangle {
+                id: rowSurface
+
+                anchors.fill: parent
+                radius: rowMa.pressed ? (height / 2) : tok.shape.md
+                color: row.isCurrent
+                    ? Qt.alpha(tok.palette.primaryContainer, 0.38)
+                    : Qt.alpha(tok.palette.stageContent, 0.22)
+                border.width: row.isCurrent ? 1 : 0
+                border.color: Qt.alpha(tok.palette.primary, 0.22)
+
+                Behavior on radius {
+                    enabled: !win.reducedMotion
+                    NumberAnimation {
+                        duration: tok.motion.emphasizedMedium
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: tok.motion.emphasized
+                    }
+                }
+                Behavior on color {
+                    enabled: !win.reducedMotion
+                    ColorAnimation {
+                        duration: tok.motion.emphasizedMedium
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: tok.motion.emphasized
+                    }
+                }
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 8
+                spacing: 10
+                z: 1
+
+                Rectangle {
+                    Layout.preferredWidth: 36
+                    Layout.preferredHeight: 24
+                    radius: tok.shape.full
+                    color: row.isCurrent ? tok.palette.primary : tok.palette.stageHigh
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: row.entryId
+                        font: tok.type.labelEmph
+                        color: row.isCurrent ? tok.palette.fgPrimary : tok.palette.fgMuted
+
+                        Behavior on color {
+                            enabled: !win.reducedMotion
+                            ColorAnimation {
+                                duration: tok.motion.emphasizedMedium
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: tok.motion.emphasized
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    visible: row.isImage
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                    radius: tok.shape.sm
+                    color: tok.palette.tertiaryContainer
+                    clip: true
+                    border.width: 1
+                    border.color: Qt.alpha(tok.palette.outlineVariant, 0.45)
+
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        source: {
+                            const _rev = win.imageRev
+                            return (row.imagePath && row.imagePath.length > 0)
+                                ? ("file://" + row.imagePath) : ""
+                        }
+                        sourceSize: Qt.size(80, 80)
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                    }
+                }
+
+                Rectangle {
+                    visible: row.isImage
+                    Layout.preferredWidth: imgChipLbl.implicitWidth + 12
+                    Layout.preferredHeight: 22
+                    radius: tok.shape.full
+                    color: tok.palette.tertiaryContainer
+
+                    Text {
+                        id: imgChipLbl
+
+                        anchors.centerIn: parent
+                        text: qsTr("Image")
+                        font: tok.type.label
+                        color: tok.palette.fgTertiaryContainer
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: row.isImage
+                        ? (row.entryPreview.length > 0 ? row.entryPreview : qsTr("Image clip"))
+                        : row.entryPreview
+                    font: row.isCurrent ? tok.type.bodyEmph : tok.type.body
+                    color: row.isCurrent ? tok.palette.fgSurface : tok.palette.fgMuted
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+
+                    Behavior on color {
+                        enabled: !win.reducedMotion
+                        ColorAnimation {
+                            duration: tok.motion.emphasizedMedium
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: tok.motion.emphasized
+                        }
+                    }
+                }
+
+                IconButton {
+                    opacity: rowMa.containsMouse || row.isCurrent ? 1 : 0
+                    visible: opacity > 0
+                    glyph: "×"
+                    tone: "error"
+                    accessibleName: qsTr("Delete")
+                    onTriggered: row.deleteRequested()
+
+                    Behavior on opacity {
+                        enabled: !win.reducedMotion
+                        NumberAnimation {
+                            duration: tok.motion.effectsExpressive.fast
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: tok.motion.emphasized
+                        }
+                    }
+                }
+            }
+        }
+
+        Accessible.role: Accessible.ListItem
+        Accessible.name: row.entryPreview
+    }
+
     // ── Logic (unchanged behaviour) ───────────────────────────────────────────
 
     function clipId(entry) {
@@ -573,18 +830,81 @@ Window {
         return (typeof Cliphist !== "undefined" && Cliphist) ? Cliphist.entryIsImage(entry) : false
     }
 
-    function rebuildClipList() {
-        clipListModel.clear()
-        const items = (typeof Cliphist !== "undefined" && Cliphist && Cliphist.items)
-            ? Cliphist.items : []
-        const q = searchQuery.trim().toLowerCase()
+    function cliphistItems() {
+        if (typeof Cliphist === "undefined" || !Cliphist)
+            return []
 
+        const parsed = Cliphist.items
+        if (parsed && parsed.length > 0)
+            return parsed
+
+        const entries = Cliphist.entries
+        if (!entries || entries.length === 0)
+            return []
+
+        const built = []
+        const seen = {}
+        for (let i = 0; i < entries.length; i++) {
+            const entry = String(entries[i])
+            const tabIdx = entry.indexOf("\t")
+            if (tabIdx <= 0)
+                continue
+            const entryId = entry.slice(0, tabIdx).trim()
+            if (!entryId || seen[entryId])
+                continue
+            seen[entryId] = true
+            const entryPreview = entry.slice(tabIdx + 1).trim()
+            built.push({
+                entryId: entryId,
+                entryPreview: entryPreview,
+                entryRaw: entry,
+                entryText: entryPreview,
+                isImage: Cliphist.entryIsImage(entry),
+                imagePath: "",
+                decoded: false,
+                edited: false
+            })
+        }
+        return built
+    }
+
+    function filteredCliphistItems() {
+        const items = cliphistItems()
+        const q = searchQuery.trim().toLowerCase()
+        const out = []
         for (let i = 0; i < items.length; i++) {
             const it = items[i]
             if (filterMode === "text" && it.isImage) continue
             if (filterMode === "image" && !it.isImage) continue
             const blob = (it.entryId + " " + it.entryPreview + " " + it.entryRaw).toLowerCase()
             if (q && blob.indexOf(q) === -1) continue
+            out.push(it)
+        }
+        return out
+    }
+
+    function clipListMatches(items) {
+        if (clipListModel.count !== items.length)
+            return false
+        for (let i = 0; i < items.length; i++) {
+            const row = clipListModel.get(i)
+            const it = items[i]
+            if (!row || row.entryId !== it.entryId
+                || row.entryPreview !== it.entryPreview
+                || row.isImage !== it.isImage)
+                return false
+        }
+        return true
+    }
+
+    function rebuildClipList() {
+        const items = filteredCliphistItems()
+        if (clipListMatches(items))
+            return false
+
+        clipListModel.clear()
+        for (let i = 0; i < items.length; i++) {
+            const it = items[i]
             clipListModel.append({
                 entryId: it.entryId,
                 entryPreview: it.entryPreview,
@@ -593,19 +913,21 @@ Window {
                 isImage: it.isImage,
                 imagePath: it.imagePath || "",
                 imageDecodeFailed: false,
-                decoded: false,
-                edited: false
+                decoded: it.decoded || false,
+                edited: it.edited || false
             })
         }
 
         if (selectedIndex >= clipListModel.count)
             selectedIndex = Math.max(0, clipListModel.count - 1)
+        return true
     }
+
+    signal filteredHistoryChanged()
 
     function refreshHistory() {
         const keepId = activeClip ? activeClip.entryId : ""
-        busy = true
-        rebuildClipList()
+        const rebuilt = rebuildClipList()
         if (keepId.length > 0) {
             let found = -1
             for (let i = 0; i < clipListModel.count; i++) {
@@ -618,8 +940,10 @@ Window {
         } else if (selectedIndex >= clipListModel.count) {
             selectedIndex = Math.max(0, clipListModel.count - 1)
         }
-        previewRev++
-        busy = false
+        if (rebuilt) {
+            previewRev++
+            filteredHistoryChanged()
+        }
         syncPreviewText()
         if (listView) {
             if (keepId.length === 0)
@@ -633,11 +957,44 @@ Window {
         rebuildClipList()
     }
 
+    function clipAtIndex(idx) {
+        if (idx < 0 || idx >= clipListModel.count)
+            return null
+        return clipListModel.get(idx)
+    }
+
+    function indexAtListPoint(viewX, viewY) {
+        if (!listView || clipListModel.count === 0)
+            return -1
+        const contentY = viewY + listView.contentY
+        // Position walk is reliable with fixed-height rows + spacing (indexAt can be ±1 here).
+        for (let i = 0; i < clipListModel.count; i++) {
+            const item = listView.itemAtIndex(i)
+            if (!item)
+                continue
+            if (contentY >= item.y && contentY < item.y + item.height)
+                return i
+        }
+        return -1
+    }
+
+    function selectClipAtIndex(idx) {
+        if (idx < 0 || idx >= clipListModel.count || idx === selectedIndex)
+            return
+        keyboardNavActive = false
+        selectedIndex = idx
+    }
+
     function syncListSelection() {
         if (!listView || clipListModel.count === 0) return
-        if (listView.currentIndex !== selectedIndex)
-            listView.currentIndex = selectedIndex
-        listView.positionViewAtIndex(selectedIndex, ListView.Contain)
+        const idx = Math.max(0, Math.min(selectedIndex, clipListModel.count - 1))
+        if (idx !== selectedIndex)
+            selectedIndex = idx
+        if (listView.currentIndex !== idx)
+            listView.currentIndex = idx
+        // Only auto-scroll for keyboard nav — hover-driven selection was warping the list under the cursor
+        if (keyboardNavActive)
+            listView.positionViewAtIndex(idx, ListView.Contain)
     }
 
     function bumpPreview() {
@@ -654,59 +1011,72 @@ Window {
         return "/tmp/olvex-clip/" + entryId + ".png"
     }
 
-    function decodeClipImage(listIndex) {
+    function requestDecodeClipImage(listIndex) {
         if (listIndex < 0 || listIndex >= clipListModel.count)
-            return ""
+            return
         const item = clipListModel.get(listIndex)
         if (!item || !item.isImage)
-            return ""
+            return
         if (item.imagePath && item.imagePath.length > 0)
-            return item.imagePath
+            return
         if (typeof Cliphist === "undefined" || !Cliphist)
-            return ""
-        const path = clipImagePath(item.entryId)
-        const decoded = Cliphist.decodeImageById(item.entryId, path)
-        if (decoded.length > 0) {
-            clipListModel.setProperty(listIndex, "imagePath", decoded)
-            imageRev++
-            return decoded
-        }
-        clipListModel.setProperty(listIndex, "imageDecodeFailed", true)
-        imageRev++
-        return ""
+            return
+        if (typeof Cliphist.requestDecodeImageById !== "function")
+            return
+        Cliphist.requestDecodeImageById(item.entryId, clipImagePath(item.entryId))
     }
 
-    function decodeClipText(listIndex) {
-        if (listIndex < 0 || listIndex >= clipListModel.count)
-            return ""
-        const item = clipListModel.get(listIndex)
-        if (!item || item.isImage)
-            return ""
-        if (item.decoded)
-            return item.entryText
-        if (typeof Cliphist === "undefined" || !Cliphist)
-            return item.entryText
-        const full = Cliphist.decodeTextById(item.entryId)
-        if (full.length > 0) {
-            clipListModel.setProperty(listIndex, "entryText", full)
-            clipListModel.setProperty(listIndex, "decoded", true)
-            return full
+    function applyDecodedText(entryId, fullText) {
+        if (!entryId || !fullText)
+            return
+        for (let i = 0; i < clipListModel.count; i++) {
+            if (clipListModel.get(i).entryId !== entryId)
+                continue
+            clipListModel.setProperty(i, "entryText", fullText)
+            clipListModel.setProperty(i, "decoded", true)
+            if (entryId === selectedEntryId && !previewEditing) {
+                setPreviewEditorText(fullText)
+                previewAppliedText = fullText
+                resetPreviewHistory(fullText)
+                bumpPreview()
+            }
+            break
         }
-        return item.entryText
+    }
+
+    function applyDecodedImage(entryId, path, ok) {
+        for (let i = 0; i < clipListModel.count; i++) {
+            if (clipListModel.get(i).entryId !== entryId)
+                continue
+            if (ok && path.length > 0)
+                clipListModel.setProperty(i, "imagePath", path)
+            else
+                clipListModel.setProperty(i, "imageDecodeFailed", true)
+            if (entryId === selectedEntryId)
+                imageRev++
+            break
+        }
     }
 
     function syncPreviewText() {
         previewEditing = false
         previewUndoLock = false
-        if (activeClip && !activeClip.isImage) {
-            const full = decodeClipText(selectedIndex)
-            previewEditText = full
-            previewAppliedText = full
-            resetPreviewHistory(full)
+        const clip = clipAtIndex(selectedIndex)
+        selectedEntryId = clip ? clip.entryId : ""
+        if (clip && !clip.isImage) {
+            const preview = clip.entryText || clip.entryPreview || ""
+            setPreviewEditorText(preview)
+            previewAppliedText = preview
+            resetPreviewHistory(preview)
+            bumpPreview()
+            if (!clip.decoded && typeof Cliphist !== "undefined" && Cliphist
+                && typeof Cliphist.requestDecodeTextById === "function")
+                Cliphist.requestDecodeTextById(clip.entryId)
         } else {
-            previewEditText = ""
+            setPreviewEditorText("")
             previewAppliedText = ""
             resetPreviewHistory("")
+            bumpPreview()
         }
     }
 
@@ -765,7 +1135,7 @@ Window {
         resetPreviewHistory(previewEditText)
         if (previewEditor)
             previewEditor.focus = false
-        rootFocus.forceActiveFocus()
+        reclaimFocus()
     }
 
     function exitPreviewEdit() {
@@ -776,7 +1146,7 @@ Window {
         resetPreviewHistory(previewAppliedText)
         if (previewEditor)
             previewEditor.focus = false
-        rootFocus.forceActiveFocus()
+        reclaimFocus()
         return true
     }
 
@@ -832,10 +1202,58 @@ Window {
         syncListSelection()
     }
 
+    function reclaimFocus() {
+        rootFocus.forceActiveFocus(Qt.ShortcutFocusReason)
+    }
+
+    function handleEscape() {
+        if (previewEditing) {
+            exitPreviewEdit()
+            return
+        }
+        if (searchField.activeFocus && searchField.text.length > 0) {
+            searchField.clear()
+            reclaimFocus()
+            return
+        }
+        if (searchField.activeFocus) {
+            reclaimFocus()
+            return
+        }
+        close()
+    }
+
+    function handleFilterArrow(event) {
+        if (!event || previewEditing)
+            return false
+        if (event.key !== Qt.Key_Left && event.key !== Qt.Key_Right)
+            return false
+        if (searchField.activeFocus && searchField.text.length > 0)
+            return false
+        shiftFilter(event.key === Qt.Key_Right ? 1 : -1)
+        event.accepted = true
+        return true
+    }
+
     function handleKey(event) {
-        if (!event || !clipListModel.count) return
+        if (!event)
+            return
+
+        if (event.key === Qt.Key_Escape) {
+            handleEscape()
+            event.accepted = true
+            return
+        }
+
+        if (handleFilterArrow(event))
+            return
+
         if (previewEditing)
             return
+
+        if (!clipListModel.count)
+            return
+
         if (event.key === Qt.Key_Up) { moveSelection(-1); event.accepted = true }
         else if (event.key === Qt.Key_Down) { moveSelection(1); event.accepted = true }
         else if (event.key === Qt.Key_Home) { jumpSelection(0); event.accepted = true }
@@ -847,6 +1265,8 @@ Window {
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { copySelected(); event.accepted = true }
         else if (event.key === Qt.Key_Delete) { deleteSelected(); event.accepted = true }
     }
+
+    readonly property var filterModes: ["all", "text", "image"]
 
     function setFilter(mode) {
         if (filterMode === mode)
@@ -860,6 +1280,19 @@ Window {
         })
     }
 
+    function shiftFilter(delta) {
+        const idx = filterIndexForMode(filterMode)
+        const count = filterModes.length
+        const next = ((idx + delta) % count + count) % count
+        const mode = filterModes[next]
+        if (mode === filterMode)
+            return
+        keyboardNavActive = true
+        setFilter(mode)
+        if (!(searchField.activeFocus && searchField.text.length > 0))
+            reclaimFocus()
+    }
+
     function filterIndexForMode(mode) {
         if (mode === "text") return 1
         if (mode === "image") return 2
@@ -868,8 +1301,7 @@ Window {
 
     function filterCount(mode) {
         let n = 0
-        const items = (typeof Cliphist !== "undefined" && Cliphist && Cliphist.items)
-            ? Cliphist.items : []
+        const items = cliphistItems()
         for (let i = 0; i < items.length; i++) {
             const item = items[i]
             if (mode === "text" && item.isImage) continue
@@ -890,26 +1322,88 @@ Window {
         function onErrorChanged() {
             if (Cliphist && Cliphist.hasError) statusMessage = Cliphist.errorMessage
         }
+        function onTextDecoded(entryId, text) {
+            win.applyDecodedText(entryId, text)
+        }
+        function onImageDecoded(entryId, path, ok) {
+            win.applyDecodedImage(entryId, path, ok)
+        }
     }
 
-    Shortcut { sequence: "Ctrl+K"; onActivated: searchField.forceActiveFocus() }
+    Shortcut { sequence: "Ctrl+K"; onActivated: searchField.forceActiveFocus(Qt.ShortcutFocusReason) }
+
     Shortcut {
         sequence: "Escape"
-        onActivated: win.close()
+        onActivated: win.handleEscape()
+    }
+
+    // Window shortcuts — work even when no item holds keyboard focus (e.g. after list click)
+    Shortcut {
+        sequences: [StandardKey.MoveToPreviousLine]
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: moveSelection(-1)
+    }
+    Shortcut {
+        sequences: [StandardKey.MoveToNextLine]
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: moveSelection(1)
+    }
+    Shortcut {
+        sequences: [StandardKey.MoveToStartOfDocument]
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: jumpSelection(0)
+    }
+    Shortcut {
+        sequences: [StandardKey.MoveToEndOfDocument]
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: jumpSelection(clipListModel.count - 1)
+    }
+    Shortcut {
+        sequences: [StandardKey.MoveToPreviousPage]
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: moveSelection(-Math.max(1, Math.floor(listView.height / 48)))
+    }
+    Shortcut {
+        sequences: [StandardKey.MoveToNextPage]
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: moveSelection(Math.max(1, Math.floor(listView.height / 48)))
+    }
+    Shortcut {
+        sequences: [StandardKey.InsertParagraphSeparator, StandardKey.InsertLineSeparator]
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: copySelected()
+    }
+    Shortcut {
+        sequence: "Delete"
+        enabled: !previewEditing && clipListModel.count > 0
+        onActivated: deleteSelected()
     }
 
     Component.onCompleted: {
-        shellOpacity = 1
-        previewOpacity = 1
-        rootFocus.forceActiveFocus()
+        if (!reducedMotion)
+            shellEntrance.start()
+        else
+            shellScale = 1
+        reclaimFocus()
         if (typeof Cliphist !== "undefined" && Cliphist)
-            Cliphist.refresh()
+            refreshHistory()
+    }
+
+    NumberAnimation {
+        id: shellEntrance
+        running: false
+        target: win
+        property: "shellScale"
+        from: 0.96
+        to: 1
+        duration: tok.motion.effectsExpressive.fast
+        easing.type: Easing.OutCubic
     }
 
     onSelectedIndexChanged: {
         syncPreviewText()
         if (activeClip && activeClip.isImage)
-            decodeClipImage(selectedIndex)
+            requestDecodeClipImage(selectedIndex)
         syncListSelection()
         bumpPreview()
     }
@@ -921,6 +1415,7 @@ Window {
         id: rootFocus
         anchors.fill: parent
         focus: true
+
         Keys.onPressed: function(event) { win.handleKey(event) }
 
         Item {
@@ -929,6 +1424,18 @@ Window {
             opacity: win.shellOpacity
             scale: win.shellScale
             transformOrigin: Item.Center
+
+            // Reclaim focus after mouse clicks so arrow keys reach rootFocus / handleKey
+            MouseArea {
+                anchors.fill: parent
+                z: -1
+                hoverEnabled: false
+                propagateComposedEvents: true
+                onPressed: function(mouse) {
+                    win.reclaimFocus()
+                    mouse.accepted = false
+                }
+            }
 
             Rectangle {
                 id: paletteHud
@@ -982,7 +1489,7 @@ Window {
                     Layout.preferredWidth: 400
                     Layout.fillHeight: true
                     color: tok.palette.stageHigh
-                    radius: tok.shape.lg
+                    radius: tok.shape.xl
                     clip: true
 
                     ColumnLayout {
@@ -1129,7 +1636,11 @@ Window {
                                         applyFilter()
                                     }
                                     Keys.priority: Keys.BeforeItem
-                                    Keys.onPressed: function(event) { win.handleKey(event) }
+                                    Keys.onPressed: function(event) {
+                                        if (win.handleFilterArrow(event))
+                                            return
+                                        win.handleKey(event)
+                                    }
                                 }
 
                                 Text {
@@ -1228,6 +1739,16 @@ Window {
                                 anchors.fill: parent
                                 z: 0
                                 spacing: 6
+                                visible: !win.hasClips
+                                opacity: visible ? 1 : 0
+
+                                Behavior on opacity {
+                                    enabled: !win.reducedMotion
+                                    NumberAnimation {
+                                        duration: tok.motion.effectsExpressive.defaultMs
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
 
                                 Item { Layout.fillHeight: true }
 
@@ -1256,24 +1777,37 @@ Window {
                                 visible: win.hasClips
                                 clip: true
 
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: tok.palette.stageHigh
+                                }
+
                             // M3 expressive spatial spring — selection chrome slides between rows
                             Item {
                                 id: listSelection
                                 z: 0
                                 width: listPage.width
-                                visible: clipListModel.count > 0 && listView.currentItem
+                                visible: clipListModel.count > 0 && listSelection.selectedItem()
                                 opacity: visible ? 1 : 0
 
+                                function selectedItem() {
+                                    if (win.selectedIndex < 0 || win.selectedIndex >= clipListModel.count)
+                                        return null
+                                    return listView.itemAtIndex(win.selectedIndex)
+                                }
+
                                 function targetY() {
-                                    if (!listView.currentItem)
+                                    const item = selectedItem()
+                                    if (!item)
                                         return 0
-                                    return listView.currentItem.y - listView.contentY
+                                    return item.y - listView.contentY
                                 }
 
                                 function targetHeight() {
-                                    if (!listView.currentItem)
+                                    const item = selectedItem()
+                                    if (!item)
                                         return 0
-                                    return listView.currentItem.height
+                                    return item.height
                                 }
 
                                 function snapY() {
@@ -1321,8 +1855,10 @@ Window {
 
                                 Rectangle {
                                     anchors.fill: parent
+                                    anchors.leftMargin: 4
+                                    anchors.rightMargin: 4
                                     radius: tok.shape.md
-                                    color: Qt.alpha(tok.palette.primary, 0.14)
+                                    color: Qt.alpha(tok.palette.primaryContainer, 0.28)
                                 }
 
                                 Rectangle {
@@ -1359,30 +1895,60 @@ Window {
                                 }
                             }
 
+                            // List-level pointer routing — avoids scaled-row hitbox overlap (±1 bug)
+                            HoverHandler {
+                                id: listHover
+                                target: listView
+                                acceptedDevices: PointerDevice.Mouse
+                                    | PointerDevice.TouchScreen
+                                    | PointerDevice.TouchPad
+
+                                function syncFromPointer() {
+                                    if (!hovered)
+                                        return
+                                    const idx = win.indexAtListPoint(
+                                        point.position.x, point.position.y)
+                                    win.selectClipAtIndex(idx)
+                                }
+
+                                onHoveredChanged: syncFromPointer()
+                                onPointChanged: syncFromPointer()
+                            }
+
                             ListView {
                                 id: listView
                                 z: 1
                                 anchors.fill: parent
                                 clip: true
                                 model: clipListModel
-                                spacing: 4
-                                currentIndex: selectedIndex
+                                spacing: 8
                                 boundsBehavior: Flickable.StopAtBounds
                                 keyNavigationEnabled: false
                                 highlightFollowsCurrentItem: false
                                 cacheBuffer: 600
                                 reuseItems: false
 
+                                displaced: Transition {
+                                    enabled: !win.reducedMotion
+                                    NumberAnimation {
+                                        properties: "x,y"
+                                        duration: tok.motion.emphasizedMedium
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: tok.motion.emphasized
+                                    }
+                                }
+
                                 // Smooth scroll — mouse: animated notches; touchpad: pixel-direct
-                                readonly property real scrollLineStep: 48
+                                readonly property real scrollLineStep: 56
                                 readonly property real scrollLinesPerNotch: 3
 
                                 NumberAnimation {
                                     id: smoothScrollAnim
                                     target: listView
                                     property: "contentY"
-                                    duration: tok.motion.spatialDefaultMs
-                                    easing.type: Easing.OutCubic
+                                    duration: tok.motion.emphasizedMedium
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: tok.motion.emphasized
                                 }
 
                                 onMovementStarted: smoothScrollAnim.stop()
@@ -1448,195 +2014,28 @@ Window {
                                         } else {
                                             // Mouse wheel — always animated notch scroll
                                             listView.applyScrollDelta(
-                                                notchPx, true, tok.motion.spatialDefaultMs)
+                                                notchPx, true, tok.motion.emphasizedMedium)
                                         }
                                         event.accepted = true
                                     }
                                 }
 
-                                delegate: Item {
-                                    id: row
-                                    required property string entryId
-                                    required property string entryPreview
-                                    required property string entryRaw
-                                    required property string entryText
-                                    required property bool isImage
-                                    required property string imagePath
-                                    required property bool imageDecodeFailed
-                                    required property bool decoded
-                                    required property bool edited
-                                    required property int index
-
-                                    width: listView.width
-                                    implicitHeight: 46
-
-                                    property bool isCurrent: row.index === win.selectedIndex
+                                delegate: ClipListRow {
+                                    isCurrent: index === win.selectedIndex
 
                                     onIsCurrentChanged: {
-                                        if (row.isImage && row.isCurrent)
-                                            win.decodeClipImage(row.index)
+                                        if (isImage && isCurrent)
+                                            win.requestDecodeClipImage(index)
                                     }
 
-                                    Component.onCompleted: {
-                                        if (row.isImage && row.isCurrent)
-                                            win.decodeClipImage(row.index)
+                                    onActivated: {
+                                        win.selectClipAtIndex(index)
+                                        copySelected()
                                     }
-
-                                    Item {
-                                        id: rowBody
-                                        anchors.fill: parent
-                                        scale: rowMa.pressed ? 0.985
-                                            : (row.isCurrent ? 1.01 : (rowMa.containsMouse ? 1.005 : 1.0))
-                                        transformOrigin: Item.Center
-
-                                        Behavior on scale {
-                                            enabled: !win.reducedMotion
-                                            NumberAnimation {
-                                                duration: tok.motion.effectsExpressive.fast
-                                                easing.type: Easing.OutBack
-                                                easing.overshoot: 1.08
-                                            }
-                                        }
-
-                                        Connections {
-                                            target: win
-                                            function onSelectionPulseChanged() {
-                                                if (row.isCurrent && !win.reducedMotion)
-                                                    rowPulse.restart()
-                                            }
-                                        }
-
-                                        SequentialAnimation {
-                                            id: rowPulse
-                                            running: false
-                                            NumberAnimation {
-                                                target: rowBody
-                                                property: "scale"
-                                                to: 1.04
-                                                duration: win.reducedMotion ? 1 : 80
-                                                easing.type: Easing.OutCubic
-                                            }
-                                            NumberAnimation {
-                                                target: rowBody
-                                                property: "scale"
-                                                to: row.isCurrent ? 1.01 : 1.0
-                                                duration: win.reducedMotion ? 1 : 140
-                                                easing.type: Easing.OutBack
-                                                easing.overshoot: 1.1
-                                            }
-                                        }
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            radius: tok.shape.md
-                                            color: rowMa.containsMouse
-                                                ? Qt.alpha(tok.palette.stageContent, 0.92)
-                                                : "transparent"
-
-                                            Behavior on color {
-                                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                                            }
-                                        }
-
-                                        MouseArea {
-                                            id: rowMa
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                keyboardNavActive = false
-                                                selectedIndex = row.index
-                                                copySelected()
-                                            }
-                                            onContainsMouseChanged: {
-                                                if (containsMouse && selectedIndex !== row.index) {
-                                                    keyboardNavActive = false
-                                                    selectedIndex = row.index
-                                                }
-                                            }
-                                        }
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 8
-                                            spacing: 10
-
-                                        Text {
-                                            text: row.entryId
-                                            font: tok.type.mono
-                                            color: row.isCurrent ? tok.palette.primary : tok.palette.fgMuted
-                                            Layout.preferredWidth: 36
-
-                                            Behavior on color {
-                                                enabled: !win.reducedMotion
-                                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                                            }
-                                        }
-
-                                        Rectangle {
-                                            visible: row.isImage
-                                            Layout.preferredWidth: 28
-                                            Layout.preferredHeight: 28
-                                            radius: tok.shape.xs
-                                            color: tok.palette.tertiaryContainer
-                                            clip: true
-                                            scale: rowMa.containsMouse ? 1.08 : 1.0
-
-                                            Behavior on scale {
-                                                enabled: !win.reducedMotion
-                                                NumberAnimation {
-                                                    duration: tok.motion.effectsExpressive.fast
-                                                    easing.type: Easing.OutBack
-                                                    easing.overshoot: 1.1
-                                                }
-                                            }
-
-                                            Image {
-                                                anchors.fill: parent
-                                                source: {
-                                                    const _rev = win.imageRev
-                                                    const item = clipListModel.get(row.index)
-                                                    const p = item ? item.imagePath : row.imagePath
-                                                    return (p && p.length > 0) ? ("file://" + p) : ""
-                                                }
-                                                sourceSize: Qt.size(56, 56)
-                                                fillMode: Image.PreserveAspectCrop
-                                                asynchronous: true
-                                            }
-                                        }
-
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: row.isImage
-                                                ? (row.entryPreview.length > 0
-                                                    ? row.entryPreview : qsTr("Image"))
-                                                : row.entryPreview
-                                            font: row.isCurrent ? tok.type.bodyEmph : tok.type.body
-                                            color: row.isCurrent ? tok.palette.fgSurface : tok.palette.fgMuted
-                                            elide: Text.ElideRight
-                                            maximumLineCount: 1
-
-                                            Behavior on color {
-                                                enabled: !win.reducedMotion
-                                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                                            }
-                                        }
-
-                                        IconButton {
-                                            glyph: "×"
-                                            accessibleName: qsTr("Delete")
-                                            tone: "error"
-                                            onTriggered: {
-                                                selectedIndex = row.index
-                                                deleteSelected()
-                                            }
-                                        }
+                                    onDeleteRequested: {
+                                        win.selectClipAtIndex(index)
+                                        deleteSelected()
                                     }
-                                    }
-
-                                    Accessible.role: Accessible.ListItem
-                                    Accessible.name: row.entryPreview
                                 }
                             }
                             }
@@ -1652,6 +2051,14 @@ Window {
                     color: tok.palette.stageContent
                     radius: tok.shape.xl
                     clip: true
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Qt.alpha(tok.palette.outlineVariant, 0.35)
+                    }
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -1837,45 +2244,6 @@ Window {
                                 opacity: win.previewOpacity
                                 visible: activeClip !== null
 
-                                Connections {
-                                    target: win
-                                    function onPreviewRevChanged() {
-                                        if (!win.reducedMotion)
-                                            previewSwapAnim.restart()
-                                    }
-                                }
-
-                                SequentialAnimation {
-                                    id: previewSwapAnim
-                                    running: false
-                                    NumberAnimation {
-                                        target: previewBody
-                                        property: "opacity"
-                                        to: 0.25
-                                        duration: win.reducedMotion ? 1 : 90
-                                    }
-                                    NumberAnimation {
-                                        target: previewBody
-                                        property: "y"
-                                        to: 8
-                                        duration: win.reducedMotion ? 1 : 90
-                                    }
-                                    NumberAnimation {
-                                        target: previewBody
-                                        property: "y"
-                                        to: 0
-                                        duration: win.reducedMotion ? 1 : 140
-                                        easing.type: Easing.OutCubic
-                                    }
-                                    NumberAnimation {
-                                        target: previewBody
-                                        property: "opacity"
-                                        to: 1
-                                        duration: win.reducedMotion ? 1 : 140
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-
                                 Item {
                                     anchors.fill: parent
                                     visible: activeClip && !activeClip.isImage
@@ -1902,24 +2270,6 @@ Window {
                                         Behavior on radius {
                                             enabled: !win.reducedMotion
                                             NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                        }
-
-                                        // Primary tint via opacity — avoids RGB crossfade ghosts on hover/edit
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            radius: parent.radius
-                                            color: tok.palette.primary
-                                            opacity: win.previewEditing
-                                                ? 0.12
-                                                : (previewFrameHover.hovered ? 0.06 : 0)
-
-                                            Behavior on opacity {
-                                                enabled: !win.reducedMotion
-                                                NumberAnimation {
-                                                    duration: tok.motion.effectsExpressive.fast
-                                                    easing.type: Easing.OutCubic
-                                                }
-                                            }
                                         }
 
                                         ColumnLayout {
@@ -1987,7 +2337,10 @@ Window {
                                                 height: Math.max(
                                                     contentHeight + topPadding + bottomPadding,
                                                     previewScroll.availableHeight)
-                                                text: win.previewEditText
+                                                text: {
+                                                    const _rev = win.previewRev
+                                                    return win.previewEditText
+                                                }
                                                 readOnly: !win.previewEditing
                                                 wrapMode: TextArea.WrapAtWordBoundaryOrAnywhere
                                                 font: tok.type.preview
@@ -1995,7 +2348,9 @@ Window {
                                                 selectedTextColor: tok.palette.fgPrimary
                                                 selectionColor: Qt.alpha(tok.palette.primary, 0.35)
                                                 padding: 12
-                                                selectByMouse: true
+                                                selectByMouse: win.previewEditing
+                                                activeFocusOnTab: win.previewEditing
+                                                focus: win.previewEditing
                                                 cursorVisible: win.previewEditing
                                                 background: null
 
@@ -2013,8 +2368,15 @@ Window {
                                                     win.previewEditText = text
                                                 }
 
+                                                Keys.priority: Keys.BeforeItem
+                                                Keys.onPressed: function(event) {
+                                                    if (win.handleFilterArrow(event))
+                                                        return
+                                                    if (!win.previewEditing)
+                                                        win.handleKey(event)
+                                                }
                                                 Keys.onEscapePressed: function(event) {
-                                                    win.close()
+                                                    win.handleEscape()
                                                     event.accepted = true
                                                 }
 
@@ -2076,6 +2438,8 @@ Window {
                                         radius: tok.shape.xl
                                         color: tok.palette.stageHigh
                                         clip: true
+                                        border.width: 1
+                                        border.color: Qt.alpha(tok.palette.primary, stageImage.status === Image.Ready ? 0.35 : 0.12)
                                         scale: stageImage.status === Image.Ready ? 1 : 0.96
                                         opacity: stageImage.status === Image.Ready ? 1 : 0.85
 
@@ -2090,6 +2454,9 @@ Window {
                                         Behavior on opacity {
                                             enabled: !win.reducedMotion
                                             NumberAnimation { duration: tok.motion.effectsExpressive.fast }
+                                        }
+                                        Behavior on border.color {
+                                            ColorAnimation { duration: tok.motion.effectsExpressive.defaultMs }
                                         }
 
                                         Image {
@@ -2107,11 +2474,16 @@ Window {
                                             }
                                             source: {
                                                 const _rev = win.imageRev
-                                                const _idx = win.selectedIndex
-                                                const item = clipListModel.get(_idx)
-                                                if (!item || !item.isImage) return ""
-                                                const p = item.imagePath
-                                                return (p && p.length > 0) ? ("file://" + p) : ""
+                                                const _id = win.selectedEntryId
+                                                if (!_id.length) return ""
+                                                for (let i = 0; i < clipListModel.count; i++) {
+                                                    const item = clipListModel.get(i)
+                                                    if (!item || item.entryId !== _id || !item.isImage)
+                                                        continue
+                                                    const p = item.imagePath
+                                                    return (p && p.length > 0) ? ("file://" + p) : ""
+                                                }
+                                                return ""
                                             }
                                             sourceSize: Qt.size(1200, 900)
                                             fillMode: Image.PreserveAspectFit
@@ -2125,9 +2497,15 @@ Window {
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: {
-                                                    const item = clipListModel.get(win.selectedIndex)
-                                                    if (item && item.imageDecodeFailed)
-                                                        return qsTr("Image decode failed")
+                                                    const _id = win.selectedEntryId
+                                                    for (let i = 0; i < clipListModel.count; i++) {
+                                                        const item = clipListModel.get(i)
+                                                        if (!item || item.entryId !== _id)
+                                                            continue
+                                                        if (item.imageDecodeFailed)
+                                                            return qsTr("Image decode failed")
+                                                        break
+                                                    }
                                                     if (stageImage.status === Image.Error)
                                                         return qsTr("Image decode failed")
                                                     return qsTr("Decoding image…")
@@ -2170,20 +2548,36 @@ Window {
 
                             Item {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 48
+                                Layout.preferredHeight: 56
                                 Layout.alignment: Qt.AlignHCenter
 
                                 Rectangle {
                                     id: actionPill
+                                    readonly property int pillPad: 8
+
                                     anchors.centerIn: parent
-                                    height: 48
-                                    width: actionRow.implicitWidth + 20
-                                    radius: tok.shape.full
+                                    width: actionRow.width + pillPad * 2
+                                    height: actionRow.height + pillPad * 2
+                                    radius: height / 2
                                     color: tok.palette.stageHigh
                                     opacity: clipListModel.count > 0 ? 1 : 0
                                     scale: clipListModel.count > 0 ? 1 : 0.9
                                     visible: opacity > 0
 
+                                    Behavior on width {
+                                        enabled: !win.reducedMotion
+                                        NumberAnimation {
+                                            duration: tok.motion.effectsExpressive.fast
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+                                    Behavior on height {
+                                        enabled: !win.reducedMotion
+                                        NumberAnimation {
+                                            duration: tok.motion.effectsExpressive.fast
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
                                     Behavior on opacity {
                                         enabled: !win.reducedMotion
                                         NumberAnimation {
@@ -2200,10 +2594,10 @@ Window {
                                         }
                                     }
 
-                                    RowLayout {
+                                    Row {
                                         id: actionRow
                                         anchors.centerIn: parent
-                                        spacing: 6
+                                        spacing: 8
 
                                         PrimaryButton {
                                             label: qsTr("Copy")
@@ -2213,7 +2607,7 @@ Window {
 
                                         TonalButton {
                                             label: qsTr("Delete")
-                                            glyph: "⌫"
+                                            glyph: "Del"
                                             tone: "error"
                                             onTriggered: win.deleteSelected()
                                         }
@@ -2242,6 +2636,12 @@ Window {
                                 }
 
                                 Text {
+                                    text: "←→ " + qsTr("filter")
+                                    font: tok.type.label
+                                    color: tok.palette.fgMuted
+                                    opacity: 0.6
+                                }
+                                Text {
                                     text: "↑↓ " + qsTr("navigate")
                                     font: tok.type.label
                                     color: tok.palette.fgMuted
@@ -2249,6 +2649,12 @@ Window {
                                 }
                                 Text {
                                     text: qsTr("Enter") + " " + qsTr("copy")
+                                    font: tok.type.label
+                                    color: tok.palette.fgMuted
+                                    opacity: 0.6
+                                }
+                                Text {
+                                    text: qsTr("Del") + " " + qsTr("delete")
                                     font: tok.type.label
                                     color: tok.palette.fgMuted
                                     opacity: 0.6

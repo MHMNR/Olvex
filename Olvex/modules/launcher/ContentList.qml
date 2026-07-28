@@ -18,12 +18,26 @@ Item {
     required property int padding
     required property int rounding
 
+    readonly property int appsPaneHeight: Math.min(maxHeight, 490)
     readonly property bool showWallpapers: visibilities.wallpaperLauncher || search.text.startsWith(`${GlobalConfig.launcher.actionPrefix}wallpaper `)
-    readonly property var currentList: showWallpapers ? wallpaperList.item : appList.item // Can be either ListView or PathView, so can't type properly
+    readonly property var currentList: showWallpapers ? wallpaperList.item : appList.item
 
     function suspendLists(): void {
         appList.item?.suspend?.();
         wallpaperList.item?.suspend?.();
+    }
+
+    function resumeLists(): void {
+        appList.item?.resume?.();
+        wallpaperList.item?.resume?.();
+    }
+
+    Connections {
+        target: visibilities
+        function onLauncherChanged(): void {
+            if (visibilities.launcher)
+                resumeLists();
+        }
     }
 
     onStateChanged: {
@@ -36,18 +50,22 @@ Item {
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.bottom: parent.bottom
 
+    implicitWidth: showWallpapers
+        ? (wallpaperList.item?.implicitWidth ?? Tokens.sizes.launcher.itemWidth * 1.2)
+        : (appList.item?.implicitWidth ?? 590)
+    implicitHeight: showWallpapers
+        ? (wallpaperList.item?.implicitHeight ?? Tokens.sizes.launcher.wallpaperHeight)
+        : appsPaneHeight
+
+    width: implicitWidth
+    height: implicitHeight
+
     clip: true
     state: showWallpapers ? "wallpapers" : "apps"
 
     states: [
         State {
             name: "apps"
-
-            PropertyChanges {
-                root.implicitWidth: appList.item?.implicitWidth ?? 600
-                root.implicitHeight: Math.min(root.maxHeight, appList.implicitHeight > 0 ? appList.implicitHeight : empty.implicitHeight)
-                appList.active: true
-            }
 
             AnchorChanges {
                 anchors.left: root.parent.left
@@ -56,39 +74,14 @@ Item {
         },
         State {
             name: "wallpapers"
-
-            PropertyChanges {
-                root.implicitWidth: Math.max(root.Tokens.sizes.launcher.itemWidth * 1.2, wallpaperList.implicitWidth)
-                root.implicitHeight: wallpaperList.implicitHeight > 0 ? wallpaperList.implicitHeight : root.Tokens.sizes.launcher.wallpaperHeight
-                wallpaperList.active: true
-            }
         }
     ]
-
-    Behavior on state {
-        SequentialAnimation {
-            Anim {
-                target: root
-                property: "opacity"
-                from: 1
-                to: 0
-                type: Anim.StandardSmall
-            }
-            PropertyAction {}
-            Anim {
-                target: root
-                property: "opacity"
-                from: 0
-                to: 1
-                type: Anim.StandardSmall
-            }
-        }
-    }
 
     Loader {
         id: appList
 
-        active: false
+        active: root.state === "apps"
+        visible: root.state === "apps"
 
         anchors.fill: parent
 
@@ -102,7 +95,8 @@ Item {
         id: wallpaperList
 
         asynchronous: true
-        active: false
+        active: root.state === "wallpapers"
+        visible: root.state === "wallpapers"
 
         anchors.top: parent.top
         anchors.bottom: parent.bottom
@@ -119,8 +113,8 @@ Item {
     Item {
         id: empty
 
-        opacity: root.currentList?.count === 0 ? 1 : 0
-        scale: root.currentList?.count === 0 ? 1 : 0.5
+        visible: root.currentList?.count === 0
+        opacity: visible ? 1 : 0
 
         implicitWidth: row.implicitWidth + Tokens.padding.large * 2
         implicitHeight: row.implicitHeight + Tokens.padding.large * 2
@@ -158,32 +152,6 @@ Item {
                     textPointSize: Tokens.font.size.normal
                 }
             }
-        }
-
-        Behavior on opacity {
-            Anim {}
-        }
-
-        Behavior on scale {
-            Anim {}
-        }
-    }
-
-    Behavior on implicitWidth {
-        enabled: root.visibilities.launcher
-
-        Anim {
-            duration: Tokens.anim.durations.large
-            easing: Tokens.anim.emphasizedDecel
-        }
-    }
-
-    Behavior on implicitHeight {
-        enabled: root.visibilities.launcher
-
-        Anim {
-            duration: Tokens.anim.durations.large
-            easing: Tokens.anim.emphasizedDecel
         }
     }
 }

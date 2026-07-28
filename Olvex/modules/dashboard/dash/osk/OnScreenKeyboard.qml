@@ -189,6 +189,7 @@ Item {
                                 id: headerSearchInput
                                 Layout.fillWidth: true
                                 font.pixelSize: 14
+                                font.pointSize: -1
                                 color: Colours.palette.m3onSurface
                                 verticalAlignment: TextInput.AlignVCenter
                                 text: oskContent.item ? (oskContent.item.searchText || "") : ""
@@ -197,7 +198,9 @@ Item {
                                     text: "Search Emoji"
                                     visible: !headerSearchInput.text && !headerSearchInput.activeFocus
                                     color: Qt.alpha(Colours.palette.m3onSurface, 0.4)
-                                    font: headerSearchInput.font
+                                    font.pixelSize: headerSearchInput.font.pixelSize
+                                    font.pointSize: -1
+                                    font.family: headerSearchInput.font.family
                                 }
                                 
                                 onActiveFocusChanged: {

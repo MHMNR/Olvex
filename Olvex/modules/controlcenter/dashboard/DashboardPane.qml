@@ -22,6 +22,7 @@ Item {
     // General Settings
     property bool enabled: Config.dashboard.enabled ?? true
     property bool showOnHover: Config.dashboard.showOnHover ?? true
+    property int mediaUpdateInterval: GlobalConfig.dashboard.mediaUpdateInterval ?? 1000
     property int resourceUpdateInterval: GlobalConfig.dashboard.resourceUpdateInterval ?? 1000
     property int dragThreshold: Config.dashboard.dragThreshold ?? 50
     property int colUnit: Config.dashboard.colUnit ?? 250
@@ -30,7 +31,7 @@ Item {
 
     // Dashboard Tabs
     property bool showDashboard: Config.dashboard.showDashboard ?? true
-    property bool showPerformance: Config.dashboard.showPerformance ?? true
+    property bool showMedia: Config.dashboard.showMedia ?? true
     property bool showWeather: Config.dashboard.showWeather ?? true
     property bool useFahrenheit: GlobalConfig.services.useFahrenheit ?? false
     property string weatherLocation: GlobalConfig.services.weatherLocation ?? ""
@@ -46,10 +47,11 @@ Item {
     function saveConfig() {
         GlobalConfig.dashboard.enabled = root.enabled;
         GlobalConfig.dashboard.showOnHover = root.showOnHover;
+        GlobalConfig.dashboard.mediaUpdateInterval = root.mediaUpdateInterval;
         GlobalConfig.dashboard.resourceUpdateInterval = root.resourceUpdateInterval;
         GlobalConfig.dashboard.dragThreshold = root.dragThreshold;
         GlobalConfig.dashboard.showDashboard = root.showDashboard;
-        GlobalConfig.dashboard.showPerformance = root.showPerformance;
+        GlobalConfig.dashboard.showMedia = root.showMedia;
         GlobalConfig.dashboard.showWeather = root.showWeather;
         GlobalConfig.services.useFahrenheit = root.useFahrenheit;
         GlobalConfig.services.weatherLocation = root.weatherLocation;

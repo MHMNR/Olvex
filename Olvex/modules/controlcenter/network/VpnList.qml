@@ -311,6 +311,8 @@ ColumnLayout {
     Popup {
         id: vpnDialog
 
+        Tokens.screen: root.session.root.screen.name
+
         property string currentState: "selection"
         property int editIndex: -1
         property string providerName: ""

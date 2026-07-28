@@ -23,6 +23,84 @@ Singleton {
     readonly property real windSpeed: cc?.windSpeed ?? 0
     readonly property string sunrise: cc ? Qt.formatDateTime(new Date(cc.sunrise), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
     readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+    readonly property bool hasData: root.cc != null
+    readonly property bool isDay: root.cc?.isDay ?? true
+    readonly property real visualKind: root.visualKindFromCode(root.cc?.weatherCode, root.isDay)
+
+    function visualKindFromCode(code, isDay: bool): real {
+        if (code === undefined || code === null)
+            return 10;
+
+        const c = parseInt(code);
+        if (isNaN(c))
+            return 10;
+
+        if (c <= 1)
+            return isDay ? 0 : 8;
+        if (c === 2)
+            return isDay ? 1 : 9;
+        if (c === 3)
+            return 2;
+        if (c === 45 || c === 48)
+            return 3;
+        if (c >= 51 && c <= 57)
+            return 4;
+        if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82))
+            return 5;
+        if ((c >= 71 && c <= 77) || (c >= 85 && c <= 86))
+            return 6;
+        if (c >= 95)
+            return 7;
+
+        return 2;
+    }
+    readonly property string windLabel: root.cc ? `${Math.round(root.windSpeed)} km/h` : "--"
+    readonly property var todayForecast: root.forecast?.length > 0 ? root.forecast[0] : null
+    readonly property string todayHighLow: {
+        const day = root.todayForecast;
+        if (!day)
+            return "--";
+        if (GlobalConfig.services.useFahrenheit)
+            return `${day.minTempF}° / ${day.maxTempF}°`;
+        return `${day.minTempC}° / ${day.maxTempC}°`;
+    }
+
+    readonly property var weekRange: {
+        const days = root.forecast ?? [];
+        if (days.length === 0)
+            return { min: 0, max: 1, span: 1 };
+
+        const useF = GlobalConfig.services.useFahrenheit;
+        let min = Number.POSITIVE_INFINITY;
+        let max = Number.NEGATIVE_INFINITY;
+
+        for (let i = 0; i < days.length; i++) {
+            const day = days[i];
+            const lo = useF ? day.minTempF : day.minTempC;
+            const hi = useF ? day.maxTempF : day.maxTempC;
+            min = Math.min(min, lo);
+            max = Math.max(max, hi);
+        }
+
+        return {
+            min: min,
+            max: max,
+            span: Math.max(1, max - min)
+        };
+    }
+
+    function formatHourLabel(hour24: int): string {
+        if (GlobalConfig.services.useTwelveHourClock) {
+            const am = hour24 < 12;
+            const h12 = hour24 % 12 || 12;
+            return `${h12}${am ? "a" : "p"}`;
+        }
+        return `${hour24}`;
+    }
+
+    function formatTempValue(celsius: real, fahrenheit: real): string {
+        return GlobalConfig.services.useFahrenheit ? `${fahrenheit}°` : `${celsius}°`;
+    }
 
     readonly property var cachedCities: new Map()
 

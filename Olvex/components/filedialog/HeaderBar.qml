@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
 import qs.components
+import qs.components.filedialog
 import qs.services
 
 StyledRect {
@@ -25,12 +26,52 @@ StyledRect {
 
         Item {
             implicitWidth: implicitHeight
+            implicitHeight: backIcon.implicitHeight + Tokens.padding.small * 2
+
+            StateLayer {
+                radius: Tokens.rounding.small
+                disabled: !root.dialog.canNavBack
+                onClicked: root.dialog.goBack()
+            }
+
+            MaterialIcon {
+                id: backIcon
+
+                anchors.centerIn: parent
+                text: "arrow_back"
+                color: root.dialog.canNavBack ? Colours.palette.m3onSurface : Colours.palette.m3outline
+                grade: 200
+            }
+        }
+
+        Item {
+            implicitWidth: implicitHeight
+            implicitHeight: forwardIcon.implicitHeight + Tokens.padding.small * 2
+
+            StateLayer {
+                radius: Tokens.rounding.small
+                disabled: !root.dialog.canNavForward
+                onClicked: root.dialog.goForward()
+            }
+
+            MaterialIcon {
+                id: forwardIcon
+
+                anchors.centerIn: parent
+                text: "arrow_forward"
+                color: root.dialog.canNavForward ? Colours.palette.m3onSurface : Colours.palette.m3outline
+                grade: 200
+            }
+        }
+
+        Item {
+            implicitWidth: implicitHeight
             implicitHeight: upIcon.implicitHeight + Tokens.padding.small * 2
 
             StateLayer {
                 radius: Tokens.rounding.small
-                disabled: root.dialog.cwd.length === 1
-                onClicked: root.dialog.cwd.pop()
+                disabled: !root.dialog.canNavUp
+                onClicked: root.dialog.leaveDirectory()
             }
 
             MaterialIcon {
@@ -38,103 +79,16 @@ StyledRect {
 
                 anchors.centerIn: parent
                 text: "drive_folder_upload"
-                color: root.dialog.cwd.length === 1 ? Colours.palette.m3outline : Colours.palette.m3onSurface
+                color: root.dialog.canNavUp ? Colours.palette.m3onSurface : Colours.palette.m3outline
                 grade: 200
             }
         }
 
-        StyledRect {
+        AddressBar {
             Layout.fillWidth: true
-
-            radius: Tokens.rounding.small
-            color: Colours.tPalette.m3surfaceContainerHigh
-
-            implicitHeight: pathComponents.implicitHeight + pathComponents.anchors.margins * 2
-
-            RowLayout {
-                id: pathComponents
-
-                anchors.fill: parent
-                anchors.margins: Tokens.padding.small / 2
-                anchors.leftMargin: 0
-
-                spacing: Tokens.spacing.small
-
-                Repeater {
-                    model: root.dialog.cwd
-
-                    RowLayout {
-                        id: folder
-
-                        required property string modelData
-                        required property int index
-
-                        spacing: 0
-
-                        Loader {
-                            asynchronous: true
-                            Layout.rightMargin: Tokens.spacing.small
-                            active: folder.index > 0
-                            sourceComponent: StyledText {
-                                text: "/"
-                                color: Colours.palette.m3onSurfaceVariant
-                                font.bold: true
-                            }
-                        }
-
-                        Item {
-                            implicitWidth: homeIcon.implicitWidth + (homeIcon.active ? Tokens.padding.small : 0) + folderName.implicitWidth + Tokens.padding.normal * 2
-                            implicitHeight: folderName.implicitHeight + Tokens.padding.small * 2
-
-                            Loader {
-                                asynchronous: true
-                                anchors.fill: parent
-                                active: folder.index < root.dialog.cwd.length - 1
-                                sourceComponent: StateLayer {
-                                    onClicked: {
-                                        root.dialog.cwd = root.dialog.cwd.slice(0, folder.index + 1);
-                                    }
-
-                                    radius: Tokens.rounding.small
-                                }
-                            }
-
-                            Loader {
-                                id: homeIcon
-
-                                asynchronous: true
-
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: Tokens.padding.normal
-
-                                active: folder.index === 0 && folder.modelData === "Home"
-                                sourceComponent: MaterialIcon {
-                                    text: "home"
-                                    color: root.dialog.cwd.length === 1 ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                                    fill: 1
-                                }
-                            }
-
-                            StyledText {
-                                id: folderName
-
-                                anchors.left: homeIcon.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: homeIcon.active ? Tokens.padding.small : 0
-
-                                text: folder.modelData
-                                color: folder.index < root.dialog.cwd.length - 1 ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface
-                                font.bold: true
-                            }
-                        }
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
-            }
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredHeight: backIcon.implicitHeight + Tokens.padding.small * 2
+            dialog: root.dialog
         }
     }
 }

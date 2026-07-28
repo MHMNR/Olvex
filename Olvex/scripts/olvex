@@ -25,12 +25,12 @@ _olvex_kill_running() {
 
 if [ "$1" == "shell" ]; then
     shift
-    if [ "$1" == "-d" ] || [ -z "${1:-}" ]; then
+    if [ "${1:-}" == "-d" ] || [ -z "${1:-}" ]; then
         _olvex_kill_running
         exec qs -v -p "${OLVEX_SHELL}" -d
-    elif [ "$1" == "kill" ]; then
+    elif [ "${1:-}" == "kill" ]; then
         _olvex_kill_running
-    elif [ "$1" == "restart" ]; then
+    elif [ "${1:-}" == "restart" ]; then
         _olvex_kill_running
         exec qs -v -p "${OLVEX_SHELL}" -d
     else

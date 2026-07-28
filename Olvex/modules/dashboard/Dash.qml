@@ -21,18 +21,43 @@ RowLayout {
     required property FileDialog facePicker
 
     readonly property color accentColor: Colours.palette.m3primary
-    readonly property real layoutSpacing: 14 
+    readonly property real layoutSpacing: 12
 
-    readonly property real clockWidth: 150       
-    readonly property real calendarWidth: 340    
-    readonly property real resourcesWidth: 700   
-    readonly property real userWidth: 346        
-    readonly property real weatherWidth: 346     
-    readonly property real clockHeight: 450
-    readonly property real calendarHeight: 240   
-    readonly property real resourcesHeight: 146  
-    readonly property real userHeight: 90        
-    readonly property real weatherHeight: 136    
+    readonly property real clockWidth: 150
+
+    // Column-2 anchor — left: user + calendar; right: weather (full row height)
+    readonly property real resourcesHeight: 204
+    readonly property real userHeight: 68
+    // Header + 6 week rows at ~23px cells — safe minimum without clipping last row
+    readonly property real calendarHeight: 244
+
+    readonly property real topRowHeight: userHeight + layoutSpacing + calendarHeight
+    readonly property real weatherHeight: topRowHeight
+    readonly property real column2Height: topRowHeight + layoutSpacing + resourcesHeight
+    readonly property real clockHeight: column2Height
+
+    readonly property real calendarWidth: 340
+    readonly property real weatherWidth: 346
+    readonly property real resourcesWidth: calendarWidth + layoutSpacing + weatherWidth
+
+    property int batteryUiEpoch: 0
+
+    Connections {
+        target: UPower
+        function onOnBatteryChanged(): void {
+            root.batteryUiEpoch++
+        }
+    }
+
+    Connections {
+        target: UPower.displayDevice
+        function onStateChanged(): void {
+            root.batteryUiEpoch++
+        }
+        function onPowerSupplyChanged(): void {
+            root.batteryUiEpoch++
+        }
+    }
 
     // ==== Independent alignment offsets (pixel values) ====
     // Adjust these to fine‑tune each card's X/Y position within its column.
@@ -44,12 +69,9 @@ RowLayout {
 
     spacing: root.layoutSpacing
     implicitWidth: root.clockWidth +
-               Math.max(root.calendarWidth, root.resourcesWidth) +
-               Math.max(root.userWidth, root.weatherWidth) +
-               (root.layoutSpacing * 2)
-    implicitHeight: Math.max(root.clockHeight, 
-                             root.calendarHeight + root.resourcesHeight + root.layoutSpacing,
-                             root.userHeight + root.weatherHeight + root.layoutSpacing)
+               root.calendarWidth + root.layoutSpacing + root.weatherWidth +
+               root.layoutSpacing
+    implicitHeight: root.column2Height
 
     // ── COLUMN 1: Vertical Clock (Tall) ──────────────────────────────────────
     GlassCard {
@@ -57,42 +79,29 @@ RowLayout {
         Layout.preferredWidth: root.clockWidth
         Layout.fillHeight: true
         Layout.preferredHeight: root.clockHeight // Force height
-        
+        borderless: true
+
         DateTime {
             anchors.fill: parent
         }
     }
 
-    // ── COLUMN 2: (Calendar + User/Weather side-by-side) then Resources below ──
+    // ── COLUMN 2: (User + Calendar | Weather) then Resources below ──
     ColumnLayout {
         Layout.fillHeight: true
         spacing: root.layoutSpacing
 
-        // Top row: Calendar on left, User+Weather stacked on right
+        // Top row: User + Calendar left, Weather right (full height)
         RowLayout {
             spacing: root.layoutSpacing
 
-            // Calendar Card
-            GlassCard {
-                staggerIndex: 1
-                Layout.preferredWidth: root.calendarWidth
-                Layout.preferredHeight: root.calendarHeight
-                Layout.alignment: Qt.AlignTop
-                Calendar {
-                    anchors.fill: parent
-                    dashState: root.dashState
-                }
-            }
-
-            // User & Weather stacked
             ColumnLayout {
                 spacing: root.layoutSpacing
                 Layout.alignment: Qt.AlignTop
 
-                // User Card
                 GlassCard {
-                    staggerIndex: 3
-                    Layout.preferredWidth: root.userWidth
+                    staggerIndex: 1
+                    Layout.preferredWidth: root.calendarWidth
                     Layout.preferredHeight: root.userHeight
                     User {
                         anchors.fill: parent
@@ -101,28 +110,39 @@ RowLayout {
                     }
                 }
 
-                // Weather Card
                 GlassCard {
-                    staggerIndex: 4
-                    Layout.preferredWidth: root.weatherWidth
-                    Layout.preferredHeight: root.weatherHeight
-                    SmallWeather {
+                    staggerIndex: 2
+                    Layout.preferredWidth: root.calendarWidth
+                    Layout.preferredHeight: root.calendarHeight
+                    Calendar {
                         anchors.fill: parent
+                        dashState: root.dashState
                     }
+                }
+            }
+
+            GlassCard {
+                staggerIndex: 3
+                Layout.preferredWidth: root.weatherWidth
+                Layout.preferredHeight: root.weatherHeight
+                Layout.alignment: Qt.AlignTop
+                SmallWeather {
+                    anchors.fill: parent
                 }
             }
         }
 
         // Resources Card — full width below
         GlassCard {
-            staggerIndex: 2
+            staggerIndex: 4
+            Layout.fillWidth: true
             Layout.preferredWidth: root.resourcesWidth
-            Layout.alignment: Qt.AlignLeft
             Layout.fillHeight: true
             Layout.preferredHeight: root.resourcesHeight
             Resources {
                 anchors.fill: parent
                 visibilities: root.visibilities
+                batteryUiEpoch: root.batteryUiEpoch
             }
         }
     }
@@ -135,6 +155,10 @@ RowLayout {
         default property alias content: innerContent.data
         property real radius: 24
         property int staggerIndex: 0
+        property bool tonal: false
+        property bool subtleBorder: false
+        property bool innerStroke: true
+        property bool borderless: false
 
         implicitHeight: Layout.preferredHeight
         
@@ -186,10 +210,12 @@ RowLayout {
             anchors.fill: parent
             radius: cardRoot.radius
             
-            color: Qt.alpha(Colours.palette.m3onSurface, 0.05)
-            
-            border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.1)
+            color: cardRoot.tonal ? Colours.tileFillTonal : Colours.tileSurface
+
+            border.width: cardRoot.borderless ? 0 : 1
+            border.color: cardRoot.subtleBorder || cardRoot.tonal
+                ? Colours.tileStrokeSubtle
+                : Colours.tileStroke
 
             // Second border line as a single internal item
             StyledRect {
@@ -197,7 +223,8 @@ RowLayout {
                 anchors.margins: 1
                 radius: parent.radius - 1
                 color: "transparent"
-                border.color: Qt.rgba(1.0, 1.0, 1.0, 0.04)
+                visible: cardRoot.innerStroke && !cardRoot.borderless
+                border.color: Colours.tileInnerLine
                 border.width: 1
             }
 

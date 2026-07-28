@@ -21,14 +21,20 @@ Item {
         list.suspendLists();
     }
 
+    function resumeLists(): void {
+        list.resumeLists();
+    }
+
     implicitWidth: listWrapper.width + padding * 2
     implicitHeight: searchWrapper.height + listWrapper.height + padding * 2
 
     Item {
         id: listWrapper
 
-        implicitWidth: list.width
-        implicitHeight: list.height + root.padding
+        implicitWidth: list.implicitWidth
+        implicitHeight: list.implicitHeight + root.padding
+        width: implicitWidth
+        height: implicitHeight
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: searchWrapper.top
