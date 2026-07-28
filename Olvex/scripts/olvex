@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Olvex CLI wrapper — forwards to the running Olvex shell via Quickshell IPC.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+OLVEX_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+OLVEX_BACKEND="${SCRIPT_DIR}/olvex-backend.sh"
+OLVEX_SHELL="${OLVEX_ROOT}/shell.qml"
+
+export QML_IMPORT_PATH="${OLVEX_ROOT}/build/qml:${QML_IMPORT_PATH:-}"
+
+_olvex_qs() {
+    exec qs -p "${OLVEX_SHELL}" "$@"
+}
+
+_olvex_backend() {
+    exec "${OLVEX_BACKEND}" "$@"
+}
+
+_olvex_kill_running() {
+    qs -p "${OLVEX_SHELL}" kill >/dev/null 2>&1 || true
+    sleep 0.15
+}
+
+if [ "$1" == "shell" ]; then
+    shift
+    if [ "$1" == "-d" ] || [ -z "${1:-}" ]; then
+        _olvex_kill_running
+        exec qs -v -p "${OLVEX_SHELL}" -d
+    elif [ "$1" == "kill" ]; then
+        _olvex_kill_running
+    elif [ "$1" == "restart" ]; then
+        _olvex_kill_running
+        exec qs -v -p "${OLVEX_SHELL}" -d
+    else
+        _olvex_qs ipc call "$@"
+    fi
+elif [ "$1" == "wallpaper" ]; then
+    if [ $# -gt 1 ]; then
+        _olvex_backend "$@"
+    else
+        _olvex_qs ipc call drawers openWallpapers
+    fi
+elif [ "$1" == "screenshot" ]; then
+    shift
+    if [ $# -eq 0 ]; then
+        _olvex_backend screenshot
+    fi
+    freeze=false
+    region=false
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -r|--region) region=true ;;
+            -f|--freeze) freeze=true ;;
+            *) _olvex_backend screenshot "$@" ;;
+        esac
+        shift
+    done
+    if $region; then
+        if $freeze; then
+            _olvex_qs ipc call picker openFreeze
+        else
+            _olvex_qs ipc call picker open
+        fi
+    elif $freeze; then
+        _olvex_qs ipc call picker openFreeze
+    else
+        _olvex_backend screenshot
+    fi
+elif [ "$1" == "record" ]; then
+    shift
+    exec "${SCRIPT_DIR}/record.sh" "$@"
+elif [ "$1" == "clipboard" ]; then
+    shift
+    _olvex_clipboard_bin() {
+        if [ -x "${OLVEX_ROOT}/build/lib/olvex-clipboard" ]; then
+            printf '%s\n' "${OLVEX_ROOT}/build/lib/olvex-clipboard"
+            return 0
+        fi
+        if [ -x "${OLVEX_ROOT}/build/olvex-clipboard" ]; then
+            printf '%s\n' "${OLVEX_ROOT}/build/olvex-clipboard"
+            return 0
+        fi
+        if command -v olvex-clipboard >/dev/null 2>&1; then
+            command -v olvex-clipboard
+            return 0
+        fi
+        return 1
+    }
+
+    clipboard_bin="$(_olvex_clipboard_bin)" || clipboard_bin=""
+    if [ -n "$clipboard_bin" ]; then
+        exec "$clipboard_bin" "$@"
+    fi
+
+    echo "Clipboard app not found. Build or install olvex-clipboard first." >&2
+    exit 1
+else
+    _olvex_backend "$@"
+fi

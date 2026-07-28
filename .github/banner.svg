@@ -1,0 +1,47 @@
+<svg viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Olvex Shell — GitHub banner">
+  <!-- Tokens: Ink #121317, Indigo #675FFF, Coral #FF8A5B, Paper #F5F4F8 — flat fills/strokes only, no gradients -->
+
+  <rect x="0" y="0" width="1200" height="300" fill="#121317"/>
+
+  <!-- Oversized echo of the mark, bled off the top-right edge for depth -->
+  <g transform="translate(880,-60) scale(2.2)" opacity="0.07">
+    <path d="M58,190 L103,96" fill="none" stroke="#675FFF" stroke-width="28" stroke-linecap="round"/>
+    <path d="M182,190 L137,96" fill="none" stroke="#FF8A5B" stroke-width="28" stroke-linecap="round"/>
+    <path d="M40,206 C70,192 90,220 120,206 C150,192 170,220 200,206"
+          fill="none" stroke="#F5F4F8" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- Icon mark -->
+  <g transform="translate(70,58) scale(0.667)">
+    <path d="M58,190 L103,96" fill="none" stroke="#675FFF" stroke-width="28" stroke-linecap="round"/>
+    <path d="M182,190 L137,96" fill="none" stroke="#FF8A5B" stroke-width="28" stroke-linecap="round"/>
+    <path d="M40,206 C70,192 90,220 120,206 C150,192 170,220 200,206"
+          fill="none" stroke="#F5F4F8" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="250" y="170" font-family="'Space Grotesk','Segoe UI Semibold','Inter',sans-serif"
+        font-size="100" font-weight="800" letter-spacing="10" fill="#F5F4F8">OLVEX</text>
+
+  <!-- Hairline -->
+  <rect x="252" y="188" width="560" height="1.5" fill="#F5F4F8" opacity="0.15"/>
+
+  <!-- Tagline -->
+  <text x="252" y="212" font-family="'Space Grotesk','Segoe UI Semibold','Inter',sans-serif"
+        font-size="16" font-weight="600" letter-spacing="6" fill="#FF8A5B">HYPRLAND · WAYLAND SHELL</text>
+
+  <!-- Architecture labels -->
+  <g font-family="'Space Grotesk','Segoe UI','Inter',sans-serif" font-size="13.5" font-weight="600"
+     letter-spacing="3" fill="#F5F4F8" opacity="0.45">
+    <text x="252" y="246">QUICKSHELL + C++</text>
+    <text x="430" y="246">M3 EXPRESSIVE</text>
+    <text x="590" y="246">GPU SHADERS</text>
+  </g>
+  <g stroke="#F5F4F8" stroke-width="1" opacity="0.25">
+    <line x1="408" y1="236" x2="408" y2="250"/>
+    <line x1="568" y1="236" x2="568" y2="250"/>
+  </g>
+
+  <!-- Frame closure -->
+  <rect x="0" y="298" width="1200" height="2" fill="#F5F4F8" opacity="0.08"/>
+</svg>

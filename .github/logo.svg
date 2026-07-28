@@ -1,0 +1,11 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Olvex Shell mark">
+  <!-- Tokens: Indigo #675FFF, Coral #FF8A5B, Paper #F5F4F8 — flat fills only, no gradients -->
+
+  <!-- Two tiled "roof" beams meeting with a Hyprland-style gap at the apex -->
+  <path d="M58,190 L103,96" fill="none" stroke="#675FFF" stroke-width="28" stroke-linecap="round"/>
+  <path d="M182,190 L137,96" fill="none" stroke="#FF8A5B" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Wavy signal line — the M3 Expressive wavy progress bar -->
+  <path d="M40,206 C70,192 90,220 120,206 C150,192 170,220 200,206"
+        fill="none" stroke="#121317" stroke-width="8" stroke-linecap="round"/>
+</svg>
