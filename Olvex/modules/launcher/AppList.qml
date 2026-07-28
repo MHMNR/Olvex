@@ -356,35 +356,35 @@ Item {
 
                 property bool expanded: false
 
-                width: expanded ? 180 : 32
+                width: expanded ? 208 : 32
                 height: expanded ? 124 : 32
-                radius: expanded ? 16 : Tokens.rounding.full
+                radius: 16
 
-                // Opaque Material 3 surface color (non-transparent background)
-                color: expanded ? Colours.palette.m3surfaceContainerLow
+                // Opaque Material 3 surface color (m3surfaceContainerHigh)
+                color: expanded ? Colours.palette.m3surfaceContainerHigh
                                 : (sortIconHover.hovered ? Colours.palette.m3surfaceContainerHigh
                                                          : Colours.palette.m3surfaceContainer)
-                border.color: expanded ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
-                border.width: 1
+                border.width: 0
 
-                Behavior on width { Anim { type: Anim.EmphasizedSpatial } }
-                Behavior on height { Anim { type: Anim.EmphasizedSpatial } }
-                Behavior on radius { Anim { type: Anim.EmphasizedSpatial } }
+                Behavior on width { Anim { type: Anim.Emphasized } }
+                Behavior on height { Anim { type: Anim.Emphasized } }
+                Behavior on radius { Anim { type: Anim.Emphasized } }
                 Behavior on color { CAnim {} }
                 Behavior on border.color { CAnim {} }
 
                 // ── LAYER 1: Collapsed Icon State ──
                 Item {
                     id: collapsedIcon
-                    anchors.centerIn: parent
+                    anchors.top: parent.top
+                    anchors.right: parent.right
                     width: 32
                     height: 32
                     opacity: sortContainer.expanded ? 0 : 1
                     scale: sortContainer.expanded ? 0.5 : 1
-                    visible: opacity > 0.01
+                    visible: !sortContainer.expanded && opacity > 0.01
 
-                    Behavior on opacity { Anim { duration: Tokens.anim.durations.short } }
-                    Behavior on scale { Anim { duration: Tokens.anim.durations.short } }
+                    Behavior on opacity { Anim { duration: Tokens.anim.durations.small } }
+                    Behavior on scale { Anim { duration: Tokens.anim.durations.small } }
 
                     MaterialIcon {
                         anchors.centerIn: parent
@@ -410,7 +410,7 @@ Item {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.margins: 6
-                    width: 168
+                    width: 196
                     height: 112
                     opacity: sortContainer.expanded ? 1 : 0
                     scale: sortContainer.expanded ? 1 : 0.85
@@ -418,10 +418,16 @@ Item {
 
                     property Item hoveredItem: null
 
-                    Behavior on opacity { Anim { duration: sortContainer.expanded ? Tokens.anim.durations.normal : 100 } }
-                    Behavior on scale { Anim { type: Anim.EmphasizedSpatial } }
+                    Timer {
+                        id: clearHoverTimer
+                        interval: 80
+                        onTriggered: expandedMenuArea.hoveredItem = null
+                    }
 
-                    // Sliding hover highlight marker — clearly visible M3 hover fill
+                    Behavior on opacity { Anim { duration: sortContainer.expanded ? Tokens.anim.durations.normal : 100 } }
+                    Behavior on scale { Anim { type: Anim.Emphasized } }
+
+                    // Sliding hover highlight marker — context menu style smooth spring animation
                     StyledRect {
                         id: sortHoverHighlight
 
@@ -432,8 +438,7 @@ Item {
                         opacity: visible ? 1 : 0
                         color: target && target.isActive ? Colours.palette.m3primaryContainer
                                                          : (Colours.light ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.12))
-                        border.color: target && target.isActive ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
-                        border.width: 1
+                        border.width: 0
                         radius: 10
 
                         x: target ? target.mapToItem(expandedMenuArea, 0, 0).x : 0
@@ -441,15 +446,43 @@ Item {
                         width: target ? target.width : 0
                         height: target ? target.height : 0
 
-                        Behavior on y {
+                        Behavior on x {
                             enabled: sortHoverHighlight.opacity > 0
                             SpringAnimation {
-                                spring: 7.0
-                                damping: 0.8
+                                spring: 8.0
+                                damping: 0.75
                                 mass: 1.0
                                 epsilon: 0.005
                             }
                         }
+                        Behavior on y {
+                            enabled: sortHoverHighlight.opacity > 0
+                            SpringAnimation {
+                                spring: 8.0
+                                damping: 0.75
+                                mass: 1.0
+                                epsilon: 0.005
+                            }
+                        }
+                        Behavior on width {
+                            enabled: sortHoverHighlight.opacity > 0
+                            SpringAnimation {
+                                spring: 8.0
+                                damping: 0.75
+                                mass: 1.0
+                                epsilon: 0.005
+                            }
+                        }
+                        Behavior on height {
+                            enabled: sortHoverHighlight.opacity > 0
+                            SpringAnimation {
+                                spring: 8.0
+                                damping: 0.75
+                                mass: 1.0
+                                epsilon: 0.005
+                            }
+                        }
+                        Behavior on color { CAnim {} }
                         Behavior on opacity { CAnim {} }
                     }
 
@@ -505,13 +538,6 @@ Item {
                                         textPointSize: Tokens.font.size.smaller
                                         font.weight: itemRect.isActive ? Font.Bold : Font.Normal
                                     }
-
-                                    MaterialIcon {
-                                        visible: itemRect.isActive
-                                        text: "check"
-                                        color: Colours.palette.m3onPrimaryContainer
-                                        iconPointSize: 12
-                                    }
                                 }
 
                                 HoverHandler {
@@ -519,9 +545,10 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     onHoveredChanged: {
                                         if (hovered) {
+                                            clearHoverTimer.stop();
                                             expandedMenuArea.hoveredItem = itemRect;
-                                        } else if (expandedMenuArea.hoveredItem === itemRect) {
-                                            expandedMenuArea.hoveredItem = null;
+                                        } else {
+                                            clearHoverTimer.restart();
                                         }
                                     }
                                 }
