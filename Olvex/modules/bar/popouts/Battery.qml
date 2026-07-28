@@ -214,7 +214,7 @@ Column {
             anchors.centerIn: parent
 
             text: parent.icon
-            font.pointSize: Tokens.font.size.large
+            iconPointSize: Tokens.font.size.large
             color: profiles.current === text ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
             fill: profiles.current === text ? 1 : 0
 

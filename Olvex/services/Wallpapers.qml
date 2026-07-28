@@ -30,6 +30,7 @@ QtObject {
     readonly property string previewPath: Olvex.WallpapersOlvex.previewPath
     readonly property string actualCurrent: Olvex.WallpapersOlvex.actualCurrent
     readonly property string committedColourSource: Olvex.WallpapersOlvex.committedColourSource
+    readonly property bool bootstrapDone: Olvex.WallpapersOlvex.bootstrapDone
     property bool previewColourLock: Olvex.WallpapersOlvex.previewColourLock
     readonly property var videoThumbnailMap: Olvex.WallpapersOlvex.videoThumbnailMap
 

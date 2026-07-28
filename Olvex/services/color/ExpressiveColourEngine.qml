@@ -90,8 +90,9 @@ Item {
 
         const mode = GlobalConfig.appearance.themeMode;
         if (mode !== "auto" && schemeObj.mode !== mode) {
-            console.log(`[Colours/Expressive] Mode mismatch (${schemeObj.mode} vs ${mode}), syncing`);
-            root.setMode(mode);
+            console.log(`[Colours/Expressive] Mode mismatch (${schemeObj.mode} vs ${mode}), re-extracting from wallpaper`);
+            if (Wallpapers.actualCurrent)
+                Wallpapers.requestAccentRefresh(Wallpapers.actualCurrent, false);
         }
     }
 
@@ -107,24 +108,33 @@ Item {
 
     function setMode(mode) {
         if (mode === "auto") {
-            Wallpapers.requestAccentRefresh(Wallpapers.current, root.wallLuminance > 0.5);
+            if (Wallpapers.actualCurrent)
+                Wallpapers.requestAccentRefresh(Wallpapers.actualCurrent, false);
             return;
         }
         Quickshell.execDetached(["olvex", "scheme", "set", "--notify", "-m", mode]);
     }
 
+    Connections {
+        target: Wallpapers
+        function onBootstrapDoneChanged() {
+            if (Wallpapers.bootstrapDone)
+                picker.tryLoadPersisted();
+        }
+    }
+
     Component.onCompleted: {
-        picker.tryLoadPersisted();
+        if (Wallpapers.bootstrapDone)
+            picker.tryLoadPersisted();
     }
 
     ExpressiveColourPicker {
         id: picker
         onPaletteReady: function(schemeObj, isPreview) {
-            root.applyScheme(schemeObj, isPreview);
+            const payload = Mapper.stringifySchemePayload(JSON.stringify(schemeObj));
+            Colours.ingestWallpaperColors(payload.length ? payload : JSON.stringify(schemeObj), isPreview);
             if (isPreview)
                 root.showPreview = true;
-            else
-                Wallpapers.previewColourLock = false;
         }
         onPaletteFailed: function(reason, isPreview) {
             console.log("[Colours/Expressive] picker failed:", reason, "preview=", isPreview);

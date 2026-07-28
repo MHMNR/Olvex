@@ -115,7 +115,17 @@ def _patch_wallpaper_print(argv: list[str]) -> list[str]:
     return patched
 
 
+def _allow_truncated_images() -> None:
+    try:
+        from PIL import ImageFile
+
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+    except ImportError:
+        pass
+
+
 def main() -> None:
+    _allow_truncated_images()
     argv = _patch_wallpaper_print(sys.argv[1:])
     sys.argv = ["caelestia", *argv]
 

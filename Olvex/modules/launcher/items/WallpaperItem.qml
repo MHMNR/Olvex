@@ -65,7 +65,7 @@ Item {
             anchors.centerIn: parent
             text: "image"
             color: Colours.tPalette.m3outline
-            font.pointSize: Tokens.font.size.extraLarge * 2
+            iconPointSize: Tokens.font.size.extraLarge * 2
             font.weight: 600
         }
 
@@ -105,7 +105,7 @@ Item {
         elide: Text.ElideRight
         renderType: Text.QtRendering
         text: root.hasEntry ? (root.modelData.name ?? "") : ""
-        font.pointSize: Tokens.font.size.normal
+        textPointSize: Tokens.font.size.normal
     }
 
     Behavior on scale {

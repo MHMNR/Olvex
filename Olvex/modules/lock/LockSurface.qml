@@ -174,7 +174,7 @@ WlSessionLockSurface {
                     text: qsTr("Network Active")
                     color: Colours.palette.m3outline
                     font.family: Tokens.font.family.mono
-                    font.pointSize: Tokens.font.size.smaller
+                    textPointSize: Tokens.font.size.smaller
                     font.weight: 500
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -187,7 +187,7 @@ WlSessionLockSurface {
             text: "Olvex v1.0"
             color: Qt.alpha(Colours.palette.m3outline, 0.5)
             font.family: Tokens.font.family.mono
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
         }
     }
 

@@ -77,7 +77,7 @@ ColumnLayout {
             MaterialIcon {
                 id: measureIcon
                 text: btn.icon
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
                 visible: false
             }
 
@@ -119,9 +119,9 @@ ColumnLayout {
                 color: btnState.containsMouse ? Colours.palette[`m3on${btn.hue}`] : Colours.palette.m3onSurfaceVariant
                 
                 // Animate font size directly instead of scaling to prevent pixelation (faita jaoa)
-                font.pointSize: Tokens.font.size.large * (btnState.pressed ? 0.9 : btnState.containsMouse ? 1.15 : 1)
+                iconPointSize: Tokens.font.size.large * (btnState.pressed ? 0.9 : btnState.containsMouse ? 1.15 : 1)
 
-                Behavior on font.pointSize { Anim { type: Anim.FastSpatial } }
+                Behavior on iconPointSize { Anim { type: Anim.FastSpatial } }
                 Behavior on color { CAnim {} }
             }
         }
@@ -131,7 +131,7 @@ ColumnLayout {
             text: btn.label
             color: Colours.palette.m3outline
             font.family: Tokens.font.family.mono
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
         }
     }
 }

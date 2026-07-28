@@ -27,6 +27,7 @@ Item {
     required property DrawerVisibilities visibilities
     required property Bar.BarWrapper bar
     required property real borderThickness
+    required property var safeBorder
 
     readonly property alias osd: osd
     readonly property alias osdWrapper: osdWrapper
@@ -48,9 +49,9 @@ Item {
     // so the border blob expands and panel sits inside it. Only always mode
     // sets exclusiveZone=80 to push windows.
     property real bottomMargin: {
-        const baseMargin = borderThickness + (((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? 5 : 0);
+        const baseMargin = borderThickness + (safeBorder.floating ? 5 : 0);
         if (bottomPanelVisible)
-            return 80 + (((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? 5 : 0);
+            return 80 + (safeBorder.floating ? 5 : 0);
         return baseMargin;
     }
 
@@ -154,10 +155,10 @@ Item {
     }
 
     anchors.fill: parent
-    anchors.margins: borderThickness + (((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? 5 : 0)
+    anchors.margins: borderThickness + (safeBorder.floating ? 5 : 0)
     anchors.bottomMargin: bottomMargin
 
-    anchors.leftMargin: bar.implicitWidth + (((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? 5 : 0)
+    anchors.leftMargin: bar.implicitWidth + (safeBorder.floating ? 5 : 0)
 
     Item {
         id: osdWrapper
@@ -289,7 +290,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 0
         anchors.right: parent.right
-        anchors.rightMargin: -(root.borderThickness + (((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? 5 : 0))
+        anchors.rightMargin: -(root.borderThickness + (safeBorder.floating ? 5 : 0))
 
         height: 80
         visible: root.bottomPanelEnabled

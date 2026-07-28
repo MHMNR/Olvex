@@ -29,14 +29,14 @@ Item {
 
                 StyledText {
                     text: Weather.city || qsTr("Loading...")
-                    font.pointSize: Tokens.font.size.extraLarge
+                    textPointSize: Tokens.font.size.extraLarge
                     font.weight: 600
                     color: Colours.palette.m3onSurface
                 }
 
                 StyledText {
                     text: new Date().toLocaleDateString(Qt.locale(), "dddd, MMMM d")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
             }
@@ -80,7 +80,7 @@ Item {
                 MaterialIcon {
                     Layout.alignment: Qt.AlignVCenter
                     text: Weather.icon
-                    font.pointSize: Tokens.font.size.extraLarge * 3
+                    iconPointSize: Tokens.font.size.extraLarge * 3
                     color: Colours.palette.m3secondary
                     animate: true
                 }
@@ -91,7 +91,7 @@ Item {
 
                     StyledText {
                         text: Weather.temp
-                        font.pointSize: Tokens.font.size.extraLarge * 2
+                        textPointSize: Tokens.font.size.extraLarge * 2
                         font.weight: 500
                         color: Colours.palette.m3primary
                     }
@@ -99,7 +99,7 @@ Item {
                     StyledText {
                         Layout.leftMargin: Tokens.padding.small
                         text: Weather.description
-                        font.pointSize: Tokens.font.size.normal
+                        textPointSize: Tokens.font.size.normal
                         color: Colours.palette.m3onSurfaceVariant
                     }
                 }
@@ -135,7 +135,7 @@ Item {
             Layout.leftMargin: Tokens.padding.normal
             visible: forecastRepeater.count > 0
             text: qsTr("7-Day Forecast")
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
             font.weight: 600
             color: Colours.palette.m3onSurface
         }
@@ -170,7 +170,7 @@ Item {
                         StyledText {
                             Layout.alignment: Qt.AlignHCenter
                             text: forecastItem.index === 0 ? qsTr("Today") : new Date(forecastItem.modelData.date).toLocaleDateString(Qt.locale(), "ddd")
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                             font.weight: 600
                             color: Colours.palette.m3primary
                         }
@@ -179,7 +179,7 @@ Item {
                             Layout.topMargin: -Tokens.spacing.small / 2
                             Layout.alignment: Qt.AlignHCenter
                             text: new Date(forecastItem.modelData.date).toLocaleDateString(Qt.locale(), "MMM d")
-                            font.pointSize: Tokens.font.size.small
+                            textPointSize: Tokens.font.size.small
                             opacity: 0.7
                             color: Colours.palette.m3onSurfaceVariant
                         }
@@ -187,7 +187,7 @@ Item {
                         MaterialIcon {
                             Layout.alignment: Qt.AlignHCenter
                             text: forecastItem.modelData.icon
-                            font.pointSize: Tokens.font.size.extraLarge
+                            iconPointSize: Tokens.font.size.extraLarge
                             color: Colours.palette.m3secondary
                         }
 
@@ -223,7 +223,7 @@ Item {
             MaterialIcon {
                 text: detailRoot.icon
                 color: detailRoot.colour
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
                 anchors.verticalCenter: parent.verticalCenter
             }
 
@@ -233,7 +233,7 @@ Item {
 
                 StyledText {
                     text: detailRoot.label
-                    font.pointSize: Tokens.font.size.smaller
+                    textPointSize: Tokens.font.size.smaller
                     opacity: 0.7
                     horizontalAlignment: Text.AlignLeft
                 }
@@ -258,19 +258,19 @@ Item {
 
         MaterialIcon {
             text: weatherStat.icon
-            font.pointSize: Tokens.font.size.extraLarge
+            iconPointSize: Tokens.font.size.extraLarge
             color: weatherStat.colour
         }
 
         Column {
             StyledText {
                 text: weatherStat.label
-                font.pointSize: Tokens.font.size.smaller
+                textPointSize: Tokens.font.size.smaller
                 color: Colours.palette.m3onSurfaceVariant
             }
             StyledText {
                 text: weatherStat.value
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 font.weight: 600
                 color: Colours.palette.m3onSurface
             }

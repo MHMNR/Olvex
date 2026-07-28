@@ -152,15 +152,15 @@ Item {
                 MaterialIcon {
                     text: "search"
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.small
+                    iconPointSize: Tokens.font.size.small
                 }
 
                 TextInput {
                     id: searchInput
                     Layout.fillWidth: true
                     color: Colours.palette.m3onSurface
-                    font.pointSize: Tokens.font.size.small
-                    font.family: Tokens.font.family
+                    font.pixelSize: Math.round(Tokens.font.size.small * 96 / 72)
+                    font.family: Tokens.font.family.sans
                     clip: true
                     selectByMouse: true
                     onTextChanged: root.searchText = text
@@ -185,7 +185,7 @@ Item {
                         anchors.centerIn: parent
                         text: qsTr("Ctrl+K")
                         color: Colours.palette.m3onSurfaceVariant
-                        font.pointSize: Tokens.font.size.extraSmall
+                        textPointSize: Tokens.font.size.extraSmall
                     }
                 }
             }
@@ -248,14 +248,14 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                         text: "content_paste_off"
                         color: Colours.palette.m3onSurfaceVariant
-                        font.pointSize: Tokens.font.size.extraLarge
+                        iconPointSize: Tokens.font.size.extraLarge
                         opacity: 0.5
                     }
                     StyledText {
                         Layout.alignment: Qt.AlignHCenter
                         text: qsTr("Nothing copied yet")
                         color: Colours.palette.m3onSurfaceVariant
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                         opacity: 0.6
                     }
                 }
@@ -279,7 +279,7 @@ Item {
                 StyledText {
                     text: Cliphist && Cliphist.hasError ? Cliphist.errorMessage : qsTr("Ready")
                     color: Cliphist && Cliphist.hasError ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.extraSmall
+                    textPointSize: Tokens.font.size.extraSmall
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
@@ -304,12 +304,12 @@ Item {
                             MaterialIcon {
                                 text: "keyboard_return"
                                 color: Colours.palette.m3primary
-                                font.pointSize: Tokens.font.size.small
+                                iconPointSize: Tokens.font.size.small
                             }
                             StyledText {
                                 text: qsTr("Copy")
                                 color: Colours.palette.m3onSurface
-                                font.pointSize: Tokens.font.size.extraSmall
+                                textPointSize: Tokens.font.size.extraSmall
                             }
                         }
                     }
@@ -335,12 +335,12 @@ Item {
                             MaterialIcon {
                                 text: "delete"
                                 color: Colours.palette.m3error
-                                font.pointSize: Tokens.font.size.small
+                                iconPointSize: Tokens.font.size.small
                             }
                             StyledText {
                                 text: qsTr("Delete")
                                 color: Colours.palette.m3onSurface
-                                font.pointSize: Tokens.font.size.extraSmall
+                                textPointSize: Tokens.font.size.extraSmall
                             }
                         }
                     }
@@ -366,12 +366,12 @@ Item {
                             MaterialIcon {
                                 text: "close"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.small
+                                iconPointSize: Tokens.font.size.small
                             }
                             StyledText {
                                 text: qsTr("Close")
                                 color: Colours.palette.m3onSurface
-                                font.pointSize: Tokens.font.size.extraSmall
+                                textPointSize: Tokens.font.size.extraSmall
                             }
                         }
                     }
@@ -475,7 +475,7 @@ Item {
                         anchors.centerIn: parent
                         text: "img"
                         color: Qt.rgba(1, 1, 1, 0.55)
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                         font.weight: Font.Medium
                     }
                 }
@@ -489,7 +489,7 @@ Item {
                 StyledText {
                     Layout.fillWidth: true
                     text: clipItem.hasImage ? (clipItem.entry.text || qsTr("Image")) : ((clipItem.entry && clipItem.entry.text) ? clipItem.entry.text : "")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurface
                     maximumLineCount: 2
                     elide: Text.ElideRight
@@ -502,7 +502,7 @@ Item {
 
                     StyledText {
                         text: clipItem.entry && clipItem.entry.raw ? clipItem.entry.raw : ""
-                        font.pointSize: Tokens.font.size.extraSmall
+                        textPointSize: Tokens.font.size.extraSmall
                         color: Colours.palette.m3onSurfaceVariant
                         maximumLineCount: 1
                         elide: Text.ElideRight
@@ -511,7 +511,7 @@ Item {
 
                     StyledText {
                         text: cliphistId(clipItem.entry)
-                        font.pointSize: Tokens.font.size.extraSmall
+                        textPointSize: Tokens.font.size.extraSmall
                         color: Colours.palette.m3primary
                     }
                 }
@@ -534,7 +534,7 @@ Item {
                 MaterialIcon {
                     anchors.centerIn: parent
                     text: "close"
-                    font.pointSize: Tokens.font.size.small
+                    iconPointSize: Tokens.font.size.small
                     color: delState.containsMouse
                         ? Colours.palette.m3error
                         : Colours.palette.m3onSurfaceVariant

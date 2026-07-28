@@ -384,8 +384,8 @@ Item {
     }
 
     Component.onCompleted: {
-        if (Players.active)
-            root.setArtUrl(Players.getArtUrl(Players.active));
+        if (Players.currentArtUrl)
+            root.setArtUrl(Players.currentArtUrl);
         else if (root.artUrl)
             root.setArtUrl(root.artUrl);
     }

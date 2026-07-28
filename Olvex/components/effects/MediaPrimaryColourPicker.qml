@@ -77,7 +77,7 @@ Item {
         const escapedCache = cacheFile.replace(/'/g, "'\\''");
         const escapedDir = root.artCacheDir.replace(/'/g, "'\\''");
         return ["bash", "-lc",
-            `mkdir -p '${escapedDir}' && curl -fsSL '${escapedUrl}' -o '${escapedCache}' && printf '%s' '${escapedCache}'`];
+            `mkdir -p '${escapedDir}' && curl -fsSL '${escapedUrl}' -o '${escapedCache}' && [ -s '${escapedCache}' ] && mime=$(file -b --mime-type '${escapedCache}' 2>/dev/null) && [ "\${mime%%/*}" = "image" ] && printf '%s' '${escapedCache}'`];
     }
 
     function pickFromPath(imagePath: string): void {
@@ -130,8 +130,10 @@ Item {
 
         stderr: StdioCollector {
             onStreamFinished: {
-                if (text.trim().length > 0)
-                    console.log("[MediaPrimaryColourPicker] fetch:", text.trim());
+                const msg = text.trim();
+                if (!msg || msg.includes("Traceback"))
+                    return;
+                console.log("[MediaPrimaryColourPicker] fetch:", msg);
             }
         }
     }
@@ -163,8 +165,17 @@ Item {
 
         stderr: StdioCollector {
             onStreamFinished: {
-                if (text.trim().length > 0)
-                    console.log("[MediaPrimaryColourPicker]", text.trim());
+                const msg = text.trim();
+                if (!msg || msg.includes("Traceback"))
+                    return;
+                console.log("[MediaPrimaryColourPicker]", msg);
+            }
+        }
+
+        onExited: exitCode => {
+            if (exitCode !== 0 && root.lastSource.includes("/media/art-cache/")) {
+                Quickshell.execDetached(["rm", "-f", root.lastSource]);
+                root.lastSource = "";
             }
         }
     }

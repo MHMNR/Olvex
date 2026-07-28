@@ -5,6 +5,7 @@ import Olvex.Services
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
+import Quickshell.Services.UPower
 import qs.components
 import qs.components.effects
 import qs.components.filedialog

@@ -43,7 +43,7 @@ ColumnLayout {
             return available;
         }
         color: Colours.palette.m3onSurfaceVariant
-        font.pointSize: Tokens.font.size.small
+        textPointSize: Tokens.font.size.small
     }
 
     ScrollView {

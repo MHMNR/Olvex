@@ -12,12 +12,22 @@ Text {
     property real animateFrom: 0
     property real animateTo: 1
     property int animateDuration: Tokens.anim.durations.normal
+    property real textPointSize: -1
+    property int textPixelSize: -1
+
+    readonly property int resolvedPixelSize: {
+        if (textPixelSize > 0)
+            return textPixelSize;
+        if (textPointSize > 0)
+            return Math.max(10, Math.round(textPointSize * 96 / 72));
+        return Math.max(10, Math.round(Tokens.font.size.smaller * 96 / 72));
+    }
 
     renderType: Text.NativeRendering
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
     font.family: Tokens.font.family.sans
-    font.pointSize: Tokens.font.size.smaller
+    font.pixelSize: resolvedPixelSize
 
     Behavior on color {
         CAnim {}

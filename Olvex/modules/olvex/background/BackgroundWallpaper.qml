@@ -30,6 +30,7 @@ Item {
     property string pendingWallpaper: ""
     property bool debugLogging: true
     property real edgeSmoothness: Config.background.wallpaperTransition.edgeSmoothness
+    readonly property int wallpaperTransitionDuration: GlobalConfig.background?.wallpaperTransition?.duration ?? 1000
     property real wipeDirection: 0
     property real discCenterX: 0.5
     property real discCenterY: 0.5
@@ -240,7 +241,7 @@ Item {
                 MaterialIcon {
                     text: "sentiment_stressed"
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.extraLarge * 5
+                    iconPointSize: Tokens.font.size.extraLarge * 5
                 }
 
                 Column {
@@ -250,7 +251,7 @@ Item {
                     StyledText {
                         text: qsTr("Wallpaper missing?")
                         color: Colours.palette.m3onSurfaceVariant
-                        font.pointSize: Tokens.font.size.extraLarge * 2
+                        textPointSize: Tokens.font.size.extraLarge * 2
                         font.bold: true
                     }
 
@@ -284,7 +285,7 @@ Item {
                             anchors.centerIn: parent
                             text: qsTr("Set it now!")
                             color: Colours.palette.m3onPrimary
-                            font.pointSize: Tokens.font.size.large
+                            textPointSize: Tokens.font.size.large
                         }
                     }
                 }
@@ -584,7 +585,7 @@ Item {
         property: "transitionProgress"
         from: 0
         to: 1
-        duration: Config.background.wallpaperTransition.duration
+        duration: root.wallpaperTransitionDuration
         easing.type: Easing.InOutCubic
 
         onFinished: {
@@ -607,7 +608,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "video_library"
                     color: Colours.palette.m3primary
-                    font.pointSize: Tokens.font.size.extraLarge * 2
+                    iconPointSize: Tokens.font.size.extraLarge * 2
                 }
 
                 StyledText {

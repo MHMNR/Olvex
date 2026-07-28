@@ -65,7 +65,7 @@ CollapsibleSection {
     SectionContainer {
         StyledText {
             text: qsTr("Cycling")
-            font.pointSize: Tokens.font.size.larger
+            textPointSize: Tokens.font.size.larger
             font.weight: 500
         }
 
@@ -127,7 +127,7 @@ CollapsibleSection {
     SectionContainer {
         StyledText {
             text: qsTr("Desktop clock")
-            font.pointSize: Tokens.font.size.larger
+            textPointSize: Tokens.font.size.larger
             font.weight: 500
         }
 

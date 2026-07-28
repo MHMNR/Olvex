@@ -94,7 +94,7 @@ ColumnLayout {
 
                         MaterialIcon {
                             text: modelData.isActive ? "vpn_key" : "vpn_key_off"
-                            font.pointSize: Tokens.font.size.large
+                            iconPointSize: Tokens.font.size.large
                             color: modelData.isActive ? Colours.palette.m3primary : Colours.palette.m3outline
                         }
 
@@ -109,7 +109,7 @@ ColumnLayout {
 
                             StyledText {
                                 text: qsTr("%1 • %2").arg(modelData.name).arg(modelData.interface || qsTr("No interface"))
-                                font.pointSize: Tokens.font.size.small
+                                textPointSize: Tokens.font.size.small
                                 color: Colours.palette.m3outline
                             }
                         }

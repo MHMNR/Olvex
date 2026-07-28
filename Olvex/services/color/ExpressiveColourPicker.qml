@@ -59,12 +59,19 @@ Item {
         if (root.persistedLoaded)
             return true;
 
-        const wallPath = Wallpapers.actualCurrent;
-        const sourcePath = Wallpapers.colourSourcePath(wallPath);
-        if (!wallPath || !sourcePath
-            || Wallpapers.committedColourSource !== sourcePath) {
+        if (!Wallpapers.bootstrapDone)
             return false;
-        }
+
+        const wallPath = (Wallpapers.actualCurrent || "").trim();
+        const sourcePath = Wallpapers.colourSourcePath(wallPath);
+        if (!wallPath || !sourcePath)
+            return false;
+
+        const normalize = p => (p || "").trim().replace(/^file:\/\//, "");
+        const committed = normalize(Wallpapers.committedColourSource);
+        const normalizedSource = normalize(sourcePath);
+        if (committed && committed !== normalizedSource)
+            return false;
 
         for (let i = 0; i < schemeWatchers.count; i++) {
             const payload = schemePayloadAt(i);
@@ -74,7 +81,7 @@ Item {
             if (!scheme)
                 continue;
             root.persistedLoaded = true;
-            root.lastSource = sourcePath.replace(/^file:\/\//, "");
+            root.lastSource = normalizedSource;
             root.state = "persisted";
             root.paletteReady(scheme, false);
             return true;
@@ -104,11 +111,16 @@ Item {
             visible: false
 
             FileView {
+                printErrors: false
                 path: modelData
                 watchChanges: true
                 onFileChanged: reload()
                 onLoaded: {
                     if (!root.persistedLoaded)
+                        root.tryLoadPersisted();
+                }
+                onLoadFailed: err => {
+                    if (err === FileViewError.FileNotFound && !root.persistedLoaded)
                         root.tryLoadPersisted();
                 }
             }

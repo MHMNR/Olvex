@@ -39,7 +39,7 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                         text: modelData.iconName
                         color: isCurrent ? Colours.palette.m3primary : Qt.alpha("#ffffff", 0.6)
-                        font.pointSize: 22
+                        iconPointSize: 22
                         fill: isCurrent ? 1 : 0
                         Behavior on color { ColorAnimation { duration: 200 } }
                     }
@@ -48,7 +48,7 @@ Item {
                         Layout.alignment: Qt.AlignHCenter
                         text: modelData.text
                         color: isCurrent ? "#ffffff" : Qt.alpha("#ffffff", 0.4)
-                        font.pointSize: 12
+                        textPointSize: 12
                         font.weight: isCurrent ? 600 : 400
                         Behavior on color { ColorAnimation { duration: 200 } }
                     }

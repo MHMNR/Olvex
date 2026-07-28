@@ -78,7 +78,7 @@ Item {
                 id: comment
 
                 text: (root.modelData?.comment || root.modelData?.genericName || root.modelData?.name) ?? ""
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 color: Colours.palette.m3outline
 
                 elide: Text.ElideRight

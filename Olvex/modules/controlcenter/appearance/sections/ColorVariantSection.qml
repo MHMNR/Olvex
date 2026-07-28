@@ -62,7 +62,7 @@ CollapsibleSection {
 
                     MaterialIcon {
                         text: modelData.icon
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                         fill: modelData.variant === Schemes.currentVariant ? 1 : 0
                     }
 
@@ -76,7 +76,7 @@ CollapsibleSection {
                         visible: modelData.variant === Schemes.currentVariant
                         text: "check"
                         color: Colours.palette.m3primary
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                     }
                 }
             }

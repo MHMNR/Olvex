@@ -119,7 +119,7 @@ StyledRect {
             animate: true
             text: root.modelData?.timeStr ?? ""
             color: Colours.palette.m3outline
-            font.pointSize: Tokens.font.size.small
+            textPointSize: Tokens.font.size.small
         }
     }
 

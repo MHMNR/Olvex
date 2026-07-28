@@ -149,7 +149,7 @@ ColumnLayout {
 
             text: detail.text
             elide: Text.ElideRight
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
         }
     }
 

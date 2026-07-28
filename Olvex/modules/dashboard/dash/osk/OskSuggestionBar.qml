@@ -56,7 +56,7 @@ Item {
                 StyledText {
                     anchors.centerIn: parent
                     text: pill.modelData
-                    font.pixelSize: 14
+                    textPixelSize: 14
                     color: pillArea.pressed
                         ? Colours.palette.m3onPrimary
                         : Colours.palette.m3onSurface

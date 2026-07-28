@@ -71,7 +71,7 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Wallpaper Transition")
-            font.pointSize: Tokens.font.size.larger
+            textPointSize: Tokens.font.size.larger
             font.weight: 500
         }
 
@@ -154,7 +154,7 @@ CollapsibleSection {
     SectionContainer {
         StyledText {
             text: qsTr("Cycling")
-            font.pointSize: Tokens.font.size.larger
+            textPointSize: Tokens.font.size.larger
             font.weight: 500
         }
 
@@ -216,7 +216,7 @@ CollapsibleSection {
     StyledText {
         Layout.topMargin: Tokens.spacing.normal
         text: qsTr("Desktop Clock")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 500
     }
 
@@ -246,7 +246,7 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Positioning")
-            font.pointSize: Tokens.font.size.larger
+            textPointSize: Tokens.font.size.larger
             font.weight: 500
         }
 
@@ -337,7 +337,7 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Shadow")
-            font.pointSize: Tokens.font.size.larger
+            textPointSize: Tokens.font.size.larger
             font.weight: 500
         }
 
@@ -406,7 +406,7 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Background")
-            font.pointSize: Tokens.font.size.larger
+            textPointSize: Tokens.font.size.larger
             font.weight: 500
         }
 
@@ -457,7 +457,7 @@ CollapsibleSection {
     StyledText {
         Layout.topMargin: Tokens.spacing.normal
         text: qsTr("Visualiser")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 500
     }
 

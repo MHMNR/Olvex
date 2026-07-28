@@ -97,7 +97,7 @@ ColumnLayout {
             StyledText {
                 text: Time.hourStr
                 color: Colours.current.m3onSurface
-                font.pointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
+                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
                 font.family: Tokens.font.family.clock
                 font.bold: true
             }
@@ -105,7 +105,7 @@ ColumnLayout {
             StyledText {
                 text: ":"
                 color: Colours.current.m3primary
-                font.pointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
+                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
                 font.family: Tokens.font.family.clock
                 font.bold: true
             }
@@ -113,7 +113,7 @@ ColumnLayout {
             StyledText {
                 text: Time.minuteStr
                 color: Colours.current.m3primary
-                font.pointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
+                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
                 font.family: Tokens.font.family.clock
                 font.bold: true
             }
@@ -125,7 +125,7 @@ ColumnLayout {
                 sourceComponent: StyledText {
                     text: Time.amPmStr
                     color: Colours.current.m3primary
-                    font.pointSize: Math.floor(Tokens.font.size.extraLarge * 1.8 * root.centerScale)
+                    textPointSize: Math.floor(Tokens.font.size.extraLarge * 1.8 * root.centerScale)
                     font.family: Tokens.font.family.clock
                     font.bold: true
                 }
@@ -136,7 +136,7 @@ ColumnLayout {
             Layout.alignment: Qt.AlignHCenter
             text: Time.format("dddd, d MMMM yyyy")
             color: Colours.current.m3onSurfaceVariant
-            font.pointSize: Math.floor(Tokens.font.size.extraLarge * 1.2 * root.centerScale)
+            textPointSize: Math.floor(Tokens.font.size.extraLarge * 1.2 * root.centerScale)
             font.family: Tokens.font.family.mono
             font.bold: true
         }
@@ -178,7 +178,7 @@ ColumnLayout {
             text: pam.passwd.message || pam.fprint.message || ""
             opacity: text ? 1 : 0
             color: Colours.current.m3error
-            font.pointSize: Tokens.font.size.small
+            textPointSize: Tokens.font.size.small
             font.family: Tokens.font.family.mono
             horizontalAlignment: Qt.AlignHCenter
             Behavior on opacity { Anim {} }
@@ -217,7 +217,7 @@ ColumnLayout {
                     anchors.centerIn: parent
                     text: "person"
                     color: Colours.current.m3onSurfaceVariant
-                    font.pointSize: 40
+                    iconPointSize: 40
                     visible: pfp.status !== Image.Ready
                 }
 

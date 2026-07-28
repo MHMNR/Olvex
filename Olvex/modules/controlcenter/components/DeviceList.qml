@@ -47,7 +47,7 @@ ColumnLayout {
         StyledText {
             visible: root.title !== ""
             text: root.title
-            font.pointSize: Tokens.font.size.large
+            textPointSize: Tokens.font.size.large
             font.weight: 500
         }
 

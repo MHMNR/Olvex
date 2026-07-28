@@ -36,7 +36,7 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 text: monthGrid.title
                 color: root.accentColor
-                font.pointSize: 14
+                textPointSize: 14
                 font.weight: 700
                 font.capitalization: Font.Capitalize
             }
@@ -84,7 +84,7 @@ Item {
                         if (dayCell.model.dayOfWeek === 0 || dayCell.model.dayOfWeek === 6) return root.accentColor;
                         return dayCell.model.month === monthGrid.month ? root.textColor : root.mutedColor;
                     }
-                    font.pointSize: 11
+                    textPointSize: 11
                     font.weight: dayCell.model.today ? 700 : 500
                     opacity: dayCell.model.month === monthGrid.month ? 1 : 0.3
                 }
@@ -106,7 +106,7 @@ Item {
             anchors.centerIn: parent
             text: btn.icon
             color: root.accentColor
-            font.pointSize: 14
+            iconPointSize: 14
         }
 
         MouseArea {

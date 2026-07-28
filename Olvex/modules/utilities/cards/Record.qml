@@ -90,7 +90,7 @@ StyledRect {
 
                 StyledText {
                     text: qsTr("Screen Recorder")
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.weight: Font.DemiBold
                     color: Colours.palette.m3onSurface
                 }
@@ -145,7 +145,7 @@ StyledRect {
                                     return found.icon;
                                 }
                                 color: Colours.palette.m3onPrimary
-                                font.pointSize: Tokens.font.size.normal
+                                iconPointSize: Tokens.font.size.normal
                             }
 
                             StyledText {
@@ -160,7 +160,7 @@ StyledRect {
                                     return found.activeText;
                                 }
                                 color: Colours.palette.m3onPrimary
-                                font.pointSize: Tokens.font.size.small
+                                textPointSize: Tokens.font.size.small
                             }
                         }
 
@@ -169,7 +169,7 @@ StyledRect {
                             anchors.centerIn: parent
                             text: Recorder.paused ? "play_arrow" : "pause"
                             color: Recorder.paused ? Colours.palette.m3onTertiary : Colours.palette.m3onPrimary
-                            font.pointSize: Tokens.font.size.large
+                            iconPointSize: Tokens.font.size.large
                             visible: Recorder.running
                         }
 
@@ -228,7 +228,7 @@ StyledRect {
                             anchors.centerIn: parent
                             text: "keyboard_arrow_down"
                             color: Colours.palette.m3onPrimary
-                            font.pointSize: Tokens.font.size.normal
+                            iconPointSize: Tokens.font.size.normal
                             rotation: modeMenu.expanded ? 180 : 0
                             visible: !Recorder.running
                             Behavior on rotation { Anim {} }
@@ -239,7 +239,7 @@ StyledRect {
                             anchors.centerIn: parent
                             text: "stop"
                             color: Colours.palette.m3onError
-                            font.pointSize: Tokens.font.size.large
+                            iconPointSize: Tokens.font.size.large
                             visible: Recorder.running
                         }
 
@@ -283,7 +283,7 @@ StyledRect {
                         if (hours > 0) return `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
                         return `${mins}:${secs}`;
                     }
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.weight: Font.DemiBold
                     color: Colours.palette.m3onSurface
                     Layout.leftMargin: Tokens.spacing.small
@@ -297,7 +297,7 @@ StyledRect {
                     
                     StyledText {
                         text: "FPS"
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                         font.weight: Font.DemiBold
                         color: Colours.palette.m3onSurfaceVariant
                     }
@@ -342,7 +342,7 @@ StyledRect {
                                         anchors.centerIn: parent
                                         text: modelData
                                         color: modelData === root.props.recordingFps ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-                                        font.pointSize: Tokens.font.size.small - 1
+                                        textPointSize: Tokens.font.size.small - 1
                                         
                                         Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
                                     }
@@ -389,7 +389,7 @@ StyledRect {
             anchors.centerIn: parent
             text: "keyboard_arrow_down"
             color: Colours.palette.m3onPrimary
-            font.pointSize: 10
+            iconPointSize: 10
             rotation: root.props.recordingListExpanded ? 180 : 0
             Behavior on rotation { Anim {} }
         }

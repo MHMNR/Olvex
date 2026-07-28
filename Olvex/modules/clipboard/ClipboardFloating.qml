@@ -16,8 +16,8 @@ import qs.services
 PanelWindow {
     id: root
 
-    width: 680
-    height: 520
+    implicitWidth: 680
+    implicitHeight: 520
     visible: false
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
@@ -163,15 +163,15 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "content_paste"
                     color: Colours.palette.m3primary
-                    font.pointSize: 16
+                    iconPointSize: 16
                 }
 
                 StyledText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Clipboard"
                     color: Qt.rgba(1, 1, 1, 0.92)
-                    font.pointSize: Tokens.font.size.large
-                    font.weight: Font.SemiBold
+                    textPointSize: Tokens.font.size.large
+                    font.weight: 600
                 }
             }
 
@@ -181,7 +181,7 @@ PanelWindow {
                 anchors.rightMargin: 20
                 text: root.filteredEntries.length + " items"
                 color: Qt.rgba(1, 1, 1, 0.35)
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
         }
 
@@ -230,15 +230,15 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "search"
                         color: Qt.rgba(1, 1, 1, 0.4)
-                        font.pointSize: 14
+                        iconPointSize: 14
                     }
 
                     TextInput {
                         id: searchField
                         width: searchBar.width - 80
                         color: Qt.rgba(1, 1, 1, 0.88)
-                        font.pointSize: Tokens.font.size.normal
-                        font.family: Tokens.font.family
+                        font.pixelSize: Math.round(Tokens.font.size.normal * 96 / 72)
+                        font.family: Tokens.font.family.sans
                         selectionColor: Qt.alpha(Colours.palette.m3primary, 0.4)
                         selectedTextColor: Qt.rgba(1, 1, 1, 0.95)
                         clip: true
@@ -248,7 +248,7 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Search clipboard..."
                             color: Qt.rgba(1, 1, 1, 0.28)
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                             visible: !searchField.text.length
                         }
 
@@ -274,7 +274,7 @@ PanelWindow {
                         anchors.centerIn: parent
                         text: "close"
                         color: Qt.rgba(1, 1, 1, 0.4)
-                        font.pointSize: 12
+                        iconPointSize: 12
                     }
                     StateLayer { radius: 14; onClicked: { searchField.text = ""; searchField.forceActiveFocus() } }
                 }
@@ -368,7 +368,7 @@ PanelWindow {
                                     anchors.centerIn: parent
                                     text: "image"
                                     color: Qt.rgba(1, 1, 1, 0.2)
-                                    font.pointSize: 24
+                                    iconPointSize: 24
                                     visible: parent.children[0].status !== Image.Ready
                                 }
                             }
@@ -380,7 +380,7 @@ PanelWindow {
                                 StyledText {
                                     text: "Image"
                                     color: Qt.rgba(1, 1, 1, 0.55)
-                                    font.pointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.small
                                     font.weight: Font.Medium
                                 }
 
@@ -391,7 +391,7 @@ PanelWindow {
                                         return m ? m[1] : ""
                                     }
                                     color: Qt.rgba(1, 1, 1, 0.30)
-                                    font.pointSize: Tokens.font.size.tiny ?? 9
+                                    textPointSize: Tokens.font.size.tiny ?? 9
                                 }
                             }
                         }
@@ -423,7 +423,7 @@ PanelWindow {
                                     anchors.centerIn: parent
                                     text: (delegate.index + 1).toString()
                                     color: Qt.rgba(1, 1, 1, 0.3)
-                                    font.pointSize: Tokens.font.size.tiny ?? 9
+                                    textPointSize: Tokens.font.size.tiny ?? 9
                                 }
                             }
 
@@ -431,7 +431,7 @@ PanelWindow {
                                 width: parent.width - 40
                                 text: root.entryText(delegate.modelData)
                                 color: Qt.rgba(1, 1, 1, delegate.isSelected ? 0.95 : 0.72)
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 maximumLineCount: 2
                                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
@@ -452,7 +452,7 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: "delete"
                             color: Qt.rgba(1, 0.4, 0.4, 0.7)
-                            font.pointSize: 14
+                            iconPointSize: 14
                         }
                         StateLayer {
                             radius: 8
@@ -491,14 +491,14 @@ PanelWindow {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: root.searchText.length > 0 ? "search_off" : "content_paste_off"
                         color: Qt.rgba(1, 1, 1, 0.15)
-                        font.pointSize: 32
+                        iconPointSize: 32
                     }
 
                     StyledText {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: root.searchText.length > 0 ? "No results" : "Nothing copied yet"
                         color: Qt.rgba(1, 1, 1, 0.25)
-                        font.pointSize: Tokens.font.size.normal
+                        textPointSize: Tokens.font.size.normal
                     }
                 }
             }
@@ -544,14 +544,14 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: parent.parent.keyLabel
                             color: Qt.rgba(1, 1, 1, 0.45)
-                            font.pointSize: Tokens.font.size.tiny ?? 9
+                            textPointSize: Tokens.font.size.tiny ?? 9
                         }
                     }
                     StyledText {
                         anchors.verticalCenter: parent.verticalCenter
                         text: parent.action
                         color: Qt.rgba(1, 1, 1, 0.25)
-                        font.pointSize: Tokens.font.size.tiny ?? 9
+                        textPointSize: Tokens.font.size.tiny ?? 9
                     }
                 }
 
@@ -585,13 +585,13 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "delete_sweep"
                         color: Qt.rgba(1, 0.5, 0.5, 0.6)
-                        font.pointSize: 12
+                        iconPointSize: 12
                     }
                     StyledText {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Clear all"
                         color: Qt.rgba(1, 0.5, 0.5, 0.6)
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                     }
                 }
 

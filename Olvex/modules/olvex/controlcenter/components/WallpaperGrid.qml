@@ -39,7 +39,7 @@ GridView {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.mode === "live" ? "video_library" : "wallpaper"
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.extraLarge * 2
+                iconPointSize: Tokens.font.size.extraLarge * 2
             }
 
             StyledText {
@@ -91,7 +91,7 @@ GridView {
                 visible: modelData.isVideo
                 text: "play_circle"
                 color: Colours.palette.m3primary
-                font.pointSize: Tokens.font.size.extraLarge * 2.5
+                iconPointSize: Tokens.font.size.extraLarge * 2.5
             }
         }
 
@@ -112,7 +112,7 @@ GridView {
             anchors.rightMargin: Tokens.padding.normal + Tokens.spacing.normal / 2
             anchors.bottomMargin: Tokens.padding.normal
             text: modelData.name
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.weight: 500
             color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurface
             elide: Text.ElideMiddle

@@ -99,7 +99,7 @@ StyledRect {
                 MaterialIcon {
                     text: Icons.getNotifIcon(root.notifs[0]?.summary, root.urgency)
                     color: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
-                    font.pointSize: Tokens.font.size.large
+                    iconPointSize: Tokens.font.size.large
                 }
             }
 
@@ -154,7 +154,7 @@ StyledRect {
                     Layout.fillWidth: true
                     text: root.modelData
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     elide: Text.ElideRight
                 }
 
@@ -162,7 +162,7 @@ StyledRect {
                     animate: true
                     text: root.notifs[0]?.timeStr ?? ""
                     color: Colours.palette.m3outline
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                 }
 
                 StyledRect {
@@ -193,7 +193,7 @@ StyledRect {
                             animate: true
                             text: root.notifs.length
                             color: root.urgency === "critical" ? Colours.palette.m3onError : Colours.palette.m3onSurface
-                            font.pointSize: Tokens.font.size.small
+                            textPointSize: Tokens.font.size.small
                         }
 
                         MaterialIcon {
@@ -329,7 +329,7 @@ StyledRect {
             id: metrics
 
             text: `${notifLine.modelData.summary} ${notifLine.modelData.body}`.replace(/\n/g, " ")
-            font.pointSize: notifLine.font.pointSize
+            font.pixelSize: notifLine.resolvedPixelSize
             font.family: notifLine.font.family
             elideWidth: notifLine.width
             elide: Text.ElideRight

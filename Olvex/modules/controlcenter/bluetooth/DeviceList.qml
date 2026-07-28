@@ -36,7 +36,7 @@ DeviceList {
 
             StyledText {
                 text: qsTr("Bluetooth")
-                font.pointSize: Tokens.font.size.large
+                textPointSize: Tokens.font.size.large
                 font.weight: 500
             }
 
@@ -178,7 +178,7 @@ DeviceList {
                         anchors.centerIn: parent
                         text: Icons.getBluetoothIcon(device.modelData ? device.modelData.icon : "")
                         color: device.connected ? Colours.palette.m3onPrimaryContainer : (device.modelData && device.modelData.bonded) ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                         fill: device.connected ? 1 : 0
 
                         Behavior on fill {
@@ -202,7 +202,7 @@ DeviceList {
                         Layout.fillWidth: true
                         text: (device.modelData ? device.modelData.address : "") + (device.connected ? qsTr(" (Connected)") : (device.modelData && device.modelData.bonded) ? qsTr(" (Paired)") : "")
                         color: Colours.palette.m3outline
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                         elide: Text.ElideRight
                     }
                 }

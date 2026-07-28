@@ -103,7 +103,7 @@ Item {
                 anchors.centerIn: parent
                 text: "schedule"
                 color: root.accentColor
-                font.pointSize: 16
+                iconPointSize: 16
             }
         }
 
@@ -116,7 +116,7 @@ Item {
 
             StyledText {
                 text: Time.hourStr
-                font.pointSize: 48
+                textPointSize: 48
                 font.weight: 800
                 color: "#ffffff"
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -138,7 +138,7 @@ Item {
 
             StyledText {
                 text: Time.minuteStr
-                font.pointSize: 48
+                textPointSize: 48
                 font.weight: 800
                 color: "#ffffff"
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -154,7 +154,7 @@ Item {
 
             StyledText {
                 text: Time.amPmStr
-                font.pointSize: 18
+                textPointSize: 18
                 font.weight: 700
                 color: root.accentColor
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -162,7 +162,7 @@ Item {
 
             StyledText {
                 text: Time.format("dddd")
-                font.pointSize: 10
+                textPointSize: 10
                 font.weight: 400
                 color: Qt.alpha("#ffffff", 0.55)
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -170,7 +170,7 @@ Item {
 
             StyledText {
                 text: Time.format("dd")
-                font.pointSize: 28
+                textPointSize: 28
                 font.weight: 800
                 color: root.accentColor
                 anchors.horizontalCenter: parent.horizontalCenter

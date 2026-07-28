@@ -52,7 +52,7 @@ Switch {
                 anchors.centerIn: parent
                 text: root.checked ? "check" : "close"
                 color: root.checked ? Colours.palette.m3primary : Colours.palette.m3surface
-                font.pixelSize: parent.implicitWidth * 0.6
+                iconPointSize: parent.implicitWidth * 0.45
                 Behavior on color { ColorAnimation { duration: 200 } }
             }
         }

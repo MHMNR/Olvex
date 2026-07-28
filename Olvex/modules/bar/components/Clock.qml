@@ -43,7 +43,7 @@ StyledRect {
 
             horizontalAlignment: StyledText.AlignHCenter
             text: Time.format("ddd\nd")
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.family: Tokens.font.family.sans
             color: root.colour
         }
@@ -63,7 +63,7 @@ StyledRect {
 
             horizontalAlignment: StyledText.AlignHCenter
             text: Time.format(GlobalConfig.services.useTwelveHourClock ? "hh\nmm\nA" : "hh\nmm")
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.family: Tokens.font.family.mono
             color: root.colour
         }

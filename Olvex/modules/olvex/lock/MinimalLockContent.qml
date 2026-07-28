@@ -222,7 +222,7 @@ Item {
                         anchors.centerIn: parent
                         text: "music_note"
                         color: Qt.rgba(1, 1, 1, 0.4)
-                        font.pointSize: 14
+                        iconPointSize: 14
                         visible: !Players.active || parent.children[0].status !== Image.Ready
                     }
                 }
@@ -244,13 +244,13 @@ Item {
                     StyledText {
                         width: parent.width
                         text: Players.active ? (Players.active.trackTitle || "Unknown Title") : "Nothing Playing"
-                        color: Qt.rgba(1, 1, 1, 0.95); font.pointSize: Tokens.font.size.normal
+                        color: Qt.rgba(1, 1, 1, 0.95); textPointSize: Tokens.font.size.normal
                         font.weight: Font.SemiBold; elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
                     }
                     StyledText {
                         width: parent.width
                         text: Players.active ? (Players.active.trackArtist || "Unknown Artist") : ""
-                        color: Qt.rgba(1, 1, 1, 0.50); font.pointSize: Tokens.font.size.small
+                        color: Qt.rgba(1, 1, 1, 0.50); textPointSize: Tokens.font.size.small
                         elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
                     }
                 }
@@ -274,7 +274,7 @@ Item {
                             anchors.centerIn: parent
                             text: "skip_previous"
                             color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                            font.pointSize: 13
+                            iconPointSize: 13
                         }
                         StateLayer { enabled: Players.active !== null; onClicked: Players.previous(); radius: parent.radius }
                     }
@@ -313,7 +313,7 @@ Item {
                             anchors.centerIn: parent
                             text: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
                             color: Players.active ? ((Players.active.isPlaying) ? Colours.palette.m3onPrimary : Qt.alpha(Colours.palette.m3onPrimary, 0.7)) : "white"
-                            font.pointSize: 16
+                            iconPointSize: 16
 
                             animate: true
                             animateProp: "rotation"
@@ -332,7 +332,7 @@ Item {
                             anchors.centerIn: parent
                             text: "skip_next"
                             color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                            font.pointSize: 13
+                            iconPointSize: 13
                         }
                         StateLayer { enabled: Players.active !== null; onClicked: Players.next(); radius: parent.radius }
                     }
@@ -347,9 +347,9 @@ Item {
                         PropertyChanges { target: trackInfo; opacity: 0; anchors.leftMargin: 145; anchors.topMargin: 32 }
                         PropertyChanges { target: controlsRow; spacing: 8; anchors.leftMargin: 52; anchors.topMargin: 8 }
                         PropertyChanges { target: playBtn; width: 32; height: 32 }
-                        PropertyChanges { target: playIcon; font.pointSize: 16 }
-                        PropertyChanges { target: prevBtn; font.pointSize: 14 }
-                        PropertyChanges { target: nextBtn; font.pointSize: 14 }
+                        PropertyChanges { target: playIcon; iconPointSize: 16 }
+                        PropertyChanges { target: prevBtn; iconPointSize: 14 }
+                        PropertyChanges { target: nextBtn; iconPointSize: 14 }
                     },
                     State {
                         name: "expanded"
@@ -358,9 +358,9 @@ Item {
                         PropertyChanges { target: trackInfo; opacity: 1; anchors.leftMargin: 148; anchors.topMargin: 32 }
                         PropertyChanges { target: controlsRow; spacing: 18; anchors.leftMargin: 136; anchors.topMargin: 92 }
                         PropertyChanges { target: playBtn; width: 48; height: 48; color: Players.active ? Colours.current.palette.m3primary : "transparent" }
-                        PropertyChanges { target: playIcon; font.pointSize: 24 }
-                        PropertyChanges { target: prevBtn; font.pointSize: 20 }
-                        PropertyChanges { target: nextBtn; font.pointSize: 20 }
+                        PropertyChanges { target: playIcon; iconPointSize: 24 }
+                        PropertyChanges { target: prevBtn; iconPointSize: 20 }
+                        PropertyChanges { target: nextBtn; iconPointSize: 20 }
                     }
                 ]
 
@@ -397,7 +397,7 @@ Item {
                                 PauseAnimation { duration: 50 }
                                 SpringAnimation {
                                     targets: [musicPill, musicIcon, playIcon, trackInfo, controlsRow, playBtn]
-                                    properties: "anchors.leftMargin,anchors.topMargin,spacing,font.pointSize"
+                                    properties: "anchors.leftMargin,anchors.topMargin,spacing,textPointSize"
                                     spring: 4.0; damping: 0.45; epsilon: 0.1
                                 }
                             }
@@ -439,7 +439,7 @@ Item {
                                 PauseAnimation { duration: 40 }
                                 SpringAnimation {
                                     targets: [musicPill, musicIcon, playIcon, trackInfo, controlsRow, playBtn]
-                                    properties: "anchors.leftMargin,anchors.topMargin,spacing,font.pointSize"
+                                    properties: "anchors.leftMargin,anchors.topMargin,spacing,textPointSize"
                                     spring: 4.5; damping: 0.45; epsilon: 0.1
                                 }
                             }
@@ -470,7 +470,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: SysInfo.osPrettyName || SysInfo.osName || "Linux"
                         color: Qt.rgba(1, 1, 1, 0.90)
-                        font.pointSize: Tokens.font.size.normal
+                        textPointSize: Tokens.font.size.normal
                         font.weight: Font.Light
                         rightPadding: 8
                     }
@@ -506,12 +506,12 @@ Item {
                             MaterialIcon {
                                 text: "arrow_downward"
                                 color: Colours.current.m3primary
-                                font.pointSize: Tokens.font.size.small
+                                iconPointSize: Tokens.font.size.small
                             }
                             StyledText {
                                 text: root.formatSpeed(NetworkUsage.downloadSpeed)
                                 color: Qt.rgba(1, 1, 1, 0.90)
-                                font.pointSize: Tokens.font.size.small
+                                textPointSize: Tokens.font.size.small
                                 width: 72
                                 horizontalAlignment: Text.AlignRight
                             }
@@ -523,12 +523,12 @@ Item {
                             MaterialIcon {
                                 text: "arrow_upward"
                                 color: Colours.current.m3primary
-                                font.pointSize: Tokens.font.size.small
+                                iconPointSize: Tokens.font.size.small
                             }
                             StyledText {
                                 text: root.formatSpeed(NetworkUsage.uploadSpeed)
                                 color: Qt.rgba(1, 1, 1, 0.90)
-                                font.pointSize: Tokens.font.size.small
+                                textPointSize: Tokens.font.size.small
                                 width: 72
                                 horizontalAlignment: Text.AlignRight
                             }
@@ -616,7 +616,7 @@ Item {
                                     color: parent.parent.pct > 0.55
                                         ? Qt.rgba(0, 0, 0, 0.75)
                                         : Qt.rgba(1, 1, 1, 0.95)
-                                    font.pointSize: 8
+                                    iconPointSize: 8
                                 }
                             }
                         }
@@ -627,7 +627,7 @@ Item {
                             StyledText {
                                 text: Math.round(UPower.displayDevice.percentage * 100) + "%"
                                 color: Qt.rgba(1, 1, 1, 0.90)
-                                font.pointSize: Tokens.font.size.small + 1
+                                textPointSize: Tokens.font.size.small + 1
                                 font.bold: true
                             }
                             StyledText {
@@ -641,7 +641,7 @@ Item {
                                     return "Discharging";
                                 }
                                 color: Qt.rgba(1, 1, 1, 0.45)
-                                font.pointSize: Math.max(7, Tokens.font.size.small - 2)
+                                textPointSize: Math.max(7, Tokens.font.size.small - 2)
                                 font.capitalization: Font.AllUppercase
                                 font.letterSpacing: 1
                             }
@@ -690,7 +690,7 @@ Item {
                             id: mainNotifIcon
                             anchors.centerIn: parent; text: "notifications"
                             color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.75) : Qt.rgba(1, 1, 1, 0.3)
-                            font.pointSize: 15
+                            iconPointSize: 15
                         }
                         Rectangle {
                             id: notifBadge
@@ -698,7 +698,7 @@ Item {
                             anchors.top: parent.top; anchors.right: parent.right
                             anchors.topMargin: -2; anchors.rightMargin: -2
                             visible: Notifs.notClosed.length > 0 && !notifPill.expanded
-                            StyledText { anchors.centerIn: parent; text: Notifs.notClosed.length > 9 ? "9+" : Notifs.notClosed.length.toString(); color: Colours.current.m3onPrimary; font.pointSize: 7; font.bold: true }
+                            StyledText { anchors.centerIn: parent; text: Notifs.notClosed.length > 9 ? "9+" : Notifs.notClosed.length.toString(); color: Colours.current.m3onPrimary; textPointSize: 7; font.bold: true }
                         }
                     }
 
@@ -707,7 +707,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: Notifs.notClosed.length === 0 ? "No Notifications" : (Notifs.notClosed.length + (Notifs.notClosed.length === 1 ? " New Notification" : " New Notifications"))
                         color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.90) : Qt.rgba(1, 1, 1, 0.40)
-                        font.pointSize: Tokens.font.size.normal - 1; font.weight: Font.Medium
+                        textPointSize: Tokens.font.size.normal - 1; font.weight: Font.Medium
                     }
                 }
 
@@ -755,7 +755,7 @@ Item {
                         Rectangle { anchors.fill: parent; radius: 12; color: Qt.rgba(1, 1, 1, 0.05) }
                         Row {
                             anchors.fill: parent; anchors.margins: 10; spacing: 10
-                            Rectangle { width: 32; height: 32; radius: 8; anchors.verticalCenter: parent.verticalCenter; color: Qt.rgba(1, 1, 1, 0.10); MaterialIcon { anchors.centerIn: parent; text: "info"; color: Qt.rgba(1, 1, 1, 0.5); font.pointSize: 14 } }
+                            Rectangle { width: 32; height: 32; radius: 8; anchors.verticalCenter: parent.verticalCenter; color: Qt.rgba(1, 1, 1, 0.10); MaterialIcon { anchors.centerIn: parent; text: "info"; color: Qt.rgba(1, 1, 1, 0.5); iconPointSize: 14 } }
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: parent.width - 52
@@ -764,7 +764,7 @@ Item {
                                     width: parent.width
                                     text: modelData.summary || "Notification"
                                     color: Qt.rgba(1, 1, 1, 0.90)
-                                    font.pointSize: Tokens.font.size.normal - 1
+                                    textPointSize: Tokens.font.size.normal - 1
                                     font.weight: Font.Medium
                                     elide: Text.ElideRight
                                 }
@@ -772,7 +772,7 @@ Item {
                                     width: parent.width
                                     text: modelData.body || ""
                                     color: Qt.rgba(1, 1, 1, 0.45)
-                                    font.pointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.small
                                     elide: Text.ElideRight
                                     visible: text !== ""
                                 }
@@ -786,8 +786,8 @@ Item {
                     State {
                         name: "compact"
                         PropertyChanges { target: notifPill; width: (notifHeaderRow.width + 16); height: 48; radius: 24 }
-                        PropertyChanges { target: mainNotifIcon; font.pointSize: 15 }
-                        PropertyChanges { target: notifLabel; font.weight: Font.Medium; font.pointSize: Tokens.font.size.normal - 1 }
+                        PropertyChanges { target: mainNotifIcon; iconPointSize: 15 }
+                        PropertyChanges { target: notifLabel; font.weight: Font.Medium; textPointSize: Tokens.font.size.normal - 1 }
                         PropertyChanges { target: notifList; opacity: 0 }
                         PropertyChanges { target: notifBadge; opacity: 1 }
                         PropertyChanges { target: notifHeaderRow; anchors.topMargin: 6; anchors.leftMargin: 7 }
@@ -800,7 +800,7 @@ Item {
                             height: Math.min(320, Math.max(120, Notifs.notClosed.length * 66 + 64))
                             radius: 28
                         }
-                        PropertyChanges { target: mainNotifIcon; font.pointSize: 14 }
+                        PropertyChanges { target: mainNotifIcon; iconPointSize: 14 }
                         PropertyChanges { target: notifLabel; font.weight: Font.SemiBold }
                         PropertyChanges { target: notifList; opacity: 1 }
                         PropertyChanges { target: notifBadge; opacity: 0 }
@@ -844,7 +844,7 @@ Item {
                                     spring: 4.0; damping: 0.45; epsilon: 0.1
                                 }
                             }
-                            NumberAnimation { properties: "opacity,font.pointSize,font.letterSpacing"; duration: 250; easing.type: Easing.OutQuint }
+                            NumberAnimation { properties: "opacity,textPointSize,font.letterSpacing"; duration: 250; easing.type: Easing.OutQuint }
                         }
                     },
                     Transition {
@@ -879,7 +879,7 @@ Item {
                                     spring: 4.5; damping: 0.45; epsilon: 0.1
                                 }
                             }
-                            NumberAnimation { properties: "opacity,font.pointSize,font.letterSpacing"; duration: 200; easing.type: Easing.OutQuint }
+                            NumberAnimation { properties: "opacity,textPointSize,font.letterSpacing"; duration: 200; easing.type: Easing.OutQuint }
                         }
                     }
                 ]
@@ -924,7 +924,7 @@ Item {
                     StyledText {
                         text: Time.hourStr
                         color: Colours.current.m3onSurface
-                        font.pointSize: Math.min(180, parent.parent.parent.parent.height * 0.22)
+                        textPointSize: Math.min(180, parent.parent.parent.parent.height * 0.22)
                         font.weight: Font.Bold
                         font.family: Tokens.font.family.clock
                         font.letterSpacing: -4
@@ -941,7 +941,7 @@ Item {
                         StyledText {
                             text: Time.minuteStr
                             color: Qt.alpha(Colours.current.m3primary, 0.65)
-                            font.pointSize: Math.min(84, parent.parent.parent.parent.height * 0.10)
+                            textPointSize: Math.min(84, parent.parent.parent.parent.height * 0.10)
                             font.weight: Font.Medium
                             font.family: Tokens.font.family.clock
                         }
@@ -958,7 +958,7 @@ Item {
                             sourceComponent: StyledText {
                                 text: Time.amPmStr
                                 color: Qt.alpha(Colours.current.m3primary, 0.50)
-                                font.pointSize: Tokens.font.size.small + 2
+                                textPointSize: Tokens.font.size.small + 2
                                 font.bold: true
                                 font.letterSpacing: 5
                                 font.capitalization: Font.AllUppercase
@@ -988,7 +988,7 @@ Item {
                     StyledText {
                         text: Time.format("MMMM d").toUpperCase()
                         color: Colours.current.m3onSurfaceVariant
-                        font.pointSize: Tokens.font.size.extraLarge
+                        textPointSize: Tokens.font.size.extraLarge
                         font.letterSpacing: 6
                         font.weight: Font.DemiBold
                     }
@@ -1035,7 +1035,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "person"
                                 color: Colours.current.m3onSurfaceVariant
-                                font.pointSize: 34
+                                iconPointSize: 34
                                 visible: face.status !== Image.Ready
                             }
 
@@ -1065,7 +1065,7 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: root.userName
                             color: "white"
-                            font.pointSize: Tokens.font.size.extraLarge
+                            textPointSize: Tokens.font.size.extraLarge
                             font.weight: Font.SemiBold
                         }
 
@@ -1097,7 +1097,7 @@ Item {
                             }
 
                             color: isError ? Colours.current.m3error : Qt.rgba(1, 1, 1, 0.55)
-                            font.pointSize: Tokens.font.size.normal - 1
+                            textPointSize: Tokens.font.size.normal - 1
                             horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
 
@@ -1168,7 +1168,7 @@ Item {
                                     color: root.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries
                                         ? Colours.current.m3error
                                         : Qt.rgba(1, 1, 1, 0.45)
-                                    font.pointSize: Tokens.font.size.normal
+                                    iconPointSize: Tokens.font.size.normal
                                     opacity: root.pam.passwd.active ? 0 : 1
                                     Behavior on opacity { Anim {} }
                                 }
@@ -1210,7 +1210,7 @@ Item {
                                     color: root.pam.buffer
                                         ? Colours.current.m3onPrimary
                                         : Qt.rgba(1, 1, 1, 0.55)
-                                    font.pointSize: Tokens.font.size.normal
+                                    iconPointSize: Tokens.font.size.normal
                                     font.weight: Font.Medium
                                 }
                             }
@@ -1305,7 +1305,7 @@ Item {
                 width: parent.width - 20 // approximate for percentage text
                 text: label
                 color: Qt.rgba(1, 1, 1, 0.55)
-                font.pointSize: Math.max(7, Tokens.font.size.small - 1)
+                textPointSize: Math.max(7, Tokens.font.size.small - 1)
                 font.weight: Font.SemiBold
                 font.letterSpacing: 1
             }
@@ -1313,7 +1313,7 @@ Item {
             StyledText {
                 text: Math.round(value * 100) + "%"
                 color: Colours.current.m3primary
-                font.pointSize: Math.max(7, Tokens.font.size.small - 1)
+                textPointSize: Math.max(7, Tokens.font.size.small - 1)
                 font.bold: true
             }
         }
@@ -1372,7 +1372,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: parent.parent.icon
                 color: hov.hovered ? Colours.current.m3onPrimary : Colours.current.m3primary
-                font.pointSize: 20
+                iconPointSize: 20
                 animate: true
 
                 Behavior on color { ColorAnimation { duration: 300 } }
@@ -1395,7 +1395,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: parent.parent.parent.label
                     color: hov.hovered ? Colours.current.m3onPrimary : "white"
-                    font.pointSize: 10
+                    textPointSize: 10
                     font.weight: hov.hovered ? Font.Bold : Font.DemiBold
                     font.letterSpacing: 1.0
                     opacity: hov.hovered ? 1.0 : 0.0

@@ -181,7 +181,7 @@ StyledRect {
                             text: Icons.getNotifIcon(root.modelData.summary, root.modelData.urgency)
 
                             color: root.modelData.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.modelData.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
-                            font.pointSize: Tokens.font.size.large
+                            iconPointSize: Tokens.font.size.large
                         }
                     }
                 }
@@ -234,7 +234,7 @@ StyledRect {
                 text: appNameMetrics.elidedText
                 maximumLineCount: 1
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
 
                 opacity: root.expanded ? 1 : 0
 
@@ -248,7 +248,7 @@ StyledRect {
 
                 text: root.modelData.appName
                 font.family: appName.font.family
-                font.pointSize: appName.font.pointSize
+                font.pixelSize: appName.resolvedPixelSize
                 elide: Text.ElideRight
                 elideWidth: expandBtn.x - time.width - timeSep.width - summary.x - root.Tokens.spacing.small * 3
             }
@@ -299,7 +299,7 @@ StyledRect {
 
                 text: root.modelData.summary
                 font.family: summary.font.family
-                font.pointSize: summary.font.pointSize
+                font.pixelSize: summary.resolvedPixelSize
                 elide: Text.ElideRight
                 elideWidth: expandBtn.x - time.width - timeSep.width - summary.x - root.Tokens.spacing.small * 3
             }
@@ -313,7 +313,7 @@ StyledRect {
 
                 text: "•"
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
 
                 states: State {
                     name: "expanded"
@@ -343,7 +343,7 @@ StyledRect {
                 horizontalAlignment: Text.AlignLeft
                 text: root.modelData.timeStr
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             Item {
@@ -368,7 +368,7 @@ StyledRect {
 
                     animate: true
                     text: root.expanded ? "expand_less" : "expand_more"
-                    font.pointSize: Tokens.font.size.normal
+                    iconPointSize: Tokens.font.size.normal
                 }
             }
 
@@ -384,7 +384,7 @@ StyledRect {
                 textFormat: root.bodyTextFormat
                 text: bodyPreviewMetrics.elidedText
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
 
                 opacity: root.expanded ? 0 : 1
 
@@ -398,7 +398,7 @@ StyledRect {
 
                 text: root.modelData.body
                 font.family: bodyPreview.font.family
-                font.pointSize: bodyPreview.font.pointSize
+                font.pixelSize: bodyPreview.resolvedPixelSize
                 elide: Text.ElideRight
                 elideWidth: bodyPreview.width
             }
@@ -415,7 +415,7 @@ StyledRect {
                 textFormat: root.bodyTextFormat
                 text: root.modelData.body
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 height: text ? implicitHeight : 0
 
@@ -495,7 +495,7 @@ StyledRect {
             anchors.centerIn: parent
             text: actionTextMetrics.elidedText
             color: root.modelData.urgency === NotificationUrgency.Critical ? Colours.palette.m3onSecondary : Colours.palette.m3onSurfaceVariant
-            font.pointSize: Tokens.font.size.small
+            textPointSize: Tokens.font.size.small
         }
 
         TextMetrics {
@@ -503,7 +503,7 @@ StyledRect {
 
             text: action.modelData.text
             font.family: actionText.font.family
-            font.pointSize: actionText.font.pointSize
+            font.pixelSize: actionText.resolvedPixelSize
             elide: Text.ElideRight
             elideWidth: {
                 const numActions = root.modelData.actions.length + 1;

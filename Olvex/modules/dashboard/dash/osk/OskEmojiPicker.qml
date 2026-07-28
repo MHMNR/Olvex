@@ -153,7 +153,7 @@ Item {
                 StyledText {
                     anchors.centerIn: parent
                     text: root.applySkinTone(modelData.emoji)
-                    font.pixelSize: 32 // Slightly smaller for better fit
+                    textPixelSize: 32 // Slightly smaller for better fit
                 }
 
                 MouseArea {
@@ -196,7 +196,7 @@ Item {
                     StyledText {
                         anchors.centerIn: parent
                         text: root.applySkinTone(modelData)
-                        font.pixelSize: 42
+                        textPixelSize: 42
                     }
                     MouseArea {
                         id: sArea
@@ -251,7 +251,7 @@ Item {
                             anchors.centerIn: parent
                             text: modelData.icon || ""
                             font.family: "Material Symbols Rounded"
-                            font.pixelSize: 22
+                            textPixelSize: 22
                             color: (bottomBar.activeCategory === index) ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.6)
                         }
                     }

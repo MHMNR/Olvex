@@ -478,7 +478,7 @@ Item {
                 id: headerIcon
                 
                 property real smallScale: root.lastActiveType === "displayprojection" ? 1 : Tokens.font.size.normal / Tokens.font.size.large
-                font.pointSize: root.lastActiveType === "displayprojection" ? Tokens.font.size.normal : Tokens.font.size.large
+                iconPointSize: root.lastActiveType === "displayprojection" ? Tokens.font.size.normal : Tokens.font.size.large
                 transformOrigin: Item.TopLeft
                 
                 // Static coordinates so animation doesn't fight bindings
@@ -525,7 +525,7 @@ Item {
                 visible: root.lastActiveType === "displayprojection"
                 text: "chevron_right"
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.normal
+                iconPointSize: Tokens.font.size.normal
                 
                 property real startX: root.savedStartSize.width - Tokens.padding.normal - implicitWidth
                 property real startY: root.savedIconPillY + (root.savedIconPillHeight - implicitHeight) / 2
@@ -573,7 +573,7 @@ Item {
                         anchors.centerIn: parent
                         text: "wifi_find"
                         opacity: Nmcli.scanning ? 0 : 1
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                         color: Colours.palette.m3primary
                         Behavior on opacity { Anim {} }
                     }
@@ -610,7 +610,7 @@ Item {
                         anchors.centerIn: parent
                         text: "bluetooth_searching"
                         opacity: btRescanHeaderBtn.scanning ? 0 : 1
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                         color: Colours.palette.m3primary
                         Behavior on opacity { Anim {} }
                     }
@@ -640,7 +640,7 @@ Item {
         StyledText {
             id: tileLabelSmall
             property real largeScale: Tokens.font.size.large / Tokens.font.size.small
-            font.pointSize: Tokens.font.size.small
+            textPointSize: Tokens.font.size.small
             transformOrigin: Item.TopLeft
             font.bold: true
             color: Colours.palette.m3onSurface
@@ -667,7 +667,7 @@ Item {
         StyledText {
             id: tileLabel
             property real smallScale: Tokens.font.size.small / Tokens.font.size.large
-            font.pointSize: Tokens.font.size.large
+            textPointSize: Tokens.font.size.large
             transformOrigin: Item.TopLeft
             font.bold: true
             color: Colours.palette.m3onSurface
@@ -695,7 +695,7 @@ Item {
                 }
                 return "";
             }
-            font.pointSize: Tokens.font.size.small - 2
+            textPointSize: Tokens.font.size.small - 2
             color: Colours.palette.m3onSurfaceVariant
         }
 
@@ -778,7 +778,7 @@ Item {
                 Layout.rightMargin: Tokens.padding.small
                 text: qsTr("Select power mode:")
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             PowerProfileItem {
@@ -830,7 +830,7 @@ Item {
             MaterialIcon {
                 text: itemRoot.icon
                 color: itemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -843,14 +843,14 @@ Item {
                     text: itemRoot.title
                     font.weight: itemRoot.isActive ? 600 : 400
                     color: itemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     Layout.fillWidth: true
                 }
 
                 MarqueeText {
                     text: itemRoot.description
                     color: itemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimary, 0.8) : Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.smaller
+                    textPointSize: Tokens.font.size.smaller
                 }
             }
 
@@ -858,7 +858,7 @@ Item {
                 visible: itemRoot.isActive
                 text: "check_circle"
                 color: Colours.palette.m3onPrimary
-                font.pointSize: Tokens.font.size.normal
+                iconPointSize: Tokens.font.size.normal
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -882,7 +882,7 @@ Item {
                 Layout.rightMargin: Tokens.padding.small
                 text: qsTr("Select display projection mode:")
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             DisplayProjectionItem {
@@ -941,7 +941,7 @@ Item {
             MaterialIcon {
                 text: projItemRoot.icon
                 color: projItemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -954,14 +954,14 @@ Item {
                     text: projItemRoot.title
                     font.weight: projItemRoot.isActive ? 600 : 400
                     color: projItemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     Layout.fillWidth: true
                 }
 
                 MarqueeText {
                     text: projItemRoot.description
                     color: projItemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimary, 0.8) : Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.smaller
+                    textPointSize: Tokens.font.size.smaller
                 }
             }
 
@@ -969,7 +969,7 @@ Item {
                 visible: projItemRoot.isActive
                 text: "check_circle"
                 color: Colours.palette.m3onPrimary
-                font.pointSize: Tokens.font.size.normal
+                iconPointSize: Tokens.font.size.normal
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -998,6 +998,7 @@ Item {
         required property string text
         property alias color: labelText.color
         property alias font: labelText.font
+        property alias textPointSize: labelText.textPointSize
         property alias verticalAlignment: labelText.verticalAlignment
         
         Layout.fillWidth: true

@@ -42,6 +42,12 @@ Item {
         view.incrementCurrentIndex();
     }
 
+    function suspend(): void {
+        Wallpapers.stopPreview();
+        view.currentIndex = 0;
+        scriptModel.values = [];
+    }
+
     implicitWidth: view.implicitWidth
     implicitHeight: tabs.height + view.implicitHeight + Tokens.padding.normal
 

@@ -24,7 +24,7 @@ Item {
             animate: true
             text: Weather.icon
             color: root.softAccentColor
-            font.pointSize: 32
+            iconPointSize: 32
             fill: 1
         }
 
@@ -35,7 +35,7 @@ Item {
             StyledText {
                 text: Weather.temp
                 color: root.accentColor
-                font.pointSize: 18
+                textPointSize: 18
                 font.weight: 800
             }
 
@@ -43,7 +43,7 @@ Item {
                 Layout.fillWidth: true
                 text: Weather.description
                 color: Qt.alpha(root.textColor, 0.7)
-                font.pointSize: 9
+                textPointSize: 9
                 font.weight: 500
                 elide: Text.ElideRight
             }
@@ -83,14 +83,14 @@ Item {
         MaterialIcon {
             text: parent.icon
             color: root.accentColor
-            font.pointSize: 12
+            iconPointSize: 12
             fill: 1
         }
 
         StyledText {
             text: parent.text
             color: root.textColor
-            font.pointSize: 10
+            textPointSize: 10
             font.weight: 600
         }
 

@@ -197,7 +197,7 @@ GridView {
                 visible: isCurrent
                 text: "check_circle"
                 color: Colours.palette.m3primary
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
             }
         }
 
@@ -212,7 +212,7 @@ GridView {
             anchors.bottomMargin: Tokens.padding.normal
 
             text: modelData.name
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.weight: 500
             color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurface
             elide: Text.ElideMiddle

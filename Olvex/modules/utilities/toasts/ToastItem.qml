@@ -84,7 +84,7 @@ StyledRect {
                         return Colours.palette.m3onError;
                     return Colours.palette.m3onSurfaceVariant;
                 }
-                font.pointSize: Math.round(Tokens.font.size.large * 1.2)
+                iconPointSize: Math.round(Tokens.font.size.large * 1.2)
             }
         }
 
@@ -106,7 +106,7 @@ StyledRect {
                         return Colours.palette.m3onErrorContainer;
                     return Colours.palette.m3onSurface;
                 }
-                font.pointSize: Tokens.font.size.normal
+                textPointSize: Tokens.font.size.normal
                 elide: Text.ElideRight
             }
 

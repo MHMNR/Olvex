@@ -18,7 +18,7 @@ ColumnLayout {
     StyledText {
         text: root.deviceDetails?.ipAddress || qsTr("Not available")
         color: Colours.palette.m3outline
-        font.pointSize: Tokens.font.size.small
+        textPointSize: Tokens.font.size.small
     }
 
     StyledText {
@@ -29,7 +29,7 @@ ColumnLayout {
     StyledText {
         text: root.deviceDetails?.subnet || qsTr("Not available")
         color: Colours.palette.m3outline
-        font.pixelSize: Tokens.font.size.small
+        textPointSize: Tokens.font.size.small
     }
 
     StyledText {
@@ -40,7 +40,7 @@ ColumnLayout {
     StyledText {
         text: root.deviceDetails?.gateway || qsTr("Not available")
         color: Colours.palette.m3outline
-        font.pixelSize: Tokens.font.size.small
+        textPointSize: Tokens.font.size.small
     }
 
     StyledText {
@@ -51,7 +51,7 @@ ColumnLayout {
     StyledText {
         text: (root.deviceDetails && root.deviceDetails.dns && root.deviceDetails.dns.length > 0) ? root.deviceDetails.dns.join(", ") : qsTr("Not available")
         color: Colours.palette.m3outline
-        font.pixelSize: Tokens.font.size.small
+        textPointSize: Tokens.font.size.small
         wrapMode: Text.Wrap
         Layout.maximumWidth: parent.width
     }

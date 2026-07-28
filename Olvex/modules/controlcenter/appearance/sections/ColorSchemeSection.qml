@@ -80,7 +80,7 @@ CollapsibleSection {
 
                             visible: false
                             text: "circle"
-                            font.pointSize: Tokens.font.size.large
+                            iconPointSize: Tokens.font.size.large
                         }
 
                         Item {
@@ -109,12 +109,12 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData.flavour ?? ""
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         StyledText {
                             text: modelData.name ?? ""
-                            font.pointSize: Tokens.font.size.small
+                            textPointSize: Tokens.font.size.small
                             color: Colours.palette.m3outline
 
                             elide: Text.ElideRight
@@ -130,7 +130,7 @@ CollapsibleSection {
                         sourceComponent: MaterialIcon {
                             text: "check"
                             color: Colours.palette.m3onSurfaceVariant
-                            font.pointSize: Tokens.font.size.large
+                            iconPointSize: Tokens.font.size.large
                         }
                     }
                 }

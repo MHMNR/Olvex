@@ -25,15 +25,6 @@ Singleton {
         id: bootPalette
     }
 
-    FileView {
-        path: Paths.state + "/scheme.json"
-        onLoaded: {
-            const scheme = Mapper.parseSchemePayload(text());
-            if (scheme)
-                bootPalette.applyScheme(scheme);
-        }
-    }
-
     property string _pendingWallColors: ""
     property bool _pendingWallPreview: false
 
@@ -41,12 +32,7 @@ Singleton {
         id: engineLoader
         sourceComponent: root.legacyMode ? LegacyComp : ExpressiveComp
         onLoaded: {
-            if (root._pendingWallColors.length > 0 && engine) {
-                engine.load(root._pendingWallColors, root._pendingWallPreview);
-                if (root._pendingWallPreview)
-                    engine.showPreview = true;
-                root._pendingWallColors = "";
-            }
+            root.flushPendingWallColors();
             debounceTimer.restart();
         }
     }
@@ -58,16 +44,18 @@ Singleton {
             engine.showPreview = value;
     }
 
-    readonly property bool showPreview: engine ? engine.showPreview : false
+    readonly property bool showPreview: Wallpapers.showPreview || (engine ? engine.showPreview : false)
     readonly property string scheme: engine ? engine.scheme : ""
     readonly property string flavour: engine ? engine.flavour : ""
     readonly property string schemeMode: engine ? engine.schemeMode : "dark"
     readonly property bool light: engine ? engine.light : false
     readonly property bool currentLight: engine ? engine.currentLight : false
     readonly property bool previewLight: engine ? engine.previewLight : false
-    readonly property var palette: engine ? engine.palette : bootPalette
-    readonly property var tPalette: engine ? engine.tPalette : bootTPalette
-    readonly property var current: engine ? engine.current : bootPalette
+    // Media-pill pattern: bootPalette is the live global source (direct applyScheme).
+    // Engine mirrors for preview + luminance; never replace bootPalette on the UI path.
+    readonly property var palette: (showPreview && engine) ? engine.palette : bootPalette
+    readonly property var tPalette: bootTPalette
+    readonly property var current: bootPalette
     readonly property var preview: engine ? engine.preview : bootPalette
     readonly property var transparency: engine ? engine.transparency : bootTransparency
     readonly property real wallLuminance: engine ? engine.wallLuminance : 0
@@ -150,9 +138,9 @@ Singleton {
         if (layerLevel === 0)
             return transparency.enabled ? Qt.alpha(c, transparency.base) : c;
         if (!transparency.enabled) {
-            if (layerLevel === 1) return palette.m3surfaceContainer;
-            if (layerLevel === 2) return palette.m3surfaceContainerHigh;
-            return palette.m3surfaceContainerHighest;
+            if (layerLevel === 1) return bootPalette.m3surfaceContainer;
+            if (layerLevel === 2) return bootPalette.m3surfaceContainerHigh;
+            return bootPalette.m3surfaceContainerHighest;
         }
         const luminance = (c.r === 0 && c.g === 0 && c.b === 0) ? 0
             : Math.sqrt(0.299 * (c.r ** 2) + 0.587 * (c.g ** 2) + 0.114 * (c.b ** 2));
@@ -169,9 +157,31 @@ Singleton {
     }
 
     function layer(c, layerLevel) {
-        return engine ? engine.applyLayer(c, layerLevel) : applyLayer(c, layerLevel);
+        if (showPreview && engine)
+            return engine.applyLayer(c, layerLevel);
+        return applyLayer(c, layerLevel);
     }
-    function on(c) { return engine ? engine.on(c) : c }
+
+    function on(c) {
+        if (engine)
+            return engine.on(c);
+        if (c.hslLightness < 0.5)
+            return Qt.hsla(c.hslHue, c.hslSaturation, 0.9, 1);
+        return Qt.hsla(c.hslHue, c.hslSaturation, 0.1, 1);
+    }
+
+    function flushPendingWallColors(): void {
+        if (!_pendingWallColors.length || !engineLoader.item)
+            return;
+        engineLoader.item.load(_pendingWallColors, _pendingWallPreview);
+        if (_pendingWallPreview)
+            engineLoader.item.showPreview = true;
+        else
+            Wallpapers.previewColourLock = false;
+        _pendingWallColors = "";
+        _pendingWallPreview = false;
+    }
+
     function ingestWallpaperColors(data, isPreview) {
         const scheme = Mapper.parseSchemePayload(data);
         if (!scheme) {
@@ -179,8 +189,15 @@ Singleton {
             return;
         }
         console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"}, ${Object.keys(scheme.colours ?? {}).length} essential roles)`);
-        if (engine) {
-            engine.load(data, isPreview);
+        if (!isPreview) {
+            if (!bootPalette.applyScheme(scheme))
+                console.log("[Colours] bootPalette applyScheme failed");
+            else
+                console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary}`);
+        }
+
+        if (engineLoader.item) {
+            engineLoader.item.load(data, isPreview);
             if (isPreview)
                 setShowPreview(true);
             else
@@ -188,12 +205,20 @@ Singleton {
         } else {
             _pendingWallColors = data;
             _pendingWallPreview = isPreview;
-            if (!isPreview)
-                bootPalette.applyScheme(scheme);
         }
     }
 
     function load(data, isPreview) { ingestWallpaperColors(data, isPreview) }
+
+    function useFallbackPalette(): void {
+        const scheme = Mapper.fallbackScheme();
+        const payload = JSON.stringify(scheme);
+        bootPalette.applyScheme(scheme);
+        _pendingWallColors = "";
+        _pendingWallPreview = false;
+        if (engineLoader.item)
+            engineLoader.item.load(payload, false);
+    }
     function setMode(mode) { if (engine) engine.setMode(mode) }
     function reloadHyprRules() {
         const str = "keyword layerrule %1 %2, match:namespace %3";
@@ -204,6 +229,20 @@ Singleton {
             messages.push(str.arg("ignore_alpha").arg(transparency.base - 0.03).arg(ns));
         });
         Hypr.extras.batchMessage(messages);
+    }
+
+    FileView {
+        printErrors: false
+        path: `${Paths.state}/scheme.json`
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            if (!Wallpapers.bootstrapDone)
+                return;
+            if (!(Wallpapers.actualCurrent || "").trim())
+                return;
+            root.ingestWallpaperColors(text(), false);
+        }
     }
 
     Component.onCompleted: debounceTimer.triggered()
@@ -229,6 +268,11 @@ Singleton {
     Connections {
         target: root
         function onLightChanged() { debounceTimer.restart() }
+    }
+
+    Connections {
+        target: engineLoader
+        function onItemChanged() { root.flushPendingWallColors(); }
     }
 
     Connections {

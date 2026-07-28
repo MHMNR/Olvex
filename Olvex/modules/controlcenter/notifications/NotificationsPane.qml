@@ -123,7 +123,7 @@ Item {
 
                         StyledText {
                             text: qsTr("Notifications")
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         SplitButtonRow {
@@ -226,7 +226,7 @@ Item {
 
                         StyledText {
                             text: qsTr("Toast settings")
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         SplitButtonRow {

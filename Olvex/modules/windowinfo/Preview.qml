@@ -44,14 +44,14 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     text: "web_asset_off"
                     color: Colours.palette.m3outline
-                    font.pointSize: Tokens.font.size.extraLarge * 3
+                    iconPointSize: Tokens.font.size.extraLarge * 3
                 }
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     text: qsTr("No active client")
                     color: Colours.palette.m3outline
-                    font.pointSize: Tokens.font.size.extraLarge
+                    textPointSize: Tokens.font.size.extraLarge
                     font.weight: 500
                 }
 
@@ -59,7 +59,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     text: qsTr("Try switching to a window")
                     color: Colours.palette.m3outline
-                    font.pointSize: Tokens.font.size.large
+                    textPointSize: Tokens.font.size.large
                 }
             }
         }

@@ -146,12 +146,12 @@ Item {
             anchors.verticalCenterOffset: col.isHovered ? 120 : 0
             text: col.icon
             color: Colours.palette[`m3${col.hue.toLowerCase()}`]
-            font.pixelSize: col.isHovered ? 264 : 240
+            iconPointSize: col.isHovered ? 198 : 180
             opacity: col.isHovered ? 0.2 : 0.05
 
             // transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
             Behavior on opacity { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
-            Behavior on font.pixelSize { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
+            Behavior on iconPointSize { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
             Behavior on anchors.horizontalCenterOffset { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
             Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
         }
@@ -172,7 +172,7 @@ Item {
                 text: col.label
                 color: Colours.palette[`m3${col.hue.toLowerCase()}`]
                 font.family: Tokens.font.family.display
-                font.pixelSize: 57 // display-lg
+                textPixelSize: 57 // display-lg
                 font.weight: 700
                 font.letterSpacing: col.isHovered ? 15 : 0
                 opacity: col.isHovered ? 1.0 : 0.5

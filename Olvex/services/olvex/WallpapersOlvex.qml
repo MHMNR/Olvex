@@ -144,8 +144,145 @@ Searcher {
     property string _lastPreviewData: ""
     property string _lastCurrentData: ""
     property string _committedColourSource: ""
+    property bool _pathFileLoaded: false
+    property bool _colourSourceFileLoaded: false
+    property bool _schemeFileLoaded: false
+    property bool _bootstrapDone: false
+    readonly property bool bootstrapDone: _bootstrapDone
 
     readonly property string _jsonPipe: `python3 -c "import sys,re; data=sys.stdin.read(); m=re.search(r'\\\\{.*\\\\}',data,re.S); print(m.group(0)) if m else sys.exit(1)"`
+
+    function markPathFileReady(loaded: string): void {
+        root.actualCurrent = loaded;
+        root._pathFileLoaded = true;
+        if (!root._bootstrapDone)
+            root.scheduleBootstrap();
+        else if (loaded !== root._lastBootstrapPath)
+            root.onBootstrapPathChanged(loaded);
+        root.previewColourLock = false;
+    }
+
+    function markColourSourceFileReady(loaded: string): void {
+        root._committedColourSource = loaded;
+        root._colourSourceFileLoaded = true;
+        root.scheduleBootstrap();
+    }
+
+    function markSchemeFileReady(loaded: string): void {
+        persistedScheme.schemePayload = loaded;
+        root._schemeFileLoaded = true;
+        root.scheduleBootstrap();
+    }
+
+    property string _lastBootstrapPath: ""
+
+    function onBootstrapPathChanged(loaded: string): void {
+        root._lastBootstrapPath = loaded;
+        if (root.isVideoPath(loaded))
+            root.queueThumbnail(loaded, true);
+        if (loaded) {
+            root._forceNextAccentRefresh = true;
+            root.applyWallpaperToDisplays(loaded);
+            root.requestAccentRefresh(loaded, false);
+        } else {
+            root.applyFallbackColours();
+        }
+    }
+
+    function persistedFilesReady(): bool {
+        return _pathFileLoaded && _colourSourceFileLoaded && _schemeFileLoaded;
+    }
+
+    function scheduleBootstrap(): void {
+        if (!persistedFilesReady() || _bootstrapDone)
+            return;
+        Qt.callLater(bootstrapWallpaperColours);
+    }
+
+    function normalizeSourcePath(path: string): string {
+        return (path || "").trim().replace(/^file:\/\//, "");
+    }
+
+    function applyPersistedScheme(sourcePath: string): bool {
+        const payload = root.normalizePalettePayload(persistedScheme.schemePayload);
+        if (!payload)
+            return false;
+
+        const committed = root.normalizeSourcePath(root._committedColourSource);
+        const normalizedSource = root.normalizeSourcePath(sourcePath);
+        if (committed && committed !== normalizedSource)
+            return false;
+
+        if (!committed)
+            root.persistColourSource(normalizedSource);
+
+        root._lastRefreshPath = normalizedSource;
+        root._lastCurrentData = payload;
+        Colours.ingestWallpaperColors(payload, false);
+        return true;
+    }
+
+    function applyFallbackColours(): void {
+        console.log("[Wallpapers] No wallpaper set — using built-in fallback palette");
+        root._committedColourSource = "";
+        root._lastRefreshPath = "";
+        root._lastCurrentData = "";
+        Colours.useFallbackPalette();
+    }
+
+    function bootstrapWallpaperColours(): void {
+        if (_bootstrapDone || !persistedFilesReady())
+            return;
+
+        const path = (root.actualCurrent || "").trim();
+        root._lastBootstrapPath = path;
+        if (!path) {
+            _bootstrapDone = true;
+            root.applyFallbackColours();
+            return;
+        }
+
+        const sourcePath = root.colourSourcePath(path);
+        if (!sourcePath) {
+            root.pendingCurrentColourPath = path;
+            root.queueThumbnail(path, true);
+            return;
+        }
+
+        _bootstrapDone = true;
+
+        if (root.applyPersistedScheme(sourcePath))
+            console.log("[Wallpapers] Startup: restored persisted scheme for", sourcePath);
+
+        root.applyWallpaperToDisplays(path);
+
+        // Media-pill pattern: always live-extract from wallpaper image on startup.
+        console.log("[Wallpapers] Startup: live extract for", sourcePath);
+        root._forceNextAccentRefresh = true;
+        root.requestAccentRefresh(path, false);
+    }
+
+    function applyWallpaperToDisplays(path: string): void {
+        if (!path || root.isVideoPath(path))
+            return;
+        const escaped = path.replace(/'/g, "'\\''");
+        const smartFlags = smartArg.join(" ");
+        const modeFlags = modeArg.join(" ");
+        Quickshell.execDetached(["bash", "-lc",
+            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' ${smartFlags} ${modeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}'; fi`]);
+    }
+
+    function persistSchemePayload(payload: string): void {
+        const normalized = root.normalizePalettePayload(payload);
+        if (!normalized.length)
+            return;
+        const schemePath = `${Paths.state}/scheme.json`;
+        const stateDir = Paths.state.replace(/'/g, "'\\''");
+        const quoted = normalized.replace(/'/g, "'\\''");
+        schemePersistProc.command = ["bash", "-lc",
+            `mkdir -p '${stateDir}' && python3 -c 'import json,sys; json.dump(json.loads(sys.argv[1]), open("${schemePath.replace(/'/g, "'\\''")}", "w"), indent=2)' '${quoted}'`];
+        schemePersistProc.running = true;
+    }
 
     function normalizePalettePayload(raw: string): string {
         const filtered = Mapper.stringifySchemePayload(raw);
@@ -205,16 +342,9 @@ Searcher {
         root._forceNextAccentRefresh = false;
 
         if (!isPreview && !forceRefresh && path === actualCurrent && sourcePath
-            && root._committedColourSource === sourcePath
-            && persistedScheme.schemePayload.trim()) {
-            const payload = root.normalizePalettePayload(persistedScheme.schemePayload);
-            if (payload) {
-                _lastRefreshPath = sourcePath;
-                _lastCurrentData = payload;
-                root.colorsGenerated(payload, false);
-                console.log("[Wallpapers] Reusing persisted scheme for", sourcePath);
-                return;
-            }
+            && root.applyPersistedScheme(sourcePath)) {
+            console.log("[Wallpapers] Reusing persisted scheme for", sourcePath);
+            return;
         }
 
         if (!sourcePath) {
@@ -257,7 +387,7 @@ Searcher {
         pendingCurrentColourPath = "";
         getCurrentColoursProc.running = false;
         getCurrentColoursProc.targetSourcePath = sourcePath;
-        getCurrentColoursProc.command = wallPaletteCommand(cleanPath, false);
+        getCurrentColoursProc.command = root.dynamicPaletteCommand(cleanPath);
         getCurrentColoursProc.running = true;
         console.log(`[Wallpapers] M3 accent refresh: ${getCurrentColoursProc.command.join(" ")}`);
     }
@@ -277,6 +407,7 @@ Searcher {
 
         actualCurrent = path;
         persistCurrentPath(path);
+        root.applyWallpaperToDisplays(path);
         requestAccentRefresh(path, false);
     }
 
@@ -307,7 +438,15 @@ Searcher {
     }
 
     function stopPreview(): void {
+        const commitPreview = showPreview
+            && previewPath === actualCurrent
+            && root._lastPreviewData
+            && !previewColourLock;
         showPreview = false;
+        if (commitPreview) {
+            root._lastCurrentData = root._lastPreviewData;
+            root.colorsGenerated(root._lastPreviewData, false);
+        }
         if (!previewColourLock)
             Colours.setShowPreview(false);
     }
@@ -338,36 +477,41 @@ Searcher {
     }
 
     FileView {
+        printErrors: false
         path: root.currentNamePath
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: {
-            const loaded = text().trim();
-            const changed = loaded !== root.actualCurrent;
-            root.actualCurrent = loaded;
-            if (changed) {
-                if (root.isVideoPath(root.actualCurrent))
-                    root.queueThumbnail(root.actualCurrent, true);
-                root.requestAccentRefresh(root.actualCurrent, false);
-            }
-            root.previewColourLock = false;
+        onLoaded: root.markPathFileReady(text().trim())
+        onLoadFailed: err => {
+            if (err === FileViewError.FileNotFound)
+                root.markPathFileReady("");
         }
     }
 
     FileView {
+        printErrors: false
         path: root.colourSourceCachePath
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: root._committedColourSource = text().trim()
+        onLoaded: root.markColourSourceFileReady(text().trim())
+        onLoadFailed: err => {
+            if (err === FileViewError.FileNotFound)
+                root.markColourSourceFileReady("");
+        }
     }
 
     FileView {
         id: persistedScheme
 
+        printErrors: false
         path: `${Paths.state}/scheme.json`
         watchChanges: true
         property string schemePayload: ""
-        onLoaded: schemePayload = text()
+        onLoaded: root.markSchemeFileReady(text())
+        onLoadFailed: err => {
+            if (err === FileViewError.FileNotFound)
+                root.markSchemeFileReady("");
+        }
         onFileChanged: reload()
     }
 
@@ -431,6 +575,10 @@ Searcher {
         id: colourSourcePersistProc
     }
 
+    Process {
+        id: schemePersistProc
+    }
+
     Timer {
         id: videoScanTimer
         interval: 2000
@@ -485,7 +633,12 @@ Searcher {
                     if (root.pendingCurrentColourPath === thumbnailProc.inputPath) {
                         const path = root.pendingCurrentColourPath;
                         console.log(`[Wallpapers] Triggering pending current accent refresh for ${path}`);
-                        Qt.callLater(() => root.requestAccentRefresh(path, false));
+                        Qt.callLater(() => {
+                            if (!root._bootstrapDone)
+                                root.scheduleBootstrap();
+                            else
+                                root.requestAccentRefresh(path, false);
+                        });
                     }
                     if (root.pendingPreviewColourPath === thumbnailProc.inputPath) {
                         const path = root.pendingPreviewColourPath;
@@ -548,6 +701,7 @@ Searcher {
                 root._lastCurrentData = payload;
                 if (getCurrentColoursProc.targetSourcePath)
                     root.persistColourSource(getCurrentColoursProc.targetSourcePath);
+                root.persistSchemePayload(payload);
                 root.colorsGenerated(payload, false);
             }
         }

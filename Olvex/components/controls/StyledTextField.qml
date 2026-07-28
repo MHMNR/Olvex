@@ -12,7 +12,7 @@ TextField {
     color: Colours.palette.m3onSurface
     placeholderTextColor: Colours.palette.m3outline
     font.family: Tokens.font.family.sans
-    font.pointSize: Tokens.font.size.smaller
+    font.pixelSize: Math.max(10, Math.round(Tokens.font.size.smaller * 96 / 72))
     renderType: echoMode === TextField.Password ? TextField.QtRendering : TextField.NativeRendering
     cursorVisible: !readOnly
 

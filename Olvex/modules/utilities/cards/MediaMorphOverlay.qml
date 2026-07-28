@@ -26,7 +26,7 @@ Item {
     property real _lastDockY: -1
     property int _dockStableTicks: 0
     property int _dockSyncCount: 0
-    readonly property string musicArtUrl: Players.active ? Players.getArtUrl(Players.active) : ""
+    readonly property string musicArtUrl: Players.currentArtUrl
     property string artDisplaySource: ""
     readonly property bool artIsLocal: root.musicArtUrl.startsWith("file:")
         || root.musicArtUrl.startsWith("/")
@@ -53,12 +53,14 @@ Item {
     readonly property real expandedProgressY: 108
     readonly property real expandedProgressHeight: 52
 
-    // M3 Expressive spatial springs — frame-stepped (vsync-aligned animation driver)
-    readonly property real spatialSpring: 5.0
-    readonly property real spatialDamping: 0.40
-    readonly property real spatialEpsilon: 0.06
-    readonly property int contentRevealDelay: 170
-    readonly property int progressRevealDelay: 220
+    // M3 expressive spatial — same token curve/duration as rest of Olvex UI
+    readonly property int expandDur: Tokens.anim.durations.expressiveDefaultSpatial
+    readonly property int collapseDur: Tokens.anim.durations.expressiveFastSpatial
+    readonly property var spatialEasing: Tokens.anim.expressiveDefaultSpatial
+    readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
+    readonly property int contentRevealDelay: Math.round(expandDur * 0.34)
+    readonly property int progressRevealDelay: Math.round(expandDur * 0.44)
+    readonly property bool morphAnimating: expandTransition.running || collapseTransition.running
 
     readonly property real playerProgress: Players.interpolatedProgress
     readonly property real playerPosition: Players.interpolatedPosition
@@ -93,8 +95,6 @@ Item {
         root.artDisplaySource = url + "#olvex-art=" + Players.artReloadNonce;
     }
 
-    onMusicArtUrlChanged: root.updateArtDisplaySource()
-
     function lengthStr(length: real): string {
         if (length < 0)
             return "--:--";
@@ -118,6 +118,7 @@ Item {
             total += Math.max(0, Math.min(1, value));
         return Math.max(0.08, Math.min(1, total / values.length));
     }
+    readonly property real morphAudioIntensity: morphAnimating ? 0.12 : audioIntensity
     
     // Real pill element positions (set by start())
     property real realArtX: 7
@@ -283,6 +284,9 @@ Item {
 
     Connections {
         target: Players
+        function onCurrentArtUrlChanged() {
+            root.updateArtDisplaySource();
+        }
         function onArtReloadNonceChanged() {
             root.updateArtDisplaySource();
         }
@@ -306,7 +310,7 @@ Item {
 
     Timer {
         id: hideTimer
-        interval: 520
+        interval: root.collapseDur + 40
         onTriggered: {
             root.active = false;
             root.docked = false;
@@ -363,6 +367,9 @@ Item {
         clip: true
 
         color: Qt.rgba(0, 0, 0, 0.96)
+
+        layer.enabled: root.morphAnimating
+        layer.smooth: true
         
         state: "compact"
 
@@ -405,10 +412,10 @@ Item {
             NeonWaveVisualizer {
                 anchors.fill: parent
                 accentColor: root.resolvedVisualizerAccent
-                numBands: 32
+                numBands: root.morphAnimating ? 16 : 32
                 maxHeightRatio: 0.8
                 valueMultiplier: 1.5
-                active: Players.active?.isPlaying ?? false
+                active: (Players.active?.isPlaying ?? false) && !root.morphAnimating
                 frameInterval: musicPill.state === "expanded" ? 16 : 33
             }
         }
@@ -455,7 +462,7 @@ Item {
                 anchors.centerIn: parent
                 text: "music_note"
                 color: root.hasMusicArt ? Qt.rgba(1, 1, 1, 0.4) : root.musicOnAccent
-                font.pointSize: 14
+                iconPointSize: 14
                 visible: !root.hasMusicArt || artImage.status !== Image.Ready
             }
         }
@@ -472,13 +479,13 @@ Item {
             StyledText {
                 width: parent.width
                 text: Players.active ? (Players.active.trackTitle || "Unknown Title") : "Nothing Playing"
-                color: Qt.rgba(1, 1, 1, 0.96); font.pointSize: Tokens.font.size.normal
+                color: Qt.rgba(1, 1, 1, 0.96); textPointSize: Tokens.font.size.normal
                 font.weight: 600; elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
             }
             StyledText {
                 width: parent.width
                 text: Players.active ? (Players.active.trackArtist || "Unknown Artist") : ""
-                color: Qt.rgba(1, 1, 1, 0.50); font.pointSize: Tokens.font.size.small
+                color: Qt.rgba(1, 1, 1, 0.50); textPointSize: Tokens.font.size.small
                 elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
             }
         }
@@ -494,7 +501,7 @@ Item {
                 anchors.centerIn: parent
                 text: "skip_previous"
                 color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                font.pointSize: 14
+                iconPointSize: 14
             }
             StateLayer { id: prevBtnState; showRipple: false; enabled: Players.active !== null; onClicked: Players.previous(); radius: parent.radius }
         }
@@ -508,11 +515,11 @@ Item {
             scale: playBtnState.pressed ? 0.85 : 1.0
             Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
 
-            layer.enabled: true
+            layer.enabled: !root.morphAnimating
             layer.effect: MultiEffect {
                 maskEnabled: true
                 maskSource: ShaderEffectSource {
-                    live: true
+                    live: !root.morphAnimating
                     hideSource: false
                     sourceItem: Rectangle {
                         width: playBtn.width
@@ -528,7 +535,7 @@ Item {
                 anchors.centerIn: parent
                 text: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
                 color: Players.active ? root.playIconColor : Qt.rgba(1, 1, 1, 0.4)
-                font.pointSize: 16
+                iconPointSize: 16
 
                 animate: true
                 animateProp: "rotation"
@@ -549,7 +556,7 @@ Item {
                 anchors.centerIn: parent
                 text: "skip_next"
                 color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                font.pointSize: 14
+                iconPointSize: 14
             }
             StateLayer { id: nextBtnState; showRipple: false; enabled: Players.active !== null; onClicked: Players.next(); radius: parent.radius }
         }
@@ -582,7 +589,7 @@ Item {
                     StyledText {
                         text: root.lengthStr(Players.active ? root.displayPosition : -1)
                         color: Qt.rgba(1, 1, 1, 0.50)
-                        font.pointSize: Tokens.font.size.smaller
+                        textPointSize: Tokens.font.size.smaller
                         font.weight: Font.Medium
                     }
 
@@ -591,7 +598,7 @@ Item {
                     StyledText {
                         text: root.lengthStr(root.playerLength > 0 ? root.playerLength : -1)
                         color: Qt.rgba(1, 1, 1, 0.50)
-                        font.pointSize: Tokens.font.size.smaller
+                        textPointSize: Tokens.font.size.smaller
                         font.weight: Font.Medium
                     }
                 }
@@ -647,9 +654,9 @@ Item {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        height: 3 + root.audioIntensity * 2
+                        height: 3 + root.morphAudioIntensity * 2
                         radius: height / 2
-                        color: Qt.rgba(1, 1, 1, 0.10 + root.audioIntensity * 0.05)
+                        color: Qt.rgba(1, 1, 1, 0.10 + root.morphAudioIntensity * 0.05)
                         z: 1
                     }
 
@@ -662,15 +669,15 @@ Item {
                             : 0
                         height: expandedProgressTrack.height
                         radius: height / 2
-                        color: Qt.rgba(1, 1, 1, 0.85 + root.audioIntensity * 0.12)
+                        color: Qt.rgba(1, 1, 1, 0.85 + root.morphAudioIntensity * 0.12)
                         visible: root.hasProgressFill
                         z: 2
 
-                        layer.enabled: true
+                        layer.enabled: !root.morphAnimating
                         layer.effect: MultiEffect {
                             shadowEnabled: true
                             shadowColor: Qt.alpha(root.resolvedVisualizerAccent, 0.92)
-                            shadowOpacity: 0.75 + root.audioIntensity * 0.20
+                            shadowOpacity: 0.75 + root.morphAudioIntensity * 0.20
                             shadowBlur: 0.85
                             shadowHorizontalOffset: 0
                             shadowVerticalOffset: 0
@@ -684,15 +691,15 @@ Item {
                         width: expandedProgressTrack.height + 8
                         height: width
                         radius: width / 2
-                        color: Qt.rgba(1, 1, 1, 0.95 + root.audioIntensity * 0.03)
+                        color: Qt.rgba(1, 1, 1, 0.95 + root.morphAudioIntensity * 0.03)
                         visible: root.hasProgressFill
                         z: 3
 
-                        layer.enabled: true
+                        layer.enabled: !root.morphAnimating
                         layer.effect: MultiEffect {
                             shadowEnabled: true
                             shadowColor: Qt.alpha(root.resolvedVisualizerAccent, 0.88)
-                            shadowOpacity: 0.70 + root.audioIntensity * 0.25
+                            shadowOpacity: 0.70 + root.morphAudioIntensity * 0.25
                             shadowBlur: 0.80
                             shadowHorizontalOffset: 0
                             shadowVerticalOffset: 0
@@ -713,9 +720,9 @@ Item {
                 PropertyChanges { target: prevBtnContainer; x: root.realBtn1X; y: root.realBtn1Y; opacity: 1; width: root.realBtnSize; height: root.realBtnSize; radius: root.realBtnSize / 2; color: "transparent" }
                 PropertyChanges { target: playBtn; x: root.realBtn2X; y: root.realBtn2Y; width: root.realBtnSize; height: root.realBtnSize; color: root.resolvedPlayButtonBg }
                 PropertyChanges { target: nextBtnContainer; x: root.realBtn3X; y: root.realBtn3Y; opacity: 1; width: root.realBtnSize; height: root.realBtnSize; radius: root.realBtnSize / 2; color: "transparent" }
-                PropertyChanges { target: playIcon; font.pointSize: Tokens.font.size.larger; color: root.playIconColor }
-                PropertyChanges { target: prevBtn; font.pointSize: Tokens.font.size.large; color: Colours.palette.m3onSurfaceVariant }
-                PropertyChanges { target: nextBtn; font.pointSize: Tokens.font.size.large; color: Colours.palette.m3onSurfaceVariant }
+                PropertyChanges { target: playIcon; iconPointSize: Tokens.font.size.larger; color: root.playIconColor }
+                PropertyChanges { target: prevBtn; iconPointSize: Tokens.font.size.large; color: Colours.palette.m3onSurfaceVariant }
+                PropertyChanges { target: nextBtn; iconPointSize: Tokens.font.size.large; color: Colours.palette.m3onSurfaceVariant }
             },
             State {
                 name: "expanded"
@@ -727,133 +734,113 @@ Item {
                 PropertyChanges { target: prevBtnContainer; x: 138; y: root.expandedSideButtonY; opacity: 1; width: 40; height: 40; radius: 20; color: "transparent" }
                 PropertyChanges { target: playBtn; x: 190; y: root.expandedPlayY; width: 48; height: 48; color: root.resolvedPlayButtonBg }
                 PropertyChanges { target: nextBtnContainer; x: 250; y: root.expandedSideButtonY; opacity: 1; width: 40; height: 40; radius: 20; color: "transparent" }
-                PropertyChanges { target: playIcon; font.pointSize: 24; color: root.playIconColor }
-                PropertyChanges { target: prevBtn; font.pointSize: 20; color: Qt.rgba(1, 1, 1, 0.88) }
-                PropertyChanges { target: nextBtn; font.pointSize: 20; color: Qt.rgba(1, 1, 1, 0.88) }
+                PropertyChanges { target: playIcon; iconPointSize: 24; color: root.playIconColor }
+                PropertyChanges { target: prevBtn; iconPointSize: 20; color: Qt.rgba(1, 1, 1, 0.88) }
+                PropertyChanges { target: nextBtn; iconPointSize: 20; color: Qt.rgba(1, 1, 1, 0.88) }
             }
         ]
 
         transitions: [
-            // ── Expand: Dynamic Island horizontal bloom → content reveal ──
             Transition {
                 id: expandTransition
                 from: "compact"; to: "expanded"
                 ParallelAnimation {
-                    // Width + X lead the morph (island grows outward first)
-                    SpringAnimation {
+                    NumberAnimation {
                         targets: [musicPill]
                         properties: "width,x"
-                        spring: root.spatialSpring
-                        damping: root.spatialDamping
-                        epsilon: root.spatialEpsilon
-                        mass: 0.85
+                        duration: root.expandDur
+                        easing: root.spatialEasing
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: 44 }
-                        SpringAnimation {
+                        PauseAnimation { duration: Math.round(root.expandDur * 0.08) }
+                        NumberAnimation {
                             targets: [musicPill]
                             properties: "y,height,radius"
-                            spring: 4.4
-                            damping: 0.42
-                            epsilon: root.spatialEpsilon
-                            mass: 0.9
+                            duration: Math.round(root.expandDur * 0.92)
+                            easing: root.spatialEasing
                         }
                     }
-                    // Artwork scales up, then glides into expanded slot
-                    SpringAnimation {
+                    NumberAnimation {
                         targets: [musicIcon]
                         properties: "width,height,radius"
-                        spring: root.spatialSpring
-                        damping: root.spatialDamping
-                        epsilon: root.spatialEpsilon
+                        duration: root.expandDur
+                        easing: root.spatialEasing
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: 36 }
-                        SpringAnimation {
+                        PauseAnimation { duration: Math.round(root.expandDur * 0.07) }
+                        NumberAnimation {
                             targets: [musicIcon]
                             properties: "x,y"
-                            spring: 4.2
-                            damping: 0.42
-                            epsilon: root.spatialEpsilon
+                            duration: Math.round(root.expandDur * 0.93)
+                            easing: root.spatialEasing
                         }
                     }
-                    // Controls morph into horizontal row after shell opens
                     SequentialAnimation {
-                        PauseAnimation { duration: 56 }
-                        SpringAnimation {
+                        PauseAnimation { duration: Math.round(root.expandDur * 0.11) }
+                        NumberAnimation {
                             targets: [prevBtnContainer, playBtn, nextBtnContainer]
                             properties: "x,y,width,height,radius"
-                            spring: 4.6
-                            damping: 0.40
-                            epsilon: root.spatialEpsilon
+                            duration: Math.round(root.expandDur * 0.89)
+                            easing: root.spatialEasing
                         }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: 72 }
-                        SpringAnimation {
+                        PauseAnimation { duration: Math.round(root.expandDur * 0.14) }
+                        NumberAnimation {
                             targets: [playIcon, prevBtn, nextBtn]
-                            property: "font.pointSize"
-                            spring: 4.0
-                            damping: 0.45
-                            epsilon: 0.08
+                            property: "iconPointSize"
+                            duration: Math.round(root.expandDur * 0.55)
+                            easing: root.spatialEasing
                         }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: 64 }
+                        PauseAnimation { duration: Math.round(root.expandDur * 0.13) }
                         ColorAnimation {
                             targets: [playBtn, playIcon, prevBtn, nextBtn]
-                            duration: 220
-                            easing.type: Easing.OutCubic
+                            duration: Tokens.anim.durations.expressiveDefaultEffects
+                            easing: Tokens.anim.expressiveDefaultSpatial
                         }
                     }
-                    // Subtle island breathe on expand
                     SequentialAnimation {
                         NumberAnimation {
                             target: musicPill
                             property: "morphSquashX"
-                            to: 0.958
-                            duration: 90
-                            easing.type: Easing.OutCubic
+                            to: 0.97
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
                         }
-                        SpringAnimation {
+                        NumberAnimation {
                             target: musicPill
                             property: "morphSquashX"
                             to: 1.0
-                            spring: 3.6
-                            damping: 0.38
-                            epsilon: 0.05
+                            duration: Math.round(root.expandDur * 0.45)
+                            easing: root.spatialEasingDecel
                         }
                     }
                     SequentialAnimation {
                         NumberAnimation {
                             target: musicPill
                             property: "morphSquashY"
-                            to: 1.032
-                            duration: 90
-                            easing.type: Easing.OutCubic
+                            to: 1.02
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
                         }
-                        SpringAnimation {
+                        NumberAnimation {
                             target: musicPill
                             property: "morphSquashY"
                             to: 1.0
-                            spring: 3.6
-                            damping: 0.38
-                            epsilon: 0.05
+                            duration: Math.round(root.expandDur * 0.45)
+                            easing: root.spatialEasingDecel
                         }
                     }
-                    SequentialAnimation {
-                        NumberAnimation { target: topShade; property: "opacity"; to: 0.10; duration: 100; easing.type: Easing.OutQuad }
-                        NumberAnimation { target: topShade; property: "opacity"; to: 0; duration: 260; easing.type: Easing.OutCubic }
-                    }
-                    // Staggered content reveal — Dynamic Island pattern
                     SequentialAnimation {
                         PauseAnimation { duration: root.contentRevealDelay }
                         NumberAnimation {
                             target: trackInfo
                             property: "opacity"
                             to: 1
-                            duration: 220
-                            easing.type: Easing.OutQuint
+                            duration: Tokens.anim.durations.expressiveDefaultEffects
+                            easing: Tokens.anim.emphasizedDecel
                         }
                     }
                     SequentialAnimation {
@@ -862,14 +849,13 @@ Item {
                             target: expandedProgressWrap
                             property: "opacity"
                             to: 1
-                            duration: 180
-                            easing.type: Easing.OutQuint
+                            duration: Tokens.anim.durations.expressiveDefaultEffects
+                            easing: Tokens.anim.emphasizedDecel
                         }
                     }
                 }
             },
 
-            // ── Collapse: content out → vertical contract → horizontal retract ──
             Transition {
                 id: collapseTransition
                 from: "expanded"; to: "compact"
@@ -878,81 +864,75 @@ Item {
                         targets: [trackInfo, expandedProgressWrap]
                         property: "opacity"
                         to: 0
-                        duration: 90
-                        easing.type: Easing.OutQuint
+                        duration: Tokens.anim.durations.expressiveFastEffects
+                        easing: Tokens.anim.expressiveFastSpatial
                     }
-                    SpringAnimation {
+                    NumberAnimation {
                         targets: [musicPill, musicIcon]
                         properties: "y,height,radius"
-                        spring: 5.2
-                        damping: 0.40
-                        epsilon: root.spatialEpsilon
+                        duration: root.collapseDur
+                        easing: root.spatialEasing
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: 64 }
-                        SpringAnimation {
+                        PauseAnimation { duration: Math.round(root.collapseDur * 0.18) }
+                        NumberAnimation {
                             targets: [musicPill, musicIcon]
                             properties: "width,x"
-                            spring: 4.6
-                            damping: 0.42
-                            epsilon: root.spatialEpsilon
+                            duration: Math.round(root.collapseDur * 0.82)
+                            easing: root.spatialEasingDecel
                         }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: 48 }
-                        SpringAnimation {
+                        PauseAnimation { duration: Math.round(root.collapseDur * 0.12) }
+                        NumberAnimation {
                             targets: [prevBtnContainer, playBtn, nextBtnContainer]
                             properties: "x,y,width,height,radius"
-                            spring: 4.8
-                            damping: 0.40
-                            epsilon: root.spatialEpsilon
+                            duration: Math.round(root.collapseDur * 0.88)
+                            easing: root.spatialEasing
                         }
                     }
-                    SpringAnimation {
+                    NumberAnimation {
                         targets: [playIcon, prevBtn, nextBtn]
-                        property: "font.pointSize"
-                        spring: 4.2
-                        damping: 0.45
-                        epsilon: 0.08
+                        property: "iconPointSize"
+                        duration: root.collapseDur
+                        easing: root.spatialEasing
                     }
                     ColorAnimation {
                         targets: [playBtn, playIcon, prevBtn, nextBtn]
-                        duration: 200
-                        easing.type: Easing.OutCubic
+                        duration: Tokens.anim.durations.expressiveDefaultEffects
+                        easing: Tokens.anim.expressiveDefaultSpatial
                     }
                     SequentialAnimation {
                         NumberAnimation {
                             target: musicPill
                             property: "morphSquashY"
-                            to: 0.968
-                            duration: 80
-                            easing.type: Easing.OutCubic
+                            to: 0.98
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
                         }
-                        SpringAnimation {
+                        NumberAnimation {
                             target: musicPill
                             property: "morphSquashY"
                             to: 1.0
-                            spring: 4.0
-                            damping: 0.38
-                            epsilon: 0.05
+                            duration: Math.round(root.collapseDur * 0.55)
+                            easing: root.spatialEasingDecel
                         }
                     }
                     SequentialAnimation {
-                        PauseAnimation { duration: 40 }
+                        PauseAnimation { duration: Math.round(root.collapseDur * 0.1) }
                         NumberAnimation {
                             target: musicPill
                             property: "morphSquashX"
-                            to: 1.028
-                            duration: 80
-                            easing.type: Easing.OutCubic
+                            to: 1.02
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
                         }
-                        SpringAnimation {
+                        NumberAnimation {
                             target: musicPill
                             property: "morphSquashX"
                             to: 1.0
-                            spring: 4.0
-                            damping: 0.38
-                            epsilon: 0.05
+                            duration: Math.round(root.collapseDur * 0.55)
+                            easing: root.spatialEasingDecel
                         }
                     }
                 }

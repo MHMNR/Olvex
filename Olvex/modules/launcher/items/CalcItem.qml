@@ -94,7 +94,7 @@ Item {
 
                 text: qsTr("Open in calculator")
                 color: Colours.palette.m3onTertiary
-                font.pointSize: Tokens.font.size.normal
+                textPointSize: Tokens.font.size.normal
 
                 opacity: stateLayer.containsMouse ? 1 : 0
 
@@ -112,7 +112,7 @@ Item {
 
                 text: "open_in_new"
                 color: Colours.palette.m3onTertiary
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
             }
 
             Behavior on implicitWidth {

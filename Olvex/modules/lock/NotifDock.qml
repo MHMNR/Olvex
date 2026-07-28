@@ -31,7 +31,7 @@ ColumnLayout {
             text: qsTr("NOTIFICATIONS")
             color: Qt.alpha(Colours.palette.m3outline, 0.6)
             font.family: Tokens.font.family.mono
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.weight: 600
         }
 
@@ -85,7 +85,7 @@ ColumnLayout {
                     Layout.alignment: Qt.AlignHCenter
                     text: GlobalConfig.lock.hideNotifs ? qsTr("Unlock for Notifications") : qsTr("Systems clear")
                     color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
-                    font.pointSize: Tokens.font.size.large
+                    textPointSize: Tokens.font.size.large
                     font.family: Tokens.font.family.mono
                     font.weight: 500
                 }

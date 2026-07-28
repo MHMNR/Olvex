@@ -39,7 +39,7 @@ StyledRect {
             MaterialIcon {
                 visible: root.showIcons
                 text: "upload"
-                font.pointSize: Math.max(6, root.fontSize - 2)
+                iconPointSize: Math.max(6, root.fontSize - 2)
                 color: root.colour
                 anchors.horizontalCenter: parent.horizontalCenter
             }
@@ -48,7 +48,7 @@ StyledRect {
                 readonly property var fmt: NetworkUsage.formatBytes(NetworkUsage.uploadSpeed)
                 readonly property int decimals: fmt.unit.startsWith("B") ? 0 : root.maxDigits
                 text: `${fmt.value.toFixed(decimals)}${fmt.unit.charAt(0)}`
-                font.pointSize: root.fontSize
+                textPointSize: root.fontSize
                 font.family: GlobalConfig.appearance.font.family.sans
                 color: root.colour
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -80,7 +80,7 @@ StyledRect {
             MaterialIcon {
                 visible: root.showIcons
                 text: "download"
-                font.pointSize: Math.max(6, root.fontSize - 2)
+                iconPointSize: Math.max(6, root.fontSize - 2)
                 color: root.colour
                 anchors.horizontalCenter: parent.horizontalCenter
             }
@@ -89,7 +89,7 @@ StyledRect {
                 readonly property var fmt: NetworkUsage.formatBytes(NetworkUsage.downloadSpeed)
                 readonly property int decimals: fmt.unit.startsWith("B") ? 0 : root.maxDigits
                 text: `${fmt.value.toFixed(decimals)}${fmt.unit.charAt(0)}`
-                font.pointSize: root.fontSize
+                textPointSize: root.fontSize
                 font.family: GlobalConfig.appearance.font.family.sans
                 color: root.colour
                 anchors.horizontalCenter: parent.horizontalCenter

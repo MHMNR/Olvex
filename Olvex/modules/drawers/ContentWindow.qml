@@ -234,8 +234,8 @@ StyledWindow {
             PanelBg {
                 id: osdBg
 
-                radius: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? Tokens.rounding.large * 1.5 : Tokens.rounding.large
-                group: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? osdGroup : blobGroup
+                radius: safeBorder.floating ? Tokens.rounding.large * 1.5 : Tokens.rounding.large
+                group: safeBorder.floating ? osdGroup : blobGroup
                 exclude: [popoutBg]
                 panel: panels.osdWrapper
                 deformAmount: 0.1
@@ -329,6 +329,7 @@ StyledWindow {
             bar: bar
             borderThickness: root.borderLayoutThickness
             fullscreen: root.hasFullscreen
+            safeBorder: root.safeBorder
 
             Panels {
                 id: panels
@@ -338,6 +339,7 @@ StyledWindow {
                 visibilities: visibilities
                 bar: bar
                 borderThickness: root.borderThickness
+                safeBorder: root.safeBorder
 
                 utilities.deformMatrix: utilsBg.rawDeformMatrix
 
@@ -376,6 +378,7 @@ StyledWindow {
                 mediaMorph: morph
 
                 fullscreen: root.hasFullscreen
+                safeBorder: root.safeBorder
                 enabled: !visibilities.session
                 visible: opacity > 0
                 
@@ -483,7 +486,7 @@ StyledWindow {
         property real deformAmount: 0.15
         readonly property bool active: panel.visible
 
-        group: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? drawerGroup : blobGroup
+        group: root.safeBorder.floating ? drawerGroup : blobGroup
         x: panel.x + panels.x
         y: panel.y + panels.y
         implicitWidth: active ? panel.width : 0

@@ -16,7 +16,7 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         animate: true
         text: root.icon
-        font.pointSize: Tokens.font.size.extraLarge * 3
+        iconPointSize: Tokens.font.size.extraLarge * 3
         font.bold: true
     }
 
@@ -24,7 +24,7 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         animate: true
         text: root.title
-        font.pointSize: Tokens.font.size.large
+        textPointSize: Tokens.font.size.large
         font.bold: true
     }
 }

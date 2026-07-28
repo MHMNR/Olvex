@@ -31,10 +31,19 @@ Item {
         property string historyJson: "[]"
     }
 
+    function normalizeHistory(list) {
+        if (!Array.isArray(list))
+            return [];
+        return list.filter(item => item
+            && typeof item === "object"
+            && typeof item.equation === "string"
+            && typeof item.result === "string");
+    }
+
     Component.onCompleted: {
         try {
             if (calcSettings.historyJson) {
-                root.historyList = JSON.parse(calcSettings.historyJson);
+                root.historyList = normalizeHistory(JSON.parse(calcSettings.historyJson));
             }
         } catch(e) {}
         
@@ -276,7 +285,7 @@ Item {
                     : btn.isOperator
                         ? Colours.palette.m3secondary
                         : Colours.palette.m3onSurface
-            font.pointSize: 22
+            textPointSize: 22
             font.weight: 600
             visible: btn.text !== ""
         }
@@ -291,7 +300,7 @@ Item {
                     : btn.isOperator
                         ? Colours.palette.m3secondary
                         : Colours.palette.m3onSurface
-            font.pointSize: 24
+            iconPointSize: 24
             visible: btn.iconName !== ""
         }
 
@@ -359,7 +368,7 @@ Item {
                     MaterialIcon {
                         anchors.centerIn: parent
                         text: "history"
-                        font.pointSize: 22
+                        iconPointSize: 22
                         color: root.showHistory ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
                     }
                     
@@ -398,15 +407,15 @@ Item {
 
                             StyledText {
                                 Layout.alignment: Qt.AlignRight
-                                text: modelData.equation
+                                text: modelData?.equation ?? ""
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: 14
+                                textPointSize: 14
                             }
                             StyledText {
                                 Layout.alignment: Qt.AlignRight
-                                text: modelData.result
+                                text: modelData?.result ?? ""
                                 color: Colours.palette.m3onSurface
-                                font.pointSize: 24
+                                textPointSize: 24
                                 font.weight: 600
                             }
                         }
@@ -414,9 +423,12 @@ Item {
                         CustomMouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                root.expression = modelData.result.replace(/,/g, '');
+                                const result = modelData?.result ?? "";
+                                if (!result)
+                                    return;
+                                root.expression = result.replace(/,/g, '');
                                 root.isFinalized = true;
-                                root.liveResult = modelData.result;
+                                root.liveResult = result;
                             }
                         }
                     }
@@ -438,13 +450,13 @@ Item {
 
                     text: root.expression === "" ? "0" : formatExpression(root.expression)
                     color: root.isFinalized ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface
-                    font.pointSize: root.isFinalized ? 24 : 42
+                    font.pixelSize: root.isFinalized ? 24 : 42
                     font.weight: root.isFinalized ? 600 : 700
                     font.family: Tokens.font.family.sans
                     renderType: Text.QtRendering
                     
                     // Smooth font size transition when switching between edit/final state
-                    Behavior on font.pointSize {
+                    Behavior on font.pixelSize {
                         NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
                     }
                     
@@ -492,7 +504,7 @@ Item {
                     renderType: Text.QtRendering
 
                     // Smooth font size transition for result display
-                    Behavior on font.pointSize {
+                    Behavior on font.pixelSize {
                         NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
                     }
                     // Fade result smoothly when switching edit state
@@ -502,7 +514,7 @@ Item {
 
                     text: root.isFinalized ? root.liveResult : (root.liveResult !== "" ? "= " + root.liveResult : "")
                     color: root.isFinalized ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                    font.pointSize: root.isFinalized ? 54 : 32
+                    textPointSize: root.isFinalized ? 54 : 32
                     font.weight: root.isFinalized ? 700 : 600
                     font.family: Tokens.font.family.sans
 

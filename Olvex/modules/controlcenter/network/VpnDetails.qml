@@ -163,7 +163,7 @@ DeviceDetails {
                         Layout.topMargin: Tokens.spacing.normal
                         visible: root.providerEnabled && VPN.status.state === "needs-auth" && VPN.status.authUrl === ""
                         text: qsTr("Click 'Connect' to generate authentication URL")
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                         color: Colours.palette.m3onSurfaceVariant
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
@@ -320,7 +320,7 @@ DeviceDetails {
 
             StyledText {
                 text: qsTr("Edit VPN Provider")
-                font.pointSize: Tokens.font.size.large
+                textPointSize: Tokens.font.size.large
                 font.weight: 500
             }
 
@@ -330,7 +330,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Display Name")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -367,7 +367,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Interface (e.g., wg0, torguard)")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -405,7 +405,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Connect Command")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -443,7 +443,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Disconnect Command")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 

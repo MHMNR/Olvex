@@ -17,7 +17,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("General Settings")
-        font.pointSize: Tokens.font.size.normal
+        textPointSize: Tokens.font.size.normal
     }
 
     SwitchRow {
@@ -96,7 +96,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("Card Sizes")
-        font.pointSize: Tokens.font.size.normal
+        textPointSize: Tokens.font.size.normal
     }
 
     SliderInput {

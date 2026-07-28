@@ -44,7 +44,7 @@ Item {
 
             text: root.notifCount
             color: Colours.palette.m3outline
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
             font.family: Tokens.font.family.mono
             font.weight: 500
 
@@ -68,7 +68,7 @@ Item {
 
             text: root.notifCount > 0 ? qsTr("notification%1").arg(root.notifCount === 1 ? "" : "s") : qsTr("Notifications")
             color: Colours.palette.m3outline
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
             font.family: Tokens.font.family.mono
             font.weight: 500
             elide: Text.ElideRight
@@ -90,7 +90,7 @@ Item {
                 icon: "delete_sweep"
                 radius: Tokens.rounding.normal
                 padding: Tokens.padding.small
-                font.pointSize: Tokens.font.size.normal
+                iconPointSize: Tokens.font.size.normal
                 onClicked: clearTimer.start()
             }
 
@@ -149,7 +149,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     text: qsTr("Systems clear")
                     color: Colours.palette.m3outlineVariant
-                    font.pointSize: Tokens.font.size.large
+                    textPointSize: Tokens.font.size.large
                     font.family: Tokens.font.family.mono
                     font.weight: 500
                 }

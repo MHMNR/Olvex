@@ -90,6 +90,8 @@ Item {
     // Split is only applicable to Default and Phone layouts
     readonly property bool canSplit: root.activeLayoutName === "Default" || root.activeLayoutName === "Phone"
 
+    property real dockProgress: 0
+
 
 
     // Content Wrapper for Blur Source (includes BG and Keys)
@@ -180,7 +182,7 @@ Item {
                             StyledText {
                                 text: "search"
                                 font.family: "Material Symbols Rounded"
-                                font.pixelSize: 16
+                                textPixelSize: 16
                                 color: Qt.alpha(Colours.palette.m3onSurface, 0.5)
                             }
                             TextInput {
@@ -253,7 +255,7 @@ Item {
                 scaleFactor: root.oskScale
                 isDocked: root.isDocked
                 isSplit: root.isSplit && root.isDocked && root.canSplit
-                dockProgress: parent.parent.parent.parent.dockProgress // Accessing PanelWindow.dockProgress
+                dockProgress: root.dockProgress
                 wordEngine: wordEngine
                 Layout.fillWidth: true
                 onHideRequested: root.hideRequested()
@@ -356,7 +358,7 @@ Item {
                 anchors.centerIn: parent
                 text: "\ue8b8" // settings
                 color: "#ffffff"
-                font.pixelSize: 18
+                iconPointSize: 13.5
                 // Ensure icon is ONLY visible when card is in its small button state
                 opacity: (root.showingSettings || settingsCard.width > 40) ? 0 : (settingsInteraction.containsMouse ? 1 : 0.6)
                 Behavior on opacity { NumberAnimation { duration: 150 } }

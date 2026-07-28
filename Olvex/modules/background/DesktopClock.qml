@@ -81,14 +81,14 @@ Item {
 
                 StyledText {
                     text: Time.hourStr
-                    font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
+                    textPointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
                     font.weight: Font.Bold
                     color: root.safePrimary
                 }
 
                 StyledText {
                     text: ":"
-                    font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
+                    textPointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
                     color: root.safeTertiary
                     opacity: 0.8
                     Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
@@ -96,7 +96,7 @@ Item {
 
                 StyledText {
                     text: Time.minuteStr
-                    font.pointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
+                    textPointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
                     font.weight: Font.Bold
                     color: root.safeSecondary
                 }
@@ -111,7 +111,7 @@ Item {
 
                     sourceComponent: StyledText {
                         text: Time.amPmStr
-                        font.pointSize: Tokens.font.size.large * root.clockScale
+                        textPointSize: Tokens.font.size.large * root.clockScale
                         color: root.safeSecondary
                     }
                 }
@@ -132,7 +132,7 @@ Item {
 
                 StyledText {
                     text: Time.format("MMMM").toUpperCase()
-                    font.pointSize: Tokens.font.size.large * root.clockScale
+                    textPointSize: Tokens.font.size.large * root.clockScale
                     font.letterSpacing: 4
                     font.weight: Font.Bold
                     color: root.safeSecondary
@@ -140,7 +140,7 @@ Item {
 
                 StyledText {
                     text: Time.format("dd")
-                    font.pointSize: Tokens.font.size.extraLarge * root.clockScale
+                    textPointSize: Tokens.font.size.extraLarge * root.clockScale
                     font.letterSpacing: 2
                     font.weight: Font.Medium
                     color: root.safePrimary
@@ -148,7 +148,7 @@ Item {
 
                 StyledText {
                     text: Time.format("dddd")
-                    font.pointSize: Tokens.font.size.larger * root.clockScale
+                    textPointSize: Tokens.font.size.larger * root.clockScale
                     font.letterSpacing: 2
                     color: root.safeSecondary
                 }

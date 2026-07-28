@@ -36,13 +36,13 @@ Item {
             MaterialIcon {
                 text: "\ue8b8" // settings
                 color: Colours.palette.m3primary
-                font.pixelSize: 24
+                iconPointSize: 18
             }
             
             StyledText {
                 text: "Keyboard Settings"
                 color: Colours.palette.m3onSurface
-                font.pixelSize: 18
+                textPixelSize: 18
                 font.weight: Font.Bold
                 Layout.fillWidth: true
             }
@@ -83,7 +83,7 @@ Item {
                     StyledText {
                         text: "Keyboard Layout"
                         color: Colours.palette.m3onSurface
-                        font.pixelSize: 14
+                        textPixelSize: 14
                         font.weight: Font.DemiBold
                         Layout.fillWidth: true
                     }
@@ -126,7 +126,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: modelData
                                         color: modelData === root.activeLayoutName ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-                                        font.pixelSize: 13
+                                        textPixelSize: 13
                                         font.weight: modelData === root.activeLayoutName ? Font.Bold : Font.Medium
                                         Behavior on color { ColorAnimation { duration: 150 } }
                                     }
@@ -166,14 +166,14 @@ Item {
                         StyledText {
                             text: "Split Layout"
                             color: Colours.palette.m3onSurface
-                            font.pixelSize: 14
+                            textPixelSize: 14
                             font.weight: Font.DemiBold
                         }
                         
                         StyledText {
                             text: root.canSplit ? "Ergonomic thumb typing" : "Not available"
                             color: Colours.palette.m3onSurfaceVariant
-                            font.pixelSize: 11
+                            textPixelSize: 11
                         }
                     }
                     
@@ -207,14 +207,14 @@ Item {
                         StyledText {
                             text: "Auto-capitalization"
                             color: Colours.palette.m3onSurface
-                            font.pixelSize: 14
+                            textPixelSize: 14
                             font.weight: Font.DemiBold
                         }
                         
                         StyledText {
                             text: "Automatically capitalize first letter"
                             color: Colours.palette.m3onSurfaceVariant
-                            font.pixelSize: 11
+                            textPixelSize: 11
                         }
                     }
                     
@@ -250,21 +250,21 @@ Item {
                             StyledText {
                                 text: "Keyboard Scale"
                                 color: Colours.palette.m3onSurface
-                                font.pixelSize: 14
+                                textPixelSize: 14
                                 font.weight: Font.DemiBold
                             }
                             
                             StyledText {
                                 text: "Adjust the size of the keyboard"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pixelSize: 11
+                                textPixelSize: 11
                             }
                         }
                         
                         StyledText {
                             text: Math.round(scaleSlider.value * 100) + "%"
                             color: Colours.palette.m3primary
-                            font.pixelSize: 14
+                            textPixelSize: 14
                             font.weight: Font.DemiBold
                         }
                     }
@@ -292,7 +292,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "\ue5ca" // check
                                 color: Colours.palette.m3onPrimary
-                                font.pixelSize: 18
+                                iconPointSize: 13.5
                             }
                             
                             MouseArea {

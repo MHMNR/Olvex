@@ -78,14 +78,14 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "content_paste"
                     color: Colours.palette.m3primary
-                    font.pointSize: 13
+                    iconPointSize: 13
                 }
                 StyledText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Clipboard"
                     color: Qt.rgba(1, 1, 1, 0.88)
-                    font.pointSize: Tokens.font.size.normal
-                    font.weight: Font.SemiBold
+                    textPointSize: Tokens.font.size.normal
+                    font.weight: 600
                 }
             }
 
@@ -100,7 +100,7 @@ Item {
                     anchors.centerIn: parent
                     text: "delete_sweep"
                     color: Qt.rgba(1, 0.5, 0.5, 0.55)
-                    font.pointSize: 14
+                    iconPointSize: 14
                 }
                 StateLayer { radius: 14; onClicked: Cliphist.wipe() }
             }
@@ -146,22 +146,22 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "search"
                         color: Qt.rgba(1, 1, 1, 0.3)
-                        font.pointSize: 11
+                        iconPointSize: 11
                     }
 
                     TextInput {
                         id: panelSearchInput
                         width: panel.width - 80
                         color: Qt.rgba(1, 1, 1, 0.85)
-                        font.pointSize: Tokens.font.size.small
-                        font.family: Tokens.font.family
+                        font.pixelSize: Math.round(Tokens.font.size.small * 96 / 72)
+                        font.family: Tokens.font.family.sans
                         clip: true
 
                         StyledText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Search..."
                             color: Qt.rgba(1, 1, 1, 0.22)
-                            font.pointSize: Tokens.font.size.small
+                            textPointSize: Tokens.font.size.small
                             visible: !panelSearchInput.text.length
                         }
 
@@ -244,7 +244,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "image"
                                 color: Qt.rgba(1, 1, 1, 0.18)
-                                font.pointSize: 18
+                                iconPointSize: 18
                                 visible: parent.children[0].status !== Image.Ready
                             }
                         }
@@ -255,7 +255,7 @@ Item {
                             StyledText {
                                 text: "Image"
                                 color: Qt.rgba(1, 1, 1, 0.5)
-                                font.pointSize: Tokens.font.size.small
+                                textPointSize: Tokens.font.size.small
                                 font.weight: Font.Medium
                             }
                             StyledText {
@@ -264,7 +264,7 @@ Item {
                                     return m ? m[1] : ""
                                 }
                                 color: Qt.rgba(1, 1, 1, 0.25)
-                                font.pointSize: Tokens.font.size.tiny ?? 9
+                                textPointSize: Tokens.font.size.tiny ?? 9
                             }
                         }
                     }
@@ -281,7 +281,7 @@ Item {
                             width: parent.width
                             text: root.entryText(pd.modelData)
                             color: Qt.rgba(1, 1, 1, 0.72)
-                            font.pointSize: Tokens.font.size.small
+                            textPointSize: Tokens.font.size.small
                             elide: Text.ElideRight
                             maximumLineCount: 1
                         }
@@ -300,7 +300,7 @@ Item {
                             anchors.centerIn: parent
                             text: "close"
                             color: Qt.rgba(1, 0.45, 0.45, 0.7)
-                            font.pointSize: 11
+                            iconPointSize: 11
                         }
                         MouseArea {
                             id: deleteHover
@@ -332,13 +332,13 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "content_paste_off"
                         color: Qt.rgba(1, 1, 1, 0.12)
-                        font.pointSize: 24
+                        iconPointSize: 24
                     }
                     StyledText {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "Nothing copied yet"
                         color: Qt.rgba(1, 1, 1, 0.22)
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                     }
                 }
             }

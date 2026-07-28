@@ -43,7 +43,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     text: colDelegate.iconTxt
                     color: colDelegate.col1
-                    font.pointSize: 14
+                    iconPointSize: 14
                 }
 
                 // Fluid Liquid Meter
@@ -110,7 +110,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     text: `${Math.round(colDelegate.val * 100)}%`
                     color: "#ffffff"
-                    font.pointSize: 8
+                    textPointSize: 8
                     font.weight: 700
                     opacity: 0.9
                 }

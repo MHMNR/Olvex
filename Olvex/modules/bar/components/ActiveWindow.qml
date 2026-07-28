@@ -21,9 +21,9 @@ Item {
     property color colour: Colours.palette.m3primary
 
     readonly property bool hasMusicPlayer: !!Players.active
-    readonly property bool isMusicPlaying: Players.active && (Players.active.playbackStatus === "Playing" || Players.active.playbackState === 0 || Players.active.isPlaying)
+    readonly property bool isMusicPlaying: Players.active && Players.activeIsPlaying
     readonly property bool showMusicPill: hasMusicPlayer
-    readonly property string musicArtUrl: Players.active ? Players.getArtUrl(Players.active) : ""
+    readonly property string musicArtUrl: Players.currentArtUrl
     property string barArtSource: ""
     readonly property bool barArtIsLocal: root.musicArtUrl.startsWith("file:")
         || root.musicArtUrl.startsWith("/")
@@ -45,11 +45,7 @@ Item {
     readonly property int pillSideMargin: (root.musicPillWidth - root.musicArtSize) / 2
 
     function syncBarAccent(): void {
-        if (!Players.active) {
-            barAccentPicker.setArtUrl("");
-            return;
-        }
-        barAccentPicker.setArtUrl(Players.getArtUrl(Players.active));
+        barAccentPicker.setArtUrl(Players.currentArtUrl);
     }
 
     function updateBarArtSource(): void {
@@ -166,11 +162,6 @@ Item {
         root.kickDockSync();
     }
 
-    onMusicArtUrlChanged: {
-        root.updateBarArtSource();
-        root.syncBarAccent();
-    }
-
     onMediaMorphChanged: {
         root.syncBarAccent();
         root.kickDockSync();
@@ -184,6 +175,13 @@ Item {
 
     Connections {
         target: Players
+        function onCurrentArtUrlChanged() {
+            root.updateBarArtSource();
+            root.syncBarAccent();
+        }
+        function onCurrentTrackKeyChanged() {
+            root.syncBarAccent();
+        }
         function onArtReloadNonceChanged() {
             root.updateBarArtSource();
         }
@@ -228,24 +226,6 @@ Item {
         function onBootAccentLoadedChanged() {
             if (!barAccentPicker.accentReady)
                 root.syncBarAccent();
-        }
-    }
-
-    Connections {
-        target: Players.active
-        enabled: Players.active !== null
-        ignoreUnknownSignals: true
-        function onTrackTitleChanged() {
-            root.syncBarAccent();
-        }
-        function onTrackArtUrlChanged() {
-            root.syncBarAccent();
-        }
-        function onTrackArtistChanged() {
-            root.syncBarAccent();
-        }
-        function onTrackAlbumChanged() {
-            root.syncBarAccent();
         }
     }
 
@@ -341,7 +321,7 @@ Item {
 
             Loader {
                 anchors.fill: parent
-                active: root.isMusicPlaying
+                active: root.isMusicPlaying && !(root.mediaMorph?.active ?? false)
                 sourceComponent: Component {
                     NeonWaveVisualizer {
                         anchors.fill: parent
@@ -349,7 +329,7 @@ Item {
                         numBands: 32
                         maxHeightRatio: 0.8
                         active: root.isMusicPlaying
-                        frameInterval: (root.mediaMorph?.active ?? false) ? 16 : 33
+                        frameInterval: 33
                     }
                 }
             }
@@ -412,7 +392,7 @@ Item {
                             color: root.hasMusicArt
                                 ? Qt.rgba(1, 1, 1, 0.4)
                                 : root.musicOnAccent
-                            font.pointSize: Tokens.font.size.normal
+                            iconPointSize: Tokens.font.size.normal
                             visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
                         }
                     }
@@ -460,17 +440,16 @@ Item {
             NumberAnimation {
                 target: musicPill
                 property: "pillScale"
-                to: 0.93
-                duration: 70
-                easing.type: Easing.OutCubic
+                to: 0.94
+                duration: Tokens.anim.durations.expressiveFastEffects
+                easing: Tokens.anim.expressiveFastSpatial
             }
-            SpringAnimation {
+            NumberAnimation {
                 target: musicPill
                 property: "pillScale"
                 to: 1.0
-                spring: 4.2
-                damping: 0.38
-                epsilon: 0.05
+                duration: Tokens.anim.durations.expressiveFastSpatial
+                easing: Tokens.anim.expressiveDefaultSpatial
             }
         }
     }
@@ -500,7 +479,7 @@ Item {
         id: metrics
 
         text: root.windowTitle
-        font.pointSize: root.Tokens.font.size.smaller
+        font.pixelSize: Math.max(10, Math.round(root.Tokens.font.size.smaller * 96 / 72))
         font.family: root.Tokens.font.family.mono
         elide: Qt.ElideRight
         elideWidth: root.maxHeight - icon.height
@@ -533,7 +512,7 @@ Item {
         anchors.top: icon.bottom
         anchors.topMargin: Tokens.spacing.small
 
-        font.pointSize: metrics.font.pointSize
+        textPointSize: metrics.font.pixelSize * 72 / 96
         font.family: metrics.font.family
         color: root.colour
         opacity: root.current === this ? 1 : 0
@@ -586,7 +565,7 @@ Item {
             height: parent.height
             fill: 0
             color: Colours.palette.m3onSurfaceVariant
-            font.pointSize: Tokens.font.size.large
+            iconPointSize: Tokens.font.size.large
             font.weight: 500
             animate: true
         }

@@ -49,7 +49,7 @@ Item {
 
         animate: true
         color: root.pam.passwd.active ? Colours.palette.m3secondary : Colours.palette.m3outline
-        font.pointSize: Tokens.font.size.normal
+        textPointSize: Tokens.font.size.normal
         font.family: Tokens.font.family.mono
 
         opacity: root.buffer ? 0 : 1

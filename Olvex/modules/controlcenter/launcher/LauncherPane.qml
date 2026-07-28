@@ -156,7 +156,7 @@ Item {
 
                     StyledText {
                         text: qsTr("Launcher")
-                        font.pointSize: Tokens.font.size.large
+                        textPointSize: Tokens.font.size.large
                         font.weight: 500
                     }
 
@@ -188,7 +188,7 @@ Item {
                 StyledText {
                     Layout.topMargin: Tokens.spacing.large
                     text: qsTr("Applications (%1)").arg(root.searchText ? root.filteredApps.length : allAppsDb.apps.length)
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.weight: 500
                 }
 
@@ -354,7 +354,7 @@ Item {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: modelData.name || modelData.entry?.name || qsTr("Unknown")
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                 }
 
                                 Loader {
@@ -564,7 +564,7 @@ Item {
 
                         Layout.alignment: Qt.AlignHCenter
                         text: displayedApp ? (displayedApp.name || displayedApp.entry?.name || qsTr("Application Details")) : ""
-                        font.pointSize: Tokens.font.size.large
+                        textPointSize: Tokens.font.size.large
                         font.bold: true
                     }
                 }

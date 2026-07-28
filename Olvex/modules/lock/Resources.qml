@@ -26,7 +26,7 @@ ColumnLayout {
         text: qsTr("SYSTEM RESOURCES")
         color: Colours.palette.m3outline
         font.family: Tokens.font.family.mono
-        font.pointSize: Tokens.font.size.smaller
+        textPointSize: Tokens.font.size.smaller
         font.weight: 600
         horizontalAlignment: Text.AlignLeft
     }
@@ -113,14 +113,14 @@ ColumnLayout {
                     text: "RAM"
                     color: ramRing.fgColour
                     font.family: Tokens.font.family.mono
-                    font.pointSize: 11
+                    textPointSize: 11
                     font.bold: true
                 }
                 StyledText {
                     text: ((SystemUsage.memPerc || 0) * 100).toFixed(0) + "%"
                     color: ramRing.fgColour
                     font.family: Tokens.font.family.mono
-                    font.pointSize: 11
+                    textPointSize: 11
                 }
             }
             RowLayout {
@@ -129,14 +129,14 @@ ColumnLayout {
                     text: "CPU"
                     color: cpuRing.fgColour
                     font.family: Tokens.font.family.mono
-                    font.pointSize: 11
+                    textPointSize: 11
                     font.bold: true
                 }
                 StyledText {
                     text: ((SystemUsage.cpuPerc || 0) * 100).toFixed(0) + "%"
                     color: cpuRing.fgColour
                     font.family: Tokens.font.family.mono
-                    font.pointSize: 11
+                    textPointSize: 11
                 }
             }
             RowLayout {
@@ -145,14 +145,14 @@ ColumnLayout {
                     text: "DSK"
                     color: dskRing.fgColour
                     font.family: Tokens.font.family.mono
-                    font.pointSize: 11
+                    textPointSize: 11
                     font.bold: true
                 }
                 StyledText {
                     text: ((SystemUsage.storagePerc || 0) * 100).toFixed(0) + "%"
                     color: dskRing.fgColour
                     font.family: Tokens.font.family.mono
-                    font.pointSize: 11
+                    textPointSize: 11
                 }
             }
         }
@@ -170,7 +170,7 @@ ColumnLayout {
                 horizontalAlignment: Text.AlignHCenter
                 text: "memory"
                 color: ramRing.fgColour
-                font.pointSize: 18
+                iconPointSize: 18
             }
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
@@ -178,7 +178,7 @@ ColumnLayout {
                 text: "ACTIVE"
                 color: Colours.palette.m3outline
                 font.family: Tokens.font.family.mono
-                font.pointSize: 8
+                textPointSize: 8
                 font.bold: true
             }
         }
@@ -192,7 +192,7 @@ ColumnLayout {
                 horizontalAlignment: Text.AlignHCenter
                 text: "thermostat"
                 color: cpuRing.fgColour
-                font.pointSize: 18
+                iconPointSize: 18
             }
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
@@ -200,7 +200,7 @@ ColumnLayout {
                 text: Math.round(SystemUsage.cpuTemp) + "°C"
                 color: Colours.palette.m3outline
                 font.family: Tokens.font.family.mono
-                font.pointSize: 8
+                textPointSize: 8
                 font.bold: true
             }
         }
@@ -214,7 +214,7 @@ ColumnLayout {
                 horizontalAlignment: Text.AlignHCenter
                 text: "security"
                 color: dskRing.fgColour
-                font.pointSize: 18
+                iconPointSize: 18
             }
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
@@ -222,7 +222,7 @@ ColumnLayout {
                 text: "SECURE"
                 color: Colours.palette.m3outline
                 font.family: Tokens.font.family.mono
-                font.pointSize: 8
+                textPointSize: 8
                 font.bold: true
             }
         }

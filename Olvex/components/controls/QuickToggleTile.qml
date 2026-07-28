@@ -136,7 +136,7 @@ StyledRect {
                 color: root.disabled ? root.disabledOnColour
                      : root.checked ? root.activeOnColour
                      : root.inactiveOnColour
-             font.pointSize: Tokens.font.size.large
+             iconPointSize: Tokens.font.size.large
 
                 Behavior on fill { Anim {} }
             }
@@ -180,10 +180,13 @@ StyledRect {
                         spacing: 40
                         property real marqueeX: 0
 
+                        anchors.horizontalCenter: marqueeContainer.needsMarquee ? undefined : marqueeContainer.horizontalCenter
+                        x: marqueeContainer.needsMarquee ? marqueeRow.marqueeX : 0
+
                         StyledText {
                             id: labelText
                             text: root.label
-                            font.pixelSize: Tokens.font.size.small
+                            textPointSize: Tokens.font.size.small
                             font.bold: true
                             color: root.disabled ? root.disabledOnColour
                                  : root.checked ? Colours.palette.m3onSurface
@@ -221,27 +224,12 @@ StyledRect {
                             PropertyAnimation { target: marqueeRow; property: "opacity"; to: 1; duration: 400 }
                         }
                     }
-
-                    states: [
-                        State {
-                            name: "static"
-                            when: !marqueeContainer.needsMarquee
-                            AnchorChanges { target: marqueeRow; anchors.horizontalCenter: marqueeContainer.horizontalCenter }
-                            PropertyChanges { target: marqueeRow; marqueeX: 0; x: undefined }
-                        },
-                        State {
-                            name: "animating"
-                            when: marqueeContainer.needsMarquee
-                            AnchorChanges { target: marqueeRow; anchors.horizontalCenter: undefined }
-                            PropertyChanges { target: marqueeRow; x: marqueeRow.marqueeX }
-                        }
-                    ]
                 }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: root.stateText
-                font.pixelSize: Tokens.font.size.small - 2
+                textPointSize: Tokens.font.size.small - 2
                 color: root.disabled ? root.disabledOnColour
                      : root.inactiveOnColour
                 opacity: 0.8

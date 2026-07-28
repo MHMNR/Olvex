@@ -219,7 +219,7 @@ Item {
 
                     StyledText {
                         text: qsTr("Taskbar")
-                        font.pointSize: Tokens.font.size.large
+                        textPointSize: Tokens.font.size.large
                         font.weight: 500
                     }
                 }
@@ -230,7 +230,7 @@ Item {
 
                     StyledText {
                         text: qsTr("Status Icons")
-                        font.pointSize: Tokens.font.size.normal
+                        textPointSize: Tokens.font.size.normal
                     }
 
                     ConnectedButtonGroup {
@@ -324,7 +324,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Workspaces")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             StyledRect {
@@ -542,7 +542,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Active window")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             SwitchRow {
@@ -570,7 +570,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Clock")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             SwitchRow {
@@ -624,7 +624,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Scroll Actions")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             ConnectedButtonGroup {
@@ -665,7 +665,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Tray Settings")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             ConnectedButtonGroup {
@@ -706,7 +706,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Bottom Panel")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             SwitchRow {
@@ -771,7 +771,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Network Speed")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             SwitchRow {
@@ -872,7 +872,7 @@ Item {
 
                                             StyledText {
                                                 text: `(Ex: ${(1.2345).toFixed(root.netSpeedMaxDigits)} KB)`
-                                                font.pointSize: Tokens.font.size.smaller
+                                                textPointSize: Tokens.font.size.smaller
                                                 opacity: 0.6
                                             }
                                         }
@@ -903,7 +903,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Bar Behavior")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             SwitchRow {
@@ -956,7 +956,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Popouts")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             SwitchRow {
@@ -993,7 +993,7 @@ Item {
 
                             StyledText {
                                 text: qsTr("Monitors")
-                                font.pointSize: Tokens.font.size.normal
+                                textPointSize: Tokens.font.size.normal
                             }
 
                             ConnectedButtonGroup {

@@ -37,21 +37,21 @@ Item {
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
                 text: "tune"
-                font.pointSize: Tokens.font.size.extraLarge * 2
+                iconPointSize: Tokens.font.size.extraLarge * 2
                 color: Colours.palette.m3onSurfaceVariant
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("No widgets enabled")
-                font.pointSize: Tokens.font.size.large
+                textPointSize: Tokens.font.size.large
                 color: Colours.palette.m3onSurface
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Enable widgets in dashboard settings")
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 color: Colours.palette.m3onSurfaceVariant
             }
         }
@@ -214,14 +214,14 @@ Item {
 
                         return charging ? `battery_charging_${(level + 3) * 10}` : `battery_${level}_bar`;
                     }
-                    font.pointSize: Tokens.font.size.large
+                    iconPointSize: Tokens.font.size.large
                     color: batteryTank.accentColor
                 }
 
                 StyledText {
                     Layout.fillWidth: true
                     text: qsTr("Battery")
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     color: Colours.palette.m3onSurface
                 }
             }
@@ -238,7 +238,7 @@ Item {
                 StyledText {
                     Layout.alignment: Qt.AlignRight
                     text: `${Math.round(batteryTank.percentage * 100)}%`
-                    font.pointSize: Tokens.font.size.extraLarge
+                    textPointSize: Tokens.font.size.extraLarge
                     font.weight: Font.Medium
                     color: batteryTank.accentColor
                 }
@@ -263,7 +263,7 @@ Item {
 
                         return `${min}m`;
                     }
-                    font.pointSize: Tokens.font.size.smaller
+                    textPointSize: Tokens.font.size.smaller
                     color: Colours.palette.m3onSurfaceVariant
                 }
             }
@@ -288,13 +288,13 @@ Item {
             text: parent.icon
             fill: 1
             color: parent.accentColor
-            font.pointSize: Tokens.spacing.large
+            iconPointSize: Tokens.spacing.large
         }
 
         StyledText {
             Layout.fillWidth: true
             text: parent.title
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
             elide: Text.ElideRight
         }
     }
@@ -388,13 +388,13 @@ Item {
 
                 StyledText {
                     text: heroCard.secondaryValue
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.weight: Font.Medium
                 }
 
                 StyledText {
                     text: heroCard.secondaryLabel
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                     anchors.baseline: parent.children[0].baseline
                 }
@@ -423,14 +423,14 @@ Item {
 
                 anchors.right: parent.right
                 text: heroCard.mainLabel
-                font.pointSize: Tokens.font.size.normal
+                textPointSize: Tokens.font.size.normal
                 color: Colours.palette.m3onSurfaceVariant
             }
 
             StyledText {
                 anchors.right: parent.right
                 text: heroCard.mainValue
-                font.pointSize: Tokens.font.size.extraLarge
+                textPointSize: Tokens.font.size.extraLarge
                 font.weight: Font.Medium
                 color: heroCard.accentColor
             }
@@ -496,7 +496,7 @@ Item {
                 StyledText {
                     anchors.centerIn: parent
                     text: `${Math.round(gaugeCard.percentage * 100)}%`
-                    font.pointSize: Tokens.font.size.extraLarge
+                    textPointSize: Tokens.font.size.extraLarge
                     font.weight: Font.Medium
                     color: gaugeCard.accentColor
                 }
@@ -505,7 +505,7 @@ Item {
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: gaugeCard.subtitle
-                font.pointSize: Tokens.font.size.smaller
+                textPointSize: Tokens.font.size.smaller
                 color: Colours.palette.m3onSurfaceVariant
             }
         }
@@ -585,7 +585,7 @@ Item {
                 MaterialIcon {
                     text: "unfold_more"
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.normal
+                    iconPointSize: Tokens.font.size.normal
                     visible: storageGaugeCard.diskCount > 1
                     opacity: 0.7
                     ToolTip.visible: hintHover.hovered
@@ -616,7 +616,7 @@ Item {
                 StyledText {
                     anchors.centerIn: parent
                     text: storageGaugeCard.currentDisk ? `${Math.round(storageGaugeCard.currentDisk.perc * 100)}%` : "—"
-                    font.pointSize: Tokens.font.size.extraLarge
+                    textPointSize: Tokens.font.size.extraLarge
                     font.weight: Font.Medium
                     color: storageGaugeCard.accentColor
                 }
@@ -632,7 +632,7 @@ Item {
                     const totalFmt = SystemUsage.formatKib(storageGaugeCard.currentDisk.total);
                     return `${usedFmt.value.toFixed(1)} / ${Math.floor(totalFmt.value)} ${totalFmt.unit}`;
                 }
-                font.pointSize: Tokens.font.size.smaller
+                textPointSize: Tokens.font.size.smaller
                 color: Colours.palette.m3onSurfaceVariant
             }
         }
@@ -719,7 +719,7 @@ Item {
                 StyledText {
                     anchors.centerIn: parent
                     text: qsTr("Collecting data...")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                     visible: NetworkUsage.downloadBuffer.count < 2
                     opacity: 0.6
@@ -734,12 +734,12 @@ Item {
                 MaterialIcon {
                     text: "download"
                     color: Colours.palette.m3tertiary
-                    font.pointSize: Tokens.font.size.normal
+                    iconPointSize: Tokens.font.size.normal
                 }
 
                 StyledText {
                     text: qsTr("Download")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -752,7 +752,7 @@ Item {
                         const fmt = NetworkUsage.formatBytes(NetworkUsage.downloadSpeed ?? 0);
                         return fmt ? `${fmt.value.toFixed(1)} ${fmt.unit}` : "0.0 B/s";
                     }
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.weight: Font.Medium
                     color: Colours.palette.m3tertiary
                 }
@@ -766,12 +766,12 @@ Item {
                 MaterialIcon {
                     text: "upload"
                     color: Colours.palette.m3secondary
-                    font.pointSize: Tokens.font.size.normal
+                    iconPointSize: Tokens.font.size.normal
                 }
 
                 StyledText {
                     text: qsTr("Upload")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -784,7 +784,7 @@ Item {
                         const fmt = NetworkUsage.formatBytes(NetworkUsage.uploadSpeed ?? 0);
                         return fmt ? `${fmt.value.toFixed(1)} ${fmt.unit}` : "0.0 B/s";
                     }
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.weight: Font.Medium
                     color: Colours.palette.m3secondary
                 }
@@ -798,12 +798,12 @@ Item {
                 MaterialIcon {
                     text: "history"
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.normal
+                    iconPointSize: Tokens.font.size.normal
                 }
 
                 StyledText {
                     text: qsTr("Total")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -817,7 +817,7 @@ Item {
                         const up = NetworkUsage.formatBytesTotal(NetworkUsage.uploadTotal ?? 0);
                         return (down && up) ? `↓${down.value.toFixed(1)}${down.unit} ↑${up.value.toFixed(1)}${up.unit}` : "↓0.0B ↑0.0B";
                     }
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
             }

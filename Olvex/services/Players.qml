@@ -15,15 +15,81 @@ Singleton {
     id: root
 
     readonly property list<MprisPlayer> list: Mpris.players.values
-    
-    readonly property MprisPlayer active: {
-        const _ = Mpris.players.values;
-        if (props.manualActive) return props.manualActive;
-        const playing = list.find(p => (p.playbackStatus === "Playing" || p.playbackState === 0 || p.isPlaying));
-        return playing ?? list.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? list[0] ?? null;
-    }
-    
+
+    property MprisPlayer active: null
+    property string currentArtUrl: ""
+    property string currentTrackKey: ""
+    readonly property bool activeIsPlaying: root.active !== null && (
+        root.active.playbackStatus === "Playing"
+        || root.active.playbackState === 0
+        || root.active.isPlaying)
+
     property alias manualActive: props.manualActive
+
+    property bool _recomputeScheduled: false
+    property bool _refreshingPosition: false
+
+    function _playerId(player: MprisPlayer): string {
+        if (!player)
+            return "";
+        if (player.dbusName)
+            return player.dbusName;
+        return player.uniqueId !== undefined ? String(player.uniqueId) : "";
+    }
+
+    function _pickActivePlayer(): MprisPlayer {
+        const players = Mpris.players.values;
+        if (props.manualActive)
+            return props.manualActive;
+        const playing = players.find(p => root._isPlaying(p));
+        return playing
+            ?? players.find(p => root.getIdentity(p) === GlobalConfig.services.defaultPlayer)
+            ?? players[0]
+            ?? null;
+    }
+
+    function _recomputeActive(): void {
+        const next = root._pickActivePlayer();
+        const prevId = root._playerId(root.active);
+        const nextId = root._playerId(next);
+        if (root.active === next && prevId === nextId)
+            return;
+        root.active = next;
+    }
+
+    function _scheduleRecomputeActive(): void {
+        if (root._recomputeScheduled)
+            return;
+        root._recomputeScheduled = true;
+        Qt.callLater(() => {
+            root._recomputeScheduled = false;
+            root._recomputeActive();
+        });
+    }
+
+    function _attachPlayer(player: MprisPlayer): void {
+        if (!player)
+            return;
+        if (player.playbackStatusChanged)
+            player.playbackStatusChanged.connect(root._scheduleRecomputeActive);
+        if (player.playbackStateChanged)
+            player.playbackStateChanged.connect(root._scheduleRecomputeActive);
+        root._scheduleRecomputeActive();
+        Qt.callLater(() => {
+            root._kickStartupSync();
+            root._scheduleArtPoll();
+        });
+    }
+
+    function _detachPlayer(player: MprisPlayer): void {
+        if (!player)
+            return;
+        if (player.playbackStatusChanged)
+            player.playbackStatusChanged.disconnect(root._scheduleRecomputeActive);
+        if (player.playbackStateChanged)
+            player.playbackStateChanged.disconnect(root._scheduleRecomputeActive);
+        root._scheduleRecomputeActive();
+    }
 
     // Per-screen morph overlays (Drawers Variants = one ContentWindow per monitor)
     property var _mediaMorphByScreen: ({})
@@ -122,12 +188,17 @@ Singleton {
     }
 
     property int artReloadNonce: 0
-    property string _lastArtPollKey: ""
-    property string _lastArtPollUrl: ""
     property bool _artPollScheduled: false
+    property bool _artReloadBusy: false
 
     function _bumpArtReload(): void {
+        if (root._artReloadBusy)
+            return;
+        root._artReloadBusy = true;
         root.artReloadNonce++;
+        Qt.callLater(() => {
+            root._artReloadBusy = false;
+        });
     }
 
     function _scheduleArtPoll(): void {
@@ -136,38 +207,37 @@ Singleton {
         root._artPollScheduled = true;
         Qt.callLater(() => {
             root._artPollScheduled = false;
-            root._runArtPoll();
+            root._applyArtState();
         });
     }
 
-    function _runArtPoll(): void {
+    function _applyArtState(): void {
         const p = root.active;
         if (!p) {
-            root._lastArtPollKey = "";
-            root._lastArtPollUrl = "";
+            if (root.currentTrackKey !== "")
+                root.currentTrackKey = "";
+            if (root.currentArtUrl !== "")
+                root.currentArtUrl = "";
             artPollTimer.stop();
             return;
         }
 
         const key = root.getTrackKey(p);
         const url = root.getArtUrl(p);
-        let bumped = false;
-        if (key && key !== root._lastArtPollKey) {
-            root._lastArtPollKey = key;
-            bumped = true;
+        let changed = false;
+        if (key !== root.currentTrackKey) {
+            root.currentTrackKey = key;
+            changed = true;
         }
-        if (url && url !== root._lastArtPollUrl) {
-            root._lastArtPollUrl = url;
-            bumped = true;
+        if (url !== root.currentArtUrl) {
+            root.currentArtUrl = url;
+            changed = true;
         }
-        if (bumped)
+        if (changed)
             root._bumpArtReload();
 
         artPollTimer.attempts = 0;
-        if (p)
-            artPollTimer.start();
-        else
-            artPollTimer.stop();
+        artPollTimer.start();
     }
 
     Timer {
@@ -183,8 +253,8 @@ Singleton {
                 return;
             }
             const url = root.getArtUrl(root.active);
-            if (url && url !== root._lastArtPollUrl) {
-                root._lastArtPollUrl = url;
+            if (url !== root.currentArtUrl) {
+                root.currentArtUrl = url;
                 root._bumpArtReload();
             }
             attempts++;
@@ -506,9 +576,11 @@ Singleton {
         root._readAccentDiskCache();
         if (accentProps.lastArtUrl)
             root.getMediaAccent(accentProps.lastArtUrl);
-        const player = root.active;
-        if (player) {
-            const url = root.getArtUrl(player);
+        if (root.currentArtUrl)
+            root.getMediaAccent(root.currentArtUrl);
+        else {
+            const player = root.active;
+            const url = player ? root.getArtUrl(player) : "";
             if (url)
                 root.getMediaAccent(url);
         }
@@ -678,7 +750,7 @@ Singleton {
     }
 
     function _applySyncAnchor(): void {
-        if (seekGuard.running)
+        if (seekGuard.running || root._refreshingPosition)
             return;
 
         const p = root.active;
@@ -707,8 +779,11 @@ Singleton {
         }
 
         // MPRIS position refresh is async — read anchor after the cache update lands.
-        if (p.positionSupported)
+        if (p.positionSupported) {
+            root._refreshingPosition = true;
             p.positionChanged();
+            root._refreshingPosition = false;
+        }
         Qt.callLater(root._applySyncAnchor);
     }
 
@@ -825,58 +900,57 @@ Singleton {
     Connections {
         target: root.active
         ignoreUnknownSignals: true
-        function onPlaybackStatusChanged() { root._syncNow(); }
+        function onPlaybackStatusChanged() {
+            root._scheduleRecomputeActive();
+            Qt.callLater(root._syncNow);
+        }
+        function onPlaybackStateChanged() {
+            root._scheduleRecomputeActive();
+            Qt.callLater(root._syncNow);
+        }
         function onTrackTitleChanged()     { Qt.callLater(root._syncNow); root._scheduleArtPoll(); }
         function onTrackArtistChanged()    { Qt.callLater(root._syncNow); root._scheduleArtPoll(); }
         function onTrackAlbumChanged()     { root._scheduleArtPoll(); }
         function onTrackArtUrlChanged()    { root._scheduleArtPoll(); }
-        function onLengthChanged()         { root._syncNow(); }
+        function onLengthChanged()         { Qt.callLater(root._syncNow); }
         function onPositionChanged() {
             root._applySyncAnchor();
         }
     }
 
-    onActiveChanged: {
+    function _onActivePlayerChanged(): void {
         root._syncNow();
         root._kickStartupSync();
-        root._lastArtPollKey = "";
-        root._lastArtPollUrl = "";
         root._scheduleArtPoll();
         if (root.active)
             root.requestMediaAccentRefresh();
     }
 
+    onActiveChanged: Qt.callLater(root._onActivePlayerChanged)
+
     // ─────────────────────────────────────────────────────────────────────
 
+    Instantiator {
+        model: Mpris.players
+
+        delegate: QtObject {
+            required property var modelData
+
+            Component.onCompleted: root._attachPlayer(modelData)
+            Component.onDestruction: root._detachPlayer(modelData)
+        }
+    }
 
     Connections {
-        target: Mpris.players
-        function onPlayerAdded(player) {
-            player.playbackStatusChanged.disconnect(root.activeChanged);
-            player.playbackStatusChanged.connect(root.activeChanged);
-            if (player.positionChanged) {
-                player.positionChanged.disconnect(root._applySyncAnchor);
-                player.positionChanged.connect(root._applySyncAnchor);
-            }
-            root.activeChanged();
-            root._kickStartupSync();
-            root._scheduleArtPoll();
-            root.prewarmMediaAccent();
-        }
-        function onPlayerRemoved() {
-            root.activeChanged();
+        target: props
+        function onManualActiveChanged() {
+            root._scheduleRecomputeActive();
         }
     }
 
     Component.onCompleted: {
+        root._recomputeActive();
         root.prewarmMediaAccent();
-        for (let i = 0; i < list.length; i++) {
-            const player = list[i];
-            if (player?.playbackStatusChanged)
-                player.playbackStatusChanged.connect(root.activeChanged);
-            if (player?.positionChanged)
-                player.positionChanged.connect(root._applySyncAnchor);
-        }
         Qt.callLater(root._syncNow);
         root._kickStartupSync();
         root._scheduleArtPoll();

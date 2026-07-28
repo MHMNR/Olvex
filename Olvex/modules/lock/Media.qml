@@ -68,7 +68,7 @@ Item {
                     anchors.centerIn: parent
                     text: "music_note"
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: 24
+                    iconPointSize: 24
                     visible: artImage.status !== Image.Ready
                 }
 
@@ -94,11 +94,11 @@ Item {
                     text: root.hasActiveMedia ? (Players.active?.trackTitle || "No media") : "No Active Media"
                     color: Colours.palette.m3onSurface
                     font.family: Tokens.font.family.sans
-                    font.pointSize: 15
+                    textPointSize: 15
                     font.weight: 800 // M3 Expressive Black/ExtraBold
                     elide: Text.ElideRight
                     
-                    Behavior on font.pointSize { Anim { type: Anim.FastSpatial } }
+                    Behavior on textPointSize { Anim { type: Anim.FastSpatial } }
                 }
                 
                 StyledText {
@@ -106,7 +106,7 @@ Item {
                     text: root.hasActiveMedia ? (Players.active?.trackArtist || "") : ""
                     color: Colours.palette.m3onSurfaceVariant
                     font.family: Tokens.font.family.sans
-                    font.pointSize: 11
+                    textPointSize: 11
                     font.weight: 500
                     elide: Text.ElideRight
                 }
@@ -119,7 +119,7 @@ Item {
 
                     PlayerControl {
                         icon: "skip_previous"
-                        font.pointSize: Math.round(Tokens.font.size.large * 1.3)
+                        iconPointSize: Math.round(Tokens.font.size.large * 1.3)
                         onClicked: Players.previous()
                     }
 
@@ -131,7 +131,7 @@ Item {
                         toggle: true
                         padding: Tokens.padding.normal
                         checked: Players.active?.isPlaying ?? false
-                        font.pointSize: Math.round(Tokens.font.size.large * 1.6)
+                        iconPointSize: Math.round(Tokens.font.size.large * 1.6)
                         onClicked: Players.togglePlaying()
                         
                         // M3 Expressive: Filled style for primary action
@@ -154,7 +154,7 @@ Item {
 
                     PlayerControl {
                         icon: "skip_next"
-                        font.pointSize: Math.round(Tokens.font.size.large * 1.3)
+                        iconPointSize: Math.round(Tokens.font.size.large * 1.3)
                         onClicked: Players.next()
                     }
                 }
@@ -196,14 +196,14 @@ Item {
                 StyledText {
                     text: root.lengthStr(Players.active ? Players.interpolatedPosition : -1)
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.smaller
+                    textPointSize: Tokens.font.size.smaller
                     font.weight: 600
                 }
                 Item { Layout.fillWidth: true }
                 StyledText {
                     text: root.lengthStr(Players.interpolatedLength > 0 ? Players.interpolatedLength : -1)
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.smaller
+                    textPointSize: Tokens.font.size.smaller
                     font.weight: 600
                 }
             }

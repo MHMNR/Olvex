@@ -50,10 +50,12 @@ ColumnLayout {
             return;
 
         for (let i = 0; i < repeater.count; i++) {
-            const loader = repeater.itemAt(i) as WrappedLoader;
-            if (loader?.enabled && loader.id === "tray") {
-                (loader.item as Tray).expanded = false;
-            }
+            const loader = repeater.itemAt(i);
+            if (!loader?.enabled || loader.id !== "tray")
+                continue;
+            const tray = loader.item;
+            if (tray)
+                tray.expanded = false;
         }
     }
 
@@ -72,7 +74,12 @@ ColumnLayout {
         const top = ch.y;
 
         if (id === "statusIcons" && Config.bar.popouts.statusIcons) {
-            const items = (ch.item as StatusIcons).items;
+            const statusIcons = ch.item;
+            if (!statusIcons) {
+                popouts.hasCurrent = false;
+                return;
+            }
+            const items = statusIcons.items;
             const icon = items.childAt(items.width / 2, mapToItem(items, 0, y).y);
             if (icon) {
                 popouts.currentName = icon.name;
@@ -80,7 +87,11 @@ ColumnLayout {
                 popouts.hasCurrent = true;
             }
         } else if (id === "tray" && Config.bar.popouts.tray) {
-            const tray = ch.item as Tray;
+            const tray = ch.item;
+            if (!tray) {
+                popouts.hasCurrent = false;
+                return;
+            }
             if (!Config.bar.tray.compact || (tray.expanded && !tray.expandIcon.contains(mapToItem(tray.expandIcon, tray.implicitWidth / 2, y)))) {
                 const index = Math.floor(((y - top - tray.padding * 2 + tray.spacing) / tray.layout.implicitHeight) * tray.items.count);
                 const trayItem = tray.items.itemAt(index);

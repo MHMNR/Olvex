@@ -39,7 +39,7 @@ Scope {
             const mode    = contentItem.Config.bar.bottomPanel?.visibilityMode ?? "always";
             if (enabled && mode === "always")
                 return 80;
-            return contentItem.Config.border.thickness;
+            return contentItem?.Config?.border?.thickness ?? 0;
         }
         implicitHeight: exclusiveZone
         onExclusiveZoneChanged: console.log("BOTTOM EXCLUSION ZONE CHANGED TO:", exclusiveZone)
@@ -49,7 +49,7 @@ Scope {
     component ExclusionZone: StyledWindow {
         screen: root.screen
         name: "border-exclusion"
-        exclusiveZone: contentItem.Config.border.thickness
+        exclusiveZone: contentItem?.Config?.border?.thickness ?? 0
         mask: Region {}
         implicitWidth: 1
         implicitHeight: 1

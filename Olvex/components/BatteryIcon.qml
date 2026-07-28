@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Olvex.Config
+import qs.components
 
 Item {
     id: root
@@ -81,12 +82,11 @@ Item {
         }
 
         // Charging Indicator (Bolt)
-        Text {
+        MaterialIcon {
             visible: root.charging
             anchors.centerIn: parent
             text: "bolt"
-            font.family: Tokens.font.family.material
-            font.pixelSize: 10
+            iconPointSize: 7.5
             color: "white"
             
             // Slight shadow to make it pop

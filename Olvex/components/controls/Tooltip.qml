@@ -44,10 +44,10 @@ Popup {
             let newX = targetCenterX - tooltipWidth / 2;
 
             // Position tooltip above target
-            let newY = targetPos.y - tooltipHeight - Tokens.spacing.small;
+            let newY = targetPos.y - tooltipHeight - GlobalConfig.appearance.spacing.small;
 
             // Keep within bounds
-            const padding = Tokens.padding.normal;
+            const padding = GlobalConfig.appearance.padding.normal;
             if (newX < padding) {
                 newX = padding;
             } else if (newX + tooltipWidth > (parent.width - padding)) {
@@ -116,11 +116,11 @@ Popup {
     contentItem: StyledRect {
         id: tooltipRect
 
-        implicitWidth: tooltipText.implicitWidth + Tokens.padding.normal * 2
-        implicitHeight: tooltipText.implicitHeight + Tokens.padding.smaller * 2
+        implicitWidth: tooltipText.implicitWidth + GlobalConfig.appearance.padding.normal * 2
+        implicitHeight: tooltipText.implicitHeight + GlobalConfig.appearance.padding.smaller * 2
 
         color: Colours.palette.m3surfaceContainerHighest
-        radius: Tokens.rounding.small
+        radius: GlobalConfig.appearance.rounding.small
         antialiasing: true
 
         // Add elevation for depth
@@ -138,7 +138,7 @@ Popup {
 
             text: root.text
             color: Colours.palette.m3onSurface
-            font.pointSize: Tokens.font.size.small
+            textPointSize: GlobalConfig.appearance.font.size.small
         }
     }
 

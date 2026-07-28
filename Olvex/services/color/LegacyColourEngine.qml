@@ -111,8 +111,8 @@ Item {
 
     function setMode(mode: string): void {
         if (mode === "auto") {
-            // Hint based on the actual wallpaper luminance if going back to auto
-            Wallpapers.requestAccentRefresh(Wallpapers.current, root.wallLuminance > 0.5);
+            if (Wallpapers.actualCurrent)
+                Wallpapers.requestAccentRefresh(Wallpapers.actualCurrent, false);
             return;
         }
         Quickshell.execDetached(["olvex", "scheme", "set", "--notify", "-m", mode]);

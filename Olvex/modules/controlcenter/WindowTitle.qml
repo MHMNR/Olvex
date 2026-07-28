@@ -21,7 +21,7 @@ StyledRect {
 
         text: qsTr("Olvex Settings - %1").arg(root.session.active)
         font.capitalization: Font.Capitalize
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 500
     }
 

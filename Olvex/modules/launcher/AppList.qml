@@ -16,6 +16,8 @@ Item {
     required property StyledTextField search
     required property DrawerVisibilities visibilities
 
+    property bool suspended: false
+
     readonly property string state: {
         const text = search.text;
         const prefix = GlobalConfig.launcher.actionPrefix;
@@ -31,6 +33,7 @@ Item {
     }
 
     onStateChanged: {
+        suspended = false;
         if (state === "scheme" || state === "variant")
             Schemes.reload();
     }
@@ -63,6 +66,14 @@ Item {
         } else {
             actionList.incrementCurrentIndex();
         }
+    }
+
+    function suspend(): void {
+        suspended = true;
+        decayTimer.stop();
+        scrollSpeed = 0;
+        appGrid.currentIndex = 0;
+        actionList.currentIndex = 0;
     }
 
     // ── ELASTIC SCROLL PHYSICS TRACKING ──────────────────────────────────────
@@ -207,18 +218,21 @@ Item {
         cellWidth: 110
         cellHeight: 120
 
-        model: root.state === "apps" ? root.modelValues : null
+        model: !root.suspended && root.state === "apps" ? root.modelValues : null
 
         delegate: gridAppItemComponent
 
-        // Custom transition for elegant item fading/scaling
+        // Skip view transitions during teardown to avoid incubator races.
         add: Transition {
+            enabled: root.state === "apps"
             NumberAnimation { properties: "opacity,scale"; from: 0; to: 1; duration: 200; easing.type: Easing.OutBack }
         }
         remove: Transition {
+            enabled: root.state === "apps"
             NumberAnimation { properties: "opacity,scale"; from: 1; to: 0; duration: 150; easing.type: Easing.InQuad }
         }
         displaced: Transition {
+            enabled: root.state === "apps"
             NumberAnimation { properties: "x,y"; duration: 250; easing.type: Easing.OutBack }
         }
     }
@@ -257,7 +271,7 @@ Item {
         clip: true
         spacing: 8
 
-        model: root.state !== "apps" ? root.modelValues : null
+        model: !root.suspended && root.state !== "apps" ? root.modelValues : null
 
         delegate: {
             if (root.state === "actions") return actionItem;
@@ -283,11 +297,11 @@ Item {
                 }
             }
         }
-    }
 
-    StyledScrollBar.vertical: StyledScrollBar {
-        flickable: actionList
-        visible: actionList.visible && actionList.contentHeight > actionList.height
+        StyledScrollBar.vertical: StyledScrollBar {
+            flickable: actionList
+            visible: actionList.visible && actionList.contentHeight > actionList.height
+        }
     }
 
     // ── DELEGATES FOR FALLBACK LIST ──────────────────────────────────────────

@@ -106,6 +106,15 @@ void CachingImageManager::updateSource(const QString& path) {
         return;
     }
 
+    if (!QFileInfo::exists(path)) {
+        m_shaPath = QString();
+        m_cachePath = QUrl();
+        if (m_item) {
+            m_item->setProperty("source", QUrl());
+        }
+        return;
+    }
+
     m_shaPath = path;
 
     QtConcurrent::run(&CachingImageManager::sha256sum, path).then(this, [path, this](const QString& sha) {
@@ -214,7 +223,7 @@ void CachingImageManager::createCache(
 QString CachingImageManager::sha256sum(const QString& path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
-        qCWarning(lcCim) << "sha256sum: failed to open" << path;
+        qCDebug(lcCim) << "sha256sum: failed to open" << path;
         return "";
     }
 

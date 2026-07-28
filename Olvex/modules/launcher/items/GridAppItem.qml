@@ -165,7 +165,7 @@ Item {
                     text: "favorite"
                     fill: 1
                     color: Colours.palette.m3primary
-                    font.pointSize: 7
+                    iconPointSize: 7
                     anchors.centerIn: parent
                 }
             }

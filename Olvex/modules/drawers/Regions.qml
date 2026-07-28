@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import Olvex.Config
 import qs.modules.bar as Bar
 
 Region {
@@ -13,8 +12,9 @@ Region {
     required property var win
     required property var morph
 
-    readonly property real borderThickness: win.contentItem.Config.border.thickness
-    readonly property real clampedThickness: win.contentItem.Config.border.clampedThickness
+    readonly property real borderThickness: win.safeBorder.thickness
+    readonly property real clampedThickness: win.safeBorder.clampedThickness
+    readonly property bool borderFloating: win.safeBorder.floating
 
     x: bar.clampedWidth + win.dragMaskPadding
     y: clampedThickness + win.dragMaskPadding
@@ -76,7 +76,7 @@ Region {
         property real customWidth: panel.width
         property real customHeight: panel.height
 
-        readonly property int gap: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? 5 : 0
+        readonly property int gap: root.borderFloating ? 5 : 0
         readonly property real extra: root.borderThickness + gap + 15
 
         x: panel.x + root.bar.implicitWidth + gap - extra

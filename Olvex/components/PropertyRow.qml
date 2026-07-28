@@ -21,6 +21,6 @@ ColumnLayout {
     StyledText {
         text: root.value
         color: Colours.palette.m3outline
-        font.pointSize: Tokens.font.size.small
+        textPointSize: Tokens.font.size.small
     }
 }

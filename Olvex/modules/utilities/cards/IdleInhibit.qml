@@ -39,7 +39,7 @@ StyledRect {
                 anchors.centerIn: parent
                 text: "coffee"
                 color: IdleInhibitor.enabled ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
             }
         }
 
@@ -50,7 +50,7 @@ StyledRect {
             StyledText {
                 Layout.fillWidth: true
                 text: qsTr("Keep Awake")
-                font.pointSize: Tokens.font.size.normal
+                textPointSize: Tokens.font.size.normal
                 elide: Text.ElideRight
             }
 
@@ -58,7 +58,7 @@ StyledRect {
                 Layout.fillWidth: true
                 text: IdleInhibitor.enabled ? qsTr("Preventing sleep mode") : qsTr("Normal power management")
                 color: Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 elide: Text.ElideRight
             }
         }
@@ -97,7 +97,7 @@ StyledRect {
                 anchors.centerIn: parent
                 text: qsTr("Active since %1").arg(Qt.formatTime(IdleInhibitor.enabledSince, GlobalConfig.services.useTwelveHourClock ? "hh:mm a" : "hh:mm"))
                 color: Colours.palette.m3onPrimary
-                font.pointSize: Math.round(Tokens.font.size.small * 0.9)
+                textPointSize: Math.round(Tokens.font.size.small * 0.9)
             }
         }
 

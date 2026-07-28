@@ -59,7 +59,7 @@ StyledFlickable {
                         StyledText {
                             Layout.topMargin: Tokens.spacing.large
                             text: qsTr("Connection status")
-                            font.pointSize: Tokens.font.size.larger
+                            textPointSize: Tokens.font.size.larger
                             font.weight: 500
                         }
 
@@ -118,7 +118,7 @@ StyledFlickable {
                         StyledText {
                             Layout.topMargin: Tokens.spacing.large
                             text: qsTr("Device properties")
-                            font.pointSize: Tokens.font.size.larger
+                            textPointSize: Tokens.font.size.larger
                             font.weight: 500
                         }
 
@@ -187,7 +187,7 @@ StyledFlickable {
 
                                             text: qsTr("Device name")
                                             color: Colours.palette.m3outline
-                                            font.pointSize: Tokens.font.size.small
+                                            textPointSize: Tokens.font.size.small
                                         }
 
                                         StyledTextField {
@@ -324,7 +324,7 @@ StyledFlickable {
                         StyledText {
                             Layout.topMargin: Tokens.spacing.large
                             text: qsTr("Device information")
-                            font.pointSize: Tokens.font.size.larger
+                            textPointSize: Tokens.font.size.larger
                             font.weight: 500
                         }
 
@@ -389,7 +389,7 @@ StyledFlickable {
                                 StyledText {
                                     text: root.device?.dbusPath ?? ""
                                     color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.small
                                 }
 
                                 StyledText {
@@ -400,7 +400,7 @@ StyledFlickable {
                                 StyledText {
                                     text: root.device?.address ?? ""
                                     color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.small
                                 }
 
                                 StyledText {
@@ -411,7 +411,7 @@ StyledFlickable {
                                 StyledText {
                                     text: root.device?.bonded ? qsTr("Yes") : qsTr("No")
                                     color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.small
                                 }
 
                                 StyledText {
@@ -422,7 +422,7 @@ StyledFlickable {
                                 StyledText {
                                     text: root.device?.deviceName ?? ""
                                     color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.small
                                 }
                             }
                         }
@@ -600,7 +600,7 @@ StyledFlickable {
                     fabBg.implicitWidth: 48
                     fabBg.implicitHeight: 48
                     fabBg.radius: 48 / 2
-                    fab.font.pointSize: Tokens.font.size.larger
+                    fab.iconPointSize: Tokens.font.size.larger
                 }
             }
 
@@ -638,7 +638,7 @@ StyledFlickable {
                 animate: true
                 text: root.session.bt.fabMenuOpen ? "close" : "settings"
                 color: root.session.bt.fabMenuOpen ? Colours.palette.m3onPrimary : Colours.palette.m3onPrimaryContainer
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
                 fill: 1
             }
         }

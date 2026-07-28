@@ -17,6 +17,7 @@ CustomMouseArea {
     required property Panels panels
     required property Bar.BarWrapper bar
     required property real borderThickness
+    required property var safeBorder
     required property bool fullscreen
 
     property point dragStart
@@ -27,7 +28,7 @@ CustomMouseArea {
     property bool wallpaperShortcutActive: false
     property bool launcherHoverDisabled: false
 
-    readonly property int floatingGap: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ? 5 : 0
+    readonly property int floatingGap: safeBorder.floating ? 5 : 0
     readonly property real hoverTolerance: root.borderThickness + 20
     readonly property real verticalTolerance: root.borderThickness + floatingGap + 8
 
@@ -46,7 +47,7 @@ CustomMouseArea {
 
     function withinPanelWidth(panel: Item, x: real, y: real): bool {
         const panelX = bar.implicitWidth + floatingGap + panel.x;
-        return x >= panelX - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding - hoverTolerance && x <= panelX + panel.width + ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding + hoverTolerance;
+        return x >= panelX - safeBorder.rounding - hoverTolerance && x <= panelX + panel.width + safeBorder.rounding + hoverTolerance;
     }
 
     function inLeftPanel(panel: Item, x: real, y: real): bool {
@@ -54,17 +55,17 @@ CustomMouseArea {
     }
 
     function inRightPanel(panel: Item, x: real, y: real): bool {
-        return x > Math.min(width - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).minThickness - floatingGap, bar.implicitWidth + floatingGap + panel.x) - hoverTolerance && withinPanelHeight(panel, x, y);
+        return x > Math.min(width - safeBorder.minThickness - floatingGap, bar.implicitWidth + floatingGap + panel.x) - hoverTolerance && withinPanelHeight(panel, x, y);
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y < Math.max(((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).minThickness + floatingGap, ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness + floatingGap + panelHeight) + verticalTolerance && withinPanelWidth(panel, x, y);
+        return y < Math.max(safeBorder.minThickness + floatingGap, safeBorder.thickness + floatingGap + panelHeight) + verticalTolerance && withinPanelWidth(panel, x, y);
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y > height - Math.max(((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).minThickness + floatingGap, ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness + floatingGap + panelHeight) - (isCorner ? ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding : 0) - verticalTolerance && withinPanelWidth(panel, x, y);
+        return y > height - Math.max(safeBorder.minThickness + floatingGap, safeBorder.thickness + floatingGap + panelHeight) - (isCorner ? safeBorder.rounding : 0) - verticalTolerance && withinPanelWidth(panel, x, y);
     }
 
     function onWheel(event: WheelEvent): void {
@@ -315,7 +316,7 @@ CustomMouseArea {
         function onUtilitiesChanged() {
             if (root.visibilities.utilities) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inUtilitiesPanel(root.panels.utilities, root.mouseX, root.mouseY);
+                const inUtilitiesArea = root.inBottomPanel(root.panels.utilities, root.mouseX, root.mouseY, true);
                 if (!inUtilitiesArea) {
                     root.utilitiesShortcutActive = true;
                 }

@@ -131,7 +131,7 @@ StyledRect {
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: root.network ? root.network.ssid : "WiFi Network"
-                font.pointSize: Tokens.font.size.large
+                textPointSize: Tokens.font.size.large
                 font.bold: true
                 color: Colours.palette.m3onSurface
             }
@@ -139,7 +139,7 @@ StyledRect {
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Enter password to connect")
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 color: Qt.alpha(Colours.palette.m3onSurface, 0.7)
             }
         }
@@ -175,7 +175,7 @@ StyledRect {
                 // Lock Icon
                 MaterialIcon {
                     text: "lock"
-                    font.pointSize: 20
+                    iconPointSize: 20
                     color: hiddenInput.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.5)
                     Behavior on color { CAnim {} }
                 }
@@ -190,7 +190,7 @@ StyledRect {
                         verticalAlignment: Text.AlignVCenter
                         text: qsTr("Password")
                         color: Qt.alpha(Colours.palette.m3onSurface, 0.3)
-                        font.pointSize: Tokens.font.size.normal
+                        textPointSize: Tokens.font.size.normal
                         visible: hiddenInput.text.length === 0
                         
                         Behavior on opacity { Anim {} }
@@ -201,7 +201,7 @@ StyledRect {
                         anchors.fill: parent
                         verticalAlignment: TextInput.AlignVCenter
                         color: Colours.palette.m3onSurface
-                        font.pointSize: Tokens.font.size.large
+                        font.pixelSize: Math.round(Tokens.font.size.large * 96 / 72)
                         font.family: Tokens.font.family.regular
                         echoMode: TextInput.Normal
                         focus: true
@@ -226,7 +226,7 @@ StyledRect {
                 // Clear button (appears when text exists)
                 MaterialIcon {
                     text: "close"
-                    font.pointSize: 18
+                    iconPointSize: 18
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.4)
                     visible: hiddenInput.text.length > 0
                     opacity: mouseClear.containsMouse ? 1.0 : 0.6

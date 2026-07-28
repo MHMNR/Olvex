@@ -17,6 +17,10 @@ Item {
     readonly property int padding: Tokens.padding.large
     readonly property int rounding: Tokens.rounding.large
 
+    function suspendLists(): void {
+        list.suspendLists();
+    }
+
     implicitWidth: listWrapper.width + padding * 2
     implicitHeight: searchWrapper.height + listWrapper.height + padding * 2
 

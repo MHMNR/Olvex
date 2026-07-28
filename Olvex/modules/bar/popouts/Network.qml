@@ -32,7 +32,7 @@ ColumnLayout {
         Layout.rightMargin: Tokens.padding.small
         text: qsTr("%1 networks available").arg(Nmcli.networks.length)
         color: Colours.palette.m3onSurfaceVariant
-        font.pointSize: Tokens.font.size.small
+        textPointSize: Tokens.font.size.small
     }
 
     ScrollView {
@@ -100,7 +100,7 @@ ColumnLayout {
                         MaterialIcon {
                             visible: networkItem.modelData.isSecure
                             text: "lock"
-                            font.pointSize: Tokens.font.size.small
+                            iconPointSize: Tokens.font.size.small
                             color: networkItem.modelData.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                         }
 
@@ -116,7 +116,7 @@ ColumnLayout {
                             text: networkItem.modelData.active ? "link_off" : "link"
                             color: networkItem.modelData.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                             opacity: networkItem.loading ? 0 : 0.6
-                            font.pointSize: Tokens.font.size.normal
+                            iconPointSize: Tokens.font.size.normal
                         }
                     }
 

@@ -148,7 +148,7 @@ ColumnLayout {
                     Layout.alignment: Qt.AlignHCenter
                     text: "scan_delete"
                     color: Colours.palette.m3outline
-                    font.pointSize: Tokens.font.size.extraLarge
+                    iconPointSize: Tokens.font.size.extraLarge
 
                     opacity: root.props.recordingListExpanded ? 1 : 0
                     scale: root.props.recordingListExpanded ? 1 : 0

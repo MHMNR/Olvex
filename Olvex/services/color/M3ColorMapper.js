@@ -163,3 +163,50 @@ function applySchemeToPalette(palette, scheme) {
     }
     return true;
 }
+
+// Built-in M3 Expressive dark defaults — used only when no wallpaper is set.
+function fallbackScheme() {
+    return {
+        name: "fallback",
+        mode: "dark",
+        colours: {
+            m3primary: "#CFBCFF",
+            m3onPrimary: "#381E72",
+            m3primaryContainer: "#4F378A",
+            m3onPrimaryContainer: "#E9DDFF",
+            m3secondary: "#CCC2DC",
+            m3onSecondary: "#332D41",
+            m3secondaryContainer: "#4A4458",
+            m3onSecondaryContainer: "#E8DEF8",
+            m3tertiary: "#EFB8C8",
+            m3onTertiary: "#492532",
+            m3tertiaryContainer: "#633B48",
+            m3onTertiaryContainer: "#FFD8E4",
+            m3error: "#F2B8B5",
+            m3onError: "#601410",
+            m3errorContainer: "#8C1D18",
+            m3onErrorContainer: "#F9DEDC",
+            m3background: "#141218",
+            m3onBackground: "#E6E1E5",
+            m3surface: "#141218",
+            m3onSurface: "#E6E1E5",
+            m3surfaceVariant: "#49454F",
+            m3onSurfaceVariant: "#CAC4D0",
+            m3surfaceDim: "#141218",
+            m3surfaceBright: "#3B383E",
+            m3surfaceContainerLowest: "#0F0D13",
+            m3surfaceContainerLow: "#1D1B20",
+            m3surfaceContainer: "#211F26",
+            m3surfaceContainerHigh: "#2B2930",
+            m3surfaceContainerHighest: "#36343B",
+            m3inverseSurface: "#E6E1E5",
+            m3inverseOnSurface: "#313033",
+            m3inversePrimary: "#6750A4",
+            m3outline: "#938F99",
+            m3outlineVariant: "#49454F",
+            m3shadow: "#000000",
+            m3scrim: "#000000",
+            m3surfaceTint: "#CFBCFF"
+        }
+    };
+}

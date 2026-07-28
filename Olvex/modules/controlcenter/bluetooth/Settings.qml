@@ -26,7 +26,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Adapter status")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 500
     }
 
@@ -87,7 +87,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Adapter properties")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 500
     }
 
@@ -325,7 +325,7 @@ ColumnLayout {
 
                         text: qsTr("Rename adapter (currently does not work)")
                         color: Colours.palette.m3outline
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                     }
 
                     StyledTextField {
@@ -444,7 +444,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Adapter information")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 500
     }
 
@@ -477,7 +477,7 @@ ColumnLayout {
             StyledText {
                 text: Bluetooth.defaultAdapter ? BluetoothAdapterState.toString(Bluetooth.defaultAdapter.state) : qsTr("Unknown")
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -488,7 +488,7 @@ ColumnLayout {
             StyledText {
                 text: Bluetooth.defaultAdapter?.dbusPath ?? ""
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -499,7 +499,7 @@ ColumnLayout {
             StyledText {
                 text: Bluetooth.defaultAdapter?.adapterId ?? ""
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
         }
     }

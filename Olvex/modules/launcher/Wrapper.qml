@@ -24,11 +24,20 @@ Item {
 
     property real offsetScale: shouldBeActive ? 0 : 1
 
+    Timer {
+        id: teardownGrace
+
+        interval: Tokens.anim.durations.large + 100
+    }
+
     onShouldBeActiveChanged: {
         if (shouldBeActive) {
+            teardownGrace.stop();
             implicitHeight = Qt.binding(() => content.implicitHeight);
             Qt.callLater(() => Apps);
         } else {
+            content.item?.suspendLists?.();
+            teardownGrace.restart();
             implicitHeight = implicitHeight; // Break binding during close anim
         }
     }
@@ -45,18 +54,24 @@ Item {
         }
     }
 
+    Component {
+        id: contentComponent
+
+        Content {
+            visibilities: root.visibilities
+            panels: root.panels
+            maxHeight: root.maxHeight
+        }
+    }
+
     Loader {
         id: content
 
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        active: root.shouldBeActive || root.visible
-
-        sourceComponent: Content {
-            visibilities: root.visibilities
-            panels: root.panels
-            maxHeight: root.maxHeight
-        }
+        active: root.shouldBeActive || root.offsetScale < 1 || teardownGrace.running
+        asynchronous: true
+        sourceComponent: contentComponent
     }
 }

@@ -95,7 +95,7 @@ StyledRect {
             Layout.fillWidth: true
             StyledText {
                 text: qsTr("Quick Toggles")
-                font.pointSize: Tokens.font.size.normal
+                textPointSize: Tokens.font.size.normal
                 Layout.fillWidth: true
             }
             IconButton {
@@ -404,7 +404,7 @@ StyledRect {
                                 return "grid_view";
                             }
                             color: Colours.palette.m3onSurface
-                            font.pointSize: Tokens.font.size.normal
+                            iconPointSize: Tokens.font.size.normal
                             Layout.alignment: Qt.AlignVCenter
                         }
 
@@ -442,6 +442,9 @@ StyledRect {
                                 property real marqueeX: 0
                                 height: parent.height
 
+                                anchors.horizontalCenter: dpMarqueeContainer.needsMarquee ? undefined : dpMarqueeContainer.horizontalCenter
+                                x: dpMarqueeContainer.needsMarquee ? dpMarqueeRow.marqueeX : 0
+
                                 StyledText {
                                     id: dpLabelText
                                     text: {
@@ -452,7 +455,7 @@ StyledRect {
                                         return qsTr("Extend");
                                     }
                                     color: Colours.palette.m3onSurface
-                                    font.pointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.small
                                     font.bold: true
                                     verticalAlignment: Text.AlignVCenter
                                     height: parent.height
@@ -491,27 +494,12 @@ StyledRect {
                                     PropertyAnimation { target: dpMarqueeRow; property: "opacity"; to: 1; duration: 400 }
                                 }
                             }
-
-                            states: [
-                                State {
-                                    name: "static"
-                                    when: !dpMarqueeContainer.needsMarquee
-                                    AnchorChanges { target: dpMarqueeRow; anchors.horizontalCenter: dpMarqueeContainer.horizontalCenter }
-                                    PropertyChanges { target: dpMarqueeRow; marqueeX: 0; x: undefined }
-                                },
-                                State {
-                                    name: "animating"
-                                    when: dpMarqueeContainer.needsMarquee
-                                    AnchorChanges { target: dpMarqueeRow; anchors.horizontalCenter: undefined }
-                                    PropertyChanges { target: dpMarqueeRow; x: dpMarqueeRow.marqueeX }
-                                }
-                            ]
                         }
 
                         MaterialIcon {
                             text: "chevron_right"
                             color: Colours.palette.m3onSurfaceVariant
-                            font.pointSize: Tokens.font.size.normal
+                            iconPointSize: Tokens.font.size.normal
                             Layout.alignment: Qt.AlignVCenter
                         }
                     }
@@ -539,7 +527,7 @@ StyledRect {
             anchors.centerIn: parent
 
             text: parent.icon
-            font.pointSize: Tokens.font.size.large
+            iconPointSize: Tokens.font.size.large
             color: powerProfilePill.current === text ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
             fill: powerProfilePill.current === text ? 1 : 0
 

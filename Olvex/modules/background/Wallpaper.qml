@@ -48,7 +48,7 @@ Item {
                 MaterialIcon {
                     text: "sentiment_stressed"
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.size.extraLarge * 5
+                    iconPointSize: Tokens.font.size.extraLarge * 5
                 }
 
                 Column {
@@ -58,7 +58,7 @@ Item {
                     StyledText {
                         text: qsTr("Wallpaper missing?")
                         color: Colours.palette.m3onSurfaceVariant
-                        font.pointSize: Tokens.font.size.extraLarge * 2
+                        textPointSize: Tokens.font.size.extraLarge * 2
                         font.bold: true
                     }
 
@@ -91,7 +91,7 @@ Item {
 
                             text: qsTr("Set it now!")
                             color: Colours.palette.m3onPrimary
-                            font.pointSize: Tokens.font.size.large
+                            textPointSize: Tokens.font.size.large
                         }
                     }
                 }

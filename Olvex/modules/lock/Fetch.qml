@@ -33,7 +33,7 @@ ColumnLayout {
                 anchors.centerIn: parent
                 text: "code"
                 color: Colours.palette.m3primary
-                font.pointSize: Tokens.font.size.smaller
+                iconPointSize: Tokens.font.size.smaller
             }
         }
 
@@ -42,7 +42,7 @@ ColumnLayout {
             text: (SysInfo.osPrettyName || SysInfo.osName || qsTr("System")).toUpperCase()
             color: Colours.palette.m3outline
             font.family: Tokens.font.family.mono
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.weight: 600
         }
     }
@@ -57,52 +57,52 @@ ColumnLayout {
         MonoText {
             text: "WM:"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
         }
         MonoText {
             Layout.fillWidth: true
             text: SysInfo.wm || "Hyprland"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             horizontalAlignment: Text.AlignRight
         }
 
         MonoText {
             text: "User:"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
         }
         MonoText {
             Layout.fillWidth: true
             text: SysInfo.user || "admin"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             horizontalAlignment: Text.AlignRight
         }
 
         MonoText {
             text: "Up:"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
         }
         MonoText {
             Layout.fillWidth: true
             text: SysInfo.uptime || "0m"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             horizontalAlignment: Text.AlignRight
         }
 
         MonoText {
             text: "Batt:"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
         }
         MonoText {
             Layout.fillWidth: true
             text: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Charging ? `${Math.round(UPower.displayDevice.percentage * 100)}% Charging` : `${Math.round(UPower.displayDevice.percentage * 100)}%`) : "AC Power"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             horizontalAlignment: Text.AlignRight
         }
     }

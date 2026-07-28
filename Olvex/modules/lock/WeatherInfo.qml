@@ -26,14 +26,14 @@ ColumnLayout {
             text: qsTr("WEATHER")
             color: Colours.palette.m3outline
             font.family: Tokens.font.family.mono
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.weight: 600
         }
 
         MaterialIcon {
             text: "cloud_queue"
             color: Colours.palette.m3primary
-            font.pointSize: Tokens.font.size.large
+            iconPointSize: Tokens.font.size.large
         }
     }
 
@@ -45,7 +45,7 @@ ColumnLayout {
         StyledText {
             text: Weather.temp
             color: Colours.current.m3onSurface
-            font.pointSize: 32
+            textPointSize: 32
             font.weight: 600
         }
 
@@ -55,14 +55,14 @@ ColumnLayout {
             StyledText {
                 text: Weather.description
                 color: Colours.current.m3onSurface
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 font.weight: 500
             }
 
             StyledText {
                 text: qsTr("Humidity: %1%").arg(Weather.humidity)
                 color: Colours.current.m3primary
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
         }
     }

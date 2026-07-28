@@ -46,7 +46,7 @@ Item {
 
                         StyledText {
                             text: qsTr("Audio")
-                            font.pointSize: Tokens.font.size.large
+                            textPointSize: Tokens.font.size.large
                             font.weight: 500
                         }
 
@@ -72,7 +72,7 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Devices (%1)").arg(Audio.sinks.length)
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                     font.weight: 500
                                 }
                             }
@@ -114,7 +114,7 @@ Item {
 
                                         MaterialIcon {
                                             text: Audio.sink?.id === modelData.id ? "speaker" : "speaker_group"
-                                            font.pointSize: Tokens.font.size.large
+                                            iconPointSize: Tokens.font.size.large
                                             fill: Audio.sink?.id === modelData.id ? 1 : 0
                                         }
 
@@ -149,7 +149,7 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Devices (%1)").arg(Audio.sources.length)
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                     font.weight: 500
                                 }
                             }
@@ -191,7 +191,7 @@ Item {
 
                                         MaterialIcon {
                                             text: "mic"
-                                            font.pointSize: Tokens.font.size.large
+                                            iconPointSize: Tokens.font.size.large
                                             fill: Audio.source?.id === modelData.id ? 1 : 0
                                         }
 
@@ -254,7 +254,7 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Volume")
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                     font.weight: 500
                                 }
 
@@ -306,7 +306,7 @@ Item {
                                 StyledText {
                                     text: "%"
                                     color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                     opacity: Audio.muted ? 0.5 : 1
                                 }
 
@@ -372,7 +372,7 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Volume")
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                     font.weight: 500
                                 }
 
@@ -424,7 +424,7 @@ Item {
                                 StyledText {
                                     text: "%"
                                     color: Colours.palette.m3outline
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                     opacity: Audio.sourceMuted ? 0.5 : 1
                                 }
 
@@ -501,7 +501,7 @@ Item {
 
                                         MaterialIcon {
                                             text: "apps"
-                                            font.pointSize: Tokens.font.size.normal
+                                            iconPointSize: Tokens.font.size.normal
                                             fill: 0
                                         }
 
@@ -510,7 +510,7 @@ Item {
                                             elide: Text.ElideRight
                                             maximumLineCount: 1
                                             text: Audio.getStreamName(modelData)
-                                            font.pointSize: Tokens.font.size.normal
+                                            textPointSize: Tokens.font.size.normal
                                             font.weight: 500
                                         }
 
@@ -545,20 +545,20 @@ Item {
                                             }
 
                                             Connections {
-                                                function onAudioChanged() {
+                                                function onVolumeChanged() {
                                                     if (!streamVolumeInput.hasFocus && modelData?.audio) {
                                                         streamVolumeInput.text = Math.round(modelData.audio.volume * 100).toString();
                                                     }
                                                 }
 
-                                                target: modelData
+                                                target: modelData?.audio
                                             }
                                         }
 
                                         StyledText {
                                             text: "%"
                                             color: Colours.palette.m3outline
-                                            font.pointSize: Tokens.font.size.normal
+                                            textPointSize: Tokens.font.size.normal
                                             opacity: Audio.getStreamMuted(modelData) ? 0.5 : 1
                                         }
 
@@ -600,13 +600,13 @@ Item {
                                         }
 
                                         Connections {
-                                            function onAudioChanged() {
+                                            function onVolumeChanged() {
                                                 if (modelData?.audio) {
                                                     value = modelData.audio.volume;
                                                 }
                                             }
 
-                                            target: modelData
+                                            target: modelData?.audio
                                         }
                                     }
                                 }
@@ -617,7 +617,7 @@ Item {
                                 visible: Audio.streams.length === 0
                                 text: qsTr("No applications currently playing audio")
                                 color: Colours.palette.m3outline
-                                font.pointSize: Tokens.font.size.small
+                                textPointSize: Tokens.font.size.small
                                 horizontalAlignment: Text.AlignHCenter
                             }
                         }

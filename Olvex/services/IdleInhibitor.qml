@@ -27,7 +27,8 @@ Singleton {
         id: restartTimer
         interval: 2000
         onTriggered: {
-            if (root.enabled) inhibitProc.start();
+            if (root.enabled)
+                inhibitProc.running = true;
         }
     }
 
@@ -53,9 +54,9 @@ Singleton {
 
         if (enabled) {
             props.enabledSince = new Date();
-            inhibitProcess.start();
+            inhibitProcess.running = true;
         } else {
-            inhibitProcess.terminate();
+            inhibitProcess.running = false;
         }
     }
 
@@ -73,8 +74,8 @@ Singleton {
         window: PanelWindow {
             screen: Screens.screens[0]
             visible: root.enabled
-            width: 1
-            height: 1
+            implicitWidth: 1
+            implicitHeight: 1
             color: "transparent"
             QSWayland.WlrLayershell.exclusionMode: QSWayland.ExclusionMode.Ignore
             

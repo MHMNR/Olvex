@@ -158,7 +158,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.bottomMargin: Tokens.spacing.small
                     text: qsTr("Wallpaper")
-                    font.pointSize: Tokens.font.size.extraLarge
+                    textPointSize: Tokens.font.size.extraLarge
                     font.weight: 600
                 }
 
@@ -247,7 +247,7 @@ Item {
 
                         StyledText {
                             text: qsTr("Appearance")
-                            font.pointSize: Tokens.font.size.large
+                            textPointSize: Tokens.font.size.large
                             font.weight: 500
                         }
 

@@ -76,7 +76,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -90,7 +90,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.large
+                                iconPointSize: Tokens.font.size.large
                             }
                         }
                     }
@@ -157,7 +157,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -171,7 +171,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.large
+                                iconPointSize: Tokens.font.size.large
                             }
                         }
                     }
@@ -240,7 +240,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -254,7 +254,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.large
+                                iconPointSize: Tokens.font.size.large
                             }
                         }
                     }
