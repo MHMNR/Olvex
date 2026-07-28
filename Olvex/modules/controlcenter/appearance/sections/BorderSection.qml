@@ -69,35 +69,100 @@ CollapsibleSection {
     SectionContainer {
         contentSpacing: Tokens.spacing.normal
 
-        RowLayout {
+        ColumnLayout {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
 
             StyledText {
                 Layout.fillWidth: true
-                text: qsTr("Floating mode")
-                font.weight: 500
+                text: qsTr("Drawer mode")
+                color: Colours.palette.m3onSurface
+                font.weight: Font.Medium
             }
 
-            TextButton {
-                text: qsTr("Hugging")
-                checked: !rootPane.borderFloating
-                toggle: false
-                type: TextButton.Tonal
-                onClicked: {
-                    rootPane.borderFloating = false;
-                    rootPane.saveConfig();
+            StyledText {
+                Layout.fillWidth: true
+                text: qsTr("Hugging sticks panels to edges; Floating leaves a border gap")
+                color: Colours.palette.m3onSurfaceVariant
+                textPointSize: Tokens.font.size.small
+                wrapMode: Text.WordWrap
+            }
+
+            // Segmented control — TextButton checked-state was unreliable here
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                StyledRect {
+                    Layout.fillWidth: true
+                    implicitHeight: 40
+                    radius: Tokens.rounding.full
+                    border.width: 0
+                    color: !rootPane.borderFloating
+                        ? Colours.palette.m3secondary
+                        : Colours.palette.m3secondaryContainer
+
+                    Behavior on color {
+                        CAnim {}
+                    }
+
+                    StateLayer {
+                        radius: parent.radius
+                        color: !rootPane.borderFloating
+                            ? Colours.palette.m3onSecondary
+                            : Colours.palette.m3onSecondaryContainer
+                        onClicked: {
+                            rootPane.borderFloating = false;
+                            rootPane.saveConfig();
+                            if (GlobalConfig.border)
+                                GlobalConfig.border.floating = false;
+                        }
+                    }
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: qsTr("Hugging")
+                        font.weight: Font.Medium
+                        color: !rootPane.borderFloating
+                            ? Colours.palette.m3onSecondary
+                            : Colours.palette.m3onSecondaryContainer
+                    }
                 }
-            }
 
-            TextButton {
-                text: qsTr("Floating")
-                checked: rootPane.borderFloating
-                toggle: false
-                type: TextButton.Tonal
-                onClicked: {
-                    rootPane.borderFloating = true;
-                    rootPane.saveConfig();
+                StyledRect {
+                    Layout.fillWidth: true
+                    implicitHeight: 40
+                    radius: Tokens.rounding.full
+                    border.width: 0
+                    color: rootPane.borderFloating
+                        ? Colours.palette.m3secondary
+                        : Colours.palette.m3secondaryContainer
+
+                    Behavior on color {
+                        CAnim {}
+                    }
+
+                    StateLayer {
+                        radius: parent.radius
+                        color: rootPane.borderFloating
+                            ? Colours.palette.m3onSecondary
+                            : Colours.palette.m3onSecondaryContainer
+                        onClicked: {
+                            rootPane.borderFloating = true;
+                            rootPane.saveConfig();
+                            if (GlobalConfig.border)
+                                GlobalConfig.border.floating = true;
+                        }
+                    }
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: qsTr("Floating")
+                        font.weight: Font.Medium
+                        color: rootPane.borderFloating
+                            ? Colours.palette.m3onSecondary
+                            : Colours.palette.m3onSecondaryContainer
+                    }
                 }
             }
         }

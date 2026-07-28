@@ -10,6 +10,7 @@ import qs.components
 import qs.components.controls
 import qs.services
 import qs.utils
+import qs.modules.controlcenter
 
 ColumnLayout {
     id: root
@@ -182,7 +183,12 @@ ColumnLayout {
         text: qsTr("Open settings")
         icon: "settings"
 
-        onClicked: root.popouts.detachRequested("bluetooth")
+        onClicked: {
+            root.popouts.hasCurrent = false;
+            WindowFactory.create(null, {
+                active: "network"
+            });
+        }
     }
 
     component Toggle: RowLayout {

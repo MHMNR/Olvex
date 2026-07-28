@@ -35,11 +35,14 @@ Item {
         reloadableId: "utilities"
     }
     readonly property bool shouldBeActive: visibilities.utilities && Config.utilities.enabled && !(visibilities.session && Config.session.enabled)
-    property real offsetScale: shouldBeActive ? 0 : 1
+    readonly property bool contentReady: content.status === Loader.Ready
+    property bool openAnimationReady: false
+    property real offsetScale: shouldBeActive && openAnimationReady ? 0 : 1
     property real sidebarLerp
     readonly property bool needsKeyboard: (content.item as Content)?.needsKeyboard ?? false
+    readonly property bool contentActive: root.shouldBeActive || root.visible
 
-    // Peek behavior: when hovered while closed and bottom panel is off, slide 7px into view
+    // Peek: when hovered while closed and bottom panel is off, slide a strip in from the right
     property bool hovered: false
     readonly property bool bottomPanelOff: !(Config.bar.bottomPanel?.enabled ?? true)
     property real peekOffset: (hovered && !shouldBeActive && bottomPanelOff) ? 17 : 0
@@ -55,10 +58,13 @@ Item {
     // at the screen-edge clip boundary instead of appearing jaggy
     layer.enabled: peekOffset > 0 && !shouldBeActive
     layer.smooth: true
-    // peekOffset pushes it INTO view from bottom; normal hide uses offsetScale
-    anchors.bottomMargin: (-implicitHeight - 5) * offsetScale + peekOffset * offsetScale
-    implicitHeight: content.implicitHeight + content.anchors.margins * 2
+    // Slide from right → left: offsetScale 1 = fully off-screen right, 0 = docked
+    // peekOffset pulls a thin strip into view while closed
+    anchors.rightMargin: (-implicitWidth - 5) * offsetScale + peekOffset * offsetScale
+    // Height comes from Panels anchors (top + bottom) — full column
     implicitWidth: Tokens.sizes.utilities.width
+    // Fallback when not yet anchored
+    implicitHeight: parent ? parent.height : ((content.item?.implicitHeight || 0) + content.anchors.margins * 2)
     opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)
 
     states: State {
@@ -100,15 +106,21 @@ Item {
     Loader {
         id: content
 
-        anchors.top: parent.top
-        anchors.left: parent.left
+        anchors.fill: parent
         anchors.margins: Tokens.padding.large
 
         asynchronous: true
-        active: true
+        active: root.contentActive
+
+        onStatusChanged: {
+            if (status === Loader.Ready && root.shouldBeActive)
+                Qt.callLater(() => root.openAnimationReady = true);
+        }
 
         sourceComponent: Content {
-            implicitWidth: root.implicitWidth - content.anchors.margins * 2
+            // Fill the loader so ColumnLayout can expand the notification tile
+            width: content.width
+            height: content.height
             props: root.props
             visibilities: root.visibilities
             popouts: root.popouts
@@ -119,6 +131,16 @@ Item {
     Connections {
         target: root.visibilities
         function onUtilitiesChanged() {
+            if (root.visibilities.utilities) {
+                root.openAnimationReady = false;
+                Qt.callLater(() => {
+                    if (root.contentReady)
+                        root.openAnimationReady = true;
+                });
+            } else {
+                root.openAnimationReady = false;
+            }
+
             if (!root.visibilities.utilities) {
                 root.props.expansionActive = "";
                 root.props.recordingListExpanded = false;

@@ -64,13 +64,6 @@ StyledRect {
     clip: true
 
     Behavior on implicitHeight { Anim {} }
-    Behavior on scale { Anim {} }
-
-    HoverHandler {
-        id: rootHover
-    }
-
-    scale: rootHover.hovered ? 1.01 : 1
 
     ColumnLayout {
         id: layout
@@ -99,39 +92,60 @@ StyledRect {
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.small
 
-                // Action Buttons (Left)
+                // Original split action: [ mode · start ] + [ chevron / stop ]
                 RowLayout {
                     spacing: Recorder.running ? Tokens.spacing.small : 2
-                    Behavior on spacing { Anim {} }
-                    
+                    Behavior on spacing {
+                        Anim {}
+                    }
+
                     // Left Action Pill (Record / Pause)
                     StyledRect {
                         id: startPill
                         implicitWidth: Recorder.running ? 42 : (modeTextLayout.implicitWidth + Tokens.padding.large * 2)
                         implicitHeight: Recorder.running ? 42 : 36
-                        
+
                         topLeftRadius: 21
                         bottomLeftRadius: 21
                         topRightRadius: Recorder.running ? 21 : 4
                         bottomRightRadius: Recorder.running ? 21 : 4
-                        
-                        color: Recorder.running ? (Recorder.paused ? Colours.palette.m3tertiary : Colours.palette.m3primary) : Colours.palette.m3primary
-                        
-                        scale: startPillState.pressed ? 0.95 : (startPillState.containsMouse ? 1.03 : 1)
-                        Behavior on scale { Anim {} }
-                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on implicitHeight { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on topRightRadius { Anim { type: Anim.FastSpatial } }
-                        Behavior on bottomRightRadius { Anim { type: Anim.FastSpatial } }
-                        Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
-                        
-                        // Normal State Layout (Mode + Icon)
+
+                        color: Recorder.running
+                            ? (Recorder.paused ? Colours.palette.m3tertiary : Colours.palette.m3primary)
+                            : Colours.palette.m3primary
+
+                        Behavior on implicitWidth {
+                            Anim {
+                                type: Anim.DefaultSpatial
+                            }
+                        }
+                        Behavior on implicitHeight {
+                            Anim {
+                                type: Anim.DefaultSpatial
+                            }
+                        }
+                        Behavior on topRightRadius {
+                            Anim {
+                                type: Anim.FastSpatial
+                            }
+                        }
+                        Behavior on bottomRightRadius {
+                            Anim {
+                                type: Anim.FastSpatial
+                            }
+                        }
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Tokens.anim.durations.small
+                            }
+                        }
+
                         RowLayout {
                             id: modeTextLayout
                             anchors.centerIn: parent
                             spacing: Tokens.spacing.small
                             visible: !Recorder.running
-                            
+
                             MaterialIcon {
                                 text: {
                                     let found = root.menuItems[0];
@@ -163,7 +177,6 @@ StyledRect {
                             }
                         }
 
-                        // Running State Layout (Pause/Resume Icon Only)
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: Recorder.paused ? "play_arrow" : "pause"
@@ -179,7 +192,7 @@ StyledRect {
                             bottomLeftRadius: parent.bottomLeftRadius
                             topRightRadius: parent.topRightRadius
                             bottomRightRadius: parent.bottomRightRadius
-                            
+
                             onClicked: {
                                 if (Recorder.running) {
                                     Recorder.togglePause();
@@ -192,37 +205,57 @@ StyledRect {
                                             break;
                                         }
                                     }
-                                    if (foundIndex === 1) args.push("-r");
-                                    else if (foundIndex === 2) args.push("-s");
-                                    else if (foundIndex === 3) args.push("-sr");
+                                    if (foundIndex === 1)
+                                        args.push("-r");
+                                    else if (foundIndex === 2)
+                                        args.push("-s");
+                                    else if (foundIndex === 3)
+                                        args.push("-sr");
                                     Recorder.start(args);
                                 }
                             }
                         }
                     }
-                    
+
                     // Right Action Pill (Dropdown / Stop)
                     StyledRect {
                         id: menuPill
                         implicitWidth: Recorder.running ? 42 : (modeMenu.expanded ? 36 : 48)
                         implicitHeight: Recorder.running ? 42 : 36
-                        
+
                         topRightRadius: 21
                         bottomRightRadius: 21
                         topLeftRadius: Recorder.running ? 21 : (modeMenu.expanded ? 18 : 4)
                         bottomLeftRadius: Recorder.running ? 21 : (modeMenu.expanded ? 18 : 4)
-                        
-                        color: Recorder.running ? Colours.palette.m3error : Colours.palette.m3primary
-                        
-                        scale: menuPillState.pressed ? 0.95 : (menuPillState.containsMouse ? 1.05 : 1)
-                        Behavior on scale { Anim {} }
-                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on implicitHeight { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on topLeftRadius { Anim { type: Anim.FastSpatial } }
-                        Behavior on bottomLeftRadius { Anim { type: Anim.FastSpatial } }
-                        Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
 
-                        // Normal State Layout (Arrow)
+                        color: Recorder.running ? Colours.palette.m3error : Colours.palette.m3primary
+
+                        Behavior on implicitWidth {
+                            Anim {
+                                type: Anim.DefaultSpatial
+                            }
+                        }
+                        Behavior on implicitHeight {
+                            Anim {
+                                type: Anim.DefaultSpatial
+                            }
+                        }
+                        Behavior on topLeftRadius {
+                            Anim {
+                                type: Anim.FastSpatial
+                            }
+                        }
+                        Behavior on bottomLeftRadius {
+                            Anim {
+                                type: Anim.FastSpatial
+                            }
+                        }
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Tokens.anim.durations.small
+                            }
+                        }
+
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "keyboard_arrow_down"
@@ -230,10 +263,11 @@ StyledRect {
                             iconPointSize: Tokens.font.size.normal
                             rotation: modeMenu.expanded ? 180 : 0
                             visible: !Recorder.running
-                            Behavior on rotation { Anim {} }
+                            Behavior on rotation {
+                                Anim {}
+                            }
                         }
 
-                        // Running State Layout (Stop Icon Only)
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "stop"
@@ -257,7 +291,7 @@ StyledRect {
                                 }
                             }
                         }
-                        
+
                         Menu {
                             id: modeMenu
                             attachTo: menuPill
@@ -370,33 +404,42 @@ StyledRect {
         }
     }
 
-    // Floating Hyper-Mini-Pill Arrow Toggle (Bottom Right)
+    // Expand list — soft tonal chevron (not a loud primary nugget)
     StyledRect {
         anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        anchors.margins: Tokens.padding.smaller
-        
-        implicitWidth: 32
-        implicitHeight: 12
-        radius: 6
-        color: Colours.palette.m3primary
-        
-        scale: arrowPillState.pressed ? 0.9 : (arrowPillState.containsMouse ? 1.1 : 1)
-        Behavior on scale { Anim {} }
-        
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottomMargin: Tokens.padding.small
+
+        implicitWidth: 40
+        implicitHeight: 18
+        radius: height / 2
+        color: arrowPillState.containsMouse
+            ? Colours.palette.m3secondaryContainer
+            : Qt.alpha(Colours.palette.m3onSurface, 0.06)
+        border.width: 1
+        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
+        Behavior on color {
+            CAnim {}
+        }
+
         MaterialIcon {
             anchors.centerIn: parent
             text: "keyboard_arrow_down"
-            color: Colours.palette.m3onPrimary
-            iconPointSize: 10
+            color: Colours.palette.m3onSurfaceVariant
+            iconPointSize: Tokens.font.size.small
             rotation: root.props.recordingListExpanded ? 180 : 0
-            Behavior on rotation { Anim {} }
+            Behavior on rotation {
+                Anim {
+                    type: Anim.DefaultSpatial
+                }
+            }
         }
-        
+
         StateLayer {
             id: arrowPillState
             anchors.fill: parent
             radius: parent.radius
+            color: Colours.palette.m3onSurface
             onClicked: root.props.recordingListExpanded = !root.props.recordingListExpanded
         }
     }

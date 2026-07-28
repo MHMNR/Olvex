@@ -396,7 +396,22 @@ Singleton {
                 Qt.callLater(() => {
                     connectWireless(ssid, password, bssid, callback, retries + 1);
                 }, 1000);
-            } else if (!result.success && root.pendingConnection) {} else if (result.success && callback) {} else if (!result.success && !root.pendingConnection) {
+            } else if (result.success) {
+                // Trust nmcli's own exit code immediately instead of waiting on
+                // connectionCheckTimer/immediateCheckTimer, which only resolve
+                // once `nmcli monitor` emits a status line and refreshes
+                // root.active. If that refresh is even slightly delayed, the
+                // timers manufacture a false "Connection timeout" failure for
+                // a connection that actually succeeded — which then deletes
+                // the (perfectly good) saved profile and re-prompts for the
+                // password on every subsequent attempt.
+                connectionCheckTimer.stop();
+                immediateCheckTimer.stop();
+                immediateCheckTimer.checkCount = 0;
+                root.pendingConnection = null;
+                if (callback)
+                    callback(result);
+            } else if (!result.success && root.pendingConnection) {} else if (!result.success && !root.pendingConnection) {
                 if (callback)
                     callback(result);
             }
@@ -884,13 +899,20 @@ Singleton {
     function checkPendingConnection(): void {
         if (root.pendingConnection) {
             Qt.callLater(() => {
-                const connected = root.active && root.active.ssid === root.pendingConnection.ssid;
+                // pendingConnection can be cleared by another path (password
+                // callback, completion) between this callLater being queued and
+                // it actually running — re-check here, not just at the call
+                // site, or root.pendingConnection.ssid throws on null.
+                const pending = root.pendingConnection;
+                if (!pending)
+                    return;
+                const connected = root.active && root.active.ssid === pending.ssid;
                 if (connected) {
                     connectionCheckTimer.stop();
                     immediateCheckTimer.stop();
                     immediateCheckTimer.checkCount = 0;
-                    if (root.pendingConnection.callback) {
-                        root.pendingConnection.callback({
+                    if (pending.callback) {
+                        pending.callback({
                             success: true,
                             output: "Connected",
                             error: "",

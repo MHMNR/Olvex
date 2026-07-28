@@ -30,47 +30,27 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: Tokens.padding.small
+        anchors.leftMargin: Tokens.padding.small
+        anchors.rightMargin: Tokens.padding.small
+        anchors.topMargin: Tokens.padding.small / 2
 
-        implicitHeight: Math.max(count.implicitHeight, titleText.implicitHeight)
-
-        StyledText {
-            id: count
-
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: root.notifCount > 0 ? 0 : -width - titleText.anchors.leftMargin
-            opacity: root.notifCount > 0 ? 1 : 0
-
-            text: root.notifCount
-            color: Colours.palette.m3outline
-            textPointSize: Tokens.font.size.normal
-            font.family: Tokens.font.family.mono
-            font.weight: 500
-
-            Behavior on anchors.leftMargin {
-                Anim {}
-            }
-
-            Behavior on opacity {
-                Anim {}
-            }
-        }
+        implicitHeight: Math.max(titleText.implicitHeight, 32)
 
         StyledText {
             id: titleText
 
             anchors.verticalCenter: parent.verticalCenter
-            anchors.left: count.right
+            anchors.left: parent.left
             anchors.right: clearBtnLoader.left
-            anchors.leftMargin: Tokens.spacing.small
             anchors.rightMargin: Tokens.spacing.small
 
-            text: root.notifCount > 0 ? qsTr("notification%1").arg(root.notifCount === 1 ? "" : "s") : qsTr("Notifications")
-            color: Colours.palette.m3outline
-            textPointSize: Tokens.font.size.normal
-            font.family: Tokens.font.family.mono
-            font.weight: 500
+            text: root.notifCount > 0
+                ? (root.notifCount === 1 ? qsTr("1 notification") : qsTr("%1 notifications").arg(root.notifCount))
+                : qsTr("Notifications")
+            color: Colours.palette.m3onSurfaceVariant
+            textPointSize: Tokens.font.size.small
+            font.weight: Font.Medium
+            font.letterSpacing: 0.15
             elide: Text.ElideRight
         }
 
@@ -79,19 +59,38 @@ Item {
             asynchronous: true
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
+            width: active ? 32 : 0
+            height: 32
 
             scale: root.notifCount > 0 ? 1 : 0.5
             opacity: root.notifCount > 0 ? 1 : 0
             active: opacity > 0
 
-            sourceComponent: IconButton {
-                id: clearBtn
+            sourceComponent: StyledRect {
+                anchors.fill: parent
+                radius: width / 2
+                color: Qt.alpha(Colours.palette.m3onSurface, clearHover.containsMouse ? 0.12 : 0.06)
+                border.width: 0
+                border.color: "transparent"
 
-                icon: "delete_sweep"
-                radius: Tokens.rounding.normal
-                padding: Tokens.padding.small
-                iconPointSize: Tokens.font.size.normal
-                onClicked: clearTimer.start()
+                Behavior on color {
+                    CAnim {}
+                }
+
+                StateLayer {
+                    id: clearHover
+                    radius: parent.width / 2
+                    color: Colours.palette.m3onSurface
+                    onClicked: clearTimer.start()
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "delete_sweep"
+                    color: Colours.palette.m3onSurfaceVariant
+                    iconPointSize: Tokens.font.size.normal
+                    fill: 0
+                }
             }
 
             Behavior on scale {
@@ -115,9 +114,9 @@ Item {
         anchors.right: parent.right
         anchors.top: title.bottom
         anchors.bottom: parent.bottom
-        anchors.topMargin: Tokens.spacing.smaller
+        anchors.topMargin: Tokens.spacing.small
 
-        radius: Tokens.rounding.small
+        radius: Tokens.rounding.normal
         color: "transparent"
 
         Loader {
@@ -128,30 +127,39 @@ Item {
             opacity: root.notifCount > 0 ? 0 : 1
 
             sourceComponent: ColumnLayout {
-                spacing: Tokens.spacing.smaller
+                spacing: Tokens.spacing.small
 
-                Image {
+                StyledRect {
                     Layout.alignment: Qt.AlignHCenter
-                    asynchronous: true
-                    source: Paths.absolutePath("root:/assets/bone.png")
-                    fillMode: Image.PreserveAspectFit
-                    sourceSize.height: 48
+                    implicitWidth: 48
+                    implicitHeight: 48
+                    radius: Tokens.rounding.normal
+                    color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.45)
 
-                    layer.enabled: true
-                    layer.effect: Colouriser {
-                        colorizationColor: Colours.palette.m3outlineVariant
-                        brightness: 1
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "notifications_off"
+                        color: Colours.palette.m3outline
+                        iconPointSize: Tokens.font.size.large
                     }
                 }
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("Systems clear")
-                    color: Colours.palette.m3outlineVariant
-                    textPointSize: Tokens.font.size.large
-                    font.family: Tokens.font.family.mono
-                    font.weight: 500
+                    text: qsTr("All clear")
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.normal
+                    font.weight: Font.Medium
+                }
+
+                StyledText {
+                    Layout.alignment: Qt.AlignHCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    text: qsTr("New alerts land here")
+                    color: Colours.palette.m3outline
+                    textPointSize: Tokens.font.size.small
+                    opacity: 0.9
                 }
             }
 
@@ -166,6 +174,7 @@ Item {
             id: view
 
             anchors.fill: parent
+            fadeColor: Colours.tPalette.m3surfaceContainerLow
 
             flickableDirection: Flickable.VerticalFlick
             contentWidth: width
@@ -210,5 +219,4 @@ Item {
             }
         }
     }
-
 }

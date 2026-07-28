@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Olvex.Config
 import qs.components
+import qs.components.containers
 import qs.components.controls
 import qs.services
 
@@ -274,7 +275,7 @@ PanelWindow {
         }
 
         // ── Entry list ────────────────────────────
-        ListView {
+        StyledListView {
             id: listView
             anchors.top: searchBar.bottom
             anchors.bottom: footer.top

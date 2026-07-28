@@ -17,8 +17,23 @@ Searcher {
     readonly property string currentNamePath: `${Paths.state}/wallpaper/path.txt`
     readonly property string colourSourceCachePath: `${Paths.state}/wallpaper/colour-source.txt`
     readonly property string committedColourSource: root._committedColourSource
-    readonly property list<string> smartArg: (GlobalConfig.services.smartScheme && GlobalConfig.appearance.themeMode === "auto") ? [] : ["--no-smart"]
-    readonly property list<string> modeArg: GlobalConfig.appearance.themeMode !== "auto" ? ["-m", GlobalConfig.appearance.themeMode] : []
+    // Smart colour extract whenever user enables smartScheme (not only in auto).
+    // Forced light/dark uses --scheme-mode so smart still picks variant, mode is locked.
+    readonly property list<string> smartArg: GlobalConfig.services.smartScheme ? [] : ["--no-smart"]
+    // For `olvex scheme set -m …` (scheme state machine)
+    readonly property list<string> modeArg: {
+        const m = GlobalConfig.appearance.themeMode;
+        if (m === "light" || m === "dark")
+            return ["-m", m];
+        return [];
+    }
+    // For `olvex wallpaper -p/--file … --scheme-mode …` (palette extract)
+    readonly property list<string> schemeModeArg: {
+        const m = GlobalConfig.appearance.themeMode;
+        if (m === "light" || m === "dark")
+            return ["--scheme-mode", m];
+        return [];
+    }
     readonly property list<string> validVideoExtensions: ["mp4", "mkv", "webm", "mov", "avi", "m4v"]
     readonly property string liveWallpaperDir: `${Paths.pictures}/Wallpapers/Live`
     readonly property string videoThumbnailDir: `${Paths.state}/wallpaper/live-thumbnails`
@@ -53,11 +68,38 @@ Searcher {
         }));
     }
     readonly property var staticEntries: imageEntries
-    readonly property var liveEntries: videoEntries
+    // Inject thumbnailPath so grids/previews can bind without manual map lookup.
+    // Recomputes when videoEntries or videoThumbnailMap / thumbnailUpdateCount change.
+    readonly property var liveEntries: {
+        const _ = thumbnailUpdateCount;
+        const map = videoThumbnailMap;
+        return videoEntries.map(e => {
+            const path = e.path;
+            const thumb = map[path] || thumbnailPathFor(path) || "";
+            return {
+                path: path,
+                name: e.name,
+                relativePath: e.relativePath,
+                suffix: e.suffix,
+                isVideo: true,
+                thumbnailPath: thumb
+            };
+        });
+    }
     readonly property var entries: staticEntries.concat(liveEntries)
     readonly property var entryObjects: entries
     readonly property var staticEntryObjects: staticEntries
     readonly property var liveEntryObjects: liveEntries
+
+    // Resolve a path safe for Image / CachingImage (video → jpg thumb).
+    function displayPathFor(path: string): string {
+        if (!path)
+            return "";
+        if (!isVideoPath(path))
+            return path;
+        const _ = thumbnailUpdateCount;
+        return videoThumbnailMap[path] || thumbnailPathFor(path) || "";
+    }
 
     function ensureCatalog(): void {
         if (!catalogReady)
@@ -267,9 +309,9 @@ Searcher {
             return;
         const escaped = path.replace(/'/g, "'\\''");
         const smartFlags = smartArg.join(" ");
-        const modeFlags = modeArg.join(" ");
+        const schemeFlags = schemeModeArg.join(" ");
         Quickshell.execDetached(["bash", "-lc",
-            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' ${smartFlags} ${modeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}'; fi`]);
+            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' ${smartFlags} ${schemeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}'; fi`]);
     }
 
     function persistSchemePayload(payload: string): void {
@@ -290,27 +332,42 @@ Searcher {
     }
 
     function schemeSetPrefix(): string {
-        const variant = (GlobalConfig.appearance.schemeVariant || "expressive").replace(/'/g, "'\\''");
-        let setCmd = `olvex scheme set -v '${variant}'`;
+        // Never force config schemeVariant here — that is what nuked forced-dark.
+        // Smart path: wallpaper extract owns variant (tonalspot/etc from image).
+        // Non-smart: pin config variant so --no-smart extract matches the picker.
+        if (modeArg.length === 0 && smartArg.length === 0)
+            return "";
+        let setCmd = "olvex scheme set";
         if (modeArg.length > 0)
             setCmd += ` ${modeArg.join(" ")}`;
+        if (smartArg.length > 0) {
+            const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot").replace(/'/g, "'\\''");
+            setCmd += ` -v '${variant}'`;
+        }
         return setCmd + " >/dev/null 2>&1 || true; sleep 0.05; ";
     }
 
     function wallPaletteCommand(cleanPath: string, isPreview: bool): list<string> {
         const escaped = cleanPath.replace(/'/g, "'\\''");
         const smartFlags = smartArg.join(" ");
-        const wallCmd = `olvex wallpaper -p '${escaped}' ${smartFlags} | ${root._jsonPipe}`;
-        if (!isPreview && modeArg.length > 0)
-            return ["bash", "-lc", root.schemeSetPrefix() + wallCmd];
+        const schemeFlags = schemeModeArg.join(" ");
+        // --scheme-mode locks light/dark; smart still picks variant from wallpaper
+        const wallCmd = `olvex wallpaper -p '${escaped}' ${smartFlags} ${schemeFlags} | ${root._jsonPipe}`;
+        const prefix = isPreview ? "" : root.schemeSetPrefix();
+        if (prefix.length > 0)
+            return ["bash", "-lc", prefix + wallCmd];
         return ["bash", "-lc", wallCmd];
     }
 
-    // Same dynamic M3 pipeline as wallpaper picker — syncs variant + mode, then extracts scheme JSON.
+    // Same dynamic M3 pipeline as wallpaper picker — mode lock + smart variant, then scheme JSON.
     function dynamicPaletteCommand(cleanPath: string): list<string> {
         const escaped = cleanPath.replace(/'/g, "'\\''");
         const smartFlags = smartArg.join(" ");
-        const wallCmd = `olvex wallpaper -p '${escaped}' ${smartFlags} | ${root._jsonPipe}`;
+        const schemeFlags = schemeModeArg.join(" ");
+        const wallCmd = `olvex wallpaper -p '${escaped}' ${smartFlags} ${schemeFlags} | ${root._jsonPipe}`;
+        const prefix = root.schemeSetPrefix();
+        if (prefix.length > 0)
+            return ["bash", "-lc", prefix + wallCmd];
         return ["bash", "-lc", wallCmd];
     }
 
@@ -399,7 +456,15 @@ Searcher {
 
 
     function monitorCommand(path: string, monitorName: string): list<string> {
-        return ["bash", "-lc", `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -m '${monitorName.replace(/'/g, "'\\''")}' -f '${path.replace(/'/g, "'\\''")}' ${smartArg.join(" ")} ${modeArg.join(" ")}; elif command -v swww >/dev/null 2>&1; then swww img --outputs '${monitorName.replace(/'/g, "'\\''")}' '${path.replace(/'/g, "'\\''")}'; fi`];
+        // wallpaper CLI has no -m monitor flag (that collided with scheme -m).
+        // Display: swww --outputs. Palette: olvex wallpaper -f + --scheme-mode.
+        const mon = monitorName.replace(/'/g, "'\\''");
+        const img = path.replace(/'/g, "'\\''");
+        const smartFlags = smartArg.join(" ");
+        const schemeFlags = schemeModeArg.join(" ");
+        return ["bash", "-lc",
+            `if command -v swww >/dev/null 2>&1; then swww img --outputs '${mon}' '${img}'; fi; ` +
+            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${img}' ${smartFlags} ${schemeFlags}; fi`];
     }
 
     function setWallpaper(path: string): void {

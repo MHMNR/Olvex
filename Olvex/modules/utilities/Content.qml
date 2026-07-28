@@ -33,11 +33,13 @@ Item {
             anchors.fill: parent
             spacing: Tokens.spacing.normal
 
+            // Notification tile grows to fill free space above Record / Toggles
             StyledRect {
                 id: notifWrapper
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: notifDock.notifCount > 0 ? Math.min(300, notifDock.implicitHeight + Tokens.padding.large * 2) : 160
+                Layout.fillHeight: true
+                Layout.minimumHeight: 160
                 visible: true
                 clip: true
 
@@ -65,19 +67,19 @@ Item {
                     anchors.fill: parent
                     anchors.margins: Tokens.padding.large
                 }
-
-                Behavior on Layout.preferredHeight {
-                    Anim {}
-                }
             }
 
             Record {
+                Layout.fillWidth: true
+                Layout.fillHeight: false
                 props: root.props
                 visibilities: root.visibilities
                 z: 1
             }
 
             Toggles {
+                Layout.fillWidth: true
+                Layout.fillHeight: false
                 props: root.props
                 visibilities: root.visibilities
                 popouts: root.popouts

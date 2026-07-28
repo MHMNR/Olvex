@@ -11,7 +11,12 @@ Text {
     property string animateProp: "scale"
     property real animateFrom: 0
     property real animateTo: 1
-    property int animateDuration: Tokens.anim.durations.normal
+    // Guarded: the Tokens attached property isn't guaranteed attached yet on the
+    // very first construction tick of a freshly-created item, so a bare
+    // `Tokens.anim.durations.normal` read here can transiently be undefined
+    // ("Unable to assign [undefined] to int"). Falls back once, then this
+    // rebinds correctly as soon as Tokens attaches.
+    property int animateDuration: Tokens?.anim?.durations?.normal ?? 300
     property real textPointSize: -1
     property int textPixelSize: -1
 

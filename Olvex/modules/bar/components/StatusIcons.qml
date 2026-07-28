@@ -16,12 +16,22 @@ StyledRect {
     property color colour: Colours.palette.m3secondary
     readonly property alias items: iconColumn
 
+    readonly property var netSpeedConfig: GlobalConfig.bar?.netSpeed ?? null
+    readonly property bool netSpeedEnabled: netSpeedConfig?.enabled ?? true
+    readonly property bool netSpeedShowIcons: netSpeedConfig?.showIcons ?? true
+    readonly property int netSpeedFontSize: netSpeedConfig?.fontSize ?? 10
+    readonly property int netSpeedMaxDigits: netSpeedConfig?.maxDigits ?? 0
+    readonly property bool showSpeed: root.netSpeedEnabled
+
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
 
     clip: true
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: iconColumn.implicitHeight + Tokens.padding.normal * 2 - (Config.bar.status.showLockStatus && !Hypr.capsLock && !Hypr.numLock ? iconColumn.spacing : 0)
+
+    Component.onCompleted: NetworkUsage.refCount++
+    Component.onDestruction: NetworkUsage.refCount--
 
     ColumnLayout {
         id: iconColumn
@@ -32,6 +42,7 @@ StyledRect {
         anchors.bottomMargin: Tokens.padding.normal
 
         spacing: Tokens.spacing.smaller / 2
+
 
         // Lock keys status
         WrappedLoader {
@@ -103,29 +114,6 @@ StyledRect {
             }
         }
 
-        // Audio icon
-        WrappedLoader {
-            name: "audio"
-            active: Config.bar.status.showAudio
-
-            sourceComponent: MaterialIcon {
-                animate: true
-                text: Icons.getVolumeIcon(Audio.volume, Audio.muted)
-                color: root.colour
-            }
-        }
-
-        // Microphone icon
-        WrappedLoader {
-            name: "audio"
-            active: Config.bar.status.showMicrophone
-
-            sourceComponent: MaterialIcon {
-                animate: true
-                text: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
-                color: root.colour
-            }
-        }
 
         // Keyboard layout icon
         WrappedLoader {

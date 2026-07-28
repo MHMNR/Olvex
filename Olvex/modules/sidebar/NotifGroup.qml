@@ -31,12 +31,24 @@ StyledRect {
         return NotificationUrgency.Low;
     }
 
+    readonly property color urgencyAccent: urgency === NotificationUrgency.Critical
+        ? Colours.palette.m3error
+        : urgency === NotificationUrgency.Low
+            ? Colours.palette.m3surfaceContainerHighest
+            : Colours.palette.m3secondaryContainer
+    readonly property color urgencyOnAccent: urgency === NotificationUrgency.Critical
+        ? Colours.palette.m3onError
+        : urgency === NotificationUrgency.Low
+            ? Colours.palette.m3onSurface
+            : Colours.palette.m3onSecondaryContainer
+
     readonly property int nonAnimHeight: {
         const headerHeight = header.implicitHeight + (root.expanded ? Math.round(Tokens.spacing.small / 2) : 0);
         const columnHeight = headerHeight + notifList.layoutHeight;
-        return Math.round(Math.max(TokenConfig.sizes.notifs.image, columnHeight) + Tokens.padding.normal * 2);
+        return Math.round(Math.max(avatarSize, columnHeight) + Tokens.padding.normal * 2);
     }
     readonly property bool expanded: props.expandedNotifs.includes(modelData)
+    readonly property int avatarSize: 36
 
     function toggleExpand(expand: bool): void {
         if (expand) {
@@ -57,19 +69,20 @@ StyledRect {
     implicitHeight: nonAnimHeight
 
     clip: true
-    radius: Tokens.rounding.normal
+    radius: Tokens.rounding.large
     color: Colours.tileSurface
-
     border.width: 1
-    border.color: Colours.tileStroke
+    border.color: Colours.tileStrokeSubtle
 
-    StyledRect {
+    // Soft inner rim — single subtle pass, not heavy double frame
+    Rectangle {
         anchors.fill: parent
         anchors.margins: 1
         radius: parent.radius - 1
         color: "transparent"
-        border.color: Colours.tileInnerLine
         border.width: 1
+        border.color: Colours.tileInnerLine
+        z: 0
     }
 
     Behavior on implicitHeight {
@@ -85,13 +98,13 @@ StyledRect {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: Tokens.padding.normal
+        spacing: Tokens.spacing.small
 
-        spacing: Tokens.spacing.normal
-
+        // ── App avatar ──
         Item {
             Layout.alignment: Qt.AlignLeft | Qt.AlignTop
-            implicitWidth: TokenConfig.sizes.notifs.image
-            implicitHeight: TokenConfig.sizes.notifs.image
+            implicitWidth: root.avatarSize
+            implicitHeight: root.avatarSize
 
             Component {
                 id: imageComp
@@ -99,12 +112,12 @@ StyledRect {
                 Image {
                     source: Qt.resolvedUrl(root.image)
                     fillMode: Image.PreserveAspectCrop
-                    sourceSize.width: TokenConfig.sizes.notifs.image
-                    sourceSize.height: TokenConfig.sizes.notifs.image
+                    sourceSize.width: root.avatarSize
+                    sourceSize.height: root.avatarSize
                     cache: false
                     asynchronous: true
-                    width: TokenConfig.sizes.notifs.image
-                    height: TokenConfig.sizes.notifs.image
+                    width: root.avatarSize
+                    height: root.avatarSize
                 }
             }
 
@@ -112,9 +125,9 @@ StyledRect {
                 id: appIconComp
 
                 ColouredIcon {
-                    implicitSize: Math.round(TokenConfig.sizes.notifs.image * 0.6)
+                    implicitSize: Math.round(root.avatarSize * 0.52)
                     source: Quickshell.iconPath(root.appIcon)
-                    colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    colour: root.urgencyOnAccent
                     layer.enabled: root.appIcon.endsWith("symbolic")
                 }
             }
@@ -124,14 +137,14 @@ StyledRect {
 
                 MaterialIcon {
                     text: Icons.getNotifIcon(root.activeNotifs[0]?.summary, root.urgency)
-                    color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
-                    iconPointSize: Tokens.font.size.large
+                    color: root.urgencyOnAccent
+                    iconPointSize: Tokens.font.size.normal
                 }
             }
 
             StyledClippingRect {
                 anchors.fill: parent
-                color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3error : root.urgency === NotificationUrgency.Low ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 3) : Colours.palette.m3secondaryContainer
+                color: root.urgencyAccent
                 radius: Tokens.rounding.full
 
                 Loader {
@@ -148,17 +161,18 @@ StyledRect {
                 active: root.appIcon && root.image
 
                 sourceComponent: StyledRect {
-                    implicitWidth: Tokens.sizes.notifs.badge
-                    implicitHeight: Tokens.sizes.notifs.badge
-
-                    color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3error : root.urgency === NotificationUrgency.Low ? Colours.palette.m3surfaceContainerHigh : Colours.palette.m3secondaryContainer
+                    implicitWidth: 16
+                    implicitHeight: 16
+                    color: root.urgencyAccent
                     radius: Tokens.rounding.full
+                    border.width: 1.5
+                    border.color: Colours.tileSurface
 
                     ColouredIcon {
                         anchors.centerIn: parent
-                        implicitSize: Math.round(Tokens.sizes.notifs.badge * 0.6)
+                        implicitSize: 10
                         source: Quickshell.iconPath(root.appIcon)
-                        colour: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                        colour: root.urgencyOnAccent
                         layer.enabled: root.appIcon.endsWith("symbolic")
                     }
                 }
@@ -169,7 +183,7 @@ StyledRect {
             id: column
 
             Layout.fillWidth: true
-            spacing: root.expanded ? Math.round(Tokens.spacing.small / 2) : 0
+            spacing: root.expanded ? Math.round(Tokens.spacing.small / 2) : 2
 
             RowLayout {
                 id: header
@@ -181,8 +195,9 @@ StyledRect {
                 StyledText {
                     Layout.fillWidth: true
                     text: root.modelData
-                    color: Colours.palette.m3onSurfaceVariant
+                    color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.small
+                    font.weight: Font.Medium
                     elide: Text.ElideRight
                 }
 
@@ -191,17 +206,31 @@ StyledRect {
                     text: root.activeNotifs[0]?.timeStr ?? ""
                     color: Colours.palette.m3outline
                     textPointSize: Tokens.font.size.small
+                    font.family: Tokens.font.family.mono
+                    opacity: 0.9
                 }
 
+                // Expand / count chip
                 StyledRect {
-                    implicitWidth: expandBtn.implicitWidth + Tokens.padding.smaller * 2
-                    implicitHeight: groupCount.implicitHeight + Tokens.padding.small
-
-                    color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3error : Colours.layer(Colours.palette.m3surfaceContainerHigh, 3)
+                    implicitWidth: expandBtn.implicitWidth + Tokens.padding.small * 2
+                    implicitHeight: 24
+                    color: root.urgency === NotificationUrgency.Critical
+                        ? Colours.palette.m3error
+                        : Qt.alpha(Colours.palette.m3onSurface, expandHover.containsMouse ? 0.12 : 0.07)
                     radius: Tokens.rounding.full
+                    border.width: 0
+                    border.color: "transparent"
+
+                    Behavior on color {
+                        CAnim {}
+                    }
 
                     StateLayer {
-                        color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : Colours.palette.m3onSurface
+                        id: expandHover
+                        radius: parent.radius
+                        color: root.urgency === NotificationUrgency.Critical
+                            ? Colours.palette.m3onError
+                            : Colours.palette.m3onSurface
                         onClicked: root.toggleExpand(!root.expanded)
                     }
 
@@ -209,32 +238,30 @@ StyledRect {
                         id: expandBtn
 
                         anchors.centerIn: parent
-                        spacing: Tokens.spacing.small / 2
+                        spacing: 2
 
                         StyledText {
                             id: groupCount
 
-                            Layout.leftMargin: Tokens.padding.small / 2
                             animate: true
                             text: root.notifCount
-                            color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : Colours.palette.m3onSurface
+                            color: root.urgency === NotificationUrgency.Critical
+                                ? Colours.palette.m3onError
+                                : Colours.palette.m3onSurface
                             textPointSize: Tokens.font.size.small
+                            font.weight: Font.Medium
+                            font.family: Tokens.font.family.mono
                         }
 
                         MaterialIcon {
-                            Layout.rightMargin: -Tokens.padding.small / 2
                             text: "expand_more"
-                            color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : Colours.palette.m3onSurface
+                            color: root.urgency === NotificationUrgency.Critical
+                                ? Colours.palette.m3onError
+                                : Colours.palette.m3onSurfaceVariant
+                            iconPointSize: Tokens.font.size.normal
                             rotation: root.expanded ? 180 : 0
-                            Layout.topMargin: root.expanded ? -Math.floor(Tokens.padding.smaller / 2) : 0
 
                             Behavior on rotation {
-                                Anim {
-                                    type: Anim.DefaultSpatial
-                                }
-                            }
-
-                            Behavior on Layout.topMargin {
                                 Anim {
                                     type: Anim.DefaultSpatial
                                 }

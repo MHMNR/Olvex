@@ -33,6 +33,26 @@ StyledRect {
 
     color: Qt.alpha(Colours.tPalette.m3surfaceContainer, (Config.bar.tray.background && items.count > 0) ? Colours.tPalette.m3surfaceContainer.a : 0)
     radius: Tokens.rounding.full
+    border.width: 1
+    border.color: hoverArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.35) : Qt.alpha(Colours.palette.m3outlineVariant, 0.12)
+    scale: hoverArea.containsMouse ? 1.03 : 1.0
+
+    Behavior on scale {
+        Anim {
+            type: Anim.FastSpatial
+        }
+    }
+
+    Behavior on border.color {
+        CAnim {}
+    }
+
+    MouseArea {
+        id: hoverArea
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+    }
 
     Column {
         id: layout

@@ -4,6 +4,7 @@
 #include "audioprovider.hpp"
 #include <cava/cavacore.h>
 #include <cstddef>
+#include <qmutex.h>
 #include <qloggingcategory.h>
 #include <algorithm>
 
@@ -122,11 +123,14 @@ CavaProvider::CavaProvider(QObject* parent)
     , m_bars(0)
     , m_frameRate(30)
     , m_values(m_bars, 0.0)
-    , m_active(false) {
+    , m_active(false)
+    , m_qmlValuePublishing(false)
+    , m_valuesNotifyPending(false) {
     m_processor = new CavaProcessor();
     init();
 
-    connect(static_cast<CavaProcessor*>(m_processor), &CavaProcessor::valuesChanged, this, &CavaProvider::updateValues);
+    connect(static_cast<CavaProcessor*>(m_processor), &CavaProcessor::valuesChanged, this, &CavaProvider::updateValues,
+        Qt::DirectConnection);
 }
 
 int CavaProvider::bars() const {
@@ -160,25 +164,62 @@ void CavaProvider::setBars(int bars) {
         return;
     }
 
-    m_values.resize(bars, 0.0);
-    m_bars = bars;
+    {
+        QMutexLocker locker(&m_valuesMutex);
+        m_values.resize(bars, 0.0);
+        m_bars = bars;
+    }
     emit barsChanged();
-    emit valuesChanged();
+    scheduleValuesChanged();
 
     QMetaObject::invokeMethod(
         static_cast<CavaProcessor*>(m_processor), &CavaProcessor::setBars, Qt::QueuedConnection, bars);
 }
 
 QVector<double> CavaProvider::values() const {
+    QMutexLocker locker(&m_valuesMutex);
     return m_values;
 }
 
+bool CavaProvider::qmlValuePublishing() const {
+    return m_qmlValuePublishing.load(std::memory_order_relaxed);
+}
+
+void CavaProvider::setQmlValuePublishing(bool publishing) {
+    if (m_qmlValuePublishing.exchange(publishing, std::memory_order_relaxed) == publishing)
+        return;
+
+    emit qmlValuePublishingChanged();
+    if (publishing)
+        scheduleValuesChanged();
+}
+
 void CavaProvider::updateValues(QVector<double> values) {
-    if (values != m_values) {
-        m_values = values;
-        // qCDebug(lcCava) << "CavaProvider: values updated, first bar:" << (m_values.isEmpty() ? 0 : m_values[0]);
-        emit valuesChanged();
+    bool changed = false;
+    {
+        QMutexLocker locker(&m_valuesMutex);
+        if (values != m_values) {
+            m_values = std::move(values);
+            changed = true;
+        }
     }
+
+    if (changed)
+        scheduleValuesChanged();
+}
+
+void CavaProvider::scheduleValuesChanged() {
+    if (!m_qmlValuePublishing.load(std::memory_order_relaxed))
+        return;
+
+    if (m_valuesNotifyPending.exchange(true, std::memory_order_acq_rel))
+        return;
+
+    QMetaObject::invokeMethod(this, [this]() {
+        m_valuesNotifyPending.store(false, std::memory_order_release);
+        if (m_qmlValuePublishing.load(std::memory_order_relaxed))
+            emit valuesChanged();
+    }, Qt::QueuedConnection);
 }
 
 void CavaProvider::start() {

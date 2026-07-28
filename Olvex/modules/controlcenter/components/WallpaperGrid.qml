@@ -68,63 +68,54 @@ GridView {
             layer.enabled: true
             layer.smooth: true
 
-            CachingImage {
+            // Resolve live → jpg thumb (video paths cannot paint as Image)
+            readonly property string resolvedPath: {
+                const _ = Wallpapers.thumbnailUpdateCount;
+                return Wallpapers.displayPathFor(modelData?.path ?? "") || (modelData?.path ?? "");
+            }
+
+            Component.onCompleted: {
+                if (Wallpapers.isVideoPath(modelData?.path ?? ""))
+                    Wallpapers.queueThumbnail(modelData.path, isCurrent);
+            }
+
+            Image {
                 id: cachingImage
 
-                path: modelData.path
                 anchors.fill: parent
+                source: {
+                    const p = image.resolvedPath;
+                    if (!p || Wallpapers.isVideoPath(p))
+                        return "";
+                    return p.startsWith("file:") ? p : ("file://" + p);
+                }
                 fillMode: Image.PreserveAspectCrop
+                asynchronous: true
                 cache: true
                 visible: opacity > 0
                 antialiasing: true
                 smooth: true
-                sourceSize: Qt.size(width, height)
-
+                mipmap: true
+                sourceSize: Qt.size(Math.max(1, Math.round(width * 2)), Math.max(1, Math.round(height * 2)))
                 opacity: status === Image.Ready ? 1 : 0
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 1000
+                        duration: 280
                         easing.type: Easing.OutQuad
                     }
                 }
             }
 
-            // Fallback if CachingImage fails to load
-            Image {
-                id: fallbackImage
-
-                anchors.fill: parent
-                source: fallbackTimer.triggered && cachingImage.status !== Image.Ready ? modelData.path : ""
-                asynchronous: true
-                fillMode: Image.PreserveAspectCrop
-                cache: true
-                visible: opacity > 0
-                antialiasing: true
-                smooth: true
-                sourceSize: Qt.size(width, height)
-
-                opacity: status === Image.Ready && cachingImage.status !== Image.Ready ? 1 : 0
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 1000
-                        easing.type: Easing.OutQuad
-                    }
-                }
+            MaterialIcon {
+                anchors.centerIn: parent
+                visible: Wallpapers.isVideoPath(modelData?.path ?? "") && cachingImage.status !== Image.Ready
+                text: "movie"
+                color: Colours.palette.m3outline
+                iconPointSize: Tokens.font.size.extraLarge
             }
 
-            Timer {
-                id: fallbackTimer
-
-                property bool triggered: false
-
-                interval: 800
-                running: cachingImage.status === Image.Loading || cachingImage.status === Image.Null
-                onTriggered: triggered = true
-            }
-
-            // Gradient overlay for filename
+            // Flat scrim for filename (no gradient)
             Rectangle {
                 id: filenameOverlay
 
@@ -134,25 +125,7 @@ GridView {
 
                 implicitHeight: filenameText.implicitHeight + Tokens.padding.normal * 1.5
                 radius: 0
-
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0.0
-                        color: Qt.rgba(Colours.palette.m3surface.r, Colours.palette.m3surface.g, Colours.palette.m3surface.b, 0)
-                    }
-                    GradientStop {
-                        position: 0.3
-                        color: Qt.rgba(Colours.palette.m3surface.r, Colours.palette.m3surface.g, Colours.palette.m3surface.b, 0.7)
-                    }
-                    GradientStop {
-                        position: 0.6
-                        color: Qt.rgba(Colours.palette.m3surface.r, Colours.palette.m3surface.g, Colours.palette.m3surface.b, 0.9)
-                    }
-                    GradientStop {
-                        position: 1.0
-                        color: Qt.rgba(Colours.palette.m3surface.r, Colours.palette.m3surface.g, Colours.palette.m3surface.b, 0.95)
-                    }
-                }
+                color: Qt.alpha(Colours.palette.m3surface, 0.88)
 
                 opacity: 0
 
@@ -197,7 +170,7 @@ GridView {
                 visible: isCurrent
                 text: "check_circle"
                 color: Colours.palette.m3primary
-                iconPointSize: Tokens.font.size.large
+                font.pointSize: Tokens.font.size.large
             }
         }
 
@@ -212,8 +185,8 @@ GridView {
             anchors.bottomMargin: Tokens.padding.normal
 
             text: modelData.name
-            textPointSize: Tokens.font.size.smaller
-            font.weight: 500
+            font.pointSize: Tokens.font.size.smaller
+            font.weight: 400
             color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurface
             elide: Text.ElideMiddle
             maximumLineCount: 1

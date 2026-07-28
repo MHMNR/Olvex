@@ -76,7 +76,7 @@ ColumnLayout {
         StyledText {
             visible: root.label !== ""
             text: root.label
-            textPointSize: Tokens.font.size.normal
+            font.pointSize: Tokens.font.size.normal
         }
 
         Item {
@@ -138,7 +138,7 @@ ColumnLayout {
             visible: root.suffix !== ""
             text: root.suffix
             color: Colours.palette.m3outline
-            textPointSize: Tokens.font.size.normal
+            font.pointSize: Tokens.font.size.normal
         }
     }
 
@@ -146,7 +146,8 @@ ColumnLayout {
         id: slider
 
         Layout.fillWidth: true
-        implicitHeight: Tokens.padding.normal * 3
+        // Number already shown in input field above
+        showValue: false
 
         from: root.from
         to: root.to

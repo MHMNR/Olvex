@@ -16,16 +16,35 @@ Item {
     required property Item wallpaper
 
     readonly property bool shouldBeActive: Config.background.visualiser.enabled && Players.activeIsPlaying && !(wallpaper.item?.liveWallpaperActive ?? false) && (!Config.background.visualiser.autoHide || (Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true))
-    readonly property int frameFps: Math.max(1, Math.min(GlobalConfig.services["visualiserFps"] || 30, 60))
+    readonly property bool ownsVisualizer: VisualizerState.visibleOwner === ("background:" + root.screen.name)
+    readonly property bool renderActive: root.shouldBeActive && root.ownsVisualizer
+    // A non-background owner (lock pill / overlay / bar) holds the single visualizer
+    // slot — its surface is opaque and covers us, so we are fully occluded. Snap off
+    // instantly instead of fading, so the full-screen blur stops competing for the
+    // GPU immediately (e.g. during the lock-screen entrance) rather than lingering
+    // for the fade duration behind something the user can't see.
+    readonly property bool supersededByForeground: {
+        const owner = VisualizerState.visibleOwner;
+        return owner !== "" && owner !== ("background:" + root.screen.name) && owner.indexOf("background:") !== 0;
+    }
+    readonly property int frameFps: Math.max(1, Math.min(GlobalConfig.services["visualiserFps"] || 60, 60))
     readonly property int frameInterval: Math.max(16, Math.round(1000 / frameFps))
-    property real offset: shouldBeActive ? 0 : screen.height * 0.2
+    property real offset: renderActive ? 0 : screen.height * 0.2
 
-    opacity: shouldBeActive ? 1 : 0
+    opacity: renderActive ? 1 : 0
+
+    function syncVisualizerOwner(): void {
+        VisualizerState.request("background:" + root.screen.name, 10, root.shouldBeActive);
+    }
+
+    onShouldBeActiveChanged: root.syncVisualizerOwner()
+    Component.onCompleted: root.syncVisualizerOwner()
+    Component.onDestruction: VisualizerState.release("background:" + root.screen.name)
 
     Loader {
         asynchronous: true
         anchors.fill: parent
-        active: root.opacity > 0 && Config.background.visualiser.blur
+        active: root.renderActive && root.opacity > 0 && Config.background.visualiser.blur
 
         sourceComponent: MultiEffect {
             source: root.wallpaper
@@ -42,8 +61,8 @@ Item {
         id: wrapper
 
         anchors.fill: parent
-        visible: root.opacity > 0
-        layer.enabled: root.opacity > 0
+        visible: root.renderActive || root.opacity > 0
+        layer.enabled: Config.background.visualiser.blur && (root.renderActive || root.opacity > 0)
 
         Loader {
             asynchronous: true
@@ -51,13 +70,9 @@ Item {
             anchors.topMargin: root.offset
             anchors.bottomMargin: -root.offset
 
-            active: root.opacity > 0
+            active: root.renderActive || root.opacity > 0
 
             sourceComponent: Item {
-                ServiceRef {
-                    service: Audio.cava
-                }
-
                 VisualiserBars {
                     id: bars
 
@@ -86,24 +101,25 @@ Item {
                             })).thickness
                     anchors.leftMargin: Visibilities.bars.get(root.screen).exclusiveZone + Tokens.spacing.small * Config.background.visualiser.spacing
 
-                    values: Audio.cava.values
+                    values: root.renderActive ? VisualizerState.values : []
+                    active: root.renderActive || root.opacity > 0
+                    frameInterval: root.frameInterval
                     primaryColor: Qt.alpha(Colours.palette.m3primary, 0.7)
                     secondaryColor: Qt.alpha(Colours.palette.m3inversePrimary, 0.7)
                     rounding: Tokens.rounding.small * Config.background.visualiser.rounding
                     spacing: Tokens.spacing.small * Config.background.visualiser.spacing
                     animationDuration: Math.max(root.frameInterval * 3, 90)
 
+                    onSettledChanged: {
+                        if (root.ownsVisualizer)
+                            VisualizerState.isSettled = settled;
+                    }
+
                     Behavior on anchors.leftMargin {
                         Anim {}
                     }
                 }
 
-                Timer {
-                    interval: root.frameInterval
-                    running: root.opacity > 0 && !bars.settled
-                    repeat: true
-                    onTriggered: bars.advance(interval / 1000)
-                }
             }
         }
     }
@@ -113,6 +129,7 @@ Item {
     }
 
     Behavior on opacity {
+        enabled: !root.supersededByForeground
         Anim {}
     }
 }

@@ -95,6 +95,6 @@ StyledRect {
     }
 
     component EAnim: Anim {
-        type: Anim.Emphasized
+        type: Anim.DefaultSpatial
     }
 }

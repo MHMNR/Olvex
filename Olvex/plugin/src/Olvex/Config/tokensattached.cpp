@@ -14,7 +14,9 @@ namespace {
 const AppearanceConfig* resolveAppearance(GlobalConfig* config, bool complete, const char* prop, QObject* parent) {
     if (config)
         return config->appearance();
-    if ((complete || !qobject_cast<QQuickItem*>(parent)) && parent)
+    // Match sizes(): only warn for completed visual Items missing screen. Animations/non-items
+    // cannot receive attached screen propagation — silent global fallback is expected.
+    if (complete && parent && qobject_cast<QQuickItem*>(parent))
         qCWarning(lcConfig, "Tokens.%s accessed without a screen set on %s", prop, parent->metaObject()->className());
     return GlobalConfig::instance()->appearance();
 }
@@ -98,7 +100,11 @@ const AppearanceTransparency* Tokens::transparency() const {
 const SizeTokens* Tokens::sizes() const {
     if (m_tokens)
         return m_tokens->sizes();
-    if ((m_complete || !qobject_cast<QQuickItem*>(parent())) && parent())
+    // Non-Items (NumberAnimation / Anim / etc.) cannot join attached-screen propagation.
+    // Only warn for visual Items that finished componentComplete without a screen — those are real bugs.
+    // Silent global fallback for animations and incomplete items (normal during construction).
+    auto* item = parent() ? qobject_cast<QQuickItem*>(parent()) : nullptr;
+    if (m_complete && item && m_screen.isEmpty())
         qCWarning(lcConfig, "Tokens.sizes accessed without a screen set on %s", parent()->metaObject()->className());
     return TokenConfig::instance()->sizes();
 }

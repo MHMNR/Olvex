@@ -79,7 +79,7 @@ Item {
 
                     text: "select_window"
                     color: Colours.palette.m3onPrimaryContainer
-                    iconPointSize: Tokens.font.size.large
+                    font.pointSize: Tokens.font.size.large
                     fill: 1
                 }
 
@@ -193,7 +193,7 @@ Item {
 
                 text: item.icon
                 color: item.active ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                iconPointSize: Tokens.font.size.large
+                font.pointSize: Tokens.font.size.large
                 fill: item.active ? 1 : 0
 
                 Behavior on fill {
@@ -222,7 +222,7 @@ Item {
                 anchors.topMargin: Tokens.spacing.small / 2
 
                 text: item.label
-                textPointSize: Tokens.font.size.small
+                font.pointSize: Tokens.font.size.small
                 font.capitalization: Font.Capitalize
             }
         }

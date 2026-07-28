@@ -199,7 +199,7 @@ ColumnLayout {
         implicitHeight: authContent.implicitHeight + Tokens.padding.large * 2
         
         radius: Tokens.rounding.large
-        color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
+        color: Colours.palette.m3surfaceContainerHigh
         
         ColumnLayout {
             id: authContent

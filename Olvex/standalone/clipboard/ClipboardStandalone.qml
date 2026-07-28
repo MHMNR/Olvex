@@ -27,6 +27,10 @@ Window {
     property bool busy: false
     property string filterMode: "all"
     property bool keyboardNavActive: true
+    // When false, list hover must not steal selection (arrow keys vs cursor-over-list)
+    property bool listHoverSelectEnabled: true
+    property real listHoverFreezeX: 0
+    property real listHoverFreezeY: 0
     property int selectionPulse: 0
     property int previewRev: 0
     property int imageRev: 0
@@ -193,23 +197,12 @@ Window {
 
                     width: fbg.segmentWidth
                     height: fbgRow.height
-                    scale: segMa.pressed ? 0.94
-                        : (segMa.containsMouse && !fbgSeg.active ? 1.03 : 1.0)
-
-                    Behavior on scale {
-                        enabled: !win.reducedMotion
-                        NumberAnimation {
-                            duration: tok.motion.effectsExpressive.fast
-                            easing.type: Easing.OutBack
-                            easing.overshoot: tok.motion.expressiveOvershoot
-                        }
-                    }
 
                     Rectangle {
                         anchors.fill: parent
                         radius: tok.shape.full
                         color: tok.palette.fgSurface
-                        opacity: segMa.pressed ? 0.12
+                        opacity: segMa.pressed ? 0.1
                             : (segMa.containsMouse && !fbgSeg.active ? 0.06 : 0)
                         Behavior on opacity {
                             enabled: !win.reducedMotion
@@ -342,13 +335,20 @@ Window {
         property string tone: "neutral"
         signal triggered()
 
-        implicitWidth: 36
-        implicitHeight: 36
-        radius: tok.shape.sm
-        color: ibMa.pressed
-            ? tok.palette.stageHigh
-            : (ibMa.containsMouse ? tok.palette.secondaryContainer : "transparent")
-        scale: ibMa.pressed ? 0.88 : (ibMa.containsMouse ? 1.08 : 1.0)
+        implicitWidth: 34
+        implicitHeight: 34
+        radius: tok.shape.full
+        color: {
+            if (ib.tone === "error")
+                return ibMa.pressed
+                    ? Qt.darker(tok.palette.errorContainer, 1.08)
+                    : (ibMa.containsMouse ? tok.palette.errorContainer : tok.palette.errorContainer)
+            return ibMa.pressed
+                ? tok.palette.stageHigh
+                : (ibMa.containsMouse ? tok.palette.secondaryContainer : "transparent")
+        }
+        border.width: 0
+        scale: ibMa.pressed ? 0.9 : (ibMa.containsMouse ? 1.06 : 1.0)
 
         Behavior on scale {
             enabled: !win.reducedMotion
@@ -470,20 +470,28 @@ Window {
         id: tbtn
         property string label: ""
         property string glyph: ""
-        property string tone: "neutral"
+        property string tone: "neutral" // neutral | error
         signal triggered()
 
-        implicitHeight: 40
-        implicitWidth: Math.max(92, tbtnRow.implicitWidth + 28)
-        radius: tok.shape.full
-        color: {
+        readonly property color _fg: tbtn.tone === "error"
+            ? tok.palette.fgErrorContainer
+            : tok.palette.fgSecondaryContainer
+        readonly property color _bg: {
             if (tbtn.tone === "error")
-                return tMa.pressed ? Qt.rgba(1, 0.46, 0.49, 0.35) : tok.palette.errorContainer
+                return tMa.pressed
+                    ? Qt.darker(tok.palette.errorContainer, 1.08)
+                    : tok.palette.errorContainer
             return tMa.pressed ? tok.palette.stageHigh : tok.palette.secondaryContainer
         }
+
+        implicitHeight: 40
+        implicitWidth: Math.max(tbtn.label.length > 0 ? 88 : 40, tbtnRow.implicitWidth + 24)
+        radius: tok.shape.full
+        color: tbtn._bg
+        border.width: 0
         opacity: enabled ? 1 : 0.38
-        scale: enabled && tMa.pressed ? 0.92
-            : (enabled && tMa.containsMouse ? 1.04 : 1.0)
+        scale: enabled && tMa.pressed ? 0.94
+            : (enabled && tMa.containsMouse ? 1.03 : 1.0)
 
         Behavior on scale {
             enabled: !win.reducedMotion
@@ -508,7 +516,7 @@ Window {
             spacing: 6
 
             Item {
-                Layout.preferredWidth: 28
+                Layout.preferredWidth: tbtn.glyph.length > 0 ? 22 : 0
                 Layout.preferredHeight: 22
                 Layout.alignment: Qt.AlignVCenter
                 visible: tbtn.glyph.length > 0
@@ -516,23 +524,20 @@ Window {
                 Text {
                     anchors.centerIn: parent
                     text: tbtn.glyph
-                    font.pixelSize: 12
-                    font.weight: Font.Bold
+                    font.pixelSize: tbtn.glyph.length > 1 ? 11 : 13
+                    font.weight: Font.DemiBold
                     font.family: tbtn.glyph.length > 1 ? "Monospace" : "Sans Serif"
                     horizontalAlignment: Text.AlignHCenter
-                    color: tbtn.tone === "error"
-                        ? tok.palette.fgErrorContainer
-                        : tok.palette.fgSecondaryContainer
+                    color: tbtn._fg
                 }
             }
 
             Text {
                 Layout.alignment: Qt.AlignVCenter
+                visible: tbtn.label.length > 0
                 text: tbtn.label
-                font: tok.type.label
-                color: tbtn.tone === "error"
-                    ? tok.palette.fgErrorContainer
-                    : tok.palette.fgSecondaryContainer
+                font: tok.type.labelEmph
+                color: tbtn._fg
             }
         }
 
@@ -546,7 +551,52 @@ Window {
         }
 
         Accessible.role: Accessible.Button
-        Accessible.name: tbtn.label
+        Accessible.name: tbtn.label.length > 0 ? tbtn.label : tbtn.glyph
+    }
+
+    // Compact kbd hint chip for footer shortcuts — solid M3 surface
+    component KbdHint: Rectangle {
+        id: kh
+        property string keys: ""
+        property string caption: ""
+
+        implicitHeight: 22
+        implicitWidth: khRow.implicitWidth + 10
+        radius: tok.shape.sm
+        color: "transparent"
+
+        Row {
+            id: khRow
+            anchors.centerIn: parent
+            spacing: 5
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                implicitWidth: Math.max(22, keyLbl.implicitWidth + 10)
+                implicitHeight: 18
+                radius: 5
+                color: tok.palette.stageHigh
+                border.width: 1
+                border.color: tok.palette.outlineVariant
+
+                Text {
+                    id: keyLbl
+                    anchors.centerIn: parent
+                    text: kh.keys
+                    font.pixelSize: 10
+                    font.weight: Font.DemiBold
+                    font.family: "Monospace"
+                    color: tok.palette.fgMuted
+                }
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: kh.caption
+                font: tok.type.label
+                color: tok.palette.fgMuted
+            }
+        }
     }
 
     component WavyBar: Item {
@@ -606,11 +656,16 @@ Window {
         signal deleteRequested()
 
         width: ListView.view ? ListView.view.width : implicitWidth
-        height: 56
-        implicitHeight: 56
+        height: 60
+        implicitHeight: 60
         opacity: 1
 
-        // Hit target stays unscaled — scaled visuals were stealing hover from adjacent rows.
+        // Hover on visual only — MouseArea fills row for click without fighting delete
+        HoverHandler {
+            id: rowHover
+            cursorShape: Qt.PointingHandCursor
+        }
+
         MouseArea {
             id: rowMa
 
@@ -624,9 +679,11 @@ Window {
             id: rowBody
 
             anchors.fill: parent
-            anchors.leftMargin: 4
-            anchors.rightMargin: 4
-            scale: rowMa.pressed ? 0.98 : (row.isCurrent ? 1.01 : 1.0)
+            anchors.leftMargin: 2
+            anchors.rightMargin: 2
+            anchors.topMargin: 2
+            anchors.bottomMargin: 2
+            scale: rowMa.pressed ? 0.985 : (row.isCurrent ? 1.0 : 1.0)
             transformOrigin: Item.Center
 
             Behavior on scale {
@@ -654,30 +711,34 @@ Window {
                 NumberAnimation {
                     target: rowBody
                     property: "scale"
-                    to: 1.03
+                    to: 1.02
                     duration: 80
                     easing.type: Easing.OutCubic
                 }
                 NumberAnimation {
                     target: rowBody
                     property: "scale"
-                    to: row.isCurrent ? 1.01 : 1.0
+                    to: 1.0
                     duration: 180
                     easing.type: Easing.OutBack
                     easing.overshoot: 1.1
                 }
             }
 
+            // Selection fill is the sliding listFocusMarker. Rows: solid M3 hover only.
             Rectangle {
                 id: rowSurface
 
                 anchors.fill: parent
-                radius: rowMa.pressed ? (height / 2) : tok.shape.md
-                color: row.isCurrent
-                    ? Qt.alpha(tok.palette.primaryContainer, 0.38)
-                    : Qt.alpha(tok.palette.stageContent, 0.22)
-                border.width: row.isCurrent ? 1 : 0
-                border.color: Qt.alpha(tok.palette.primary, 0.22)
+                radius: rowMa.pressed ? tok.shape.lg : tok.shape.md
+                color: {
+                    if (row.isCurrent)
+                        return "transparent"
+                    if (rowHover.hovered)
+                        return tok.palette.stageContent
+                    return "transparent"
+                }
+                border.width: 0
 
                 Behavior on radius {
                     enabled: !win.reducedMotion
@@ -690,27 +751,40 @@ Window {
                 Behavior on color {
                     enabled: !win.reducedMotion
                     ColorAnimation {
-                        duration: tok.motion.emphasizedMedium
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: tok.motion.emphasized
+                        duration: tok.motion.effectsExpressive.fast
                     }
                 }
             }
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 12
-                anchors.rightMargin: 8
+                anchors.leftMargin: 14
+                // Room for gliding delete on focus marker
+                anchors.rightMargin: 44
                 spacing: 10
                 z: 1
 
+                // ID chip — solid M3
                 Rectangle {
-                    Layout.preferredWidth: 36
+                    Layout.preferredWidth: Math.max(36, idLbl.implicitWidth + 12)
                     Layout.preferredHeight: 24
                     radius: tok.shape.full
-                    color: row.isCurrent ? tok.palette.primary : tok.palette.stageHigh
+                    color: row.isCurrent
+                        ? tok.palette.primary
+                        : tok.palette.stageContent
+                    border.width: 0
+
+                    Behavior on color {
+                        enabled: !win.reducedMotion
+                        ColorAnimation {
+                            duration: tok.motion.emphasizedMedium
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: tok.motion.emphasized
+                        }
+                    }
 
                     Text {
+                        id: idLbl
                         anchors.centerIn: parent
                         text: row.entryId
                         font: tok.type.labelEmph
@@ -727,17 +801,18 @@ Window {
                     }
                 }
 
+                // Image thumb — solid primaryContainer
                 Rectangle {
                     visible: row.isImage
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: 42
+                    Layout.preferredHeight: 42
                     radius: tok.shape.sm
-                    color: tok.palette.tertiaryContainer
+                    color: tok.palette.primaryContainer
                     clip: true
-                    border.width: 1
-                    border.color: Qt.alpha(tok.palette.outlineVariant, 0.45)
+                    border.width: 0
 
                     Image {
+                        id: thumbImg
                         anchors.fill: parent
                         anchors.margins: 1
                         source: {
@@ -745,9 +820,24 @@ Window {
                             return (row.imagePath && row.imagePath.length > 0)
                                 ? ("file://" + row.imagePath) : ""
                         }
-                        sourceSize: Qt.size(80, 80)
+                        sourceSize: Qt.size(84, 84)
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
+                        smooth: true
+                        opacity: status === Image.Ready ? 1 : 0
+
+                        Behavior on opacity {
+                            enabled: !win.reducedMotion
+                            NumberAnimation { duration: tok.motion.effectsExpressive.fast }
+                        }
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: thumbImg.status !== Image.Ready
+                        text: "▦"
+                        font.pixelSize: 16
+                        color: tok.palette.fgPrimaryContainer
                     }
                 }
 
@@ -757,6 +847,7 @@ Window {
                     Layout.preferredHeight: 22
                     radius: tok.shape.full
                     color: tok.palette.tertiaryContainer
+                    border.width: 0
 
                     Text {
                         id: imgChipLbl
@@ -782,24 +873,6 @@ Window {
                         enabled: !win.reducedMotion
                         ColorAnimation {
                             duration: tok.motion.emphasizedMedium
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: tok.motion.emphasized
-                        }
-                    }
-                }
-
-                IconButton {
-                    opacity: rowMa.containsMouse || row.isCurrent ? 1 : 0
-                    visible: opacity > 0
-                    glyph: "×"
-                    tone: "error"
-                    accessibleName: qsTr("Delete")
-                    onTriggered: row.deleteRequested()
-
-                    Behavior on opacity {
-                        enabled: !win.reducedMotion
-                        NumberAnimation {
-                            duration: tok.motion.effectsExpressive.fast
                             easing.type: Easing.BezierSpline
                             easing.bezierCurve: tok.motion.emphasized
                         }
@@ -985,6 +1058,28 @@ Window {
         selectedIndex = idx
     }
 
+    // Keyboard moved focus — ignore list hover until the pointer actually moves
+    function freezeListHoverSelect() {
+        listHoverSelectEnabled = false
+        if (listHover && listHover.hovered) {
+            listHoverFreezeX = listHover.point.position.x
+            listHoverFreezeY = listHover.point.position.y
+        }
+    }
+
+    function maybeResumeListHoverSelect(px, py) {
+        if (listHoverSelectEnabled)
+            return true
+        const dx = px - listHoverFreezeX
+        const dy = py - listHoverFreezeY
+        // ~4px real mouse move re-arms hover selection
+        if ((dx * dx + dy * dy) < 16)
+            return false
+        listHoverSelectEnabled = true
+        keyboardNavActive = false
+        return true
+    }
+
     function syncListSelection() {
         if (!listView || clipListModel.count === 0) return
         const idx = Math.max(0, Math.min(selectedIndex, clipListModel.count - 1))
@@ -1085,8 +1180,17 @@ Window {
             return
         previewEditing = true
         resetPreviewHistory(previewEditText)
-        if (previewEditor)
-            previewEditor.forceActiveFocus()
+        // Defer focus until after edit UI enables (avoids race with overlays)
+        Qt.callLater(function() {
+            if (!previewEditor || !win.previewEditing)
+                return
+            previewEditor.readOnly = false
+            previewEditor.cursorVisible = true
+            previewEditor.forceActiveFocus(Qt.MouseFocusReason)
+            // Caret at end if empty selection
+            if (previewEditor.cursorPosition < 0)
+                previewEditor.cursorPosition = previewEditor.text.length
+        })
     }
 
     function setPreviewEditorText(text) {
@@ -1183,6 +1287,8 @@ Window {
     function moveSelection(delta) {
         if (!clipListModel.count) return
         keyboardNavActive = true
+        freezeListHoverSelect()
+        reclaimFocus()
         const next = Math.max(0, Math.min(clipListModel.count - 1, selectedIndex + delta))
         if (next === selectedIndex) return
         selectedIndex = next
@@ -1194,6 +1300,8 @@ Window {
     function jumpSelection(toIndex) {
         if (!clipListModel.count) return
         keyboardNavActive = true
+        freezeListHoverSelect()
+        reclaimFocus()
         const next = Math.max(0, Math.min(clipListModel.count - 1, toIndex))
         if (next === selectedIndex) return
         selectedIndex = next
@@ -1337,44 +1445,52 @@ Window {
         onActivated: win.handleEscape()
     }
 
-    // Window shortcuts — work even when no item holds keyboard focus (e.g. after list click)
+    // Window shortcuts — work even when list steals focus under the cursor
     Shortcut {
-        sequences: [StandardKey.MoveToPreviousLine]
+        sequences: ["Up", StandardKey.MoveToPreviousLine]
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: moveSelection(-1)
     }
     Shortcut {
-        sequences: [StandardKey.MoveToNextLine]
+        sequences: ["Down", StandardKey.MoveToNextLine]
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: moveSelection(1)
     }
     Shortcut {
-        sequences: [StandardKey.MoveToStartOfDocument]
+        sequences: ["Home", StandardKey.MoveToStartOfDocument]
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: jumpSelection(0)
     }
     Shortcut {
-        sequences: [StandardKey.MoveToEndOfDocument]
+        sequences: ["End", StandardKey.MoveToEndOfDocument]
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: jumpSelection(clipListModel.count - 1)
     }
     Shortcut {
-        sequences: [StandardKey.MoveToPreviousPage]
+        sequences: ["PgUp", StandardKey.MoveToPreviousPage]
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: moveSelection(-Math.max(1, Math.floor(listView.height / 48)))
     }
     Shortcut {
-        sequences: [StandardKey.MoveToNextPage]
+        sequences: ["PgDown", StandardKey.MoveToNextPage]
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: moveSelection(Math.max(1, Math.floor(listView.height / 48)))
     }
     Shortcut {
-        sequences: [StandardKey.InsertParagraphSeparator, StandardKey.InsertLineSeparator]
+        sequences: ["Return", "Enter", StandardKey.InsertParagraphSeparator, StandardKey.InsertLineSeparator]
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: copySelected()
     }
     Shortcut {
         sequence: "Delete"
+        context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: deleteSelected()
     }
@@ -1425,14 +1541,16 @@ Window {
             scale: win.shellScale
             transformOrigin: Item.Center
 
-            // Reclaim focus after mouse clicks so arrow keys reach rootFocus / handleKey
+            // Reclaim focus after mouse clicks so arrow keys reach rootFocus / handleKey.
+            // Never steal focus while the text editor is active (kills the caret).
             MouseArea {
                 anchors.fill: parent
                 z: -1
                 hoverEnabled: false
                 propagateComposedEvents: true
                 onPressed: function(mouse) {
-                    win.reclaimFocus()
+                    if (!win.previewEditing)
+                        win.reclaimFocus()
                     mouse.accepted = false
                 }
             }
@@ -1499,78 +1617,108 @@ Window {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: 10
                             Layout.bottomMargin: 2
 
-                            Text {
-                                text: qsTr("Clipboard")
-                                font: tok.type.titleEmph
-                                color: tok.palette.fgSurface
-                            }
+                            Column {
+                                Layout.fillWidth: true
+                                spacing: 2
 
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                id: statusLbl
-                                text: statusMessage.length > 0
-                                    ? statusMessage
-                                    : qsTr("%1 clips").arg(clipListModel.count)
-                                font: tok.type.label
-                                color: tok.palette.fgMuted
-
-                                Connections {
-                                    target: win
-                                    function onFilteredHistoryChanged() {
-                                        if (!win.reducedMotion)
-                                            statusPulse.restart()
-                                    }
-                                    function onStatusMessageChanged() {
-                                        if (!win.reducedMotion)
-                                            statusPulse.restart()
-                                    }
+                                Text {
+                                    text: qsTr("Clipboard")
+                                    font: tok.type.titleEmph
+                                    color: tok.palette.fgSurface
                                 }
 
-                                SequentialAnimation {
-                                    id: statusPulse
-                                    running: false
-                                    NumberAnimation {
-                                        target: statusLbl
-                                        property: "opacity"
-                                        to: 0.45
-                                        duration: win.reducedMotion ? 1 : 80
+                                Text {
+                                    id: statusLbl
+                                    text: statusMessage.length > 0
+                                        ? statusMessage
+                                        : qsTr("%1 clips in history").arg(clipListModel.count)
+                                    font: tok.type.label
+                                    color: tok.palette.fgMuted
+                                    opacity: 0.9
+
+                                    Connections {
+                                        target: win
+                                        function onFilteredHistoryChanged() {
+                                            if (!win.reducedMotion)
+                                                statusPulse.restart()
+                                        }
+                                        function onStatusMessageChanged() {
+                                            if (!win.reducedMotion)
+                                                statusPulse.restart()
+                                        }
                                     }
-                                    NumberAnimation {
-                                        target: statusLbl
-                                        property: "opacity"
-                                        to: 1
-                                        duration: win.reducedMotion ? 1 : 160
-                                        easing.type: Easing.OutCubic
+
+                                    SequentialAnimation {
+                                        id: statusPulse
+                                        running: false
+                                        NumberAnimation {
+                                            target: statusLbl
+                                            property: "opacity"
+                                            to: 0.4
+                                            duration: win.reducedMotion ? 1 : 80
+                                        }
+                                        NumberAnimation {
+                                            target: statusLbl
+                                            property: "opacity"
+                                            to: 0.9
+                                            duration: win.reducedMotion ? 1 : 160
+                                            easing.type: Easing.OutCubic
+                                        }
                                     }
                                 }
                             }
 
+                            // Count chip — solid primaryContainer
+                            Rectangle {
+                                Layout.alignment: Qt.AlignVCenter
+                                implicitWidth: Math.max(36, countChipLbl.implicitWidth + 14)
+                                implicitHeight: 28
+                                radius: height / 2
+                                color: tok.palette.primaryContainer
+                                border.width: 0
+                                visible: clipListModel.count > 0 && statusMessage.length === 0
+
+                                Text {
+                                    id: countChipLbl
+                                    anchors.centerIn: parent
+                                    text: String(clipListModel.count)
+                                    font: tok.type.labelEmph
+                                    color: tok.palette.fgPrimaryContainer
+                                }
+                            }
+
+                            // Clear history — soft destructive, never solid red blob
                             TonalButton {
-                                label: qsTr("Clear all")
+                                Layout.alignment: Qt.AlignVCenter
+                                label: qsTr("Clear")
+                                glyph: "⌫"
                                 tone: "error"
+                                implicitHeight: 32
+                                enabled: clipListModel.count > 0
                                 onTriggered: win.wipeAll()
                             }
                         }
 
                         Item {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 6
+                            Layout.preferredHeight: 4
                         }
 
-                        // Command search — shape morph on focus
+                        // Command search — solid M3 field
                         Rectangle {
                             id: searchBox
                             Layout.fillWidth: true
-                            property int boxHeight: searchField.activeFocus ? 52 : 44
+                            property int boxHeight: searchField.activeFocus ? 50 : 44
                             Layout.preferredHeight: boxHeight
                             radius: searchField.activeFocus ? tok.shape.xl : tok.shape.lg
                             color: searchField.activeFocus
-                                ? Qt.alpha(tok.palette.primary, 0.14)
+                                ? tok.palette.primaryContainer
                                 : tok.palette.stageContent
+                            border.width: searchField.activeFocus ? 2 : 0
+                            border.color: tok.palette.primary
 
                             Behavior on boxHeight {
                                 enabled: !win.reducedMotion
@@ -1585,6 +1733,9 @@ Window {
                                 NumberAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutQuad }
                             }
                             Behavior on color {
+                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
+                            }
+                            Behavior on border.color {
                                 ColorAnimation { duration: tok.motion.effectsExpressive.fast }
                             }
 
@@ -1603,7 +1754,9 @@ Window {
                                     font.weight: Font.DemiBold
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
-                                    color: searchField.activeFocus ? tok.palette.primary : tok.palette.fgMuted
+                                    color: searchField.activeFocus
+                                        ? tok.palette.fgPrimaryContainer
+                                        : tok.palette.fgMuted
                                     scale: searchField.activeFocus ? 1.12 : 1.0
 
                                     Behavior on color {
@@ -1626,8 +1779,12 @@ Window {
                                     placeholderText: qsTr("Search or jump…")
                                     text: searchQuery
                                     font: tok.type.body
-                                    color: tok.palette.fgSurface
-                                    placeholderTextColor: tok.palette.fgMuted
+                                    color: searchField.activeFocus
+                                        ? tok.palette.fgPrimaryContainer
+                                        : tok.palette.fgSurface
+                                    placeholderTextColor: searchField.activeFocus
+                                        ? tok.palette.fgPrimaryContainer
+                                        : tok.palette.fgMuted
                                     selectByMouse: true
                                     background: Item {}
                                     onTextChanged: {
@@ -1687,8 +1844,6 @@ Window {
                             FilterButtonGroup {
                                 id: filterSeg
                                 anchors.fill: parent
-                                scale: 1
-                                transformOrigin: Item.Top
                                 current: win.filterIndexForMode(filterMode)
                                 options: [
                                     { label: qsTr("All"), value: "all", glyph: "☰" },
@@ -1696,34 +1851,6 @@ Window {
                                     { label: qsTr("Images"), value: "image", glyph: "▤" }
                                 ]
                                 onPicked: function(index, value) { win.setFilter(value) }
-                            }
-
-                            Connections {
-                                target: win
-                                function onFilterModeChanged() {
-                                    if (!win.reducedMotion)
-                                        filterSegPop.restart()
-                                }
-                            }
-
-                            SequentialAnimation {
-                                id: filterSegPop
-                                running: false
-                                NumberAnimation {
-                                    target: filterSeg
-                                    property: "scale"
-                                    to: 0.98
-                                    duration: 70
-                                    easing.type: Easing.OutCubic
-                                }
-                                NumberAnimation {
-                                    target: filterSeg
-                                    property: "scale"
-                                    to: 1
-                                    duration: 160
-                                    easing.type: Easing.OutBack
-                                    easing.overshoot: tok.motion.expressiveOvershoot
-                                }
                             }
                         }
 
@@ -1782,119 +1909,6 @@ Window {
                                     color: tok.palette.stageHigh
                                 }
 
-                            // M3 expressive spatial spring — selection chrome slides between rows
-                            Item {
-                                id: listSelection
-                                z: 0
-                                width: listPage.width
-                                visible: clipListModel.count > 0 && listSelection.selectedItem()
-                                opacity: visible ? 1 : 0
-
-                                function selectedItem() {
-                                    if (win.selectedIndex < 0 || win.selectedIndex >= clipListModel.count)
-                                        return null
-                                    return listView.itemAtIndex(win.selectedIndex)
-                                }
-
-                                function targetY() {
-                                    const item = selectedItem()
-                                    if (!item)
-                                        return 0
-                                    return item.y - listView.contentY
-                                }
-
-                                function targetHeight() {
-                                    const item = selectedItem()
-                                    if (!item)
-                                        return 0
-                                    return item.height
-                                }
-
-                                function snapY() {
-                                    selectionYAnim.stop()
-                                    y = targetY()
-                                }
-
-                                function reposition(animate) {
-                                    const ty = targetY()
-                                    const th = targetHeight()
-                                    if (!animate || win.reducedMotion) {
-                                        selectionYAnim.stop()
-                                        selectionHAnim.stop()
-                                        y = ty
-                                        height = th
-                                        return
-                                    }
-                                    selectionYAnim.to = ty
-                                    selectionHAnim.to = th
-                                    selectionYAnim.start()
-                                    selectionHAnim.start()
-                                }
-
-                                Component.onCompleted: reposition(false)
-
-                                SpringAnimation {
-                                    id: selectionYAnim
-                                    target: listSelection
-                                    property: "y"
-                                    spring: tok.motion.spatialExpressive.defaultSpring
-                                    damping: tok.motion.spatialExpressive.defaultDamping
-                                    mass: tok.motion.springMass
-                                    epsilon: tok.motion.springEpsilon
-                                }
-
-                                SpringAnimation {
-                                    id: selectionHAnim
-                                    target: listSelection
-                                    property: "height"
-                                    spring: tok.motion.spatialExpressive.defaultSpring
-                                    damping: tok.motion.spatialExpressive.defaultDamping
-                                    mass: tok.motion.springMass
-                                    epsilon: tok.motion.springEpsilon
-                                }
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 4
-                                    anchors.rightMargin: 4
-                                    radius: tok.shape.md
-                                    color: Qt.alpha(tok.palette.primaryContainer, 0.28)
-                                }
-
-                                Rectangle {
-                                    width: 3
-                                    height: parent.height - 8
-                                    radius: tok.shape.full
-                                    color: tok.palette.primary
-                                    anchors.left: parent.left
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            Connections {
-                                target: win
-                                function onSelectedIndexChanged() {
-                                    Qt.callLater(function() { listSelection.reposition(true) })
-                                }
-                            }
-
-                            Connections {
-                                target: listView
-                                function onContentYChanged() {
-                                    const ty = listSelection.targetY()
-                                    if (selectionYAnim.running)
-                                        selectionYAnim.to = ty
-                                    else
-                                        listSelection.y = ty
-                                }
-                                function onCountChanged() {
-                                    Qt.callLater(function() { listSelection.reposition(false) })
-                                }
-                                function onCurrentItemChanged() {
-                                    Qt.callLater(function() { listSelection.reposition(false) })
-                                }
-                            }
-
                             // List-level pointer routing — avoids scaled-row hitbox overlap (±1 bug)
                             HoverHandler {
                                 id: listHover
@@ -1906,13 +1920,142 @@ Window {
                                 function syncFromPointer() {
                                     if (!hovered)
                                         return
-                                    const idx = win.indexAtListPoint(
-                                        point.position.x, point.position.y)
+                                    const px = point.position.x
+                                    const py = point.position.y
+                                    // After arrow keys, ignore hover until the mouse moves
+                                    if (!win.maybeResumeListHoverSelect(px, py))
+                                        return
+                                    const idx = win.indexAtListPoint(px, py)
                                     win.selectClipAtIndex(idx)
                                 }
 
-                                onHoveredChanged: syncFromPointer()
+                                onHoveredChanged: {
+                                    if (!hovered)
+                                        return
+                                    // Fresh enter always allows hover select
+                                    win.listHoverSelectEnabled = true
+                                    syncFromPointer()
+                                }
                                 onPointChanged: syncFromPointer()
+                            }
+
+                            // Sliding focus marker fill — BEHIND list so row text stays visible
+                            Item {
+                                id: listFocusMarker
+
+                                readonly property Item targetItem: {
+                                    if (win.selectedIndex < 0 || win.selectedIndex >= clipListModel.count)
+                                        return null
+                                    return listView.itemAtIndex(win.selectedIndex)
+                                }
+                                readonly property bool active: targetItem !== null && clipListModel.count > 0
+                                readonly property int insetX: 6
+                                readonly property int insetY: 4
+
+                                property bool springEnabled: false
+                                property real markerY: 0
+                                property real markerH: 48
+
+                                z: 0
+                                x: insetX
+                                width: Math.max(0, listPage.width - insetX * 2)
+                                y: markerY
+                                height: markerH
+                                opacity: active ? 1 : 0
+                                enabled: false
+
+                                function retarget(animate) {
+                                    const item = targetItem
+                                    if (!item)
+                                        return
+                                    const rowH = item.height > 0 ? item.height : 60
+                                    const ny = item.y - listView.contentY + insetY
+                                    const nh = Math.max(36, rowH - insetY * 2)
+                                    const wantAnim = !!(animate && !win.reducedMotion && springEnabled)
+                                    if (!wantAnim)
+                                        springEnabled = false
+                                    markerY = ny
+                                    markerH = nh
+                                    if (!wantAnim) {
+                                        Qt.callLater(function() {
+                                            if (listFocusMarker.targetItem)
+                                                listFocusMarker.springEnabled = !win.reducedMotion
+                                        })
+                                    }
+                                }
+
+                                onTargetItemChanged: {
+                                    if (targetItem)
+                                        retarget(springEnabled)
+                                    else
+                                        springEnabled = false
+                                }
+                                onActiveChanged: {
+                                    if (active)
+                                        retarget(false)
+                                    else
+                                        springEnabled = false
+                                }
+
+                                Connections {
+                                    target: win
+                                    function onSelectedIndexChanged() {
+                                        Qt.callLater(function() {
+                                            listFocusMarker.retarget(true)
+                                        })
+                                    }
+                                }
+
+                                Connections {
+                                    target: listView
+                                    function onContentYChanged() {
+                                        listFocusMarker.retarget(false)
+                                    }
+                                    function onCountChanged() {
+                                        Qt.callLater(function() {
+                                            listFocusMarker.retarget(false)
+                                        })
+                                    }
+                                    function onHeightChanged() {
+                                        listFocusMarker.retarget(false)
+                                    }
+                                }
+
+                                Behavior on markerY {
+                                    enabled: listFocusMarker.springEnabled
+                                    SpringAnimation {
+                                        spring: 4.6
+                                        damping: 0.74
+                                        mass: 1.0
+                                        epsilon: 0.005
+                                    }
+                                }
+                                Behavior on markerH {
+                                    enabled: listFocusMarker.springEnabled
+                                    SpringAnimation {
+                                        spring: 5.0
+                                        damping: 0.78
+                                        mass: 1.0
+                                        epsilon: 0.005
+                                    }
+                                }
+                                Behavior on opacity {
+                                    enabled: !win.reducedMotion
+                                    NumberAnimation {
+                                        duration: tok.motion.effectsExpressive.defaultMs
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+
+                                // Soft tonal pill under row content — secondaryContainer for clearer contrast vs rail
+                                Rectangle {
+                                    anchors.fill: parent
+                                    // Less stadium, more M3 container (was height/2)
+                                    radius: tok.shape.md
+                                    color: tok.palette.secondaryContainer
+                                    border.width: 1
+                                    border.color: tok.palette.outlineVariant
+                                }
                             }
 
                             ListView {
@@ -1978,7 +2121,7 @@ Window {
                                     contentItem: Rectangle {
                                         implicitWidth: 3
                                         radius: 2
-                                        color: Qt.alpha(tok.palette.primary, 0.5)
+                                        color: tok.palette.primary
                                     }
                                 }
 
@@ -2038,6 +2181,32 @@ Window {
                                     }
                                 }
                             }
+
+                            // Delete only above list — tracks marker (fill is under list text)
+                            IconButton {
+                                id: listFocusDelete
+                                z: 2
+                                x: listFocusMarker.x + listFocusMarker.width - width - 8
+                                y: listFocusMarker.y + (listFocusMarker.height - height) / 2
+                                opacity: listFocusMarker.active ? 1 : 0
+                                visible: opacity > 0.01
+                                enabled: listFocusMarker.active
+                                glyph: "×"
+                                tone: "error"
+                                accessibleName: qsTr("Delete")
+                                onTriggered: {
+                                    win.selectClipAtIndex(win.selectedIndex)
+                                    win.deleteSelected()
+                                }
+
+                                Behavior on opacity {
+                                    enabled: !win.reducedMotion
+                                    NumberAnimation {
+                                        duration: tok.motion.effectsExpressive.defaultMs
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
                             }
                         }
                     }
@@ -2051,14 +2220,8 @@ Window {
                     color: tok.palette.stageContent
                     radius: tok.shape.xl
                     clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
-                        color: "transparent"
-                        border.width: 1
-                        border.color: Qt.alpha(tok.palette.outlineVariant, 0.35)
-                    }
+                    border.width: 1
+                    border.color: tok.palette.outlineVariant
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -2186,7 +2349,7 @@ Window {
                                 implicitWidth: editedLbl.implicitWidth + 14
                                 implicitHeight: 24
                                 radius: tok.shape.full
-                                color: Qt.alpha(tok.palette.primary, 0.2)
+                                color: tok.palette.primaryContainer
 
                                 Behavior on opacity {
                                     enabled: !win.reducedMotion
@@ -2323,75 +2486,154 @@ Window {
                                                 }
                                             }
 
-                                            ScrollView {
+                                            // Flickable + TextEdit — reliable caret (ScrollView/TextArea often eats focus)
+                                            Flickable {
                                                 id: previewScroll
                                                 Layout.fillWidth: true
                                                 Layout.fillHeight: true
                                                 clip: true
-                                                ScrollBar.vertical.policy: ScrollBar.AsNeeded
-                                                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                                                contentWidth: width
+                                                contentHeight: Math.max(previewEditor.implicitHeight, height)
+                                                boundsBehavior: Flickable.StopAtBounds
+                                                flickableDirection: Flickable.VerticalFlick
+                                                interactive: contentHeight > height + 1
+                                                // Never take keyboard focus from the editor
+                                                focus: false
 
-                                                TextArea {
-                                                id: previewEditor
-                                                width: previewScroll.availableWidth
-                                                height: Math.max(
-                                                    contentHeight + topPadding + bottomPadding,
-                                                    previewScroll.availableHeight)
-                                                text: {
-                                                    const _rev = win.previewRev
-                                                    return win.previewEditText
-                                                }
-                                                readOnly: !win.previewEditing
-                                                wrapMode: TextArea.WrapAtWordBoundaryOrAnywhere
-                                                font: tok.type.preview
-                                                color: tok.palette.fgSurface
-                                                selectedTextColor: tok.palette.fgPrimary
-                                                selectionColor: Qt.alpha(tok.palette.primary, 0.35)
-                                                padding: 12
-                                                selectByMouse: win.previewEditing
-                                                activeFocusOnTab: win.previewEditing
-                                                focus: win.previewEditing
-                                                cursorVisible: win.previewEditing
-                                                background: null
+                                                TextEdit {
+                                                    id: previewEditor
+                                                    width: previewScroll.width
+                                                    // Fill viewport so empty area is still clickable for caret
+                                                    height: Math.max(implicitHeight, previewScroll.height)
+                                                    // Imperative text — binding would fight caret/selection
+                                                    readOnly: !win.previewEditing
+                                                    wrapMode: TextEdit.Wrap
+                                                    textFormat: TextEdit.PlainText
+                                                    font: tok.type.preview
+                                                    color: tok.palette.fgSurface
+                                                    selectedTextColor: tok.palette.fgPrimary
+                                                    selectionColor: Qt.alpha(tok.palette.primary, 0.35)
+                                                    leftPadding: 12
+                                                    rightPadding: 12
+                                                    topPadding: 12
+                                                    bottomPadding: 12
+                                                    selectByMouse: true
+                                                    selectByKeyboard: true
+                                                    persistentSelection: true
+                                                    activeFocusOnPress: true
+                                                    // Always allow caret paint when focused; hide when read-only
+                                                    cursorVisible: !readOnly && activeFocus
+                                                    // Ensure IME / input method enabled
+                                                    inputMethodHints: Qt.ImhNone
 
-                                                TapHandler {
-                                                    enabled: !win.previewEditing
-                                                    onTapped: win.beginPreviewEdit()
+                                                    // Material-style blinking caret (high contrast)
+                                                    cursorDelegate: Rectangle {
+                                                        id: caret
+                                                        width: 2
+                                                        color: tok.palette.primary
+                                                        // height is set by TextEdit to line height
+                                                        visible: previewEditor.activeFocus
+                                                            && !previewEditor.readOnly
+                                                            && previewEditor.selectionStart === previewEditor.selectionEnd
+
+                                                        Connections {
+                                                            target: previewEditor
+                                                            function onCursorPositionChanged() {
+                                                                caret.opacity = 1
+                                                                caretBlink.restart()
+                                                            }
+                                                            function onActiveFocusChanged() {
+                                                                caret.opacity = 1
+                                                                if (previewEditor.activeFocus)
+                                                                    caretBlink.restart()
+                                                            }
+                                                        }
+
+                                                        Timer {
+                                                            id: caretBlink
+                                                            interval: Math.max(200, Application.styleHints.cursorFlashTime / 2)
+                                                            running: caret.visible
+                                                            repeat: true
+                                                            onTriggered: caret.opacity = caret.opacity > 0.5 ? 0 : 1
+                                                            onRunningChanged: if (running) caret.opacity = 1
+                                                        }
+                                                    }
+
+                                                    Component.onCompleted: text = win.previewEditText
+
+                                                    Connections {
+                                                        target: win
+                                                        function onPreviewRevChanged() {
+                                                            if (win.previewEditing || win.previewUndoLock)
+                                                                return
+                                                            previewEditor.text = win.previewEditText
+                                                        }
+                                                        function onPreviewEditingChanged() {
+                                                            if (win.previewEditing) {
+                                                                previewEditor.readOnly = false
+                                                                previewEditor.forceActiveFocus(Qt.OtherFocusReason)
+                                                                previewEditor.cursorVisible = true
+                                                            } else {
+                                                                previewEditor.cursorVisible = false
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Enter edit mode on click when idle
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        enabled: !win.previewEditing
+                                                        cursorShape: Qt.IBeamCursor
+                                                        onClicked: win.beginPreviewEdit()
+                                                    }
+
+                                                    onActiveFocusChanged: {
+                                                        if (activeFocus && win.previewEditing)
+                                                            cursorVisible = true
+                                                    }
+
+                                                    onTextChanged: {
+                                                        if (win.previewUndoLock || !win.previewEditing)
+                                                            return
+                                                        if (text !== win.previewLastText)
+                                                            win.pushPreviewUndo(win.previewLastText)
+                                                        win.previewLastText = text
+                                                        win.previewEditText = text
+                                                    }
+
+                                                    Keys.priority: Keys.BeforeItem
+                                                    Keys.onPressed: function(event) {
+                                                        if (win.handleFilterArrow(event))
+                                                            return
+                                                        if (!win.previewEditing)
+                                                            win.handleKey(event)
+                                                    }
+                                                    Keys.onEscapePressed: function(event) {
+                                                        win.handleEscape()
+                                                        event.accepted = true
+                                                    }
+
+                                                    Shortcut {
+                                                        sequence: "Ctrl+Z"
+                                                        enabled: win.previewEditing && previewEditor.activeFocus
+                                                        onActivated: win.undoPreview()
+                                                    }
+
+                                                    Shortcut {
+                                                        sequences: [StandardKey.Redo]
+                                                        enabled: win.previewEditing && previewEditor.activeFocus
+                                                        onActivated: win.redoPreview()
+                                                    }
                                                 }
 
-                                                onTextChanged: {
-                                                    if (win.previewUndoLock || !win.previewEditing)
-                                                        return
-                                                    if (text !== win.previewLastText)
-                                                        win.pushPreviewUndo(win.previewLastText)
-                                                    win.previewLastText = text
-                                                    win.previewEditText = text
+                                                ScrollBar.vertical: ScrollBar {
+                                                    policy: ScrollBar.AsNeeded
+                                                    contentItem: Rectangle {
+                                                        implicitWidth: 3
+                                                        radius: 2
+                                                        color: tok.palette.primary
+                                                    }
                                                 }
-
-                                                Keys.priority: Keys.BeforeItem
-                                                Keys.onPressed: function(event) {
-                                                    if (win.handleFilterArrow(event))
-                                                        return
-                                                    if (!win.previewEditing)
-                                                        win.handleKey(event)
-                                                }
-                                                Keys.onEscapePressed: function(event) {
-                                                    win.handleEscape()
-                                                    event.accepted = true
-                                                }
-
-                                                Shortcut {
-                                                    sequence: "Ctrl+Z"
-                                                    enabled: win.previewEditing
-                                                    onActivated: win.undoPreview()
-                                                }
-
-                                                Shortcut {
-                                                    sequences: [StandardKey.Redo]
-                                                    enabled: win.previewEditing
-                                                    onActivated: win.redoPreview()
-                                                }
-                                            }
                                             }
                                         }
                                     }
@@ -2439,7 +2681,7 @@ Window {
                                         color: tok.palette.stageHigh
                                         clip: true
                                         border.width: 1
-                                        border.color: Qt.alpha(tok.palette.primary, stageImage.status === Image.Ready ? 0.35 : 0.12)
+                                        border.color: tok.palette.outlineVariant
                                         scale: stageImage.status === Image.Ready ? 1 : 0.96
                                         opacity: stageImage.status === Image.Ready ? 1 : 0.85
 
@@ -2543,35 +2785,30 @@ Window {
                         ColumnLayout {
                             id: actionFooter
                             Layout.fillWidth: true
-                            Layout.preferredHeight: clipListModel.count > 0 ? 76 : 0
-                            spacing: 6
+                            Layout.preferredHeight: clipListModel.count > 0 ? 84 : 0
+                            spacing: 10
 
                             Item {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 56
+                                Layout.preferredHeight: 48
                                 Layout.alignment: Qt.AlignHCenter
 
                                 Rectangle {
                                     id: actionPill
-                                    readonly property int pillPad: 8
+                                    readonly property int pillPad: 6
 
                                     anchors.centerIn: parent
                                     width: actionRow.width + pillPad * 2
                                     height: actionRow.height + pillPad * 2
                                     radius: height / 2
                                     color: tok.palette.stageHigh
+                                    border.width: 1
+                                    border.color: tok.palette.outlineVariant
                                     opacity: clipListModel.count > 0 ? 1 : 0
-                                    scale: clipListModel.count > 0 ? 1 : 0.9
+                                    scale: clipListModel.count > 0 ? 1 : 0.92
                                     visible: opacity > 0
 
                                     Behavior on width {
-                                        enabled: !win.reducedMotion
-                                        NumberAnimation {
-                                            duration: tok.motion.effectsExpressive.fast
-                                            easing.type: Easing.OutCubic
-                                        }
-                                    }
-                                    Behavior on height {
                                         enabled: !win.reducedMotion
                                         NumberAnimation {
                                             duration: tok.motion.effectsExpressive.fast
@@ -2597,35 +2834,38 @@ Window {
                                     Row {
                                         id: actionRow
                                         anchors.centerIn: parent
-                                        spacing: 8
+                                        spacing: 6
 
                                         PrimaryButton {
                                             label: qsTr("Copy")
                                             glyph: "⏎"
+                                            implicitHeight: 36
                                             onTriggered: win.copySelected()
                                         }
 
                                         TonalButton {
                                             label: qsTr("Delete")
-                                            glyph: "Del"
+                                            glyph: "⌫"
                                             tone: "error"
+                                            implicitHeight: 36
                                             onTriggered: win.deleteSelected()
                                         }
 
                                         TonalButton {
                                             label: qsTr("Close")
                                             glyph: "Esc"
+                                            implicitHeight: 36
                                             onTriggered: win.close()
                                         }
                                     }
                                 }
                             }
 
-                            RowLayout {
+                            Row {
                                 Layout.alignment: Qt.AlignHCenter
-                                spacing: 12
+                                spacing: 14
                                 opacity: clipListModel.count > 0 ? 1 : 0
-                                visible: opacity > 0
+                                visible: opacity > 0.01
 
                                 Behavior on opacity {
                                     enabled: !win.reducedMotion
@@ -2635,30 +2875,10 @@ Window {
                                     }
                                 }
 
-                                Text {
-                                    text: "←→ " + qsTr("filter")
-                                    font: tok.type.label
-                                    color: tok.palette.fgMuted
-                                    opacity: 0.6
-                                }
-                                Text {
-                                    text: "↑↓ " + qsTr("navigate")
-                                    font: tok.type.label
-                                    color: tok.palette.fgMuted
-                                    opacity: 0.6
-                                }
-                                Text {
-                                    text: qsTr("Enter") + " " + qsTr("copy")
-                                    font: tok.type.label
-                                    color: tok.palette.fgMuted
-                                    opacity: 0.6
-                                }
-                                Text {
-                                    text: qsTr("Del") + " " + qsTr("delete")
-                                    font: tok.type.label
-                                    color: tok.palette.fgMuted
-                                    opacity: 0.6
-                                }
+                                KbdHint { keys: "←→"; caption: qsTr("filter") }
+                                KbdHint { keys: "↑↓"; caption: qsTr("navigate") }
+                                KbdHint { keys: "Enter"; caption: qsTr("copy") }
+                                KbdHint { keys: "Del"; caption: qsTr("delete") }
                             }
                         }
                     }
@@ -2704,22 +2924,32 @@ Window {
                 }
             }
 
-            // Dismiss edit mode when clicking outside the preview edit box
+            // Dismiss edit when clicking outside the editor frame.
+            // Uses hoverEnabled:false + accepted:false inside so TextEdit keeps focus/caret.
             MouseArea {
                 anchors.fill: parent
                 visible: win.previewEditing
                 enabled: win.previewEditing
                 z: 40
                 propagateComposedEvents: true
+                hoverEnabled: false
+                preventStealing: false
                 cursorShape: Qt.ArrowCursor
                 onPressed: function(mouse) {
                     const pt = mapToItem(previewEditFrame, mouse.x, mouse.y)
                     const inside = pt.x >= 0 && pt.y >= 0
                         && pt.x <= previewEditFrame.width && pt.y <= previewEditFrame.height
-                    if (!inside) {
-                        win.exitPreviewEdit()
+                    if (inside) {
                         mouse.accepted = false
+                        // Re-assert editor focus if something stole it
+                        Qt.callLater(function() {
+                            if (win.previewEditing && previewEditor)
+                                previewEditor.forceActiveFocus(Qt.MouseFocusReason)
+                        })
+                        return
                     }
+                    win.exitPreviewEdit()
+                    mouse.accepted = true
                 }
             }
         }

@@ -19,6 +19,7 @@ Item {
     required property real sourceVolume
     required property bool sourceMuted
     required property real brightness
+    property Item screenCapture: null
 
     implicitWidth: layout.implicitWidth + Tokens.padding.large * 2
     implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
@@ -48,6 +49,7 @@ Item {
                 value: root.volume
                 to: GlobalConfig.services.maxVolume
                 onMoved: Audio.setVolume(value)
+                screenCapture: root.screenCapture
             }
         }
 
@@ -73,6 +75,7 @@ Item {
                     value: root.sourceVolume
                     to: GlobalConfig.services.maxVolume
                     onMoved: Audio.setSourceVolume(value)
+                    screenCapture: root.screenCapture
                 }
             }
         }
@@ -101,6 +104,7 @@ Item {
                     icon: `brightness_${(Math.round(value * 6) + 1)}`
                     value: root.brightness
                     onMoved: root.monitor?.setBrightness(value)
+                    screenCapture: root.screenCapture
                 }
             }
         }

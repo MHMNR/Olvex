@@ -193,7 +193,7 @@ Item {
         clip: true
 
         StateLayer {
-            enabled: item.hasEntry
+            interactive: item.hasEntry
             onClicked: view.currentIndex = item.index
             onDoubleClicked: {
                 if (!item.hasEntry)

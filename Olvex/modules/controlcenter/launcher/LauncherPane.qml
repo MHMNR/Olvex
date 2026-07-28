@@ -156,8 +156,8 @@ Item {
 
                     StyledText {
                         text: qsTr("Launcher")
-                        textPointSize: Tokens.font.size.large
-                        font.weight: 500
+                        font.pointSize: Tokens.font.size.large
+                        font.weight: 400
                     }
 
                     Item {
@@ -188,8 +188,8 @@ Item {
                 StyledText {
                     Layout.topMargin: Tokens.spacing.large
                     text: qsTr("Applications (%1)").arg(root.searchText ? root.filteredApps.length : allAppsDb.apps.length)
-                    textPointSize: Tokens.font.size.normal
-                    font.weight: 500
+                    font.pointSize: Tokens.font.size.normal
+                    font.weight: 400
                 }
 
                 StyledText {
@@ -347,14 +347,14 @@ Item {
                                     implicitSize: 32
                                     source: {
                                         const entry = modelData.entry;
-                                        return entry ? Icons.resolveIcon(entry.icon || "", "image-missing") : Icons.resolveIcon("image-missing", "");
+                                        return entry ? Quickshell.iconPath(entry.icon, "image-missing") : "image-missing";
                                     }
                                 }
 
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: modelData.name || modelData.entry?.name || qsTr("Unknown")
-                                    textPointSize: Tokens.font.size.normal
+                                    font.pointSize: Tokens.font.size.normal
                                 }
 
                                 Loader {
@@ -550,12 +550,12 @@ Item {
                         source: {
                             const app = appDetailsLayout.displayedApp;
                             if (!app)
-                                return Icons.resolveIcon("image-missing", "");
+                                return "image-missing";
                             const entry = app.entry;
                             if (entry && entry.icon) {
-                                return Icons.resolveIcon(entry.icon, "image-missing");
+                                return Quickshell.iconPath(entry.icon, "image-missing");
                             }
-                            return Icons.resolveIcon("image-missing", "");
+                            return "image-missing";
                         }
                     }
 
@@ -564,7 +564,7 @@ Item {
 
                         Layout.alignment: Qt.AlignHCenter
                         text: displayedApp ? (displayedApp.name || displayedApp.entry?.name || qsTr("Application Details")) : ""
-                        textPointSize: Tokens.font.size.large
+                        font.pointSize: Tokens.font.size.large
                         font.bold: true
                     }
                 }

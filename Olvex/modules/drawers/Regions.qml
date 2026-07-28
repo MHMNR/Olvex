@@ -61,9 +61,13 @@ Region {
     }
 
     R {
+        // QS / utilities panel slides in from the right
         panel: root.panels.utilities
-        y: root.win.height - height
-        customHeight: (1 - root.panels.utilities.offsetScale) > 0 ? (panel.height * (1 - root.panels.utilities.offsetScale) + root.borderThickness) : 0
+        x: root.win.width - width
+        customWidth: (1 - root.panels.utilities.offsetScale) > 0
+            ? (panel.width * (1 - root.panels.utilities.offsetScale) + root.borderThickness)
+            : 0
+        customHeight: panel.height > 0 ? (panel.height + root.borderThickness) : 0
     }
 
     R {

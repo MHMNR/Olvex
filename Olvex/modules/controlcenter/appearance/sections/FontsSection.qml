@@ -35,6 +35,8 @@ CollapsibleSection {
             sourceComponent: StyledListView {
                 id: sansFontList
 
+                property alias contentHeight: sansFontList.contentHeight
+
                 clip: true
                 spacing: Tokens.spacing.small / 2
                 model: Qt.fontFamilies()
@@ -74,7 +76,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData
-                            textPointSize: Tokens.font.size.normal
+                            font.pointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -88,7 +90,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                iconPointSize: Tokens.font.size.large
+                                font.pointSize: Tokens.font.size.large
                             }
                         }
                     }
@@ -113,6 +115,8 @@ CollapsibleSection {
 
             sourceComponent: StyledListView {
                 id: monoFontList
+
+                property alias contentHeight: monoFontList.contentHeight
 
                 clip: true
                 spacing: Tokens.spacing.small / 2
@@ -153,7 +157,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData
-                            textPointSize: Tokens.font.size.normal
+                            font.pointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -167,7 +171,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                iconPointSize: Tokens.font.size.large
+                                font.pointSize: Tokens.font.size.large
                             }
                         }
                     }
@@ -194,6 +198,8 @@ CollapsibleSection {
 
             sourceComponent: StyledListView {
                 id: materialFontList
+
+                property alias contentHeight: materialFontList.contentHeight
 
                 clip: true
                 spacing: Tokens.spacing.small / 2
@@ -234,7 +240,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData
-                            textPointSize: Tokens.font.size.normal
+                            font.pointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -248,7 +254,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                iconPointSize: Tokens.font.size.large
+                                font.pointSize: Tokens.font.size.large
                             }
                         }
                     }

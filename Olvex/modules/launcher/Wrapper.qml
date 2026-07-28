@@ -14,17 +14,39 @@ Item {
     required property var panels
 
     readonly property bool shouldBeActive: visibilities.launcher && Config.launcher.enabled
+    readonly property bool contentActive: root.contentPrewarmed || root.shouldBeActive || root.visible || teardownGrace.running
+    property bool contentPrewarmed: false
 
     readonly property real maxHeight: {
-        let max = screen.height - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness * 2 - Tokens.spacing.large;
+        let max = screen.height - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
+                        thickness: 0,
+                        rounding: 0,
+                        minThickness: 0,
+                        floating: false,
+                        smoothing: 0,
+                        clampedThickness: 0
+                    })) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
+                    thickness: 0,
+                    rounding: 0,
+                    minThickness: 0,
+                    floating: false,
+                    smoothing: 0,
+                    clampedThickness: 0
+                }) : ({
+                    thickness: 0,
+                    rounding: 0,
+                    minThickness: 0,
+                    floating: false,
+                    smoothing: 0,
+                    clampedThickness: 0
+                })).thickness * 2 - Tokens.spacing.large;
         if (visibilities.dashboard)
             max -= panels.dashboard.nonAnimHeight;
         return max;
     }
 
     property real offsetScale: shouldBeActive ? 0 : 1
-    property bool contentPreloaded: false
-    property real cachedImplicitHeight: 0
+    property real cachedImplicitHeight: 590
     property real cachedImplicitWidth: 630
     readonly property bool closingAnimationActive: !shouldBeActive && teardownGrace.running
 
@@ -48,18 +70,29 @@ Item {
     onShouldBeActiveChanged: {
         if (shouldBeActive) {
             teardownGrace.stop();
-            contentPreloaded = true;
-            Qt.callLater(() => content.item?.resumeLists?.());
+            Qt.callLater(() => {
+                content.item?.resumeLists?.();
+            });
         } else {
             teardownGrace.restart();
         }
     }
 
-    function navigateUp() { content.item?.navigateUp?.(); }
-    function navigateDown() { content.item?.navigateDown?.(); }
-    function navigateLeft() { content.item?.navigateLeft?.(); }
-    function navigateRight() { content.item?.navigateRight?.(); }
-    function navigateEnter() { content.item?.navigateEnter?.(); }
+    function navigateUp() {
+        content.item?.navigateUp?.();
+    }
+    function navigateDown() {
+        content.item?.navigateDown?.();
+    }
+    function navigateLeft() {
+        content.item?.navigateLeft?.();
+    }
+    function navigateRight() {
+        content.item?.navigateRight?.();
+    }
+    function navigateEnter() {
+        content.item?.navigateEnter?.();
+    }
 
     visible: offsetScale < 1
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
@@ -73,9 +106,16 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        Qt.callLater(() => Apps.warmCatalog());
-        Qt.callLater(() => contentPreloaded = true);
+    Timer {
+        id: prewarmTimer
+
+        interval: 700
+        running: true
+        repeat: false
+        onTriggered: {
+            root.contentPrewarmed = true;
+            Apps.warmCatalog();
+        }
     }
 
     Component {
@@ -94,7 +134,7 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        active: root.contentPreloaded || root.shouldBeActive || root.visible || teardownGrace.running
+        active: root.contentActive
         asynchronous: true
         sourceComponent: contentComponent
 

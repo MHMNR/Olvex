@@ -17,7 +17,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("General Settings")
-        textPointSize: Tokens.font.size.normal
+        font.pointSize: Tokens.font.size.normal
     }
 
     SwitchRow {
@@ -38,13 +38,38 @@ SectionContainer {
         }
     }
 
-    SwitchRow {
+    RowLayout {
         Layout.fillWidth: true
-        label: qsTr("Show Dashboard tab")
-        checked: root.rootItem.showDashboard
-        onToggled: checked => {
-            root.rootItem.showDashboard = checked;
-            root.rootItem.saveConfig();
+        spacing: Tokens.spacing.normal
+
+        SwitchRow {
+            Layout.fillWidth: true
+            label: qsTr("Show Dashboard tab")
+            checked: root.rootItem.showDashboard
+            onToggled: checked => {
+                root.rootItem.showDashboard = checked;
+                root.rootItem.saveConfig();
+            }
+        }
+
+        SwitchRow {
+            Layout.fillWidth: true
+            label: qsTr("Show Performance tab")
+            checked: root.rootItem.showPerformance
+            onToggled: checked => {
+                root.rootItem.showPerformance = checked;
+                root.rootItem.saveConfig();
+            }
+        }
+
+        SwitchRow {
+            Layout.fillWidth: true
+            label: qsTr("Show Weather tab")
+            checked: root.rootItem.showWeather
+            onToggled: checked => {
+                root.rootItem.showWeather = checked;
+                root.rootItem.saveConfig();
+            }
         }
     }
 
@@ -71,7 +96,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("Card Sizes")
-        textPointSize: Tokens.font.size.normal
+        font.pointSize: Tokens.font.size.normal
     }
 
     SliderInput {

@@ -71,8 +71,8 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Wallpaper Transition")
-            textPointSize: Tokens.font.size.larger
-            font.weight: 500
+            font.pointSize: Tokens.font.size.larger
+            font.weight: 400
         }
 
         SplitButtonRow {
@@ -154,8 +154,8 @@ CollapsibleSection {
     SectionContainer {
         StyledText {
             text: qsTr("Cycling")
-            textPointSize: Tokens.font.size.larger
-            font.weight: 500
+            font.pointSize: Tokens.font.size.larger
+            font.weight: 400
         }
 
         SwitchRow {
@@ -216,8 +216,8 @@ CollapsibleSection {
     StyledText {
         Layout.topMargin: Tokens.spacing.normal
         text: qsTr("Desktop Clock")
-        textPointSize: Tokens.font.size.larger
-        font.weight: 500
+        font.pointSize: Tokens.font.size.larger
+        font.weight: 400
     }
 
     SwitchRow {
@@ -246,8 +246,8 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Positioning")
-            textPointSize: Tokens.font.size.larger
-            font.weight: 500
+            font.pointSize: Tokens.font.size.larger
+            font.weight: 400
         }
 
         SplitButtonRow {
@@ -337,8 +337,8 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Shadow")
-            textPointSize: Tokens.font.size.larger
-            font.weight: 500
+            font.pointSize: Tokens.font.size.larger
+            font.weight: 400
         }
 
         SwitchRow {
@@ -406,8 +406,8 @@ CollapsibleSection {
 
         StyledText {
             text: qsTr("Background")
-            textPointSize: Tokens.font.size.larger
-            font.weight: 500
+            font.pointSize: Tokens.font.size.larger
+            font.weight: 400
         }
 
         SwitchRow {
@@ -457,8 +457,8 @@ CollapsibleSection {
     StyledText {
         Layout.topMargin: Tokens.spacing.normal
         text: qsTr("Visualiser")
-        textPointSize: Tokens.font.size.larger
-        font.weight: 500
+        font.pointSize: Tokens.font.size.larger
+        font.weight: 400
     }
 
     SwitchRow {

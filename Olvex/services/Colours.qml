@@ -326,16 +326,27 @@ Singleton {
     }
 
     function setMode(mode) {
-        refreshThemePalette();
-        if (mode === "auto")
-            return;
-        schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-m", mode];
-        schemeSetProc.running = true;
+        // Launcher actions call setMode without writing themeMode first.
+        // Keep config in sync so schemeModeArg / configLight bind correctly.
+        if (mode === "light" || mode === "dark" || mode === "auto") {
+            if (GlobalConfig.appearance.themeMode !== mode) {
+                GlobalConfig.appearance.themeMode = mode;
+                GlobalConfig.save();
+            }
+        }
+        // Extract owns palette quality:
+        //   auto  → smart mode+variant from wallpaper
+        //   light/dark → --scheme-mode + smart variant (same quality as auto-dark)
+        // Do NOT scheme-set -v here — that forced expressive and nuked dark.
+        root.refreshThemePalette();
     }
 
     Process {
         id: schemeSetProc
-        onExited: root.refreshThemePalette()
+        onExited: {
+            // Variant / primary-color commits: re-extract so UI matches scheme state
+            root.refreshThemePalette();
+        }
     }
 
     // ── Scheme file watcher ─────────────────────────

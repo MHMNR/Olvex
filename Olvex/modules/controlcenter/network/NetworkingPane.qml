@@ -51,8 +51,8 @@ Item {
 
                         StyledText {
                             text: qsTr("Network")
-                            textPointSize: Tokens.font.size.large
-                            font.weight: 500
+                            font.pointSize: Tokens.font.size.large
+                            font.weight: 400
                         }
 
                         Item {

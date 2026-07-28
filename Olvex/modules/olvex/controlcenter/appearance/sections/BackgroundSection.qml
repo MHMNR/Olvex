@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import "../../../../controlcenter/components"
+import qs.modules.controlcenter.components
 import qs.components
 import qs.components.containers
 import qs.components.controls

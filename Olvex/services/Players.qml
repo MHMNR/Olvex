@@ -19,16 +19,13 @@ Singleton {
     property MprisPlayer active: null
     property string currentArtUrl: ""
     property string currentTrackKey: ""
-    readonly property bool activeIsPlaying: root.active !== null && (
-        root.active.playbackStatus === "Playing"
-        || root.active.playbackState === 0
-        || root.active.isPlaying)
+    readonly property bool activeIsPlaying: root.active !== null && (root.active.playbackStatus === "Playing" || root.active.playbackState === 0 || root.active.isPlaying)
 
     property alias manualActive: props.manualActive
 
     property bool _recomputeScheduled: false
+    property bool _syncNowScheduled: false
     property bool _refreshingPosition: false
-
     function _playerId(player: MprisPlayer): string {
         if (!player)
             return "";
@@ -42,10 +39,7 @@ Singleton {
         if (props.manualActive)
             return props.manualActive;
         const playing = players.find(p => root._isPlaying(p));
-        return playing
-            ?? players.find(p => root.getIdentity(p) === GlobalConfig.services.defaultPlayer)
-            ?? players[0]
-            ?? null;
+        return playing ?? players.find(p => root.getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? players[0] ?? null;
     }
 
     function _recomputeActive(): void {
@@ -124,7 +118,8 @@ Singleton {
     }
 
     function getIdentity(player: MprisPlayer): string {
-        if (!player) return "";
+        if (!player)
+            return "";
         const alias = GlobalConfig.services.playerAliases.find(a => a.from === player.identity);
         return alias?.to ?? player.identity;
     }
@@ -167,12 +162,7 @@ Singleton {
     function getTrackKey(player: MprisPlayer): string {
         if (!player)
             return "";
-        return [
-            player.uniqueId !== undefined ? String(player.uniqueId) : "",
-            player.trackTitle ?? "",
-            player.trackArtist ?? "",
-            player.trackAlbum ?? ""
-        ].join("\x1f");
+        return [player.uniqueId !== undefined ? String(player.uniqueId) : "", player.trackTitle ?? "", player.trackArtist ?? "", player.trackAlbum ?? ""].join("\x1f");
     }
 
     function stripArtDisplayUrl(url: string): string {
@@ -271,16 +261,20 @@ Singleton {
 
     function nudge(method: string) {
         const p = root.active;
-        if (!p) return;
-        
+        if (!p)
+            return;
+
         let hint = (p.desktopEntry || p.identity).toLowerCase().trim().split(/\s+/)[0];
-        if (hint.includes("firefox")) hint = "firefox";
-        else if (hint.includes("chrome")) hint = "chrome";
-        else if (hint.includes("chromium")) hint = "chromium";
+        if (hint.includes("firefox"))
+            hint = "firefox";
+        else if (hint.includes("chrome"))
+            hint = "chrome";
+        else if (hint.includes("chromium"))
+            hint = "chromium";
 
         // CLEAN BUSCTL NUDGE: Uses awk to reliably get the first column (bus name)
         const cmd = `for bus in $(busctl --user list | awk '{print $1}' | grep "org.mpris.MediaPlayer2.${hint}"); do busctl --user call $bus /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method}; done`;
-        
+
         nudgeProcess.command = ["bash", "-c", cmd];
         nudgeProcess.running = true;
     }
@@ -348,28 +342,102 @@ Singleton {
     property color livePlayIconColor: Qt.rgba(0, 0, 0, 0.92)
     property bool liveAccentReady: false
 
-    readonly property color musicVisualizerAccent: liveAccentReady
-        ? liveVisualizerAccent
-        : bootVisualizerAccent
-    readonly property color musicPlayButtonBg: liveAccentReady
-        ? livePlayButtonBg
-        : bootPlayButtonBg
-    readonly property color musicPlayIconColor: liveAccentReady
-        ? livePlayIconColor
-        : bootPlayIconColor
-        
     property color bootSurfaceColor: Colours.palette.m3surfaceContainerHigh
     property color bootOnSurfaceColor: Colours.palette.m3onSurface
     property color liveSurfaceColor: Colours.palette.m3surfaceContainerHigh
     property color liveOnSurfaceColor: Colours.palette.m3onSurface
-    readonly property color musicSurfaceColor: liveAccentReady ? liveSurfaceColor : bootSurfaceColor
-    readonly property color musicOnSurfaceColor: liveAccentReady ? liveOnSurfaceColor : bootOnSurfaceColor
+
+    property color displayVisualizerAccent: liveVisualizerAccent
+    property color displayPlayButtonBg: livePlayButtonBg
+    property color displayPlayIconColor: livePlayIconColor
+    property color displaySurfaceColor: liveSurfaceColor
+    property color displayOnSurfaceColor: liveOnSurfaceColor
+    property color _accentAnimFromVisualizer: liveVisualizerAccent
+    property color _accentAnimFromPlayBg: livePlayButtonBg
+    property color _accentAnimFromPlayIcon: livePlayIconColor
+    property color _accentAnimFromSurface: liveSurfaceColor
+    property color _accentAnimFromOnSurface: liveOnSurfaceColor
+    property color _accentAnimToVisualizer: liveVisualizerAccent
+    property color _accentAnimToPlayBg: livePlayButtonBg
+    property color _accentAnimToPlayIcon: livePlayIconColor
+    property color _accentAnimToSurface: liveSurfaceColor
+    property color _accentAnimToOnSurface: liveOnSurfaceColor
+    property real accentBlendProgress: 1
+
+    readonly property color musicVisualizerAccent: root.displayVisualizerAccent
+    readonly property color musicPlayButtonBg: root.displayPlayButtonBg
+    readonly property color musicPlayIconColor: root.displayPlayIconColor
+    readonly property color musicSurfaceColor: root.displaySurfaceColor
+    readonly property color musicOnSurfaceColor: root.displayOnSurfaceColor
 
     readonly property bool musicAccentReady: liveAccentReady || bootAccentLoaded
     property color musicOnAccent: "#E9DDFF"
 
+    onAccentBlendProgressChanged: root._applyAccentBlend()
+
     function resolvePlayIconColor(playButtonBg: color, playIconColor: color): color {
-        return Qt.rgba(0, 0, 0, 0.92);
+        if (!playButtonBg || playButtonBg.a <= 0)
+            return playIconColor && playIconColor.a > 0 ? playIconColor : Colours.on(Colours.palette.m3primary);
+        return Colours.getLuminance(playButtonBg) > 0.48 ? Qt.rgba(0, 0, 0, 0.92) : Qt.rgba(1, 1, 1, 0.94);
+    }
+
+    function _blendHue(fromHue: real, toHue: real, t: real): real {
+        let delta = toHue - fromHue;
+        if (delta > 0.5)
+            delta -= 1.0;
+        else if (delta < -0.5)
+            delta += 1.0;
+        let hue = fromHue + delta * t;
+        if (hue < 0)
+            hue += 1.0;
+        if (hue > 1)
+            hue -= 1.0;
+        return hue;
+    }
+
+    function _blendColor(from: color, to: color, t: real): color {
+        if (!from || from.a <= 0)
+            return to;
+        if (!to || to.a <= 0)
+            return from;
+        return Qt.hsla(root._blendHue(from.hslHue, to.hslHue, t), from.hslSaturation + (to.hslSaturation - from.hslSaturation) * t, from.hslLightness + (to.hslLightness - from.hslLightness) * t, from.a + (to.a - from.a) * t);
+    }
+
+    function _applyAccentBlend(): void {
+        const t = Math.max(0, Math.min(1, root.accentBlendProgress));
+        root.displayVisualizerAccent = root._blendColor(root._accentAnimFromVisualizer, root._accentAnimToVisualizer, t);
+        root.displayPlayButtonBg = root._blendColor(root._accentAnimFromPlayBg, root._accentAnimToPlayBg, t);
+        root.displayPlayIconColor = root._blendColor(root._accentAnimFromPlayIcon, root._accentAnimToPlayIcon, t);
+        root.displaySurfaceColor = root._blendColor(root._accentAnimFromSurface, root._accentAnimToSurface, t);
+        root.displayOnSurfaceColor = root._blendColor(root._accentAnimFromOnSurface, root._accentAnimToOnSurface, t);
+        root.musicOnAccent = Colours.on(root.displayVisualizerAccent);
+    }
+
+    function _animateAccentTo(visualizer: color, playButtonBg: color, playIconColor: color, surfaceColor: color, onSurfaceColor: color): void {
+        accentBlendAnimation.stop();
+        root._accentAnimFromVisualizer = root.displayVisualizerAccent;
+        root._accentAnimFromPlayBg = root.displayPlayButtonBg;
+        root._accentAnimFromPlayIcon = root.displayPlayIconColor;
+        root._accentAnimFromSurface = root.displaySurfaceColor;
+        root._accentAnimFromOnSurface = root.displayOnSurfaceColor;
+        root._accentAnimToVisualizer = visualizer;
+        root._accentAnimToPlayBg = playButtonBg;
+        root._accentAnimToPlayIcon = playIconColor;
+        root._accentAnimToSurface = surfaceColor;
+        root._accentAnimToOnSurface = onSurfaceColor;
+        root.accentBlendProgress = 0;
+        root._applyAccentBlend();
+        accentBlendAnimation.restart();
+    }
+
+    NumberAnimation {
+        id: accentBlendAnimation
+        target: root
+        property: "accentBlendProgress"
+        from: 0
+        to: 1
+        duration: Tokens.anim.durations.expressiveSlowEffects
+        easing: Tokens.anim.emphasizedDecel
     }
 
     function _updateMusicOnAccent(): void {
@@ -389,14 +457,15 @@ Singleton {
         root.liveSurfaceColor = root.bootSurfaceColor;
         root.liveOnSurfaceColor = root.bootOnSurfaceColor;
         root.livePlayIconColor = root.bootPlayIconColor;
+        root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
         root._updateMusicOnAccent();
     }
 
     property var _mediaAccentSession: ({})
     property int mediaAccentRevision: 0
 
-    signal mediaAccentPrewarmed()
-    signal mediaAccentRefreshNeeded()
+    signal mediaAccentPrewarmed
+    signal mediaAccentRefreshNeeded
 
     function _bumpMediaAccentRevision(): void {
         root.mediaAccentRevision++;
@@ -418,19 +487,12 @@ Singleton {
         const visValid = visualizer && visualizer.a > 0 && visualizer.hslLightness > 0.02;
         const nextVis = visValid ? visualizer : root.liveVisualizerAccent;
         const nextPlay = playValid ? playButtonBg : root.livePlayButtonBg;
-        const nextIcon = playValid
-            ? root.resolvePlayIconColor(nextPlay, playIconColor)
-            : root.livePlayIconColor;
-            
+        const nextIcon = playValid ? root.resolvePlayIconColor(nextPlay, playIconColor) : root.livePlayIconColor;
+
         const nextSurface = (surfaceColor && surfaceColor.a > 0) ? surfaceColor : root.liveSurfaceColor;
         const nextOnSurface = (onSurfaceColor && onSurfaceColor.a > 0) ? onSurfaceColor : root.liveOnSurfaceColor;
 
-        const unchanged = root.liveAccentReady
-            && root.liveVisualizerAccent === nextVis
-            && root.livePlayButtonBg === nextPlay
-            && root.liveSurfaceColor === nextSurface
-            && root.liveOnSurfaceColor === nextOnSurface
-            && root.livePlayIconColor === nextIcon;
+        const unchanged = root.liveAccentReady && root.liveVisualizerAccent === nextVis && root.livePlayButtonBg === nextPlay && root.liveSurfaceColor === nextSurface && root.liveOnSurfaceColor === nextOnSurface && root.livePlayIconColor === nextIcon;
         if (unchanged && !artUrl)
             return;
 
@@ -447,6 +509,7 @@ Singleton {
         root.bootOnSurfaceColor = nextOnSurface;
         root.bootPlayIconColor = nextIcon;
         root.bootAccentLoaded = true;
+        root._animateAccentTo(nextVis, nextPlay, nextIcon, nextSurface, nextOnSurface);
         if (artUrl && visValid && playValid)
             root.storeMediaAccent(artUrl, nextVis.toString(), nextPlay.toString(), nextIcon.toString());
         else if (artUrl && playValid)
@@ -471,6 +534,7 @@ Singleton {
         root.bootPlayIconColor = nextIcon;
         root.liveAccentReady = true;
         root.bootAccentLoaded = true;
+        root._animateAccentTo(root.liveVisualizerAccent, playButtonBg, nextIcon, root.liveSurfaceColor, root.liveOnSurfaceColor);
         root._updateMusicOnAccent();
         root._publishingAccent = false;
     }
@@ -482,6 +546,7 @@ Singleton {
         root.liveSurfaceColor = root.bootSurfaceColor;
         root.liveOnSurfaceColor = root.bootOnSurfaceColor;
         root.livePlayIconColor = root.bootPlayIconColor;
+        root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
         root._updateMusicOnAccent();
     }
 
@@ -497,7 +562,11 @@ Singleton {
         const lastVisualizer = data.lastVisualizer ?? "";
         const lastPlayButtonBg = data.lastPlayButtonBg ?? "";
         const cache = data.cache && typeof data.cache === "object" ? data.cache : {};
-        const hash = JSON.stringify({ lastArtUrl, lastVisualizer, lastPlayButtonBg });
+        const hash = JSON.stringify({
+            lastArtUrl,
+            lastVisualizer,
+            lastPlayButtonBg
+        });
         if (hash === root._lastIngestHash && root.bootAccentLoaded) {
             root._ingestingAccent = false;
             return;
@@ -522,6 +591,7 @@ Singleton {
                 root.liveVisualizerAccent = root.bootVisualizerAccent;
                 root.livePlayButtonBg = root.bootPlayButtonBg;
                 root.livePlayIconColor = root.bootPlayIconColor;
+                root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
             }
             root._updateMusicOnAccent();
         }
@@ -550,8 +620,7 @@ Singleton {
         const escaped = payload.replace(/'/g, "'\\''");
         const dir = root.mediaAccentPath.replace(/\/[^/]+$/, "");
         root._suppressAccentFileIngest = true;
-        persistAccentProc.command = ["bash", "-lc",
-            `mkdir -p '${dir.replace(/'/g, "'\\''")}' && printf '%s' '${escaped}' > '${root.mediaAccentPath.replace(/'/g, "'\\''")}'`];
+        persistAccentProc.command = ["bash", "-lc", `mkdir -p '${dir.replace(/'/g, "'\\''")}' && printf '%s' '${escaped}' > '${root.mediaAccentPath.replace(/'/g, "'\\''")}'`];
         persistAccentProc.running = true;
     }
 
@@ -562,16 +631,14 @@ Singleton {
         if (url.startsWith("/")) {
             try {
                 url = decodeURIComponent(url);
-            } catch (e) {
-            }
+            } catch (e) {}
             return "file://" + url;
         }
         if (url.startsWith("file://")) {
             let path = url.replace(/^file:\/\/+/, "");
             try {
                 path = decodeURIComponent(path);
-            } catch (e) {
-            }
+            } catch (e) {}
             if (!path.startsWith("/"))
                 path = "/" + path;
             return "file://" + path;
@@ -597,9 +664,7 @@ Singleton {
             return null;
         const playBg = typeof playButtonBg === "string" ? Qt.color(playButtonBg) : playButtonBg;
         const playIconRaw = entry.playIconColor;
-        const playIcon = playIconRaw
-            ? (typeof playIconRaw === "string" ? Qt.color(playIconRaw) : playIconRaw)
-            : null;
+        const playIcon = playIconRaw ? (typeof playIconRaw === "string" ? Qt.color(playIconRaw) : playIconRaw) : null;
         return {
             visualizer: typeof visualizer === "string" ? Qt.color(visualizer) : visualizer,
             playButtonBg: playBg,
@@ -689,14 +754,8 @@ Singleton {
             return;
         const norm = root.normalizeMediaArtUrl(artUrl);
         const existing = root._mediaAccentSession[norm];
-        const iconStr = playIconColor
-            || root.resolvePlayIconColor(Qt.color(playButtonBg), null).toString();
-        if (existing?.visualizer === visualizer
-            && existing?.playButtonBg === playButtonBg
-            && existing?.playIconColor === iconStr
-            && accentProps.lastArtUrl === norm
-            && accentProps.lastVisualizer === visualizer
-            && accentProps.lastPlayButtonBg === playButtonBg)
+        const iconStr = playIconColor || root.resolvePlayIconColor(Qt.color(playButtonBg), null).toString();
+        if (existing?.visualizer === visualizer && existing?.playButtonBg === playButtonBg && existing?.playIconColor === iconStr && accentProps.lastArtUrl === norm && accentProps.lastVisualizer === visualizer && accentProps.lastPlayButtonBg === playButtonBg)
             return;
         const entry = {
             visualizer: visualizer,
@@ -779,10 +838,6 @@ Singleton {
 
     property real _syncPosition: 0
     property real _syncTime: 0
-    // Length of the track the current anchor belongs to. Lets _updateInterpolation
-    // detect when _syncPosition is stale (anchored to a different/previous track)
-    // and refuse to clamp position against a mismatched length.
-    property real _syncLength: 0
 
     // Reactive playing state. CRITICAL: this is a property BINDING that directly
     // references the active player's reactive MPRIS properties, so QML re-evaluates it
@@ -794,21 +849,17 @@ Singleton {
         const p = root.active;
         if (!p)
             return false;
-        return p.playbackStatus === "Playing"
-            || p.playbackState === 0
-            || p.isPlaying;
+        return p.playbackStatus === "Playing" || p.playbackState === 0 || p.isPlaying;
     }
 
     function _isPlaying(player: MprisPlayer): bool {
         if (!player)
             return false;
-        return player.playbackStatus === "Playing"
-            || player.playbackState === 0
-            || player.isPlaying;
+        return player.playbackStatus === "Playing" || player.playbackState === 0 || player.isPlaying;
     }
 
     function _applySyncAnchor(): void {
-        if (seekGuard.running || root._refreshingPosition)
+        if (seekGuard.running)
             return;
 
         const p = root.active;
@@ -816,32 +867,18 @@ Singleton {
             root.interpolatedPosition = 0;
             root.interpolatedProgress = 0;
             root.interpolatedLength = 0;
-            root._syncLength = 0;
             return;
         }
 
-        const pos = p.position ?? 0;
-        const len = p.length ?? 0;
-
-        // Guard: if MPRIS returns position >= length while playing, and our
-        // existing anchor was valid (not at the end), the D-Bus value is stale.
-        // This happens after seek+restart where the player's cached Position
-        // still reflects the old position near track end. Skip this update and
-        // let interpolation continue from the last known-good anchor.
-        if (len > 0 && root._isPlaying(p) && pos >= len - 1
-            && root._syncLength === len
-            && root._syncPosition > 0 && root._syncPosition < len - 1) {
-            return;
-        }
-
-        root._syncPosition = pos;
+        root._syncPosition = p.position ?? 0;
         root._syncTime = Date.now();
-        root._syncLength = len;
         root._updateInterpolation();
     }
 
     function _syncNow(): void {
         if (seekGuard.running)
+            return;
+        if (root._refreshingPosition)
             return;
 
         const p = root.active;
@@ -856,9 +893,23 @@ Singleton {
         if (p.positionSupported) {
             root._refreshingPosition = true;
             p.positionChanged();
-            root._refreshingPosition = false;
+            Qt.callLater(() => {
+                root._refreshingPosition = false;
+                root._applySyncAnchor();
+            });
+        } else {
+            root._applySyncAnchor();
         }
-        Qt.callLater(root._applySyncAnchor);
+    }
+
+    function _scheduleSyncNow(): void {
+        if (root._syncNowScheduled)
+            return;
+        root._syncNowScheduled = true;
+        Qt.callLater(() => {
+            root._syncNowScheduled = false;
+            root._syncNow();
+        });
     }
 
     function _kickStartupSync(): void {
@@ -872,75 +923,44 @@ Singleton {
 
     function _updateInterpolation(): void {
         const p = root.active;
-        if (!p) return;
+        if (!p)
+            return;
 
         const rawLen = p.length ?? 0;
-
-        // Clamp against the freshest plausible track length, but do not immediately
-        // overwrite interpolatedLength with rawLen: some backends transiently report the
-        // CURRENT POSITION as the track length during seek, which collapses elapsed and
-        // total to the same value. Backup behavior kept the previous good length in that
-        // case, which is the behavior the user wants back.
-        const len = rawLen > 0 ? rawLen : root.interpolatedLength;
-
-        // Stale-anchor guard: if the current track length differs from the length the
-        // anchor was captured against, _syncPosition belongs to a DIFFERENT track. Do
-        // NOT advance/clamp from it — that previously pinned currentPos to len and made
-        // elapsed == total (both time labels identical) after a seek or shell restart.
-        // Re-anchor against the real position and bail out this tick.
-        const anchorStale = root._syncLength > 0 && len > 0
-            && Math.abs(len - root._syncLength) > 1.0;
-        if (anchorStale) {
-            const livePos = p.position ?? 0;
-            root._syncPosition = livePos;
-            root._syncTime = Date.now();
-            root._syncLength = len;
-            const pos0 = Math.max(0, Math.min(livePos, len));
-            root.interpolatedPosition = pos0;
-            if (rawLen > 0 && Math.abs(rawLen - pos0) > 1) {
-                root.interpolatedLength = rawLen;
-            } else if (root.interpolatedLength === 0) {
-                root.interpolatedLength = rawLen;
-            }
-            const progressLen0 = root.interpolatedLength > 0 ? root.interpolatedLength : len;
-            root.interpolatedProgress = progressLen0 > 0 ? Math.max(0, Math.min(1, pos0 / progressLen0)) : 0;
-            Qt.callLater(root._syncNow);
-            return;
-        }
 
         let currentPos = root._syncPosition;
         if (root._isPlaying(p)) {
             const elapsed = (Date.now() - root._syncTime) / 1000;
-            currentPos = root._syncPosition + elapsed;
+            currentPos = Math.min(root._syncPosition + elapsed, rawLen);
         }
-        // Clamp against the resolved length only when we actually have one. Guarding on
-        // len > 0 avoids pinning position to a transient 0 (which previously collapsed
-        // elapsed and total to the same value). With the stale-anchor guard above, any
-        // overrun here is genuine end-of-track drift, so clamping is correct.
-        if (len > 0)
-            currentPos = Math.max(0, Math.min(currentPos, len));
 
         root.interpolatedPosition = currentPos;
+
+        // Backup behavior: if a backend briefly reports the current position as
+        // length during seek, keep the previous good length instead of collapsing
+        // elapsed and total to the same timestamp.
         if (rawLen > 0 && Math.abs(rawLen - currentPos) > 1) {
             root.interpolatedLength = rawLen;
         } else if (root.interpolatedLength === 0) {
             root.interpolatedLength = rawLen;
         }
-        const progressLen = root.interpolatedLength > 0 ? root.interpolatedLength : len;
-        root.interpolatedProgress = progressLen > 0 ? Math.max(0, Math.min(1, currentPos / progressLen)) : 0;
+
+        root.interpolatedProgress = root.interpolatedLength > 0 ? Math.max(0, Math.min(1, currentPos / root.interpolatedLength)) : 0;
     }
 
     // Called by UI seek bars.
     function seekTo(fraction: real): void {
         const p = root.active;
-        if (!p || !p.canSeek || !p.positionSupported) return;
+        if (!p || !p.canSeek || !p.positionSupported)
+            return;
 
         const liveLen = p.length ?? 0;
         // Prefer the last known-good length, like the backup did. Some players briefly
         // report the seek target/current position as `length`; trusting that live value
         // collapses elapsed and total to the same timestamp.
         const len = root.interpolatedLength > 0 ? root.interpolatedLength : liveLen;
-        if (len <= 0) return;
+        if (len <= 0)
+            return;
 
         const targetPos = Math.max(0, Math.min(fraction * len, len));
 
@@ -953,7 +973,6 @@ Singleton {
         // bar would freeze until the next clean _syncNow.
         root._syncPosition = targetPos;
         root._syncTime = Date.now();
-        root._syncLength = len;
         root._updateInterpolation();
 
         // Block incoming D-Bus position echoes for a short window. Some players (Spotify)
@@ -971,6 +990,7 @@ Singleton {
         id: seekGuard
         interval: 1500
         repeat: false
+        onTriggered: root._scheduleSyncNow()
     }
 
     // Retry until MPRIS metadata is ready after shell/player attach.
@@ -986,14 +1006,16 @@ Singleton {
                 attempts = 0;
                 return;
             }
-            root._syncNow();
+            root._scheduleSyncNow();
             attempts++;
+            const playing = root._isPlaying(root.active);
             const len = root.interpolatedLength > 0 ? root.interpolatedLength : (root.active.length ?? 0);
-            const pos = root.interpolatedPosition;
-            // Keep polling until both length AND position are reasonable.
-            // Position must be > 0 (not stale zero) and < length (not stale end).
-            const posOk = len > 0 ? (pos > 0 && pos < len) : true;
-            if ((len > 0 && posOk) || attempts >= 20) {
+            // Backup behavior: while playing, keep retrying for a little while because
+            // length can arrive before a useful position after shell/player attach.
+            if (playing) {
+                if (attempts >= 20)
+                    stop();
+            } else if (len > 0 || attempts >= 8) {
                 stop();
             }
         }
@@ -1013,14 +1035,14 @@ Singleton {
         onRunningChanged: {
             if (running) {
                 ticks = 0;
-                Qt.callLater(root._syncNow);
+                root._scheduleSyncNow();
             }
         }
 
         onTriggered: {
             root._updateInterpolation();
             if (ticks % 4 === 0)
-                root._syncNow();
+                root._scheduleSyncNow();
             ticks++;
         }
     }
@@ -1031,35 +1053,38 @@ Singleton {
         ignoreUnknownSignals: true
         function onPlaybackStatusChanged() {
             root._scheduleRecomputeActive();
-            Qt.callLater(root._syncNow);
+            root._scheduleSyncNow();
         }
         function onPlaybackStateChanged() {
             root._scheduleRecomputeActive();
-            Qt.callLater(root._syncNow);
+            root._scheduleSyncNow();
         }
-        function onTrackTitleChanged()     { Qt.callLater(root._syncNow); root._scheduleArtPoll(); }
-        function onTrackArtistChanged()    { Qt.callLater(root._syncNow); root._scheduleArtPoll(); }
-        function onTrackAlbumChanged()     { root._scheduleArtPoll(); }
-        function onTrackArtUrlChanged()    { root._scheduleArtPoll(); }
+        function onTrackTitleChanged() {
+            root._scheduleSyncNow();
+            root._scheduleArtPoll();
+        }
+        function onTrackArtistChanged() {
+            root._scheduleSyncNow();
+            root._scheduleArtPoll();
+        }
+        function onTrackAlbumChanged() {
+            root._scheduleArtPoll();
+        }
+        function onTrackArtUrlChanged() {
+            root._scheduleArtPoll();
+        }
         function onLengthChanged() {
-            // Length changing means a new track. Invalidate the anchor SYNCHRONOUSLY so a
-            // progressTick firing before the async _syncNow lands can't advance/pin a
-            // stale-large _syncPosition against the new (often shorter) length.
-            const p = root.active;
-            if (p) {
-                root._syncPosition = p.position ?? 0;
-                root._syncTime = Date.now();
-                root._syncLength = p.length ?? 0;
-            }
-            Qt.callLater(root._syncNow);
+            root._scheduleSyncNow();
         }
         function onPositionChanged() {
+            if (root._refreshingPosition)
+                return;
             root._applySyncAnchor();
         }
     }
 
     function _onActivePlayerChanged(): void {
-        root._syncNow();
+        root._scheduleSyncNow();
         root._kickStartupSync();
         root._scheduleArtPoll();
         if (root.active)
@@ -1102,7 +1127,7 @@ Singleton {
         root.syncBootAccentsFromSystem();
         root._recomputeActive();
         root.prewarmMediaAccent();
-        Qt.callLater(root._syncNow);
+        root._scheduleSyncNow();
         root._kickStartupSync();
         root._scheduleArtPoll();
         accentRefreshDeferTimer.start();
@@ -1157,12 +1182,26 @@ Singleton {
             return root.list.map(p => root.getIdentity(p)).join("\n");
         }
 
-        function play(): void { if (root.active) root.active.play() }
-        function pause(): void { if (root.active) root.active.pause() }
-        function playPause(): void { root.togglePlaying() }
-        function previous(): void { root.previous() }
-        function next(): void { root.next() }
-        function stop(): void { root.active?.stop() }
+        function play(): void {
+            if (root.active)
+                root.active.play();
+        }
+        function pause(): void {
+            if (root.active)
+                root.active.pause();
+        }
+        function playPause(): void {
+            root.togglePlaying();
+        }
+        function previous(): void {
+            root.previous();
+        }
+        function next(): void {
+            root.next();
+        }
+        function stop(): void {
+            root.active?.stop();
+        }
 
         target: "mpris"
     }

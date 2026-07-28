@@ -16,8 +16,6 @@ CollapsibleSection {
     description: qsTr("Material theme variant")
     showBackground: true
 
-    Component.onCompleted: Schemes.ensureLoaded()
-
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Tokens.spacing.small / 2
@@ -64,21 +62,21 @@ CollapsibleSection {
 
                     MaterialIcon {
                         text: modelData.icon
-                        iconPointSize: Tokens.font.size.large
+                        font.pointSize: Tokens.font.size.large
                         fill: modelData.variant === Schemes.currentVariant ? 1 : 0
                     }
 
                     StyledText {
                         Layout.fillWidth: true
                         text: modelData.name
-                        font.weight: modelData.variant === Schemes.currentVariant ? 500 : 400
+                        font.weight: modelData.variant === Schemes.currentVariant ? 400 : 400
                     }
 
                     MaterialIcon {
                         visible: modelData.variant === Schemes.currentVariant
                         text: "check"
                         color: Colours.palette.m3primary
-                        iconPointSize: Tokens.font.size.large
+                        font.pointSize: Tokens.font.size.large
                     }
                 }
             }

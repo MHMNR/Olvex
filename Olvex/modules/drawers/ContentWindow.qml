@@ -58,6 +58,7 @@ StyledWindow {
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
     readonly property bool effectLayerActive: shadowOpacity > 0.01 && (morph.active || visibilities.utilities || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.session || visibilities.sidebar || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible)
+    readonly property bool shellMotionActive: shellMotionGrace.running
 
     property real bottomBorderHeight: {
         if (hasFullscreen)
@@ -82,9 +83,9 @@ StyledWindow {
             return 0;
 
         const thresholds = [];
-        for (const panel of ["dashboard", "launcher", "session", "sidebar"])
-            if (contentItem.Config[panel].enabled)
-                thresholds.push(contentItem.Config[panel].dragThreshold);
+        for (const panel of ["dashboard", "launcher", "session", "sidebar", "utilities"])
+            if (contentItem.Config[panel]?.enabled)
+                thresholds.push(contentItem.Config[panel].dragThreshold ?? 40);
         return Math.max(...thresholds);
     }
 
@@ -105,7 +106,42 @@ StyledWindow {
         onTriggered: root.launchTransition = false
     }
 
-    mask: (morph.active || visibilities.utilities || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
+    Timer {
+        id: shellMotionGrace
+        interval: 520
+        repeat: false
+    }
+
+    function pulseShellMotion(): void {
+        shellMotionGrace.restart();
+        Visibilities.pulseShellMotion(shellMotionGrace.interval);
+    }
+
+    Connections {
+        target: visibilities
+
+        function onUtilitiesChanged(): void { root.pulseShellMotion(); }
+        function onDashboardChanged(): void { root.pulseShellMotion(); }
+        function onLauncherChanged(): void { root.pulseShellMotion(); }
+        function onWallpaperLauncherChanged(): void { root.pulseShellMotion(); }
+        function onSessionChanged(): void { root.pulseShellMotion(); }
+        function onSidebarChanged(): void { root.pulseShellMotion(); }
+        function onClipboardChanged(): void { root.pulseShellMotion(); }
+    }
+
+    Connections {
+        target: panels.popouts
+
+        function onHasCurrentChanged(): void { root.pulseShellMotion(); }
+    }
+
+    Connections {
+        target: panels
+
+        function onContextMenuVisibleChanged(): void { root.pulseShellMotion(); }
+    }
+
+    mask: (morph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
 
     Regions {
         id: regions
@@ -199,7 +235,7 @@ StyledWindow {
     Item {
         anchors.fill: parent
         opacity: Colours.transparencyEnabled ? Colours.transparencyBase : 1
-        layer.enabled: root.effectLayerActive
+        layer.enabled: root.effectLayerActive && !root.shellMotionActive
         layer.effect: MultiEffect {
             shadowEnabled: true
             blurMax: 15
@@ -235,15 +271,6 @@ StyledWindow {
 
             BlobGroup {
                 id: drawerGroup
-                color: Colours.palette.m3surface
-                smoothing: safeBorder.smoothing
-                Behavior on color {
-                    CAnim {}
-                }
-            }
-
-            BlobGroup {
-                id: osdGroup
                 color: Colours.palette.m3surface
                 smoothing: safeBorder.smoothing
                 Behavior on color {
@@ -296,16 +323,8 @@ StyledWindow {
             PanelBg {
                 id: osdBg
 
-                radius: safeBorder.floating ? Tokens.rounding.large * 1.5 : Tokens.rounding.large
-                group: safeBorder.floating ? osdGroup : blobGroup
-                exclude: [popoutBg]
                 panel: panels.osdWrapper
                 deformAmount: 0.1
-                x: panels.osdWrapper.x + panels.osd.x + panels.x
-                y: panels.osdWrapper.y + panels.osd.y + panels.y
-                implicitWidth: panels.osd.width
-                implicitHeight: panels.osd.height
-                opacity: panels.osd.opacity
             }
 
             PanelBg {
@@ -374,10 +393,52 @@ StyledWindow {
     // Entrance Animation State
     readonly property bool isVisible: !LockState.locked
 
+    // ── Stop rendering entirely while locked ────────────────────────────────
+    // The lock surface fully occludes this window, but Qt keeps compositing it
+    // (opacity:0 ≠ hidden), so any continuously-animating child — e.g. the media
+    // overlay's WavyLine progress bar while music plays — keeps forcing a ~144Hz
+    // GPU present that competes with the lock screen on the shared iGPU and drops
+    // frames across every lock animation. Unmap the surface a beat after locking
+    // (the lock surface is already on top, so no flash) so this window costs zero
+    // until unlock, then re-map instantly so the entrance fade-in still plays.
+    // Mirrors the bar's own visible:false self-hide (line ~487).
+    property bool surfaceMapped: true
+    visible: surfaceMapped
+
+    Timer {
+        id: lockHideGrace
+        interval: 200
+        onTriggered: root.surfaceMapped = false
+    }
+
+    Connections {
+        target: LockState
+        function onLockedChanged(): void {
+            if (LockState.locked) {
+                lockHideGrace.restart();
+            } else {
+                lockHideGrace.stop();
+                root.surfaceMapped = true;
+            }
+        }
+    }
+
     Item {
         id: revealContainer
         anchors.fill: parent
         opacity: isVisible ? 1 : 0
+
+        // Full-screen live capture used as the backdrop-blur source for OSD
+        // sliders. Invisible here — each slider crops its own region via
+        // ShaderEffectSource.sourceRect using mapToItem(osdScreenCapture).
+        // live only while the OSD is actually on screen to save bandwidth.
+        ScreencopyView {
+            id: osdScreenCapture
+            anchors.fill: parent
+            captureSource: root.screen
+            live: visibilities.osd
+            visible: false
+        }
 
         // Removed global behavior to fix jitter on QS Panel and other drawers
 
@@ -402,6 +463,7 @@ StyledWindow {
                 bar: bar
                 borderThickness: root.borderThickness
                 safeBorder: root.safeBorder
+                osdScreenCapture: osdScreenCapture
 
                 // Wire the flying-icon morph overlay back into Panels so GridAppItem → Panels.triggerAppMorph reaches it
                 appLaunchMorph: appLaunchMorphId
@@ -420,9 +482,11 @@ StyledWindow {
                 session.transform: Matrix4x4 {
                     matrix: sessionBg.deformMatrix
                 }
-                osd.transform: Matrix4x4 {
-                    matrix: osdBg.deformMatrix
-                }
+                // No deform on the OSD content: its backing blob (osdBg) is now
+                // invisible, so warping the sliders to follow the blob's liquid
+                // spring-settle just distorts their rounded bottoms with nothing
+                // to justify it (the "goes buggy ~1s after open"). The sliders
+                // draw their own clean shape; leave them un-deformed.
                 notifications.transform: Matrix4x4 {
                     matrix: notifsBg.deformMatrix
                 }
@@ -482,68 +546,13 @@ StyledWindow {
             }
         }
 
-        // Dismiss layer: closes QS panel when clicking outside it
-        MouseArea {
-            anchors.fill: parent
-            enabled: visibilities.utilities && !morph.active
-            hoverEnabled: false
-            z: 50 // above panels (z:0) but below morph (z:1000)
-            propagateComposedEvents: true
-            onPressed: mouse => {
-                // map utilities panel rect to root coordinates
-                const util = panels.utilities;
-                const mapped = util.mapToItem(revealContainer, 0, 0);
-                const inUtil = mouse.x >= mapped.x && mouse.x <= mapped.x + util.width && mouse.y >= mapped.y && mouse.y <= mapped.y + util.height;
-
-                // also exclude the bottom panel so toggle buttons can receive clicks
-                const bp = panels.bottomPanel;
-                const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
-
-                // also exclude clipboard panel
-                const cb = panels.clipboard;
-                const cbMapped = cb.mapToItem(revealContainer, 0, 0);
-                const inClipboard = cb.visible && mouse.x >= cbMapped.x && mouse.x <= cbMapped.x + cb.width && mouse.y >= cbMapped.y && mouse.y <= cbMapped.y + cb.height;
-
-                if (!inUtil && !inBottomPanel && !inClipboard) {
-                    visibilities.utilities = false;
-                    mouse.accepted = true;
-                } else {
-                    mouse.accepted = false;
-                }
-            }
-            onClicked: mouse => {
-                mouse.accepted = false;
-            }
-        }
-
-        // Dismiss layer: closes clipboard when clicking outside it
-        MouseArea {
-            anchors.fill: parent
-            enabled: visibilities.clipboard && !morph.active
-            hoverEnabled: false
-            z: 49
-            propagateComposedEvents: true
-            onPressed: mouse => {
-                const cb = panels.clipboard;
-                const cbMapped = cb.mapToItem(revealContainer, 0, 0);
-                const inClipboard = mouse.x >= cbMapped.x && mouse.x <= cbMapped.x + cb.width && mouse.y >= cbMapped.y && mouse.y <= cbMapped.y + cb.height;
-                const bp = panels.bottomPanel;
-                const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
-                if (!inClipboard && !inBottomPanel) {
-                    visibilities.clipboard = false;
-                    mouse.accepted = true;
-                } else {
-                    mouse.accepted = false;
-                }
-            }
-            onClicked: mouse => {
-                mouse.accepted = false;
-            }
-        }
+        // Dismiss QS panel / clipboard when clicking outside — logic moved to Interactions.qml
+        // so event.accepted=false properly reaches app windows through the null mask.
 
         // Dismiss layer: closes launcher when clicking outside it
+        // NOTE: launcher dismiss logic lives in Interactions.qml onPressed so that
+        // event.accepted=false properly reaches underlying app windows. This layer
+        // only exists as a safety fallback for edge cases where Interactions doesn't fire.
         MouseArea {
             anchors.fill: parent
             enabled: visibilities.launcher && !morph.active
@@ -566,10 +575,9 @@ StyledWindow {
 
                 if (!inLauncher && !inBottomPanel && !inOsIcon) {
                     visibilities.launcher = false;
-                    mouse.accepted = true;
-                } else {
-                    mouse.accepted = false;
                 }
+                // Always propagate — Interactions already handled the accept/reject decision
+                mouse.accepted = false;
             }
             onClicked: mouse => {
                 mouse.accepted = false;
@@ -599,10 +607,9 @@ StyledWindow {
 
                 if (!inWS && !inBottomPanel && !inOsIcon) {
                     visibilities.wallpaperLauncher = false;
-                    mouse.accepted = true;
-                } else {
-                    mouse.accepted = false;
                 }
+                // Always propagate
+                mouse.accepted = false;
             }
             onClicked: mouse => {
                 mouse.accepted = false;

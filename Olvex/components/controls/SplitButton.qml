@@ -4,7 +4,8 @@ import Olvex.Config
 import qs.components
 import qs.services
 
-Row {
+// Dropdown trigger — single soft chromatic pill: [icon] label  expand_more
+StyledRect {
     id: root
 
     enum Type {
@@ -28,122 +29,93 @@ Row {
     property alias label: label
     property alias stateLayer: stateLayer
 
-    property color colour: type == SplitButton.Filled ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer
-    property color textColour: type == SplitButton.Filled ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+    // Dark: primaryContainer (readable chroma). Light: secondaryContainer (soft tonal).
+    property color colour: Colours.light
+        ? Colours.palette.m3secondaryContainer
+        : Colours.palette.m3primaryContainer
+    property color textColour: Colours.light
+        ? Colours.palette.m3onSecondaryContainer
+        : Colours.palette.m3onPrimaryContainer
     property color disabledColour: Qt.alpha(Colours.palette.m3onSurface, 0.1)
     property color disabledTextColour: Qt.alpha(Colours.palette.m3onSurface, 0.38)
 
-    spacing: Math.floor(Tokens.spacing.small / 2)
+    readonly property real pillR: height / 2
 
-    StyledRect {
-        radius: implicitHeight / 2 * Math.min(1, Tokens.rounding.scale)
-        topRightRadius: Tokens.rounding.small / 2
-        bottomRightRadius: Tokens.rounding.small / 2
-        color: root.disabled ? root.disabledColour : root.colour
+    implicitWidth: contentRow.implicitWidth + horizontalPadding * 2
+    implicitHeight: 36
 
-        implicitWidth: textRow.implicitWidth + root.horizontalPadding * 2
-        implicitHeight: expandBtn.implicitHeight
+    radius: pillR
+    color: disabled
+        ? disabledColour
+        : Qt.rgba(colour.r, colour.g, colour.b, 1)
+    border.width: 0
 
-        StateLayer {
-            id: stateLayer
+    StateLayer {
+        id: stateLayer
 
-            rect.topRightRadius: parent.topRightRadius
-            rect.bottomRightRadius: parent.bottomRightRadius
-            color: root.textColour
-            disabled: root.disabled
-            onClicked: root.active?.clicked()
-        }
-
-        RowLayout {
-            id: textRow
-
-            anchors.centerIn: parent
-            anchors.horizontalCenterOffset: Math.floor(root.verticalPadding / 4)
-            spacing: Tokens.spacing.small
-
-            MaterialIcon {
-                id: iconLabel
-
-                Layout.alignment: Qt.AlignVCenter
-                animate: true
-                text: root.active?.activeIcon ?? root.fallbackIcon
-                color: root.disabled ? root.disabledTextColour : root.textColour
-                fill: 1
-            }
-
-            StyledText {
-                id: label
-
-                Layout.alignment: Qt.AlignVCenter
-                Layout.preferredWidth: implicitWidth
-                animate: true
-                text: root.active?.activeText ?? root.fallbackText
-                color: root.disabled ? root.disabledTextColour : root.textColour
-                clip: true
-
-                Behavior on Layout.preferredWidth {
-                    Anim {
-                        type: Anim.Emphasized
-                    }
-                }
-            }
-        }
+        radius: root.pillR
+        color: root.textColour
+        disabled: root.disabled
+        onClicked: root.expanded = !root.expanded
     }
 
-    StyledRect {
-        id: expandBtn
+    RowLayout {
+        id: contentRow
 
-        property real rad: root.expanded ? implicitHeight / 2 * Math.min(1, Tokens.rounding.scale) : Tokens.rounding.small / 2
+        anchors.centerIn: parent
+        spacing: Tokens.spacing.small
 
-        radius: implicitHeight / 2 * Math.min(1, Tokens.rounding.scale)
-        topLeftRadius: rad
-        bottomLeftRadius: rad
-        color: root.disabled ? root.disabledColour : root.colour
+        MaterialIcon {
+            id: iconLabel
 
-        implicitWidth: implicitHeight
-        implicitHeight: expandIcon.implicitHeight + root.verticalPadding * 2
+            Layout.alignment: Qt.AlignVCenter
+            visible: text.length > 0
+            animate: true
+            text: root.active?.activeIcon ?? root.fallbackIcon
+            color: root.disabled ? root.disabledTextColour : root.textColour
+            fill: 0
+            iconPointSize: Tokens.font.size.normal
+        }
 
-        StateLayer {
-            id: expandStateLayer
+        StyledText {
+            id: label
 
-            rect.topLeftRadius: parent.topLeftRadius
-            rect.bottomLeftRadius: parent.bottomLeftRadius
-            color: root.textColour
-            disabled: root.disabled
-            onClicked: root.expanded = !root.expanded
+            Layout.alignment: Qt.AlignVCenter
+            animate: true
+            text: root.active?.activeText ?? root.fallbackText
+            color: root.disabled ? root.disabledTextColour : root.textColour
+            textPointSize: Tokens.font.size.small
+            font.weight: Font.Medium
+            elide: Text.ElideRight
+            maximumLineCount: 1
         }
 
         MaterialIcon {
             id: expandIcon
 
-            anchors.centerIn: parent
-            anchors.horizontalCenterOffset: root.expanded ? 0 : -Math.floor(root.verticalPadding / 4)
-
+            Layout.alignment: Qt.AlignVCenter
             text: "expand_more"
             color: root.disabled ? root.disabledTextColour : root.textColour
             rotation: root.expanded ? 180 : 0
-
-            Behavior on anchors.horizontalCenterOffset {
-                Anim {}
-            }
+            iconPointSize: Tokens.font.size.normal
+            opacity: 0.85
 
             Behavior on rotation {
                 Anim {}
             }
-        }
-
-        Behavior on rad {
-            Anim {}
         }
     }
 
     Menu {
         id: menu
 
-        attachTo: expandBtn
+        attachTo: root
         attachSideY: root.menuOnTop ? Menu.Top : Menu.Bottom
         thisSideY: root.menuOnTop ? Menu.Bottom : Menu.Top
+        attachSideX: Menu.Right
+        thisSideX: Menu.Right
         marginY: Tokens.spacing.small * (root.menuOnTop ? -1 : 1)
         highlightActive: true
+        maxHeight: 320
     }
 }

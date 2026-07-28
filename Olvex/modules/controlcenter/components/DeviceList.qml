@@ -47,8 +47,8 @@ ColumnLayout {
         StyledText {
             visible: root.title !== ""
             text: root.title
-            textPointSize: Tokens.font.size.large
-            font.weight: 500
+            font.pointSize: Tokens.font.size.large
+            font.weight: 400
         }
 
         Loader {
@@ -80,6 +80,7 @@ ColumnLayout {
 
         spacing: Tokens.spacing.small / 2
         interactive: false
+        edgeFades: false
         clip: false
     }
 }

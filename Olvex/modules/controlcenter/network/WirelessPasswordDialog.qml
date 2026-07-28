@@ -149,21 +149,21 @@ Item {
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
                 text: "lock"
-                iconPointSize: Tokens.font.size.extraLarge * 2
+                font.pointSize: Tokens.font.size.extraLarge * 2
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Enter password")
-                textPointSize: Tokens.font.size.large
-                font.weight: 500
+                font.pointSize: Tokens.font.size.large
+                font.weight: 400
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: root.network ? qsTr("Network: %1").arg(root.network.ssid) : ""
                 color: Colours.palette.m3outline
-                textPointSize: Tokens.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -182,7 +182,7 @@ Item {
                     return "";
                 }
                 color: connectButton.hasError ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                textPointSize: Tokens.font.size.small
+                font.pointSize: Tokens.font.size.small
                 font.weight: 400
                 wrapMode: Text.WordWrap
                 Layout.maximumWidth: parent.width - Tokens.padding.large * 2
@@ -302,7 +302,7 @@ Item {
                     anchors.centerIn: parent
                     text: qsTr("Password")
                     color: Colours.palette.m3outline
-                    textPointSize: Tokens.font.size.normal
+                    font.pointSize: Tokens.font.size.normal
                     font.family: Tokens.font.family.mono
                     opacity: passwordContainer.passwordBuffer ? 0 : 1
 

@@ -25,13 +25,66 @@ StyledClippingRect {
     }
     readonly property int groupOffset: Math.floor((activeWsId - 1) / Config.bar.workspaces.shown) * Config.bar.workspaces.shown
 
+    // Debounced rather than a direct binding to hoverArea.containsMouse —
+    // tolerates brief hover-loss blips (edge of the hit-region, a frame where
+    // the animating layout hasn't quite caught up yet) instead of instantly
+    // snapping collapsed the moment the cursor grazes outside.
+    property bool expanded: false
+    onExpandedChanged: if (!expanded) collapseTimer.stop()
+
+    Timer {
+        id: collapseTimer
+        interval: 220
+        onTriggered: root.expanded = false
+    }
+
+    // Full potential height if every slot were showing detail right now —
+    // NOT the animated/springy visual height. The hover hit-region below is
+    // sized off this (not off the lagging animated height) so moving the
+    // cursor toward not-yet-expanded slots never outruns the hit-test area
+    // mid-animation and snaps back collapsed.
+    readonly property int expandedContentHeight: {
+        let h = 0;
+        for (let i = 0; i < workspaces.count; i++) {
+            const item = workspaces.itemAt(i);
+            h += item ? item.detailHeight : 0;
+        }
+        return h + Math.max(0, workspaces.count - 1) * layout.spacing;
+    }
+
     property real blur: onSpecial ? 1 : 0
 
     implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: layout.implicitHeight + Tokens.padding.small * 2
+    implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
 
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
+
+    Behavior on implicitHeight {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    MouseArea {
+        id: hoverArea
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: parent.width
+        height: Math.max(parent.height, root.expandedContentHeight + Tokens.padding.normal * 2)
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+        propagateComposedEvents: true
+
+        onContainsMouseChanged: {
+            if (containsMouse) {
+                collapseTimer.stop();
+                root.expanded = true;
+            } else {
+                collapseTimer.restart();
+            }
+        }
+    }
 
     Item {
         anchors.fill: parent
@@ -44,20 +97,6 @@ StyledClippingRect {
             blurEnabled: true
             blur: root.blur
             blurMax: 32
-        }
-
-        Loader {
-            asynchronous: true
-            active: Config.bar.workspaces.occupiedBg
-
-            anchors.fill: parent
-            anchors.margins: Tokens.padding.small
-
-            sourceComponent: OccupiedBg {
-                workspaces: workspaces
-                occupied: root.occupied
-                groupOffset: root.groupOffset
-            }
         }
 
         ColumnLayout {
@@ -75,6 +114,7 @@ StyledClippingRect {
                     activeWsId: root.activeWsId
                     occupied: root.occupied
                     groupOffset: root.groupOffset
+                    expanded: root.expanded
                 }
             }
         }

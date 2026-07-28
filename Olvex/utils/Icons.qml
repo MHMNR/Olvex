@@ -214,20 +214,34 @@ Singleton {
         return false;
     }
 
+    // Only accept real filesystem paths. image://icon/* still fails at arbitrary
+    // sourceSize (e.g. 36x36 for dialog-information-symbolic) — never return those.
     function _normalisedResolvedIcon(path: string): string {
         if (!path)
             return "";
-        if (path.startsWith("/") || path.startsWith("file://"))
-            return _fileIconUrl(path);
-        return path;
+        const s = String(path);
+        if (s.startsWith("image://icon/")) {
+            // Extract name and try manual file lookup instead of broken icon provider
+            const name = s.slice("image://icon/".length).split("?")[0];
+            return name ? _manualIcon(name) : "";
+        }
+        if (s.startsWith("/") || s.startsWith("file://") || s.startsWith("~"))
+            return _fileIconUrl(s);
+        // Bare theme names / other schemes — not loadable as Image source reliably
+        return "";
     }
 
     function _themeIcon(icon: string): string {
         if (!icon)
             return "";
 
+        // Prefer filesystem hit first (avoids image://icon size failures)
+        let resolved = _manualIcon(icon);
+        if (resolved)
+            return resolved;
+
         let path = Quickshell.iconPath(icon, true);
-        let resolved = _normalisedResolvedIcon(path);
+        resolved = _normalisedResolvedIcon(path);
         if (resolved)
             return resolved;
 
@@ -238,6 +252,20 @@ Singleton {
                 return resolved;
         }
 
+        // Last resort: non-symbolic name
+        if (icon.endsWith("-symbolic")) {
+            resolved = _manualIcon(icon.slice(0, -9));
+            if (resolved)
+                return resolved;
+        }
+
+        return "";
+    }
+
+    function iconNameFromUrl(url: string): string {
+        const s = String(url ?? "");
+        if (s.startsWith("image://icon/"))
+            return s.slice("image://icon/".length).split("?")[0];
         return "";
     }
 

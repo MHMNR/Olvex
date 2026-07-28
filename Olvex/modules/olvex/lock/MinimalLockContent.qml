@@ -3,10 +3,12 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
+import QtQuick.Window
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.UPower
 import M3Shapes
+import Olvex.Components
 import Olvex.Config
 import "../../lock"
 import qs.components
@@ -36,6 +38,13 @@ Item {
     required property var screen
 
     readonly property string userName: Paths.home.split("/").pop()
+    // Settings → Lock → Element opacity (minimal style chrome only)
+    readonly property real elementOpacity: {
+        const v = GlobalConfig.lock.minimalOpacity;
+        if (v === undefined || v === null || Number.isNaN(v))
+            return 1;
+        return Math.max(0.05, Math.min(1, v));
+    }
 
     function formatSpeed(bps: real): string {
         if (bps <= 0) return "0 B/s";
@@ -69,8 +78,12 @@ Item {
     readonly property int stagger: 70    // ms between each component
     readonly property int dur: 850        // slide duration
     readonly property int exitDur: 650   // exit duration
-    readonly property int offset: 500    // px off-screen start for horizontal
-    readonly property int vOffset: 200   // px off-screen start for vertical
+    // Full screen dimensions, not fixed px — a fixed 500/200px offset wasn't
+    // always enough to fully clear wide/tall screens, so the slide looked
+    // like it "stuck" once the animation reached its end value while the
+    // element was still partly on-screen.
+    readonly property int offset: root.screen ? root.screen.width : 500    // off-screen start for horizontal
+    readonly property int vOffset: root.screen ? root.screen.height : 200  // off-screen start for vertical
 
     Connections {
         target: root.lock
@@ -159,7 +172,14 @@ Item {
         implicitWidth: topBarRow.implicitWidth
         implicitHeight: 48
         clip: false
+        opacity: root.elementOpacity
         transform: Translate { id: topBarTrans; y: -root.vOffset }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
 
         Row {
             id: topBarRow
@@ -167,163 +187,680 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 16
 
-            // ── Music Pill (left) ──────────────────────────────────────────────
-            Rectangle {
+            // ── Music Pill (left) — proper container-transform, unrolled horizontal ──
+            // Container-transform layering (see container-transform skill):
+            //   Layer 1: pill width/height/radius = the morphing "container" bounds
+            //   Shared element: artFrame — ONE Image, decode size fixed at the max
+            //     (expanded) art size always, so it's never re-decoded mid-resize
+            //     (that re-decode is what causes the taskbar pill/card morph's own
+            //     blink — see the matching fix in MediaMorphOverlay.qml)
+            //   Layer 3: trackInfo/controls — absolutely positioned (not row-flowed,
+            //     so they can't vanish from a layout-reflow edge case), fade in on a
+            //     short delay decoupled from the (slower) bounds animation
+            Item {
                 id: musicPill
                 z: 10
                 anchors.top: parent.top
                 anchors.topMargin: 0
-                clip: true
 
-                color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
                 property bool expanded: false
+                property real pillScale: 1.0
+                property bool visualizerLoaded: musicPill.isPlaying
+                readonly property bool isPlaying: Players.active !== null && Players.activeIsPlaying
 
-                width: expanded ? 340 : 180
-                height: expanded ? 160 : 48
-                radius: expanded ? 28 : 24
+                // True for the duration of the expand/collapse morph. The visualizer
+                // Canvas is Timer-driven independently of this animation, but it still
+                // lives inside pillSurface (a StyledClippingRect) whose own bounds are
+                // ALSO animating for these 400ms — Quickshell's clip is a layered/
+                // textured mask, so any change to it forces the whole clipped subtree
+                // to recomposite every frame. Stacking the visualizer's own repaints on
+                // top of that (only while a track is playing) is what caused the
+                // intermittent stutter — matching the bar pill's own fix
+                // (mediaVisualizerActive excludes mediaMorphRendering in
+                // ActiveWindow.qml), pause the visualizer for just the morph window.
+                property bool morphing: false
 
-                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                Behavior on radius { NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                onExpandedChanged: {
+                    musicPill.morphing = true;
+                    morphSettleTimer.restart();
+                }
 
-                TapHandler { onTapped: musicPill.expanded = !musicPill.expanded }
+                Timer {
+                    id: morphSettleTimer
+                    interval: musicPill.boundsDur
+                    repeat: false
+                    onTriggered: musicPill.morphing = false
+                }
+                // Participate in VisualizerState arbitration like the bar/overlay do,
+                // so only ONE visualizer ever runs. The lock content only exists while
+                // locked, so requesting the top priority (above overlay=30/bar=20/
+                // background=10) can't interfere with normal unlocked operation — it
+                // just guarantees the on-screen lock pill wins and the now-covered bar
+                // and desktop-background visualizers go idle underneath.
+                readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "lockPill"
+                // Experiment: match the monitor's native refresh rate instead of a
+                // fixed 30fps cap, now that the play-button spin/wavy-line pinning
+                // is removed.
+                readonly property real _screenHz: Screen.refreshRate > 0 ? Screen.refreshRate : 60
+                readonly property int visualizerFrameInterval: Math.max(1, Math.round(1000 / musicPill._screenHz))
 
-                // Album art
-                Rectangle {
-                    id: musicIcon
-                    width: musicPill.expanded ? 108 : 34
-                    height: musicPill.expanded ? 108 : 34
-                    radius: musicPill.expanded ? 26 : 17
-                    anchors.left: parent.left
-                    anchors.leftMargin: musicPill.expanded ? 24 : 8
-                    anchors.top: parent.top
-                    anchors.topMargin: musicPill.expanded ? 26 : 7
-                    color: Qt.rgba(1, 1, 1, 0.08)
-                    border.color: Qt.rgba(1, 1, 1, 0.18); border.width: 1
+                // M3 emphasized spatial spline — see olvex-m3-expressive skill §2
+                readonly property var spatialEasing: [0.2, 0.0, 0.0, 1.0, 1, 1]
+                readonly property int boundsDur: 400
 
-                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                    Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                    Behavior on radius { NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                    Behavior on anchors.leftMargin { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                    Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                readonly property int compactW: 168
+                readonly property int compactH: 48
+                readonly property int expandedW: 360
+                // +24px over the old 96 to fit the progress row below the buttons.
+                readonly property int expandedH: 120
+                readonly property int compactArt: 34
+                readonly property int expandedArt: 64
 
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        maskEnabled: true
-                        maskSource: ShaderEffectSource {
-                            live: true
-                            hideSource: true
-                            sourceItem: Rectangle { width: musicIcon.width; height: musicIcon.height; radius: musicIcon.radius; color: "black" }
+                // ── Seek state — ported from Media.qml's progress track so
+                // dragging previews the seek position before committing on release.
+                property real seekPreview: -1
+                readonly property real displayProgress: {
+                    const p = musicPill.seekPreview >= 0 ? musicPill.seekPreview : Players.interpolatedProgress;
+                    return p < 0.004 ? 0 : p;
+                }
+                readonly property real displayPosition: musicPill.seekPreview >= 0 && Players.interpolatedLength > 0 ? musicPill.seekPreview * Players.interpolatedLength : Players.interpolatedPosition
+                readonly property bool canSeek: Players.active !== null && (Players.active.canSeek ?? false) && (Players.active.positionSupported ?? false)
+
+                function lengthStr(length) {
+                    if (length < 0)
+                        return "-1:-1";
+                    let l = length;
+                    if (l > 1000000)
+                        l /= 1000000;
+                    const hours = Math.floor(l / 3600);
+                    const mins = Math.floor((l % 3600) / 60);
+                    const secs = Math.floor(l % 60).toString().padStart(2, "0");
+                    if (hours > 0)
+                        return `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
+                    return `${mins}:${secs}`;
+                }
+
+                width: musicPill.compactW
+                height: musicPill.compactH
+
+                transform: Scale {
+                    origin.x: musicPill.width / 2
+                    origin.y: musicPill.height / 2
+                    xScale: musicPill.pillScale
+                    yScale: musicPill.pillScale
+                }
+
+                // ── Ported from the taskbar's pill↔card morph (MediaMorphOverlay.qml
+                // musicIcon/musicPill states+transitions): container bounds, shape
+                // mask, and the shared-element art all animate as explicit per-state
+                // target values grouped into ONE synchronized NumberAnimation each,
+                // instead of live derived formulas + separate per-property Behaviors.
+                // The old artFrame.y was `(musicPill.height - height)/2 - offset` — a
+                // value computed from TWO other independently-animating properties,
+                // which doesn't trace a clean eased path (a composed curve, not a
+                // single interpolation) and is why the thumbnail didn't morph
+                // smoothly. Fixed target coordinates + a shared animation group fix
+                // that, matching the taskbar's approach exactly.
+                state: musicPill.expanded ? "expanded" : "compact"
+                states: [
+                    State {
+                        name: "compact"
+                        PropertyChanges { target: musicPill; width: musicPill.compactW; height: musicPill.compactH }
+                        PropertyChanges { target: pillSurface; radius: 24 }
+                        PropertyChanges { target: artFrame; x: 8; y: 7; width: musicPill.compactArt; height: musicPill.compactArt }
+                    },
+                    State {
+                        name: "expanded"
+                        PropertyChanges { target: musicPill; width: musicPill.expandedW; height: musicPill.expandedH }
+                        PropertyChanges { target: pillSurface; radius: 28 }
+                        // y:16 = old formula's steady-state result — (120-64)/2 - 12 —
+                        // kept identical so the approved thumbnail position doesn't move.
+                        PropertyChanges { target: artFrame; x: 20; y: 16; width: musicPill.expandedArt; height: musicPill.expandedArt }
+                    }
+                ]
+                transitions: [
+                    Transition {
+                        from: "*"; to: "*"
+                        ParallelAnimation {
+                            // Container bounds — full duration (Layer 1)
+                            NumberAnimation {
+                                targets: [musicPill]
+                                properties: "width,height"
+                                duration: musicPill.boundsDur
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: musicPill.spatialEasing
+                            }
+                            // Shape mask completes at 75% (container-transform
+                            // shapeMaskProgressThresholds ≈ 0→0.75), same as before.
+                            NumberAnimation {
+                                targets: [pillSurface]
+                                properties: "radius"
+                                duration: Math.round(musicPill.boundsDur * 0.75)
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: musicPill.spatialEasing
+                            }
+                            // Shared element (art) — grouped x/y/width/height in one
+                            // animation, guaranteeing frame-perfect sync between them.
+                            NumberAnimation {
+                                targets: [artFrame]
+                                properties: "x,y,width,height"
+                                duration: musicPill.boundsDur
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: musicPill.spatialEasing
+                            }
                         }
                     }
+                ]
 
-                    Image {
-                        anchors.fill: parent
-                        source: Players.active ? Players.getArtUrl(Players.active) : ""
-                        fillMode: Image.PreserveAspectCrop; asynchronous: true
-                        opacity: status === Image.Ready ? 1 : 0
-                        Behavior on opacity { NumberAnimation { duration: 300 } }
-                    }
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "music_note"
-                        color: Qt.rgba(1, 1, 1, 0.4)
-                        iconPointSize: 14
-                        visible: !Players.active || parent.children[0].status !== Image.Ready
+                function syncVisualizerOwner(): void {
+                    VisualizerState.request("lockPill", 40, musicPill.isPlaying);
+                }
+
+                onIsPlayingChanged: {
+                    musicPill.syncVisualizerOwner();
+                    if (musicPill.isPlaying) {
+                        visualizerUnloadTimer.stop();
+                        musicPill.visualizerLoaded = true;
+                    } else if (musicPill.visualizerLoaded) {
+                        visualizerUnloadTimer.restart();
                     }
                 }
 
-                // Track Info
+                Component.onCompleted: musicPill.syncVisualizerOwner()
+                Component.onDestruction: VisualizerState.release("lockPill")
+
+                Timer {
+                    id: visualizerUnloadTimer
+                    interval: 900
+                    repeat: false
+                    onTriggered: musicPill.visualizerLoaded = false
+                }
+
+                SequentialAnimation {
+                    id: pillPressSpring
+                    NumberAnimation { target: musicPill; property: "pillScale"; to: 0.94; duration: 90; easing.type: Easing.OutQuad }
+                    NumberAnimation { target: musicPill; property: "pillScale"; to: 1.0; duration: 260; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+                }
+
+                // ── Pill clip + background + visualizer ONLY. Kept minimal on
+                // purpose: Quickshell's ClippingRectangle (StyledClippingRect) clips
+                // via a layered/textured mask, so anything animating inside it forces
+                // the WHOLE clipped subtree to re-render every frame. With the
+                // continuously-updating visualizer previously sharing this container
+                // with the art's drop-shadow and the buttons, every visualizer frame
+                // was also repainting all of that static content — that's the
+                // playback-time lag. Art/track-info/buttons now live as plain
+                // siblings below (outside this clip), so the scene graph can cache
+                // them independently instead of getting dragged along every frame.
+                StyledClippingRect {
+                    id: pillSurface
+                    anchors.fill: parent
+                    radius: 24 // animated via musicPill's states/transitions above
+                    color: "transparent"
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: Players.musicSurfaceColor
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: musicPill.expanded ? 28 : 24
+                            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
+                        }
+                    }
+
+                    // Ambient glow — a soft, circular light bloom behind the
+                    // art (this pill's thumbnail is a circle, so the glow is
+                    // too). Three overlapping discs (wide faint halo → body →
+                    // hot core lifted toward white, since bright light
+                    // overwhelms hue at its source) are each individually
+                    // blurred into smooth domes, drawn directly inside
+                    // pillSurface — which is itself a StyledClippingRect, so
+                    // its reliable stencil clip already trims the glow to the
+                    // pill's rounded shape (no separate mask needed; a
+                    // MultiEffect mask rendered a hard square corner). Each
+                    // disc owns its blur so its texture never corner-clips.
+                    // Static, no per-frame cost.
+                    Item {
+                        anchors.fill: parent
+                        // Present whenever a player is loaded — not gated on
+                        // isPlaying, so it doesn't disappear on pause.
+                        opacity: Players.active !== null ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+                        Repeater {
+                            // widest/faintest first (behind) → hot core last (top)
+                            model: [
+                                { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 56 }, // halo
+                                { mult: 1.6,  dark: 1.8, alpha: 0.16, bmax: 44 }, // body
+                                { mult: 1.05, dark: 2.2, alpha: 0.28, bmax: 30 }  // dark core
+                            ]
+                            delegate: Rectangle {
+                                id: glowLayer
+                                required property var modelData
+                                readonly property real d: artFrame.width * modelData.mult
+                                width: d
+                                height: d
+                                radius: d / 2 // circle, matching the round thumbnail
+                                x: artFrame.x + artFrame.width / 2 - d / 2
+                                y: artFrame.y + artFrame.height / 2 - d / 2
+                                color: Qt.alpha(Qt.darker(Players.musicVisualizerAccent, modelData.dark), modelData.alpha)
+                                antialiasing: true
+                                layer.enabled: true
+                                layer.effect: MultiEffect {
+                                    blurEnabled: true
+                                    blur: 1.0
+                                    blurMax: glowLayer.modelData.bmax
+                                }
+                            }
+                        }
+                    }
+
+                    // Stays loaded through the expand/collapse morph — anchors.fill
+                    // means it resizes every frame right along with pillSurface, so
+                    // it morphs continuously instead of unloading/reloading (popping
+                    // off then back on) around the transition.
+                    Loader {
+                        anchors.fill: parent
+                        active: musicPill.visualizerLoaded
+                        asynchronous: true
+                        sourceComponent: Component {
+                            Item {
+                                NeonWaveVisualizer {
+                                    anchors.fill: parent
+                                    accentColor: Players.musicVisualizerAccent
+                                    numBands: 32
+                                    maxHeightRatio: 0.7
+                                    topFadeRatio: 0.12
+                                    valueMultiplier: 1.3
+                                    // Gate on ownership (matching the bar) so the
+                                    // covered bar/background visualizers stop while
+                                    // this one is on screen — exactly one runs. Also
+                                    // paused during the expand/collapse morph (see
+                                    // musicPill.morphing) — matches the bar pill's own
+                                    // mediaVisualizerActive excluding mediaMorphRendering.
+                                    active: musicPill.isPlaying && musicPill.ownsVisualizer && !musicPill.morphing
+                                    frameInterval: musicPill.visualizerFrameInterval
+                                    // Drive from the C++ internal QTimer at
+                                    // frameInterval instead of a per-vsync
+                                    // FrameAnimation, so the visualizer never re-pins
+                                    // the lock window to the monitor's 144Hz refresh —
+                                    // it only requests renders at 30fps. Critical on
+                                    // the fill-rate-limited iGPU lock surface.
+                                    externallyDriven: false
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Tap-to-expand. artFrame/trackInfo/buttons paint on top of
+                    // this (later siblings of musicPill), so they still get click
+                    // priority over this background toggle.
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: mouse => {
+                            mouse.accepted = true;
+                            musicPill.expanded = !musicPill.expanded;
+                            pillPressSpring.start();
+                        }
+                    }
+                }
+
+                // ── Shared element: album art — one Image, fixed decode size.
+                // Sibling of pillSurface (not inside its clip) so its shadow layer
+                // is cached independently instead of re-rendering every visualizer
+                // frame. Shadow itself is a plain non-layered ring — a blurred
+                // MultiEffect shadow here was the other big always-on GPU cost
+                // whenever a track was playing.
+                Item {
+                    id: artFrame
+                    // x/y/width/height animated via musicPill's states/transitions
+                    // above (grouped NumberAnimation, matching the taskbar's
+                    // musicIcon technique) — these are just the initial/compact
+                    // values for the first paint, before `state` is applied.
+                    x: 8
+                    y: 7
+                    width: musicPill.compactArt
+                    height: musicPill.compactArt
+
+                    StyledClippingRect {
+                        anchors.fill: parent
+                        // Fixed radius (not width/2) — matches MediaMorphOverlay's
+                        // art tile convention: circular at the small compact size
+                        // (34/2 = 17), rounded-square once the art grows to the
+                        // expanded size, same as every other music surface.
+                        radius: 17
+                        color: Players.active ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(Players.musicVisualizerAccent, 0.22)
+
+                        Image {
+                            id: lockArtImage
+                            anchors.fill: parent
+                            source: Players.active ? Players.getArtUrl(Players.active) : ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            // Fixed at the largest (expanded) size this pill ever
+                            // shows art at — must NOT track the live animated
+                            // width/height, or the image is re-decoded every frame
+                            // of the resize, which is what causes morph blinking.
+                            sourceSize: Qt.size(musicPill.expandedArt, musicPill.expandedArt)
+                            opacity: status === Image.Ready ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                        }
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "music_note"
+                            color: Players.active ? Qt.alpha(Players.musicOnSurfaceColor, 0.4) : Players.musicOnAccent
+                            iconPointSize: Tokens.font.size.normal
+                            fill: 1
+                            visible: !Players.active || lockArtImage.status !== Image.Ready
+                        }
+                    }
+                }
+
+                // ── Track info — absolutely positioned, delayed fade-in ──
                 Column {
-                    width: 188
-                    spacing: 2
-                    anchors.left: parent.left
-                    anchors.leftMargin: 148
-                    anchors.top: parent.top
-                    anchors.topMargin: 32
+                    id: trackInfo
+                    x: 98
+                    y: musicPill.expanded ? 12 : 20
+                    width: musicPill.width - x - 12
+                    spacing: 0
                     opacity: musicPill.expanded ? 1 : 0
-                    visible: opacity > 0
+                    visible: opacity > 0.01
 
-                    Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                    Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                    Behavior on opacity {
+                        SequentialAnimation {
+                            PauseAnimation { duration: 70 }
+                            NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                        }
+                    }
 
-                    StyledText {
+                    MarqueeText {
                         width: parent.width
                         text: Players.active ? (Players.active.trackTitle || "Unknown Title") : "Nothing Playing"
                         color: Qt.rgba(1, 1, 1, 0.95); textPointSize: Tokens.font.size.normal
-                        font.weight: Font.SemiBold; elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
+                        font.weight: Font.DemiBold
+                        running: musicPill.expanded && trackInfo.opacity > 0.95
                     }
                     StyledText {
                         width: parent.width
                         text: Players.active ? (Players.active.trackArtist || "Unknown Artist") : ""
                         color: Qt.rgba(1, 1, 1, 0.50); textPointSize: Tokens.font.size.small
                         elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
+                        visible: text !== ""
+                        anchors.topMargin: -2
                     }
                 }
 
-                // Controls
-                Row {
-                    spacing: 18
-                    anchors.left: parent.left
-                    anchors.leftMargin: 136
-                    anchors.top: parent.top
-                    anchors.topMargin: 92
+                // ── Controls — ALWAYS visible (compact AND expanded), just
+                // slide between the compact position (right after the art) and
+                // the expanded position (past the track info). Matches how the
+                // bar pill (ActiveWindow.qml) always shows its controls — this
+                // pill's "expanded" state only ever reveals the track-info text,
+                // never the controls themselves.
+                // MorphControlButton: same component as the bar pill and
+                // MediaMorphOverlay card, so transport control motion/shape
+                // language stays identical everywhere in Olvex.
+                MorphControlButton {
+                    x: musicPill.expanded ? 242 : 50
+                    y: musicPill.expanded ? 44 : 9
+                    Behavior on x { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    Behavior on y { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    iconName: "skip_previous"
+                    balancedSkipIcon: true
+                    skipIconScale: 0.86
+                    iconSize: Tokens.font.size.large
+                    onClicked: Players.previous()
+                }
+
+                MorphControlButton {
+                    x: musicPill.expanded ? 280 : 86
+                    y: musicPill.expanded ? 44 : 9
+                    Behavior on x { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    Behavior on y { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    emphasized: true
+                    // No spin — infinite RotationAnimator pins the lock window to
+                    // 144Hz while playing (iGPU lag). Static circle, like backup.
+                    spinning: false
+                    animateSpin: false
+                    iconName: musicPill.isPlaying ? "pause" : "play_arrow"
+                    iconSize: Tokens.font.size.larger
+                    onClicked: Players.togglePlaying()
+                }
+
+                MorphControlButton {
+                    x: musicPill.expanded ? 318 : 122
+                    y: musicPill.expanded ? 44 : 9
+                    Behavior on x { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    Behavior on y { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    iconName: "skip_next"
+                    balancedSkipIcon: true
+                    skipIconScale: 0.86
+                    iconSize: Tokens.font.size.large
+                    onClicked: Players.next()
+                }
+
+                // ── Progress bar — ported from the card lock screen's seek
+                // track (wavy-while-playing indicator, draggable stadium
+                // thumb). Only shown expanded — matches trackInfo's own
+                // gating, no room for it in the compact pill.
+                Item {
+                    id: progressWrap
+                    x: 20
+                    y: 82
+                    width: musicPill.width - 40
+                    height: 28
                     opacity: musicPill.expanded ? 1 : 0
-                    visible: opacity > 0
+                    visible: opacity > 0.01 && Players.active !== null
 
-                    Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-
-                    // Prev
-                    Rectangle {
-                        width: 30; height: 30; radius: width / 2; color: "transparent"
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "skip_previous"
-                            color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                            iconPointSize: 13
+                    Behavior on opacity {
+                        SequentialAnimation {
+                            PauseAnimation { duration: 70 }
+                            NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
                         }
-                        StateLayer { enabled: Players.active !== null; onClicked: Players.previous(); radius: parent.radius }
                     }
 
-                    // Play/Pause
-                    Rectangle {
-                        id: playBtn
-                        width: 32; height: 32
-                        radius: (Players.active && Players.active.isPlaying) ? 14 : height / 2
-                        color: Players.active ? Colours.palette.m3primary : "transparent"
-                        clip: true
+                    Text {
+                        id: timeElapsed
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: musicPill.lengthStr(musicPill.displayPosition)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.58)
+                        font.pixelSize: 11
+                        font.family: Tokens.font.family.mono
+                        font.weight: Font.Medium
+                    }
 
-                        Behavior on radius { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                        Behavior on color { ColorAnimation { duration: 350 } }
+                    Text {
+                        id: timeTotal
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: musicPill.lengthStr(Players.interpolatedLength > 0 ? Players.interpolatedLength : -1)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.58)
+                        font.pixelSize: 11
+                        font.family: Tokens.font.family.mono
+                        font.weight: Font.Medium
+                    }
 
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            maskEnabled: true
-                            maskSource: ShaderEffectSource {
-                                live: true
-                                hideSource: true
-                                sourceItem: Rectangle { width: playBtn.width; height: playBtn.height; radius: playBtn.radius; color: "black" }
+                    Item {
+                        id: progressTrackRow
+                        anchors.left: timeElapsed.right
+                        anchors.right: timeTotal.left
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 28
+
+                        // M3 Expressive seekbar tokens
+                        readonly property real activeThickness: 4
+                        readonly property real inactiveThickness: 4
+                        readonly property real thumbW: dragging || hoverArea.containsMouse ? 7 : 4
+                        readonly property real thumbH: dragging || hoverArea.containsMouse ? 24 : 16
+                        readonly property real gap: 6 // thumb ↔ track gap
+                        readonly property bool isPlaying: musicPill.isPlaying
+                        readonly property color activeColor: Players.musicPlayButtonBg
+                        property bool dragging: false
+
+                        readonly property real fillW: Math.max(0, Math.min(width, width * musicPill.displayProgress))
+                        readonly property real thumbX: fillW
+                        readonly property bool waveActive: musicPill.seekPreview < 0 && progressTrackRow.isPlaying
+
+                        // ── Active indicator: thick wavy line (value-clipped, no Item clip) ──
+                        WavyLine {
+                            id: waveIndicator
+                            z: 1
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: progressTrackRow.height
+                            visible: amplitudeMultiplier > 0.001
+
+                            lineWidth: progressTrackRow.activeThickness
+                            color: progressTrackRow.activeColor
+                            frequency: 7
+                            startX: 0
+                            fullLength: progressTrackRow.width
+                            // Draw wave only up to fill, leaving gap before thumb
+                            value: progressTrackRow.width > 0 ? Math.max(0, (progressTrackRow.fillW - progressTrackRow.gap) / progressTrackRow.width) : 0
+
+                            // Playing → wavy; seeking or paused → flat (rect below takes over)
+                            amplitudeMultiplier: progressTrackRow.waveActive ? 1.6 : 0
+
+                            Behavior on amplitudeMultiplier {
+                                NumberAnimation {
+                                    duration: Tokens.anim.durations.expressiveDefaultEffects
+                                    easing: Tokens.anim.emphasizedDecel
+                                }
+                            }
+                            Behavior on value {
+                                NumberAnimation {
+                                    duration: 60
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            Anim on waveProgress {
+                                running: waveIndicator.amplitudeMultiplier > 0
+                                from: 0
+                                to: 1
+                                duration: 1400
+                                easing.type: Easing.Linear
+                                loops: Animation.Infinite
                             }
                         }
 
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
-                            color: Players.active ? Colours.palette.m3onPrimary : "white"
-                            iconPointSize: 16
+                        // ── Active flat fill — shown when paused/seeking (no wave) ──────
+                        Rectangle {
+                            z: 2
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(0, progressTrackRow.fillW - progressTrackRow.gap)
+                            height: progressTrackRow.activeThickness
+                            radius: height / 2
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0.0; color: Qt.alpha(progressTrackRow.activeColor, 0.72) }
+                                GradientStop { position: 1.0; color: progressTrackRow.activeColor }
+                            }
+                            visible: waveIndicator.amplitudeMultiplier <= 0.001
+                            Behavior on width {
+                                enabled: !progressTrackRow.dragging
+                                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                            }
                         }
-                        StateLayer { radius: parent.radius; enabled: Players.active !== null; onClicked: Players.togglePlaying() }
-                    }
 
-                    // Next
-                    Rectangle {
-                        width: 30; height: 30; radius: width / 2; color: "transparent"
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "skip_next"
-                            color: Players.active ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.25)
-                            iconPointSize: 13
+                        // ── Inactive (remaining) track — from thumb gap to right edge ──
+                        Rectangle {
+                            z: 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            x: progressTrackRow.thumbX + progressTrackRow.gap
+                            width: Math.max(0, progressTrackRow.width - x)
+                            height: progressTrackRow.inactiveThickness
+                            radius: height / 2
+                            color: Qt.alpha(Players.musicOnSurfaceColor, 0.22)
+                            visible: width > 0
+                            Behavior on x {
+                                enabled: !progressTrackRow.dragging
+                                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                            }
                         }
-                        StateLayer { enabled: Players.active !== null; onClicked: Players.next(); radius: parent.radius }
+
+                        // ── Stadium thumb — grows on press (M3 Expressive) ─────────────
+                        Rectangle {
+                            id: seekThumb
+                            z: 20
+                            visible: musicPill.canSeek
+                            x: progressTrackRow.thumbX - width / 2
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: progressTrackRow.thumbW
+                            height: progressTrackRow.thumbH
+                            radius: width / 2
+                            color: progressTrackRow.activeColor
+                            border.width: 1
+                            border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.26)
+                            layer.enabled: visible && (progressTrackRow.dragging || hoverArea.containsMouse)
+                            layer.effect: MultiEffect {
+                                shadowEnabled: true
+                                shadowColor: Qt.alpha(progressTrackRow.activeColor, 0.58)
+                                shadowOpacity: 0.46
+                                shadowBlur: 0.7
+                                shadowHorizontalOffset: 0
+                                shadowVerticalOffset: 0
+                            }
+                            Behavior on x {
+                                enabled: !progressTrackRow.dragging
+                                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                            }
+                            Behavior on width {
+                                SpringAnimation { spring: 5.0; damping: 0.7; epsilon: 0.01 }
+                            }
+                            Behavior on height {
+                                SpringAnimation { spring: 5.0; damping: 0.7; epsilon: 0.01 }
+                            }
+                        }
+
+                        // ── Seek interaction ───────────────────────────────────────
+                        MouseArea {
+                            id: hoverArea
+                            anchors.fill: parent
+                            anchors.topMargin: -8
+                            anchors.bottomMargin: -8
+                            hoverEnabled: true
+                            enabled: musicPill.canSeek && musicPill.expanded
+                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            preventStealing: true
+                            z: 10
+
+                            function fractionAt(mouseX) {
+                                const w = progressTrackRow.width;
+                                if (w <= 0)
+                                    return 0;
+                                return Math.max(0, Math.min(1, mouseX / w));
+                            }
+
+                            onPressed: mouse => {
+                                progressTrackRow.dragging = true;
+                                musicPill.seekPreview = fractionAt(mouse.x);
+                                mouse.accepted = true;
+                            }
+                            onReleased: mouse => {
+                                progressTrackRow.dragging = false;
+                                if (musicPill.seekPreview >= 0) {
+                                    Players.seekTo(musicPill.seekPreview);
+                                    musicPill.seekPreview = -1;
+                                }
+                                mouse.accepted = true;
+                            }
+                            onPositionChanged: mouse => {
+                                if (pressed)
+                                    musicPill.seekPreview = fractionAt(mouse.x);
+                            }
+                            onCanceled: {
+                                progressTrackRow.dragging = false;
+                                musicPill.seekPreview = -1;
+                            }
+                        }
                     }
                 }
             }
@@ -336,7 +873,7 @@ Item {
                 radius: height / 2
                 
                 // Sleek Material Card Background
-                color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
+                color: Colours.palette.m3surfaceContainerHigh
 
                 Row {
                     id: statsRow
@@ -537,24 +1074,33 @@ Item {
                 anchors.topMargin: 0
                 clip: true
 
-                color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
+                color: Colours.palette.m3surfaceContainerHigh
                 property bool expanded: false
 
                 width: expanded ? 340 : (notifHeaderRow.width + 16)
                 height: expanded ? Math.min(320, Math.max(120, Notifs.notClosed.length * 66 + 64)) : 48
                 radius: expanded ? 28 : 24
 
-                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
-                Behavior on radius { NumberAnimation { duration: 450; easing.type: Easing.OutBack; easing.overshoot: 1.3 } }
+                // Same curve as musicPill — M3 emphasized spatial spline, not the
+                // old OutBack overshoot bounce.
+                Behavior on width { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                Behavior on height { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                // Shape-mask completes ahead of the bounds (container-transform
+                // shapeMaskProgressThresholds ≈ 0→0.75), matching musicPill's own
+                // pillSurface radius timing.
+                Behavior on radius { NumberAnimation { duration: Math.round(musicPill.boundsDur * 0.75); easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
 
                 // Header
                 Row {
                     id: notifHeaderRow
                     anchors.top: parent.top
-                    anchors.topMargin: 6
+                    // Corner radius grows 24→28 on expand — the inset needs to grow
+                    // with it (~radius × 0.3) or the icon crowds the rounded corner.
+                    anchors.topMargin: notifPill.expanded ? 8 : 6
                     anchors.left: parent.left
-                    anchors.leftMargin: 7
+                    anchors.leftMargin: notifPill.expanded ? 9 : 7
+                    Behavior on anchors.topMargin { NumberAnimation { duration: Math.round(musicPill.boundsDur * 0.75); easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    Behavior on anchors.leftMargin { NumberAnimation { duration: Math.round(musicPill.boundsDur * 0.75); easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
                     spacing: 12
                     z: 20
 
@@ -633,7 +1179,40 @@ Item {
                         Rectangle { anchors.fill: parent; radius: 12; color: Qt.rgba(1, 1, 1, 0.05) }
                         Row {
                             anchors.fill: parent; anchors.margins: 10; spacing: 10
-                            Rectangle { width: 32; height: 32; radius: 8; anchors.verticalCenter: parent.verticalCenter; color: Qt.rgba(1, 1, 1, 0.10); MaterialIcon { anchors.centerIn: parent; text: "info"; color: Qt.rgba(1, 1, 1, 0.5); iconPointSize: 14 } }
+                            // Real thumbnail/app-icon, matching the card lock screen's
+                            // NotifGroup.qml priority: image > appIcon > generic fallback.
+                            Rectangle {
+                                width: 32; height: 32; radius: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: Qt.rgba(1, 1, 1, 0.10)
+                                clip: true
+
+                                Image {
+                                    anchors.fill: parent
+                                    visible: modelData.image.length > 0
+                                    source: modelData.image.length > 0 ? Qt.resolvedUrl(modelData.image) : ""
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    cache: false
+                                }
+
+                                ColouredIcon {
+                                    anchors.centerIn: parent
+                                    visible: modelData.image.length === 0 && modelData.appIcon.length > 0
+                                    implicitSize: 18
+                                    source: modelData.appIcon.length > 0 ? Quickshell.iconPath(modelData.appIcon) : ""
+                                    colour: Qt.rgba(1, 1, 1, 0.7)
+                                    layer.enabled: modelData.appIcon.endsWith("symbolic")
+                                }
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    visible: modelData.image.length === 0 && modelData.appIcon.length === 0
+                                    text: "info"
+                                    color: Qt.rgba(1, 1, 1, 0.5)
+                                    iconPointSize: 14
+                                }
+                            }
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: parent.width - 52
@@ -678,6 +1257,13 @@ Item {
         }
 
         spacing: 0
+        opacity: root.elementOpacity
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
 
         // Clock + Date block (left half)
         Item {
@@ -786,7 +1372,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: 24
-                    color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
+                    color: Colours.palette.m3surfaceContainerHigh
                 }
 
                 Column {
@@ -802,6 +1388,23 @@ Item {
                         width: 100
                         height: 100
 
+                        // Single shared spin phase for the ring + mask, advanced by
+                        // one 60fps Timer instead of two vsync-locked (144Hz)
+                        // NumberAnimations. Same 360°/20s = 18°/s spin, but the lock
+                        // window no longer re-composites at the monitor's full refresh
+                        // rate — at ~0.29°/tick the motion is sub-pixel, visually
+                        // identical, while relaxing the per-frame deadline enough for
+                        // the visualizer to stay within budget on a 144Hz iGPU.
+                        property real spin: 0
+                        readonly property real spinStep: 360 * 16 / 20000  // ≈0.288°/16ms
+
+                        Timer {
+                            interval: 16
+                            running: true
+                            repeat: true
+                            onTriggered: avatarHost.spin = (avatarHost.spin - avatarHost.spinStep + 360) % 360
+                        }
+
                         // Spinning 12-sided ring
                         MaterialShape {
                             id: avatarRing
@@ -810,15 +1413,7 @@ Item {
                             implicitSize: 100
                             shape: MaterialShape.Cookie12Sided
                             color: Colours.layer(Colours.palette.m3primaryContainer, 1)
-
-                            Anim on rotation {
-                                running: true
-                                from: 360
-                                to: 0
-                                duration: 20000
-                                easing.type: Easing.Linear
-                                loops: Animation.Infinite
-                            }
+                            rotation: avatarHost.spin
                         }
 
                         // Spinning mask for clipping
@@ -833,15 +1428,7 @@ Item {
                                 implicitSize: 100
                                 shape: MaterialShape.Cookie12Sided
                                 color: "white"
-
-                                Anim on rotation {
-                                    running: true
-                                    from: 360
-                                    to: 0
-                                    duration: 20000
-                                    easing.type: Easing.Linear
-                                    loops: Animation.Infinite
-                                }
+                                rotation: avatarHost.spin
                             }
                         }
 
@@ -894,7 +1481,7 @@ Item {
                             text: root.userName
                             color: "white"
                             textPointSize: Tokens.font.size.extraLarge
-                            font.weight: Font.SemiBold
+                            font.weight: Font.DemiBold
                         }
 
                         StyledText {
@@ -1074,12 +1661,19 @@ Item {
 
         implicitWidth: actRow.implicitWidth + 32
         implicitHeight: actRow.implicitHeight + 20
+        opacity: root.elementOpacity
         transform: Translate { id: bottomBarTrans; y: root.vOffset }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
 
         Rectangle {
             anchors.fill: parent
             radius: height / 2
-            color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
+            color: Colours.palette.m3surfaceContainerHigh
         }
 
         RowLayout {
@@ -1134,7 +1728,7 @@ Item {
                 text: label
                 color: Qt.rgba(1, 1, 1, 0.55)
                 textPointSize: Math.max(7, Tokens.font.size.small - 1)
-                font.weight: Font.SemiBold
+                font.weight: Font.DemiBold
                 font.letterSpacing: 1
             }
 
@@ -1243,5 +1837,126 @@ Item {
         HoverHandler {
             id: hov
         }
+    }
+
+    // Ported verbatim from MediaMorphOverlay.qml/Media.qml — MarqueeText is a
+    // file-local `component`, not a shared type, so each user defines its own copy.
+    component MarqueeText: Item {
+        id: marqueeRoot
+
+        required property string text
+        property color color: Colours.palette.m3onSurface
+        property real textPointSize: Tokens.font.size.normal
+        property alias font: primaryLabel.font
+        property bool running: true
+
+        height: primaryLabel.implicitHeight
+        clip: true
+
+        readonly property real speed: 28
+        readonly property bool needsMarquee: width > 0 && primaryLabel.implicitWidth > width + 1
+
+        layer.enabled: needsMarquee
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: ShaderEffectSource {
+                sourceItem: Rectangle {
+                    width: marqueeRoot.width
+                    height: marqueeRoot.height
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop {
+                            position: 0.0
+                            color: "transparent"
+                        }
+                        GradientStop {
+                            position: 0.08
+                            color: "black"
+                        }
+                        GradientStop {
+                            position: 0.9
+                            color: "black"
+                        }
+                        GradientStop {
+                            position: 1.0
+                            color: "transparent"
+                        }
+                    }
+                }
+            }
+        }
+
+        Row {
+            id: marqueeRow
+
+            spacing: 34
+            property real scrollX: 0
+
+            x: marqueeRoot.needsMarquee ? scrollX : 0
+            height: parent.height
+
+            StyledText {
+                id: primaryLabel
+                text: marqueeRoot.text
+                color: marqueeRoot.color
+                textPointSize: marqueeRoot.textPointSize
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideNone
+            }
+
+            StyledText {
+                text: marqueeRoot.text
+                color: marqueeRoot.color
+                textPointSize: marqueeRoot.textPointSize
+                font: primaryLabel.font
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                visible: marqueeRoot.needsMarquee
+                elide: Text.ElideNone
+            }
+        }
+
+        SequentialAnimation {
+            id: marqueeAnim
+
+            running: marqueeRoot.running && marqueeRoot.needsMarquee && marqueeRoot.visible && marqueeRoot.width > 0
+            loops: Animation.Infinite
+
+            PauseAnimation {
+                duration: 1600
+            }
+
+            NumberAnimation {
+                target: marqueeRow
+                property: "scrollX"
+                from: 0
+                to: -(primaryLabel.implicitWidth + marqueeRow.spacing)
+                duration: Math.max(3600, primaryLabel.implicitWidth * 1000 / marqueeRoot.speed)
+                easing.type: Easing.Linear
+            }
+
+            PauseAnimation {
+                duration: 900
+            }
+
+            PropertyAction {
+                target: marqueeRow
+                property: "scrollX"
+                value: 0
+            }
+        }
+
+        function restartMarquee(): void {
+            marqueeAnim.stop();
+            marqueeRow.scrollX = 0;
+            if (needsMarquee && running)
+                marqueeAnim.start();
+        }
+
+        onTextChanged: Qt.callLater(restartMarquee)
+        onWidthChanged: Qt.callLater(restartMarquee)
+        onNeedsMarqueeChanged: Qt.callLater(restartMarquee)
+        onRunningChanged: Qt.callLater(restartMarquee)
     }
 }

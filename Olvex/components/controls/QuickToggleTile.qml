@@ -97,10 +97,8 @@ StyledRect {
     border.width: 1
 
     Behavior on radius { Anim { type: Anim.FastSpatial } }
-    Behavior on scale { Anim {} }
-    
-    scale: mouseArea.pressed ? 0.92 : (mouseArea.containsMouse ? 1.03 : 1)
 
+    // No hover zoom (QS panel tiles stay flat)
     MouseArea {
         id: mouseArea
         anchors.fill: parent

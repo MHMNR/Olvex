@@ -58,6 +58,10 @@ QtObject {
         return Olvex.WallpapersOlvex.thumbnailPathFor(path);
     }
 
+    function displayPathFor(path: string): string {
+        return Olvex.WallpapersOlvex.displayPathFor(path);
+    }
+
     function colourSourcePath(path: string): string {
         return Olvex.WallpapersOlvex.colourSourcePath(path); // Ensure this returns a file:// URL or a path that ImageAnalyser can handle
     }

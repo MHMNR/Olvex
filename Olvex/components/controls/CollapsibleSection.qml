@@ -39,7 +39,7 @@ ColumnLayout {
             StyledText {
                 text: root.title
                 textPointSize: Tokens.font.size.larger
-                font.weight: 500
+                font.weight: 400
             }
 
             Item {

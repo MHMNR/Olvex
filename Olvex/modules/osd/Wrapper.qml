@@ -12,6 +12,7 @@ Item {
     required property ShellScreen screen
     required property DrawerVisibilities visibilities
     required property bool sidebarOrSessionVisible
+    property Item screenCapture: null
 
     property bool hovered
     readonly property Brightness.Monitor monitor: Brightness.getMonitorForScreen(root.screen)
@@ -110,6 +111,7 @@ Item {
             sourceVolume: root.sourceVolume
             sourceMuted: root.sourceMuted
             brightness: root.brightness
+            screenCapture: root.screenCapture
         }
     }
 }

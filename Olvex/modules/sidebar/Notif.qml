@@ -7,7 +7,9 @@ import Olvex.Config
 import qs.components
 import qs.services
 
-StyledRect {
+// Flat row inside NotifGroup — group card is the only surface.
+// Expanded = more content + actions, NOT another nested card.
+Item {
     id: root
 
     required property NotifData modelData
@@ -16,27 +18,27 @@ StyledRect {
     required property DrawerVisibilities visibilities
 
     readonly property StyledText body: (expandedContent.item as ExpandedBody)?.body ?? null
-    readonly property real nonAnimHeight: expanded ? summary.implicitHeight + expandedContent.implicitHeight + expandedContent.anchors.topMargin + Tokens.padding.normal * 2 : summaryHeightMetrics.height
+    readonly property bool isCritical: modelData?.urgency === "critical"
+    readonly property string bodyText: String(modelData?.body ?? "").trim()
+    readonly property bool hasBody: bodyText.length > 0
+
+    readonly property real nonAnimHeight: expanded
+        ? summary.implicitHeight
+            + expandedContent.implicitHeight + expandedContent.anchors.topMargin
+            + (indexHairline.visible ? indexHairline.height + Tokens.spacing.small / 2 : 0)
+        : summaryHeightMetrics.height
 
     implicitHeight: nonAnimHeight
 
-    radius: Tokens.rounding.small
-    color: {
-        const c = root.modelData?.urgency === "critical" ? Colours.palette.m3secondaryContainer : Colours.tileFill;
-        return expanded ? c : "transparent";
-    }
-
-    border.width: expanded ? 1 : 0
-    border.color: Colours.tileStroke
-
-    StyledRect {
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: parent.radius - 1
-        color: "transparent"
-        border.color: Colours.tileInnerLine
-        border.width: expanded ? 1 : 0
-        visible: expanded
+    // Soft top rule between expanded rows (not a second card)
+    Rectangle {
+        id: indexHairline
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 1
+        visible: root.expanded && (root.y > 1)
+        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
     }
 
     state: expanded ? "expanded" : ""
@@ -45,19 +47,19 @@ StyledRect {
         name: "expanded"
 
         PropertyChanges {
-            summary.anchors.margins: root.Tokens.padding.normal
-            dummySummary.anchors.margins: root.Tokens.padding.normal
-            compactBody.anchors.margins: root.Tokens.padding.normal
-            timeStr.anchors.margins: root.Tokens.padding.normal
-            expandedContent.anchors.margins: root.Tokens.padding.normal
-            summary.width: root.width - root.Tokens.padding.normal * 2 - timeStr.implicitWidth - root.Tokens.spacing.small
+            summary.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
+            dummySummary.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
+            compactBody.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
+            timeStr.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
+            expandedContent.anchors.topMargin: Tokens.spacing.smaller
+            summary.width: root.width - timeStr.implicitWidth - Tokens.spacing.small
             summary.maximumLineCount: Number.MAX_SAFE_INTEGER
         }
     }
 
     transitions: Transition {
         Anim {
-            properties: "margins,width,maximumLineCount"
+            properties: "margins,topMargin,width,maximumLineCount"
         }
     }
 
@@ -68,7 +70,7 @@ StyledRect {
         font.pointSize: -1
         font.family: summary.font.family
         font.weight: summary.font.weight
-        text: " " // Use this height to prevent weird characters from changing the line height
+        text: " "
     }
 
     StyledText {
@@ -79,10 +81,16 @@ StyledRect {
 
         width: parent.width
         text: root.modelData?.summary ?? ""
-        color: root.modelData?.urgency === "critical" ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
+        color: root.isCritical
+            ? Colours.palette.m3error
+            : Colours.palette.m3onSurface
+        textPointSize: Tokens.font.size.small
+        font.weight: root.expanded ? Font.Medium : Font.Normal
         elide: Text.ElideRight
         wrapMode: Text.WordWrap
         maximumLineCount: 1
+        lineHeight: 1.15
+        lineHeightMode: Text.ProportionalHeight
     }
 
     StyledText {
@@ -93,20 +101,26 @@ StyledRect {
 
         visible: false
         text: root.modelData?.summary ?? ""
+        textPointSize: summary.textPointSize
+        font.weight: summary.font.weight
     }
 
     WrappedLoader {
         id: compactBody
 
-        shouldBeActive: !root.expanded
+        shouldBeActive: !root.expanded && root.hasBody
         anchors.top: parent.top
         anchors.left: dummySummary.right
         anchors.right: parent.right
         anchors.leftMargin: Tokens.spacing.small
 
         sourceComponent: StyledText {
-            text: String(root.modelData?.body ?? "").replace(/\n/g, " ")
-            color: root.modelData?.urgency === "critical" ? Colours.palette.m3secondary : Colours.palette.m3outline
+            text: root.bodyText.replace(/\n/g, " ")
+            color: root.isCritical
+                ? Colours.palette.m3error
+                : Colours.palette.m3onSurfaceVariant
+            textPointSize: Tokens.font.size.small
+            opacity: 0.88
             elide: Text.ElideRight
         }
     }
@@ -123,6 +137,8 @@ StyledRect {
             text: root.modelData?.timeStr ?? ""
             color: Colours.palette.m3outline
             textPointSize: Tokens.font.size.small
+            font.family: Tokens.font.family.mono
+            opacity: 0.85
         }
     }
 
@@ -133,7 +149,7 @@ StyledRect {
         anchors.top: summary.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.topMargin: Tokens.spacing.small / 2
+        anchors.topMargin: Tokens.spacing.smaller
 
         sourceComponent: ExpandedBody {}
     }
@@ -153,10 +169,19 @@ StyledRect {
             id: bodyText
 
             Layout.fillWidth: true
+            visible: root.hasBody
             textFormat: Text.MarkdownText
-            text: String(root.modelData?.body ?? "").replace(/(.)\n(?!\n)/g, "$1\n\n") || qsTr("No body here! :/")
-            color: root.modelData?.urgency === "critical" ? Colours.palette.m3secondary : Colours.palette.m3outline
-            wrapMode: Text.WordWrap
+            text: root.hasBody
+                ? root.bodyText.replace(/(.)\n(?!\n)/g, "$1\n\n")
+                : ""
+            color: root.isCritical
+                ? Colours.palette.m3error
+                : Colours.palette.m3onSurfaceVariant
+            textPointSize: Tokens.font.size.small
+            wrapMode: Text.WrapAnywhere
+            opacity: 0.92
+            lineHeight: 1.25
+            lineHeightMode: Text.ProportionalHeight
 
             onLinkActivated: link => {
                 Quickshell.execDetached(["app2unit", "-O", "--", link]);
@@ -177,7 +202,6 @@ StyledRect {
         active: false
         opacity: 0
 
-        // Makes the loader load on the same frame shouldBeActive becomes true, which ensures size is set
         states: State {
             name: "active"
             when: comp.shouldBeActive

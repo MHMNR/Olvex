@@ -16,8 +16,6 @@ CollapsibleSection {
     description: qsTr("Available color schemes")
     showBackground: true
 
-    Component.onCompleted: Schemes.ensureLoaded()
-
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Tokens.spacing.small / 2
@@ -82,7 +80,7 @@ CollapsibleSection {
 
                             visible: false
                             text: "circle"
-                            iconPointSize: Tokens.font.size.large
+                            font.pointSize: Tokens.font.size.large
                         }
 
                         Item {
@@ -111,12 +109,12 @@ CollapsibleSection {
 
                         StyledText {
                             text: modelData.flavour ?? ""
-                            textPointSize: Tokens.font.size.normal
+                            font.pointSize: Tokens.font.size.normal
                         }
 
                         StyledText {
                             text: modelData.name ?? ""
-                            textPointSize: Tokens.font.size.small
+                            font.pointSize: Tokens.font.size.small
                             color: Colours.palette.m3outline
 
                             elide: Text.ElideRight
@@ -132,7 +130,7 @@ CollapsibleSection {
                         sourceComponent: MaterialIcon {
                             text: "check"
                             color: Colours.palette.m3onSurfaceVariant
-                            iconPointSize: Tokens.font.size.large
+                            font.pointSize: Tokens.font.size.large
                         }
                     }
                 }

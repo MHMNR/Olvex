@@ -6,8 +6,11 @@ import QtQuick.Controls
 import Quickshell
 import Olvex.Config
 import qs.components
+import qs.components.containers
 import qs.components.controls
+import qs.components.containers
 import qs.components.effects
+import qs.components.containers
 import qs.services
 
 // Bottom panel clipboard popup — toggled via DrawerVisibilities.clipboard
@@ -395,7 +398,7 @@ Item {
         }
 
         // ── List ──────────────────────────────────
-        ListView {
+        StyledListView {
             id: panelList
             anchors.top: panelSearch.bottom
             anchors.bottom: parent.bottom

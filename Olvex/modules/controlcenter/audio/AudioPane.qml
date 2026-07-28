@@ -46,8 +46,8 @@ Item {
 
                         StyledText {
                             text: qsTr("Audio")
-                            textPointSize: Tokens.font.size.large
-                            font.weight: 500
+                            font.pointSize: Tokens.font.size.large
+                            font.weight: 400
                         }
 
                         Item {
@@ -72,8 +72,8 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Devices (%1)").arg(Audio.sinks.length)
-                                    textPointSize: Tokens.font.size.normal
-                                    font.weight: 500
+                                    font.pointSize: Tokens.font.size.normal
+                                    font.weight: 400
                                 }
                             }
 
@@ -114,7 +114,7 @@ Item {
 
                                         MaterialIcon {
                                             text: Audio.sink?.id === modelData.id ? "speaker" : "speaker_group"
-                                            iconPointSize: Tokens.font.size.large
+                                            font.pointSize: Tokens.font.size.large
                                             fill: Audio.sink?.id === modelData.id ? 1 : 0
                                         }
 
@@ -124,7 +124,7 @@ Item {
                                             maximumLineCount: 1
 
                                             text: modelData.description || qsTr("Unknown")
-                                            font.weight: Audio.sink?.id === modelData.id ? 500 : 400
+                                            font.weight: Audio.sink?.id === modelData.id ? 400 : 400
                                         }
                                     }
                                 }
@@ -149,8 +149,8 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Devices (%1)").arg(Audio.sources.length)
-                                    textPointSize: Tokens.font.size.normal
-                                    font.weight: 500
+                                    font.pointSize: Tokens.font.size.normal
+                                    font.weight: 400
                                 }
                             }
 
@@ -191,7 +191,7 @@ Item {
 
                                         MaterialIcon {
                                             text: "mic"
-                                            iconPointSize: Tokens.font.size.large
+                                            font.pointSize: Tokens.font.size.large
                                             fill: Audio.source?.id === modelData.id ? 1 : 0
                                         }
 
@@ -201,7 +201,7 @@ Item {
                                             maximumLineCount: 1
 
                                             text: modelData.description || qsTr("Unknown")
-                                            font.weight: Audio.source?.id === modelData.id ? 500 : 400
+                                            font.weight: Audio.source?.id === modelData.id ? 400 : 400
                                         }
                                     }
                                 }
@@ -254,8 +254,8 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Volume")
-                                    textPointSize: Tokens.font.size.normal
-                                    font.weight: 500
+                                    font.pointSize: Tokens.font.size.normal
+                                    font.weight: 400
                                 }
 
                                 Item {
@@ -306,7 +306,7 @@ Item {
                                 StyledText {
                                     text: "%"
                                     color: Colours.palette.m3outline
-                                    textPointSize: Tokens.font.size.normal
+                                    font.pointSize: Tokens.font.size.normal
                                     opacity: Audio.muted ? 0.5 : 1
                                 }
 
@@ -319,7 +319,7 @@ Item {
 
                                     StateLayer {
                                         onClicked: {
-                                            if (Audio.sink?.ready && Audio.sink?.audio) {
+                                            if (Audio.sink?.audio) {
                                                 Audio.sink.audio.muted = !Audio.sink.audio.muted;
                                             }
                                         }
@@ -339,7 +339,7 @@ Item {
                                 id: outputVolumeSlider
 
                                 Layout.fillWidth: true
-                                implicitHeight: Tokens.padding.normal * 3
+                                showValue: false // paired with volume text field
 
                                 value: Audio.volume
                                 enabled: !Audio.muted
@@ -372,8 +372,8 @@ Item {
 
                                 StyledText {
                                     text: qsTr("Volume")
-                                    textPointSize: Tokens.font.size.normal
-                                    font.weight: 500
+                                    font.pointSize: Tokens.font.size.normal
+                                    font.weight: 400
                                 }
 
                                 Item {
@@ -424,7 +424,7 @@ Item {
                                 StyledText {
                                     text: "%"
                                     color: Colours.palette.m3outline
-                                    textPointSize: Tokens.font.size.normal
+                                    font.pointSize: Tokens.font.size.normal
                                     opacity: Audio.sourceMuted ? 0.5 : 1
                                 }
 
@@ -437,7 +437,7 @@ Item {
 
                                     StateLayer {
                                         onClicked: {
-                                            if (Audio.source?.ready && Audio.source?.audio) {
+                                            if (Audio.source?.audio) {
                                                 Audio.source.audio.muted = !Audio.source.audio.muted;
                                             }
                                         }
@@ -457,7 +457,7 @@ Item {
                                 id: inputVolumeSlider
 
                                 Layout.fillWidth: true
-                                implicitHeight: Tokens.padding.normal * 3
+                                showValue: false // paired with volume text field
 
                                 value: Audio.sourceVolume
                                 enabled: !Audio.sourceMuted
@@ -501,7 +501,7 @@ Item {
 
                                         MaterialIcon {
                                             text: "apps"
-                                            iconPointSize: Tokens.font.size.normal
+                                            font.pointSize: Tokens.font.size.normal
                                             fill: 0
                                         }
 
@@ -510,8 +510,8 @@ Item {
                                             elide: Text.ElideRight
                                             maximumLineCount: 1
                                             text: Audio.getStreamName(modelData)
-                                            textPointSize: Tokens.font.size.normal
-                                            font.weight: 500
+                                            font.pointSize: Tokens.font.size.normal
+                                            font.weight: 400
                                         }
 
                                         StyledInputField {
@@ -545,21 +545,20 @@ Item {
                                             }
 
                                             Connections {
-                                                target: modelData.audio
-                                                enabled: modelData?.audio != null
-
-                                                function onVolumeChanged() {
-                                                    if (!streamVolumeInput.hasFocus) {
+                                                function onAudioChanged() {
+                                                    if (!streamVolumeInput.hasFocus && modelData?.audio) {
                                                         streamVolumeInput.text = Math.round(modelData.audio.volume * 100).toString();
                                                     }
                                                 }
+
+                                                target: modelData
                                             }
                                         }
 
                                         StyledText {
                                             text: "%"
                                             color: Colours.palette.m3outline
-                                            textPointSize: Tokens.font.size.normal
+                                            font.pointSize: Tokens.font.size.normal
                                             opacity: Audio.getStreamMuted(modelData) ? 0.5 : 1
                                         }
 
@@ -588,7 +587,7 @@ Item {
 
                                     StyledSlider {
                                         Layout.fillWidth: true
-                                        implicitHeight: Tokens.padding.normal * 3
+                                        showValue: false // paired with volume text field
 
                                         value: Audio.getStreamVolume(modelData)
                                         enabled: !Audio.getStreamMuted(modelData)
@@ -601,12 +600,13 @@ Item {
                                         }
 
                                         Connections {
-                                            target: modelData.audio
-                                            enabled: modelData?.audio != null
-
-                                            function onVolumeChanged() {
-                                                value = modelData.audio.volume;
+                                            function onAudioChanged() {
+                                                if (modelData?.audio) {
+                                                    value = modelData.audio.volume;
+                                                }
                                             }
+
+                                            target: modelData
                                         }
                                     }
                                 }
@@ -617,7 +617,7 @@ Item {
                                 visible: Audio.streams.length === 0
                                 text: qsTr("No applications currently playing audio")
                                 color: Colours.palette.m3outline
-                                textPointSize: Tokens.font.size.small
+                                font.pointSize: Tokens.font.size.small
                                 horizontalAlignment: Text.AlignHCenter
                             }
                         }

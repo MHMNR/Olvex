@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
 import qs.components
+import qs.components.effects
 import qs.services
 
 RowLayout {
@@ -33,14 +34,34 @@ RowLayout {
         id: card
         default property alias content: container.data
 
+        // Global color-picker token by default; the music card overrides this
+        // to Players.musicSurfaceColor (the music/album-art color picker),
+        // matching the bar and minimal-lock-screen music pills.
+        property color bgColor: Colours.palette.m3surfaceContainerHigh
+
+        // Opt-in drop shadow (0 = none, matches every other card's current
+        // flat look by default). Only the music card raises this — see the
+        // Elevation child below, gated off entirely when level is 0 so the
+        // other 5 cards pay zero cost for it.
+        property int elevationLevel: 0
+
         radius: Tokens.rounding.large
 
-        color: GlobalConfig.lock.minimalOpacity === 1 ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.current.m3surface, GlobalConfig.lock.minimalOpacity)
+        color: bgColor
 
         scale: cardHover.hovered ? 1.02 : 1
         Behavior on scale { Anim { type: Anim.FastSpatial } }
 
         antialiasing: true
+
+        Elevation {
+            anchors.fill: parent
+            radius: parent.radius
+            opacity: parent.opacity
+            z: -1
+            level: card.elevationLevel
+            visible: card.elevationLevel > 0
+        }
 
         HoverHandler { id: cardHover }
 
@@ -155,7 +176,11 @@ RowLayout {
         LockCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: 120
+            // Grown to absorb the height the music card gave up when its
+            // internal spacing was tightened (was 160-ish, now hugs its
+            // content closer to the visualizer) — keeps the column's total
+            // height the same instead of leaving a gap.
+            Layout.preferredHeight: 145
             transform: Translate { id: l1Trans; x: -500 }
             WeatherInfo { id: weather; rootHeight: root.height }
         }
@@ -171,7 +196,13 @@ RowLayout {
         LockCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: 160
+            // Direct px, same as the other cards — edit this number directly
+            // to change the music card's height.
+            Layout.preferredHeight: 123
+            bgColor: Players.musicSurfaceColor
+            elevationLevel: 3
+            border.width: 1
+            border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.14)
             transform: Translate { id: l3Trans; x: -500 }
             Media { id: media; lock: root.lock }
         }

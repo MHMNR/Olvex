@@ -17,7 +17,8 @@ Item {
 
     property string source: Wallpapers.perMonitorWallpaper ? (Wallpapers.monitorWallpapers[screen?.name ?? ""] ?? Wallpapers.actualCurrent) : Wallpapers.actualCurrent
     readonly property bool sourceIsVideo: Wallpapers.isVideoPath(source)
-    readonly property bool liveWallpaperActive: sourceIsVideo && Config.background.liveWallpaper.enabled
+    // Prefer GlobalConfig so Settings (control center) writes apply immediately
+    readonly property bool liveWallpaperActive: sourceIsVideo && (GlobalConfig.background?.liveWallpaper?.enabled ?? Config.background.liveWallpaper.enabled)
     property string actualTransitionType: Config.background.wallpaperTransition.type
     property real transitionProgress: 0
     property bool effectActive: false
@@ -603,18 +604,18 @@ Item {
 
                 StyledText {
                     horizontalAlignment: Text.AlignHCenter
-                    text: Config.background.liveWallpaper.enabled ? qsTr("QtMultimedia is required for live wallpapers") : qsTr("Enable live wallpapers to play video files")
+                    text: (GlobalConfig.background?.liveWallpaper?.enabled ?? Config.background.liveWallpaper.enabled) ? qsTr("QtMultimedia is required for live wallpapers") : qsTr("Enable live wallpapers to play video files")
                 }
 
                 StyledText {
-                    visible: Config.background.liveWallpaper.enabled && !!LocalServices.Multimedia.installPackage
+                    visible: (GlobalConfig.background?.liveWallpaper?.enabled ?? Config.background.liveWallpaper.enabled) && !!LocalServices.Multimedia.installPackage
                     horizontalAlignment: Text.AlignHCenter
                     color: Colours.palette.m3outline
                     text: qsTr("Missing package: %1").arg(LocalServices.Multimedia.installPackage)
                 }
 
                 StyledText {
-                    visible: Config.background.liveWallpaper.enabled && !!LocalServices.Multimedia.installCommand
+                    visible: (GlobalConfig.background?.liveWallpaper?.enabled ?? Config.background.liveWallpaper.enabled) && !!LocalServices.Multimedia.installCommand
                     horizontalAlignment: Text.AlignHCenter
                     color: Colours.palette.m3outline
                     text: LocalServices.Multimedia.installCommand
@@ -643,7 +644,7 @@ Item {
                     return root.lastVideoSource;
                 return "";
             }
-            property bool wallpaperMuted: Config.background.liveWallpaper.muted
+            property bool wallpaperMuted: GlobalConfig.background?.liveWallpaper?.muted ?? Config.background.liveWallpaper.muted
             property bool playbackActive: liveRoot.visible && opacity > 0 && !!wallpaperSource
 
             opacity: wallpaperSource ? 1 : 0

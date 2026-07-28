@@ -27,49 +27,28 @@ Item {
 
         onAccepted: path => {
             if (CUtils.copyFile(Qt.resolvedUrl(path), Qt.resolvedUrl(AccountFaces.customPath))) {
-                AccountFaces.faceRevision++
-                AccountFaces.faceChanged()
-                Quickshell.execDetached([
-                    "notify-send", "-a", "olvex-shell", "-u", "low",
-                    "-h", `STRING:image-path:${path}`,
-                    qsTr("Profile picture changed"),
-                    qsTr("Profile picture changed to %1").arg(Paths.shortenHome(path))
-                ]);
+                AccountFaces.faceRevision++;
+                AccountFaces.faceChanged();
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", "-h", `STRING:image-path:${path}`, qsTr("Profile picture changed"), qsTr("Profile picture changed to %1").arg(Paths.shortenHome(path))]);
             } else
-                Quickshell.execDetached([
-                    "notify-send", "-a", "olvex-shell", "-u", "critical",
-                    qsTr("Unable to change profile picture"),
-                    qsTr("Failed to change profile picture to %1").arg(Paths.shortenHome(path))
-                ]);
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "critical", qsTr("Unable to change profile picture"), qsTr("Failed to change profile picture to %1").arg(Paths.shortenHome(path))]);
         }
     }
 
-    property real cachedImplicitWidth: 854
-    property real cachedImplicitHeight: 480
-    readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? cachedImplicitHeight
+    readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 480
     readonly property bool shouldBeActive: visibilities.dashboard && Config.dashboard.enabled
-    readonly property bool contentVisible: offsetScale < 1
-    readonly property bool dashboardActive: shouldBeActive || contentVisible
-    readonly property bool contentActive: dashboardActive || closeGrace.running
+    readonly property bool dashboardActive: root.shouldBeActive || closeGrace.running
     property real offsetScale: shouldBeActive ? 0 : 1
     property bool hovered: false
-
-    function syncCachedSize(): void {
-        if (content.implicitWidth > 0)
-            cachedImplicitWidth = content.implicitWidth;
-        if (content.implicitHeight > 0)
-            cachedImplicitHeight = content.implicitHeight;
-    }
 
     Connections {
         target: visibilities
         function onDashboardChanged() {
-            if (visibilities.dashboard) {
+            if (root.visibilities.dashboard) {
                 closeGrace.stop();
-                Qt.callLater(root.syncCachedSize);
             } else {
                 closeGrace.restart();
-                dashState.currentDate = new Date()
+                root.dashState.currentDate = new Date();
             }
         }
     }
@@ -77,11 +56,11 @@ Item {
     Timer {
         id: closeGrace
 
-        interval: Tokens.anim.durations.expressiveDefaultSpatial + 80
+        interval: Math.max(Tokens.anim.durations.large, Tokens.anim.durations.expressiveDefaultSpatial) + 120
     }
 
     visible: offsetScale < 1 || (peekOffset > 0 && Config.dashboard.enabled)
-    
+
     // Top margin defaults to fully hiding the panel (-implicitHeight - 10)
     // If hovered and inactive, we peek 7px by adding 17 (10 + 7) to the top margin
     property real peekOffset: (hovered && !shouldBeActive) ? 17 : 0
@@ -93,11 +72,11 @@ Item {
     }
 
     anchors.topMargin: (-implicitHeight - 10 + peekOffset) * offsetScale
-    
+
     // Stabilize dimensions to prevent jitter during first load
-    implicitHeight: Math.max(480, contentActive ? (content.implicitHeight || cachedImplicitHeight) : cachedImplicitHeight)
-    implicitWidth: Math.max(854, contentActive ? (content.implicitWidth || cachedImplicitWidth) : cachedImplicitWidth)
-    opacity: (hovered || peekOffset > 0) ? 1 : 1 - offsetScale
+    implicitHeight: Math.max(480, content.implicitHeight)
+    implicitWidth: Math.max(854, content.implicitWidth)
+    opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)
 
     Behavior on offsetScale {
         Anim {
@@ -111,14 +90,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
-        active: root.contentActive
-
-        onImplicitWidthChanged: root.syncCachedSize()
-        onImplicitHeightChanged: root.syncCachedSize()
-        onStatusChanged: {
-            if (status === Loader.Ready)
-                root.syncCachedSize();
-        }
+        active: true
 
         sourceComponent: Content {
             dashboardActive: root.dashboardActive

@@ -3,28 +3,42 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Olvex.Config
 import qs.components
+import qs.services
 
+// Compact vertical battery glyph for the bar status stack.
+// API: percentage (0–1), charging, color, animate — unchanged for SystemPill.
 Item {
     id: root
 
     property real percentage: 0
     property bool charging: false
-    property color color: Colours.palette.m3secondary
+    property color color: Colours.palette.m3onSurfaceVariant
     property bool animate: true
 
-    implicitWidth: 14
-    implicitHeight: 24
+    // Optical box ~ same footprint as a Material icon at normal size
+    implicitWidth: 12
+    implicitHeight: 18
+
+    readonly property color fillColor: {
+        if (root.charging)
+            return Colours.palette.m3primary;
+        if (root.percentage < 0.15)
+            return Colours.palette.m3error;
+        if (root.percentage < 0.25)
+            return Colours.palette.m3tertiary;
+        return root.color;
+    }
 
     // Cap
     Rectangle {
         id: cap
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
-        width: parent.width * 0.4
-        height: 2
-        radius: 1
+        width: parent.width * 0.38
+        height: 1.5
+        radius: 0.75
         color: root.color
-        opacity: 0.8
+        opacity: 0.75
     }
 
     // Body
@@ -35,62 +49,53 @@ Item {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        radius: 3
-        border.width: 1.5
+        radius: 2.5
+        border.width: 1.25
         border.color: root.color
         color: "transparent"
 
-        // Fill background (slight tint)
         Rectangle {
             anchors.fill: parent
-            anchors.margins: 1.5
-            radius: 2
+            anchors.margins: 1.25
+            radius: 1.5
             color: root.color
-            opacity: 0.1
+            opacity: 0.08
         }
 
-        // Fill
         Rectangle {
             id: fillRect
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 1.5
+            anchors.bottomMargin: 1.25
             anchors.left: parent.left
-            anchors.leftMargin: 1.5
+            anchors.leftMargin: 1.25
             anchors.right: parent.right
-            anchors.rightMargin: 1.5
-            
-            // Ensure a minimum height for the radius to look right
-            height: Math.max(radius * 1, (parent.height - 3) * Math.min(1, Math.max(0.05, root.percentage)))
-            radius: 1.5
-            
-            color: {
-                if (root.charging) return "#34C759" // macOS Green
-                if (root.percentage < 0.15) return "#FF3B30" // macOS Red
-                if (root.percentage < 0.25) return "#FFCC00" // macOS Yellow
-                return root.color
-            }
+            anchors.rightMargin: 1.25
+            height: Math.max(2, (parent.height - 2.5) * Math.min(1, Math.max(0.06, root.percentage)))
+            radius: 1.25
+            color: root.fillColor
 
             Behavior on height {
                 enabled: root.animate
-                NumberAnimation { duration: 800; easing.type: Easing.OutQuint }
+                NumberAnimation {
+                    duration: 700
+                    easing.type: Easing.OutQuint
+                }
             }
-            
             Behavior on color {
                 enabled: root.animate
-                ColorAnimation { duration: 500 }
+                ColorAnimation {
+                    duration: 400
+                }
             }
         }
 
-        // Charging Indicator (Bolt)
         MaterialIcon {
             visible: root.charging
             anchors.centerIn: parent
             text: "bolt"
-            iconPointSize: 7.5
-            color: "white"
-            
-            // Slight shadow to make it pop
-            layer.enabled: true
+            iconPointSize: 7
+            color: Colours.palette.m3onPrimary
+            fill: 1
         }
     }
 }

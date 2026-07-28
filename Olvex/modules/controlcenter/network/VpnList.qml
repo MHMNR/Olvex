@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
 import qs.components
+import qs.components.containers
 import qs.components.controls
 import qs.components.effects
 import qs.services
@@ -69,13 +70,14 @@ ColumnLayout {
         }
     }
 
-    ListView {
+    StyledListView {
         id: listView
 
         Layout.fillWidth: true
         Layout.preferredHeight: contentHeight
 
         interactive: false
+        edgeFades: false // non-scrolling packed list
         spacing: Tokens.spacing.smaller
 
         model: ScriptModel {
@@ -138,7 +140,7 @@ ColumnLayout {
 
                             anchors.centerIn: parent
                             text: modelData.enabled && VPN.connected ? "vpn_key" : "vpn_key_off"
-                            iconPointSize: Tokens.font.size.large
+                            font.pointSize: Tokens.font.size.large
                             fill: modelData.enabled && VPN.connected ? 1 : 0
                             color: modelData.enabled && VPN.connected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                         }
@@ -196,8 +198,8 @@ ColumnLayout {
                                         return Colours.palette.m3tertiary;
                                     return Colours.palette.m3onSurface;
                                 }
-                                textPointSize: Tokens.font.size.small
-                                font.weight: modelData.enabled && VPN.connected ? 500 : 400
+                                font.pointSize: Tokens.font.size.small
+                                font.weight: modelData.enabled && VPN.connected ? 400 : 400
                                 elide: Text.ElideRight
                             }
                         }
@@ -310,8 +312,6 @@ ColumnLayout {
 
     Popup {
         id: vpnDialog
-
-        Tokens.screen: root.session.root.screen.name
 
         property string currentState: "selection"
         property int editIndex: -1
@@ -459,8 +459,8 @@ ColumnLayout {
 
                 StyledText {
                     text: qsTr("Add VPN Provider")
-                    textPointSize: Tokens.font.size.large
-                    font.weight: 500
+                    font.pointSize: Tokens.font.size.large
+                    font.weight: 400
                 }
 
                 StyledText {
@@ -468,7 +468,7 @@ ColumnLayout {
                     text: qsTr("Choose a provider to add")
                     wrapMode: Text.WordWrap
                     color: Colours.palette.m3outline
-                    textPointSize: Tokens.font.size.small
+                    font.pointSize: Tokens.font.size.small
                 }
 
                 TextButton {
@@ -578,8 +578,8 @@ ColumnLayout {
 
                 StyledText {
                     text: vpnDialog.editIndex >= 0 ? qsTr("Edit VPN Provider") : qsTr("Add %1 VPN").arg(vpnDialog.displayName)
-                    textPointSize: Tokens.font.size.large
-                    font.weight: 500
+                    font.pointSize: Tokens.font.size.large
+                    font.weight: 400
                 }
 
                 ColumnLayout {
@@ -588,7 +588,7 @@ ColumnLayout {
 
                     StyledText {
                         text: qsTr("Display Name")
-                        textPointSize: Tokens.font.size.small
+                        font.pointSize: Tokens.font.size.small
                         color: Colours.palette.m3onSurfaceVariant
                     }
 
@@ -625,7 +625,7 @@ ColumnLayout {
 
                     StyledText {
                         text: qsTr("Interface (e.g., wg0, torguard)")
-                        textPointSize: Tokens.font.size.small
+                        font.pointSize: Tokens.font.size.small
                         color: Colours.palette.m3onSurfaceVariant
                     }
 
@@ -663,7 +663,7 @@ ColumnLayout {
 
                     StyledText {
                         text: qsTr("Connect Command (e.g., wg-quick up wg0)")
-                        textPointSize: Tokens.font.size.small
+                        font.pointSize: Tokens.font.size.small
                         color: Colours.palette.m3onSurfaceVariant
                     }
 
@@ -701,7 +701,7 @@ ColumnLayout {
 
                     StyledText {
                         text: qsTr("Disconnect Command (e.g., wg-quick down wg0)")
-                        textPointSize: Tokens.font.size.small
+                        font.pointSize: Tokens.font.size.small
                         color: Colours.palette.m3onSurfaceVariant
                     }
 

@@ -13,15 +13,27 @@ Item {
     required property DrawerVisibilities visibilities
     required property Item osdPanel
     required property Item sessionPanel
-    readonly property int padding: Tokens.padding.large
 
-    readonly property var safeBorder: (typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}
+    // Same inset on top / sides / bottom so the stack container padding matches
+    readonly property int padding: Tokens.padding.large
+    readonly property int cardRadius: Tokens.rounding.large
+    // Resolve sizes on this Item (has screen Tokens), never inside Anim/NumberAnimation
+    readonly property int notifWidth: Tokens.sizes.notifs.width
+
+    readonly property var safeBorder: (typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
+        thickness: 0,
+        rounding: 0,
+        minThickness: 0,
+        floating: false,
+        smoothing: 0,
+        clampedThickness: 0
+    }
 
     anchors.top: parent.top
     anchors.bottom: parent.bottom
     anchors.right: parent.right
 
-    implicitWidth: Tokens.sizes.notifs.width + padding * 2
+    implicitWidth: root.notifWidth + padding * 2
     implicitHeight: {
         const count = list.count;
         if (count === 0)
@@ -31,27 +43,31 @@ Item {
         for (let i = 0; i < count; i++)
             height += (list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0;
 
+        // Outer padding equal on all sides (top == sides == bottom)
+        height += padding * 2;
+
         if (visibilities.osd) {
-            const h = osdPanel.y - safeBorder.rounding * 2 - padding * 2;
+            const h = osdPanel.y - safeBorder.rounding * 2;
             if (height > h)
                 height = h;
         }
 
         if (visibilities.session) {
-            const h = sessionPanel.y - safeBorder.rounding * 2 - padding * 2;
+            const h = sessionPanel.y - safeBorder.rounding * 2;
             if (height > h)
                 height = h;
         }
 
-        return Math.min(((QsWindow.window as QsWindow)?.screen?.height ?? 0) - safeBorder.thickness * 2, height + padding * 2);
+        return Math.min(((QsWindow.window as QsWindow)?.screen?.height ?? 0) - safeBorder.thickness * 2, height);
     }
 
-    ClippingWrapperRectangle {
+    // Container content area — equal padding on every side
+    Item {
         anchors.fill: parent
-        anchors.margins: root.padding
-
-        color: "transparent"
-        radius: Tokens.rounding.normal
+        anchors.topMargin: root.padding
+        anchors.bottomMargin: root.padding
+        anchors.leftMargin: root.padding
+        anchors.rightMargin: root.padding
 
         StyledListView {
             id: list
@@ -61,10 +77,12 @@ Item {
             }
 
             anchors.fill: parent
+            clip: true
 
             orientation: Qt.Vertical
             spacing: 0
             cacheBuffer: (QsWindow.window as QsWindow)?.screen.height ?? 0
+            edgeFades: false
 
             delegate: NotifWrapper {}
 
@@ -86,17 +104,13 @@ Item {
                     const count = list.count;
                     if (count === 0)
                         return 0;
-
                     const scrollY = list.contentY;
-
                     let height = 0;
                     for (let i = 0; i < count; i++) {
                         height += ((list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0) + Tokens.spacing.smaller;
-
                         if (height - Tokens.spacing.smaller >= scrollY)
                             return i;
                     }
-
                     return count;
                 }
             }
@@ -107,17 +121,13 @@ Item {
                     const count = list.count;
                     if (count === 0)
                         return 0;
-
                     const scrollY = list.contentHeight - (list.contentY + list.height);
-
                     let height = 0;
                     for (let i = count - 1; i >= 0; i--) {
                         height += ((list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0) + Tokens.spacing.smaller;
-
                         if (height - Tokens.spacing.smaller >= scrollY)
                             return count - i - 1;
                     }
-
                     return 0;
                 }
             }
@@ -141,8 +151,9 @@ Item {
                 idx = index;
         }
 
-        implicitWidth: notif.implicitWidth
+        implicitWidth: root.notifWidth
         implicitHeight: notif.implicitHeight + (idx === 0 ? 0 : Tokens.spacing.smaller)
+        width: ListView.view ? ListView.view.width : implicitWidth
 
         ListView.onRemove: removeAnim.start()
 
@@ -169,12 +180,13 @@ Item {
                 property: "z"
                 value: 1
             }
-            Anim {
+            NumberAnimation {
                 target: notif
                 property: "x"
-                to: (notif.x >= 0 ? wrapper.Tokens.sizes.notifs.width : -wrapper.Tokens.sizes.notifs.width) * 2
-                duration: Tokens.anim.durations.normal
-                easing: Tokens.anim.emphasized
+                // Use Content Item's notifWidth — never Tokens.sizes on Anim/NumberAnimation
+                to: (notif.x >= 0 ? root.notifWidth : -root.notifWidth) * 2
+                duration: root.Tokens.anim.durations.normal
+                easing: root.Tokens.anim.emphasized
             }
             PropertyAction {
                 target: wrapper
@@ -186,22 +198,29 @@ Item {
         ClippingRectangle {
             anchors.top: parent.top
             anchors.topMargin: wrapper.idx === 0 ? 0 : Tokens.spacing.smaller
+            anchors.horizontalCenter: parent.horizontalCenter
 
+            width: root.notifWidth
+            height: Math.max(1, notif.implicitHeight)
+            radius: root.cardRadius
             color: "transparent"
-            radius: notif.radius
-            implicitWidth: notif.implicitWidth
-            implicitHeight: notif.implicitHeight
+            contentUnderBorder: true
+            contentInsideBorder: false
+            antialiasing: true
 
             Notification {
                 id: notif
 
+                // Keep free x for slide-in animation
+                width: root.notifWidth
                 modelData: wrapper.modelData
             }
         }
     }
 
+    // Duration/easing from this Item's Tokens (has screen), not on the animation object
     component Anim: NumberAnimation {
-        duration: Tokens.anim.durations.expressiveDefaultSpatial
-        easing: Tokens.anim.expressiveDefaultSpatial
+        duration: root.Tokens.anim.durations.expressiveDefaultSpatial
+        easing: root.Tokens.anim.expressiveDefaultSpatial
     }
 }

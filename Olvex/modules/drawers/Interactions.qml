@@ -54,8 +54,38 @@ CustomMouseArea {
         return x < bar.implicitWidth + floatingGap + panel.x + panel.width + hoverTolerance && withinPanelHeight(panel, x, y);
     }
 
-    function inRightPanel(panel: Item, x: real, y: real): bool {
-        return x > Math.min(width - safeBorder.minThickness - floatingGap, bar.implicitWidth + floatingGap + panel.x) - hoverTolerance && withinPanelHeight(panel, x, y);
+    // Right-edge panels (OSD, session, QS utilities). isCorner: closed-peek strip (bottom-right).
+    function inRightPanel(panel: Item, x: real, y: real, isCorner = false): bool {
+        const offset = panel.offsetScale ?? 0; // qmllint disable missing-property
+        if (offset < 1 && panel.width > 0) {
+            // Open / peeking — use live panel geometry
+            return x > Math.min(width - safeBorder.minThickness - floatingGap, bar.implicitWidth + floatingGap + panel.x) - hoverTolerance
+                && withinPanelHeight(panel, x, y);
+        }
+        // Fully closed — right-edge hot zone (utilities hover-peek)
+        const zoneW = Math.max(isCorner ? 60 : 24, safeBorder.minThickness + floatingGap);
+        const inX = x > width - zoneW - (isCorner ? safeBorder.rounding : 0) - verticalTolerance;
+        if (isCorner) {
+            const panelH = Math.max(panel.implicitHeight || 0, panel.height, 200);
+            return inX && y > height - panelH - 40 - verticalTolerance;
+        }
+        return inX && withinPanelHeight(panel, x, y);
+    }
+
+    // Top-right corner hot zone — drag-only opens QS utilities panel (no click).
+    // Match Regions.qsHotCorner so hit-test aligns with interactive mask.
+    readonly property real topRightZone: Math.max(72, safeBorder.clampedThickness + floatingGap + 48)
+    function inTopRightCorner(x: real, y: real): bool {
+        return x >= width - topRightZone && y <= topRightZone;
+    }
+
+    // Heads-up notifs sit top-right — never steal their press/drag (expand / dismiss)
+    function overNotifications(x: real, y: real): bool {
+        const n = panels.notifications;
+        if (!n || n.height <= 0 || n.width <= 0)
+            return false;
+        const p = n.mapFromItem(root, x, y);
+        return p.x >= 0 && p.y >= 0 && p.x <= n.width && p.y <= n.height;
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
@@ -102,20 +132,109 @@ CustomMouseArea {
         // Click peeked utilities to open (only when bottom panel is off and utilities is peeking)
         const bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
         if (bottomPanelOff && panels.utilities.hovered && !visibilities.utilities
-                && inBottomPanel(panels.utilities, event.x, event.y, true)) {
+                && inRightPanel(panels.utilities, event.x, event.y, true)) {
             visibilities.utilities = true;
             utilitiesShortcutActive = true;
             event.accepted = true;
             return;
         }
 
-        // Bottom-right corner click opens utilities (only when bottom panel is off)
+        // Right-edge / bottom-right corner click opens utilities (only when bottom panel is off)
         if (bottomPanelOff && !visibilities.utilities
-                && event.x >= width - 60 && event.y >= height - 60) {
+                && inRightPanel(panels.utilities, event.x, event.y, true)) {
             visibilities.utilities = true;
             utilitiesShortcutActive = true;
             event.accepted = true;
             return;
+        }
+
+        // Heads-up notifs (any size) — never steal expand / swipe / action clicks
+        if (overNotifications(event.x, event.y)) {
+            event.accepted = false;
+            return;
+        }
+
+        // Top-right corner press — claim only for drag-to-open QS (no click-open)
+        if (Config.utilities.enabled && !visibilities.utilities
+                && inTopRightCorner(event.x, event.y)) {
+            event.accepted = true;
+            return;
+        }
+
+        // Dismiss utilities (QS panel) when clicking outside — only if NOT on a shell panel.
+        // Must close + reject here (not ContentWindow MouseArea) so Wayland gets the event.
+        if (visibilities.utilities) {
+            const util = panels.utilities;
+            const utilMapped = util.mapToItem(root, event.x, event.y);
+            const inUtil = utilMapped.x >= 0 && utilMapped.y >= 0 
+                        && utilMapped.x <= util.width && utilMapped.y <= util.height;
+
+            const bp = panels.bottomPanel;
+            const bpMapped = bp.mapToItem(root, event.x, event.y);
+            const inBp = bp.visible && bpMapped.x >= 0 && bpMapped.y >= 0
+                      && bpMapped.x <= bp.width && bpMapped.y <= bp.height;
+
+            const cb = panels.clipboard;
+            const cbMapped = cb.mapToItem(root, event.x, event.y);
+            const inCb = cb.visible && cbMapped.x >= 0 && cbMapped.y >= 0
+                      && cbMapped.x <= cb.width && cbMapped.y <= cb.height;
+
+            if (!inUtil && !inBp && !inCb) {
+                visibilities.utilities = false;
+                event.accepted = false;
+                return;
+            }
+        }
+
+        // Dismiss clipboard when clicking outside
+        if (visibilities.clipboard) {
+            const cb = panels.clipboard;
+            const cbMapped = cb.mapToItem(root, event.x, event.y);
+            const inCb = cbMapped.x >= 0 && cbMapped.y >= 0
+                      && cbMapped.x <= cb.width && cbMapped.y <= cb.height;
+
+            const bp = panels.bottomPanel;
+            const bpMapped = bp.mapToItem(root, event.x, event.y);
+            const inBp = bp.visible && bpMapped.x >= 0 && bpMapped.y >= 0
+                      && bpMapped.x <= bp.width && bpMapped.y <= bp.height;
+
+            if (!inCb && !inBp) {
+                visibilities.clipboard = false;
+                event.accepted = false;
+                return;
+            }
+        }
+
+        // Dismiss launcher / wallpaper-selector when clicking outside their area.
+        // Must happen in Interactions (not a separate overlay MouseArea) so that
+        // event.accepted = false actually forwards the click to the underlying app.
+        if (visibilities.launcher && !inBottomPanel(panels.launcher, event.x, event.y)) {
+            // Let bar OS icon still toggle launcher
+            let inOsIcon = false;
+            if (bar.osIcon) {
+                const osMapped = bar.osIcon.mapFromItem(root, event.x, event.y);
+                inOsIcon = osMapped.x >= 0 && osMapped.y >= 0 && osMapped.x <= bar.osIcon.width && osMapped.y <= bar.osIcon.height;
+            }
+            const inBp = panels.bottomPanel.visible && event.y >= (height - panels.bottomPanel.height - root.borderThickness - floatingGap);
+            if (!inOsIcon && !inBp) {
+                visibilities.launcher = false;
+                event.accepted = false;
+                return;
+            }
+        }
+
+        if (visibilities.wallpaperLauncher && !inBottomPanel(panels.wallpaperSelector, event.x, event.y)) {
+            let inOsIcon = false;
+            if (bar.osIcon) {
+                const osMapped = bar.osIcon.mapFromItem(root, event.x, event.y);
+                inOsIcon = osMapped.x >= 0 && osMapped.y >= 0 && osMapped.x <= bar.osIcon.width && osMapped.y <= bar.osIcon.height;
+            }
+            const inBp = panels.bottomPanel.visible && event.y >= (height - panels.bottomPanel.height - root.borderThickness - floatingGap);
+            if (!inOsIcon && !inBp) {
+                visibilities.wallpaperLauncher = false;
+                event.accepted = false;
+                return;
+            }
         }
 
         // NUCLEAR FIX: If dashboard is open, DO NOT accept clicks in the main area.
@@ -140,12 +259,16 @@ CustomMouseArea {
                 return;
             }
             event.accepted = true;
-        } else if (!visibilities.dashboard) {
+        } else if (!visibilities.dashboard && !visibilities.utilities && !visibilities.clipboard) {
+            // Accept ONLY if no overlay panel is open — otherwise passthrough to app
             event.accepted = true;
         } else {
             event.accepted = false;
         }
     }
+
+    // No click-to-open on top-right — drag only (see onPositionChanged).
+
     onContainsMouseChanged: {
         if (!containsMouse) {
             // Only hide if not activated by shortcut
@@ -217,6 +340,28 @@ CustomMouseArea {
                 visibilities.session = false;
         }
 
+        // QS utilities: drag left from top-right → open; drag right from right edge → close.
+        // Inward (left) only — pure down/up would steal heads-up notif expand.
+        // Hugging: slightly lower threshold (thinner chrome).
+        if (pressed && Config.utilities.enabled) {
+            const baseThresh = Config.utilities.dragThreshold ?? 40;
+            const utilThresh = safeBorder.floating ? baseThresh : Math.max(20, Math.round(baseThresh * 0.65));
+            if (!visibilities.utilities
+                    && inTopRightCorner(dragStart.x, dragStart.y)
+                    && !overNotifications(dragStart.x, dragStart.y)) {
+                // Require clear leftward drag; horizontal must dominate vertical
+                if (dragX < -utilThresh && Math.abs(dragX) >= Math.abs(dragY) * 0.55) {
+                    visibilities.utilities = true;
+                    utilitiesShortcutActive = true;
+                }
+            } else if (visibilities.utilities && dragStart.x > width - Math.max(60, utilThresh + 20)) {
+                if (dragX > utilThresh) {
+                    visibilities.utilities = false;
+                    utilitiesShortcutActive = false;
+                }
+            }
+        }
+
 
         // Show launcher on hover, or show/hide on drag if hover is disabled
         if (Config.launcher.showOnHover) {
@@ -261,11 +406,10 @@ CustomMouseArea {
                 visibilities.dashboard = false;
         }
 
-        // Show/hide utilities hover peek when bottom panel is off
+        // Show/hide utilities hover peek from the right edge when bottom panel is off
         const _bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
         if (_bottomPanelOff && !visibilities.utilities && !utilitiesShortcutActive) {
-            const inUtilitiesHover = inBottomPanel(panels.utilities, x, y, true);
-            panels.utilities.hovered = inUtilitiesHover;
+            panels.utilities.hovered = inRightPanel(panels.utilities, x, y, true);
         } else if (!_bottomPanelOff) {
             panels.utilities.hovered = false;
         }
@@ -350,7 +494,7 @@ CustomMouseArea {
         function onUtilitiesChanged() {
             if (root.visibilities.utilities) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inBottomPanel(root.panels.utilities, root.mouseX, root.mouseY, true);
+                const inUtilitiesArea = root.inRightPanel(root.panels.utilities, root.mouseX, root.mouseY, true);
                 if (!inUtilitiesArea) {
                     root.utilitiesShortcutActive = true;
                 }

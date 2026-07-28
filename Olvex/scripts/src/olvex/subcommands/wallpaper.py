@@ -11,10 +11,11 @@ class Command:
         self.args = args
 
     def run(self) -> None:
+        force_mode = getattr(self.args, "scheme_mode", None)
         if self.args.print:
-            print(json.dumps(get_colours_for_wall(self.args.print, self.args.no_smart)))
+            print(json.dumps(get_colours_for_wall(self.args.print, self.args.no_smart, force_mode)))
         elif self.args.file:
-            set_wallpaper(self.args.file, self.args.no_smart)
+            set_wallpaper(self.args.file, self.args.no_smart, force_mode)
         elif self.args.random:
             set_random(self.args)
         else:

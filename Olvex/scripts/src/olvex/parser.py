@@ -122,7 +122,14 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
         "-N",
         "--no-smart",
         action="store_true",
-        help="do not automatically change the scheme mode based on wallpaper colour",
+        help="do not automatically change the scheme mode/variant based on wallpaper colour",
+    )
+    wallpaper_parser.add_argument(
+        "--scheme-mode",
+        choices=["dark", "light"],
+        dest="scheme_mode",
+        default=None,
+        help="force light/dark palette mode (overrides smart mode pick; keeps smart variant)",
     )
 
     # Create parser for resizer opts

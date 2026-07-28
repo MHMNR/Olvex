@@ -47,7 +47,20 @@ function playButtonFill(primary, isLight) {
     return Qt.hsla(primary.hslHue, sat, lit, primary.a);
 }
 
+function relativeLuminance(c) {
+    if (!isValidSeed(c))
+        return 0;
+
+    function channel(v) {
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    }
+
+    return channel(c.r) * 0.2126 + channel(c.g) * 0.7152 + channel(c.b) * 0.0722;
+}
+
 // Play icon on fill
-function playIconOnFill(isLight) {
+function playIconOnFill(isLight, fill) {
+    if (isValidSeed(fill))
+        return relativeLuminance(fill) > 0.48 ? Qt.rgba(0, 0, 0, 0.92) : Qt.rgba(1, 1, 1, 0.94);
     return isLight ? Qt.rgba(1, 1, 1, 0.92) : Qt.rgba(0, 0, 0, 0.92);
 }

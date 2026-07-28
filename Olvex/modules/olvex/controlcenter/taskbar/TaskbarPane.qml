@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import "../../../controlcenter"
-import "../../../controlcenter/taskbar" as CoreTaskbar
+import "../../../controlcenter/bar" as CoreBar
 
 Item {
     id: root
@@ -11,7 +11,7 @@ Item {
 
     anchors.fill: parent
 
-    CoreTaskbar.TaskbarPane {
+    CoreBar.BarPage {
         anchors.fill: parent
         session: root.session
     }

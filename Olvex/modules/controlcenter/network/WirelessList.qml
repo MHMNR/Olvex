@@ -34,7 +34,7 @@ DeviceList {
             visible: Nmcli.scanning
             text: qsTr("Scanning...")
             color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.small
+            font.pointSize: Tokens.font.size.small
         }
     }
 
@@ -52,8 +52,8 @@ DeviceList {
 
             StyledText {
                 text: qsTr("Settings")
-                textPointSize: Tokens.font.size.large
-                font.weight: 500
+                font.pointSize: Tokens.font.size.large
+                font.weight: 400
             }
 
             Item {
@@ -146,7 +146,7 @@ DeviceList {
 
                         anchors.centerIn: parent
                         text: Icons.getNetworkIcon(modelData.strength, modelData.isSecure)
-                        iconPointSize: Tokens.font.size.large
+                        font.pointSize: Tokens.font.size.large
                         fill: modelData.active ? 1 : 0
                         color: modelData.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                     }
@@ -182,8 +182,8 @@ DeviceList {
                                 return qsTr("Open");
                             }
                             color: modelData.active ? Colours.palette.m3primary : Colours.palette.m3outline
-                            textPointSize: Tokens.font.size.small
-                            font.weight: modelData.active ? 500 : 400
+                            font.pointSize: Tokens.font.size.small
+                            font.weight: modelData.active ? 400 : 400
                             elide: Text.ElideRight
                         }
                     }

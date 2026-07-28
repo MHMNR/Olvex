@@ -138,8 +138,6 @@ ColumnLayout {
     Popup {
         id: vpnSettingsDialog
 
-        Tokens.screen: root.session.root.screen.name
-
         parent: Overlay.overlay
         anchors.centerIn: parent
         width: Math.min(600, parent.width - Tokens.padding.large * 2)

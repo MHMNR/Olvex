@@ -14,12 +14,15 @@ GridView {
 
     required property Session session
     property string mode: "static"
+    // Fixed layout: 5 columns × 3 visible rows
+    property int columnsCount: 5
+    property int visibleRows: 3
 
-    readonly property int minCellWidth: 200 + Tokens.spacing.normal
-    readonly property int columnsCount: Math.max(1, Math.floor(width / minCellWidth))
+    cellWidth: Math.max(1, width / columnsCount)
+    // Keep tiles roughly 16:10 so 5-wide still reads as photos
+    cellHeight: Math.max(88, Math.round(cellWidth * 0.62) + Tokens.spacing.small)
+    implicitHeight: cellHeight * visibleRows
 
-    cellWidth: width / columnsCount
-    cellHeight: 140 + Tokens.spacing.normal
     model: mode === "live" ? Wallpapers.liveEntryObjects : Wallpapers.staticEntryObjects
     clip: true
 
@@ -60,9 +63,26 @@ GridView {
         width: root.cellWidth
         height: root.cellHeight
 
+        // Live: ensure ffmpeg thumb is queued; rebind when map updates
+        readonly property string imagePath: {
+            const _ = Wallpapers.thumbnailUpdateCount;
+            if (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? ""))
+                return Wallpapers.displayPathFor(modelData.path);
+            return modelData?.path ?? "";
+        }
+
         Component.onCompleted: {
-            if (modelData?.isVideo && !modelData.thumbnailPath)
+            if (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? ""))
                 Wallpapers.queueThumbnail(modelData.path, isCurrent);
+        }
+
+        // If thumb arrives later, path binding updates via thumbnailUpdateCount
+        Connections {
+            target: Wallpapers
+            function onThumbnailUpdateCountChanged(): void {
+                if ((modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")) && !imagePath)
+                    Wallpapers.queueThumbnail(modelData.path, isCurrent);
+            }
         }
 
         StateLayer {
@@ -78,20 +98,52 @@ GridView {
             color: Colours.tPalette.m3surfaceContainer
             radius: itemRadius
             antialiasing: true
+            layer.enabled: true
+            layer.smooth: true
 
-            CachingImage {
+            // Prefer plain Image for live thumbs (jpg on disk) — more reliable than
+            // CachingImage when path flips from "" → thumb after ffmpeg.
+            Image {
                 anchors.fill: parent
-                path: modelData.isVideo ? (modelData.thumbnailPath || "") : modelData.path
+                source: {
+                    const p = imagePath;
+                    if (!p)
+                        return "";
+                    return p.startsWith("file:") ? p : ("file://" + p);
+                }
                 fillMode: Image.PreserveAspectCrop
+                asynchronous: true
                 cache: true
+                smooth: true
+                antialiasing: true
+                mipmap: true
+                sourceSize: Qt.size(Math.max(1, Math.round(width * 2)), Math.max(1, Math.round(height * 2)))
+                opacity: status === Image.Ready ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 180
+                        easing.type: Easing.OutQuad
+                    }
+                }
             }
 
             MaterialIcon {
                 anchors.centerIn: parent
-                visible: modelData.isVideo
+                visible: !imagePath
+                text: (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")) ? "movie" : "image"
+                color: Colours.palette.m3outline
+                iconPointSize: Tokens.font.size.extraLarge
+            }
+
+            MaterialIcon {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: Tokens.padding.small
+                visible: modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")
                 text: "play_circle"
-                color: Colours.palette.m3primary
-                iconPointSize: Tokens.font.size.extraLarge * 2.5
+                color: Qt.alpha(Colours.palette.m3onSurface, 0.9)
+                iconPointSize: Tokens.font.size.large
             }
         }
 

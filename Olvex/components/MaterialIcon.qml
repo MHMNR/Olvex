@@ -9,7 +9,10 @@ Text {
     property string animateProp: "scale"
     property real animateFrom: 0
     property real animateTo: 1
-    property int animateDuration: Tokens.anim.durations.normal
+    // Guarded — see StyledText.qml for why: Tokens may not be attached yet on
+    // the very first construction tick, transiently producing "Unable to
+    // assign [undefined] to int" otherwise.
+    property int animateDuration: Tokens?.anim?.durations?.normal ?? 300
     property real fill
     property int grade: Colours.light ? 0 : -25
     property real iconPointSize: Tokens.font.size.larger

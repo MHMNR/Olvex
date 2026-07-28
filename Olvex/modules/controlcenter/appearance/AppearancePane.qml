@@ -35,9 +35,9 @@ Item {
     property bool transparencyEnabled: GlobalConfig.appearance.transparency.enabled ?? false
     property real transparencyBase: GlobalConfig.appearance.transparency.base ?? 0.85
     property real transparencyLayers: GlobalConfig.appearance.transparency.layers ?? 0.4
-    property real borderRounding: ((Config && Config.border) ? Config.border : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding ?? 1
-    property real borderThickness: ((Config && Config.border) ? Config.border : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness ?? 1
-    property bool borderFloating: ((Config && Config.border) ? Config.border : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ?? true
+    property real borderRounding: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding ?? 1
+    property real borderThickness: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness ?? 1
+    property bool borderFloating: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ?? true
 
     property bool desktopClockEnabled: Config.background.desktopClock.enabled ?? false
     property real desktopClockScale: Config.background.desktopClock.scale ?? 1
@@ -129,9 +129,12 @@ Item {
         GlobalConfig.background.visualiser.rounding = root.visualiserRounding;
         GlobalConfig.background.visualiser.spacing = root.visualiserSpacing;
 
-        GlobalConfig.border.rounding = root.borderRounding;
-        GlobalConfig.border.thickness = root.borderThickness;
-        GlobalConfig.border.floating = root.borderFloating;
+        if (GlobalConfig.border) {
+            GlobalConfig.border.rounding = root.borderRounding;
+            GlobalConfig.border.thickness = root.borderThickness;
+            GlobalConfig.border.floating = root.borderFloating;
+            GlobalConfig.save();
+        }
         if (GlobalConfig.lock) {
             GlobalConfig.lock.style = root.lockStyle;
             GlobalConfig.lock.minimalOpacity = root.lockMinimalOpacity;
@@ -158,8 +161,8 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.bottomMargin: Tokens.spacing.small
                     text: qsTr("Wallpaper")
-                    textPointSize: Tokens.font.size.extraLarge
-                    font.weight: 600
+                    font.pointSize: Tokens.font.size.extraLarge
+                    font.weight: 400
                 }
 
                 RowLayout {
@@ -247,8 +250,8 @@ Item {
 
                         StyledText {
                             text: qsTr("Appearance")
-                            textPointSize: Tokens.font.size.large
-                            font.weight: 500
+                            font.pointSize: Tokens.font.size.large
+                            font.weight: 400
                         }
 
                         Item {

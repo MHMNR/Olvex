@@ -4,17 +4,25 @@ import Olvex
 import Olvex.Config
 import qs.services
 
+// Click/hover/ripple target. Hand cursor ONLY when this layer is a live hit-target.
+// Use `disabled` or `interactive: false` to kill hand + clicks (prefer those over
+// overriding `enabled`, which used to leave cursorShape stuck on PointingHand).
 MouseArea {
     id: root
 
-    property bool disabled
+    property bool disabled: false
+    property bool interactive: true
     property bool showHoverBackground: true
     property bool showRipple: true
     property bool manualPressOverride
     readonly property alias rect: base
 
     property bool shapeMorph
-    property real stateOpacity: pressed ? 0.1 : (showHoverBackground && containsMouse) ? 0.08 : 0
+    // Live hit-target: respects disabled/interactive AND any external `enabled:` override
+    // (e.g. MorphControlButton sets enabled: Players.active !== null)
+    readonly property bool isActive: interactive && !disabled && enabled
+
+    property real stateOpacity: isActive && pressed ? 0.1 : (isActive && showHoverBackground && containsMouse) ? 0.08 : 0
 
     property real pressX: width / 2
     property real pressY: height / 2
@@ -45,6 +53,8 @@ MouseArea {
     }
 
     function press(x: real, y: real): void {
+        if (!root.isActive)
+            return;
         pressX = x;
         pressY = y;
         if (!showRipple)
@@ -57,9 +67,14 @@ MouseArea {
     }
 
     anchors.fill: parent
-    enabled: !disabled
-    cursorShape: disabled ? undefined : Qt.PointingHandCursor
-    hoverEnabled: true
+
+    // Default: enabled follows interactive/disabled. Callers may override `enabled:`.
+    // Cursor/hover always re-check `enabled` so an override cannot leave a stuck hand.
+    enabled: interactive && !disabled
+    acceptedButtons: isActive ? Qt.LeftButton : Qt.NoButton
+    cursorShape: isActive ? Qt.PointingHandCursor : Qt.ArrowCursor
+    hoverEnabled: isActive
+    preventStealing: isActive
 
     onPressed: e => press(e.x, e.y)
 

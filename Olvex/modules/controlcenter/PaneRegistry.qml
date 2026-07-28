@@ -1,104 +1,218 @@
 pragma Singleton
 
 import QtQuick
+import qs.services
 
 QtObject {
     id: root
 
-    readonly property list<QtObject> panes: [
-        QtObject {
-            readonly property string id: "network"
-            readonly property string label: "network"
-            readonly property string icon: "router"
-            readonly property string component: "network/NetworkingPane.qml"
+    // Bento category registry. Paths relative to modules/controlcenter/
+    // accentRole: key on Colours.palette
+    // Grid: 6 cols. Dual look heroes with asymmetric widths (true bento).
+    //   r0–1: Appearance w2h2 | Wallpaper w4h2  (look: compact palette + wide visual)
+    //   r2:   Network | Sound | Taskbar
+    //   r3:   Notifs  | Panels | Power
+    //   r4:   Security| System | About
+    readonly property var categories: [
+        {
+            id: "appearance",
+            label: "appearance",
+            icon: "palette",
+            title: "Appearance",
+            sub: "Theme, colors & fonts",
+            accentRole: "m3tertiary",
+            kind: "appearance",
+            c: 0,
+            r: 0,
+            w: 2,
+            h: 2,
+            component: "appearance/AppearancePage.qml"
         },
-        QtObject {
-            readonly property string id: "bluetooth"
-            readonly property string label: "bluetooth"
-            readonly property string icon: "settings_bluetooth"
-            readonly property string component: "bluetooth/BtPane.qml"
+        {
+            id: "wallpaper",
+            label: "wallpaper",
+            icon: "wallpaper",
+            title: "Wallpaper",
+            sub: "Wallpaper & desktop",
+            accentRole: "m3secondary",
+            kind: "wallpaper",
+            c: 2,
+            r: 0,
+            w: 4,
+            h: 2,
+            component: "wallpaper/WallpaperPage.qml"
         },
-        QtObject {
-            readonly property string id: "audio"
-            readonly property string label: "audio"
-            readonly property string icon: "volume_up"
-            readonly property string component: "../olvex/controlcenter/audio/AudioPane.qml"
+        {
+            id: "network",
+            label: "network",
+            icon: "wifi",
+            title: "Network",
+            sub: "Wi‑Fi and Bluetooth",
+            accentRole: "m3primary",
+            kind: "network",
+            c: 0,
+            r: 2,
+            w: 2,
+            h: 1,
+            component: "network/NetworkPage.qml"
         },
-        QtObject {
-            readonly property string id: "appearance"
-            readonly property string label: "appearance"
-            readonly property string icon: "palette"
-            readonly property string component: "../olvex/controlcenter/appearance/AppearancePane.qml"
+        {
+            id: "sound",
+            label: "audio",
+            icon: "volume_up",
+            title: "Sound",
+            sub: "Output & input",
+            accentRole: "m3primary",
+            kind: "sound",
+            c: 2,
+            r: 2,
+            w: 2,
+            h: 1,
+            component: "sound/SoundPage.qml"
         },
-        QtObject {
-            readonly property string id: "taskbar"
-            readonly property string label: "taskbar"
-            readonly property string icon: "task_alt"
-            readonly property string component: "../olvex/controlcenter/taskbar/TaskbarPane.qml"
+        {
+            id: "bar",
+            label: "taskbar",
+            icon: "space_dashboard",
+            title: "Taskbar",
+            sub: "Widgets & status",
+            accentRole: "m3primary",
+            kind: "bar",
+            c: 4,
+            r: 2,
+            w: 2,
+            h: 1,
+            component: "bar/BarPage.qml"
         },
-        QtObject {
-            readonly property string id: "notifications"
-            readonly property string label: "notifications"
-            readonly property string icon: "notifications"
-            readonly property string component: "notifications/NotificationsPane.qml"
+        {
+            id: "notifications",
+            label: "notifications",
+            icon: "notifications",
+            title: "Notifications",
+            sub: "Alerts & toasts",
+            // Match other tiles — error red wash made the card look foreign
+            accentRole: "m3primary",
+            kind: "notifications",
+            c: 0,
+            r: 3,
+            w: 2,
+            h: 1,
+            component: "notifications/NotificationsPage.qml"
         },
-        QtObject {
-            readonly property string id: "launcher"
-            readonly property string label: "launcher"
-            readonly property string icon: "apps"
-            readonly property string component: "launcher/LauncherPane.qml"
+        {
+            id: "panels",
+            label: "panels",
+            icon: "widgets",
+            title: "Panels",
+            sub: "Launcher & dashboard",
+            accentRole: "m3tertiary",
+            kind: "panels",
+            c: 2,
+            r: 3,
+            w: 2,
+            h: 1,
+            component: "panels/PanelsPage.qml"
         },
-        QtObject {
-            readonly property string id: "dashboard"
-            readonly property string label: "dashboard"
-            readonly property string icon: "dashboard"
-            readonly property string component: "dashboard/DashboardPane.qml"
+        {
+            id: "power",
+            label: "power",
+            icon: "battery_charging_full",
+            title: "Power",
+            sub: "Sleep & idle",
+            accentRole: "m3secondary",
+            kind: "power",
+            c: 4,
+            r: 3,
+            w: 2,
+            h: 1,
+            component: "power/PowerPage.qml"
         },
-        QtObject {
-            readonly property string id: "power"
-            readonly property string label: "power"
-            readonly property string icon: "bedtime"
-            readonly property string component: "power/PowerPane.qml"
+        {
+            id: "lock",
+            label: "lock",
+            icon: "lock",
+            title: "Security",
+            sub: "Lock & fingerprint",
+            accentRole: "m3secondary",
+            kind: "lock",
+            c: 0,
+            r: 4,
+            w: 2,
+            h: 1,
+            component: "lock/LockPage.qml"
+        },
+        {
+            id: "system",
+            label: "system",
+            icon: "tune",
+            title: "System",
+            sub: "Apps, clock & media",
+            accentRole: "m3primary",
+            kind: "system",
+            c: 2,
+            r: 4,
+            w: 2,
+            h: 1,
+            component: "system/SystemPage.qml"
+        },
+        {
+            id: "about",
+            label: "about",
+            icon: "deployed_code",
+            title: "About Olvex",
+            sub: "Version, system info and links",
+            accentRole: "m3primary",
+            kind: "about",
+            c: 4,
+            r: 4,
+            w: 2,
+            h: 1,
+            component: "about/AboutPage.qml"
         }
     ]
 
-    readonly property int count: panes.length
+    readonly property int count: categories.length
 
     readonly property var labels: {
         const result = [];
-        for (let i = 0; i < panes.length; i++) {
-            result.push(panes[i].label);
-        }
+        for (let i = 0; i < categories.length; i++)
+            result.push(categories[i].id);
         return result;
     }
 
+    // Legacy: panes list for old rail code
+    readonly property var panes: categories
+
     function getByIndex(index: int): var {
-        if (index >= 0 && index < panes.length) {
-            return panes[index];
-        }
+        if (index >= 0 && index < categories.length)
+            return categories[index];
         return null;
     }
 
     function getIndexByLabel(label: string): int {
-        for (let i = 0; i < panes.length; i++) {
-            if (panes[i].label === label) {
+        for (let i = 0; i < categories.length; i++) {
+            if (categories[i].label === label || categories[i].id === label)
                 return i;
-            }
         }
         return -1;
     }
 
     function getByLabel(label: string): var {
-        const index = getIndexByLabel(label);
-        return getByIndex(index);
+        return getByIndex(getIndexByLabel(label));
     }
 
     function getById(id: string): var {
-        for (let i = 0; i < panes.length; i++) {
-            if (panes[i].id === id) {
-                return panes[i];
-            }
+        for (let i = 0; i < categories.length; i++) {
+            if (categories[i].id === id)
+                return categories[i];
         }
         return null;
+    }
+
+    function accentFor(cat: var): color {
+        if (!cat)
+            return Colours.palette.m3primary;
+        const role = cat.accentRole || "m3primary";
+        return Colours.palette[role] || Colours.palette.m3primary;
     }
 }

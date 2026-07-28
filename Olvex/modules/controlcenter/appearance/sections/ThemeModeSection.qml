@@ -43,6 +43,7 @@ CollapsibleSection {
             const nextMode = item?.val ?? "auto";
             GlobalConfig.appearance.themeMode = nextMode;
             GlobalConfig.save();
+            Colours.setMode(nextMode);
         }
     }
 }

@@ -1,17 +1,68 @@
 #!/usr/bin/env bash
-# Olvex CLI wrapper — forwards to the running Olvex shell via Quickshell IPC.
+# Olvex CLI — talk to the live Quickshell instance (dev -p path or -c olvex).
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 OLVEX_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 OLVEX_BACKEND="${SCRIPT_DIR}/olvex-backend.sh"
-OLVEX_SHELL="${OLVEX_ROOT}/shell.qml"
+OLVEX_SHELL_DEFAULT="${OLVEX_ROOT}/shell.qml"
 
-export QML_IMPORT_PATH="${OLVEX_ROOT}/build/qml:${QML_IMPORT_PATH:-}"
+export QML_IMPORT_PATH="${OLVEX_ROOT}/build/qml${QML_IMPORT_PATH:+:${QML_IMPORT_PATH}}"
+
+# Resolve qs instance: prefer running Olvex shell (project path > installed -c).
+_olvex_qs_prefix() {
+    local env_shell="${OLVEX_SHELL:-${QS_CONFIG_PATH:-}}"
+    if [ -n "$env_shell" ] && [ -e "$env_shell" ]; then
+        printf '%s\0%s\0' -p "$(readlink -f "$env_shell" 2>/dev/null || echo "$env_shell")"
+        return
+    fi
+
+    local list
+    list="$(qs list --all 2>/dev/null || true)"
+
+    # Prefer live project config
+    if [ -n "$list" ] && printf '%s\n' "$list" | grep -Fq "${OLVEX_ROOT}/shell.qml"; then
+        printf '%s\0%s\0' -p "${OLVEX_SHELL_DEFAULT}"
+        return
+    fi
+    if [ -n "$list" ] && printf '%s\n' "$list" | grep -Fq "${OLVEX_ROOT}/"; then
+        printf '%s\0%s\0' -p "${OLVEX_SHELL_DEFAULT}"
+        return
+    fi
+
+    # Running installed config
+    if [ -n "$list" ] && printf '%s\n' "$list" | grep -Eqi 'quickshell/olvex'; then
+        printf '%s\0%s\0' -c "${OLVEX_QS_INSTANCE:-olvex}"
+        return
+    fi
+
+    # No running instance: default to project shell for IPC + start
+    if [ -f "${OLVEX_SHELL_DEFAULT}" ]; then
+        printf '%s\0%s\0' -p "${OLVEX_SHELL_DEFAULT}"
+        return
+    fi
+
+    printf '%s\0%s\0' -c "${OLVEX_QS_INSTANCE:-olvex}"
+}
 
 _olvex_qs() {
-    exec qs -p "${OLVEX_SHELL}" "$@"
+    local mode path
+    # shellcheck disable=SC2046
+    {
+        IFS= read -r -d '' mode
+        IFS= read -r -d '' path
+    } < <(_olvex_qs_prefix)
+    exec qs "$mode" "$path" "$@"
+}
+
+_olvex_qs_run() {
+    local mode path
+    {
+        IFS= read -r -d '' mode
+        IFS= read -r -d '' path
+    } < <(_olvex_qs_prefix)
+    qs "$mode" "$path" "$@"
 }
 
 _olvex_backend() {
@@ -19,30 +70,69 @@ _olvex_backend() {
 }
 
 _olvex_kill_running() {
-    qs -p "${OLVEX_SHELL}" kill >/dev/null 2>&1 || true
+    local mode path
+    {
+        IFS= read -r -d '' mode
+        IFS= read -r -d '' path
+    } < <(_olvex_qs_prefix)
+    qs "$mode" "$path" kill >/dev/null 2>&1 || true
+    # Also try the other common target so restarts don't leave orphans
+    qs -p "${OLVEX_SHELL_DEFAULT}" kill >/dev/null 2>&1 || true
+    qs -c "${OLVEX_QS_INSTANCE:-olvex}" kill >/dev/null 2>&1 || true
     sleep 0.15
 }
 
-if [ "$1" == "shell" ]; then
+if [ "${1:-}" = "" ]; then
+    _olvex_backend --help
+    exit 0
+fi
+
+if [ "$1" = "shell" ]; then
     shift
-    if [ "${1:-}" == "-d" ] || [ -z "${1:-}" ]; then
-        _olvex_kill_running
-        exec qs -v -p "${OLVEX_SHELL}" -d
-    elif [ "${1:-}" == "kill" ]; then
-        _olvex_kill_running
-    elif [ "${1:-}" == "restart" ]; then
-        _olvex_kill_running
-        exec qs -v -p "${OLVEX_SHELL}" -d
-    else
-        _olvex_qs ipc call "$@"
-    fi
-elif [ "$1" == "wallpaper" ]; then
+    case "${1:-}" in
+        ""|-d|--daemon)
+            _olvex_kill_running
+            {
+                IFS= read -r -d '' mode
+                IFS= read -r -d '' path
+            } < <(_olvex_qs_prefix)
+            exec qs -v "$mode" "$path" -d
+            ;;
+        kill|-k|--kill)
+            _olvex_kill_running
+            ;;
+        restart)
+            _olvex_kill_running
+            {
+                IFS= read -r -d '' mode
+                IFS= read -r -d '' path
+            } < <(_olvex_qs_prefix)
+            exec qs -v "$mode" "$path" -d
+            ;;
+        -s|--show|show|ipc-show)
+            _olvex_qs_run ipc show
+            ;;
+        -l|--log|log)
+            shift || true
+            if [ "${1:-}" = "-r" ] || [ "${1:-}" = "--log-rules" ]; then
+                shift
+                _olvex_qs_run log -r "${1:-}"
+            else
+                _olvex_qs_run log
+            fi
+            ;;
+        *)
+            # IPC message: olvex shell drawers toggle launcher
+            _olvex_qs_run ipc call "$@"
+            ;;
+    esac
+elif [ "$1" = "wallpaper" ]; then
     if [ $# -gt 1 ]; then
         _olvex_backend "$@"
     else
-        _olvex_qs ipc call drawers openWallpapers
+        _olvex_qs_run ipc call drawers openWallpapers
     fi
-elif [ "$1" == "screenshot" ]; then
+elif [ "$1" = "screenshot" ]; then
     shift
     if [ $# -eq 0 ]; then
         _olvex_backend screenshot
@@ -59,19 +149,19 @@ elif [ "$1" == "screenshot" ]; then
     done
     if $region; then
         if $freeze; then
-            _olvex_qs ipc call picker openFreeze
+            _olvex_qs_run ipc call picker openFreeze
         else
-            _olvex_qs ipc call picker open
+            _olvex_qs_run ipc call picker open
         fi
     elif $freeze; then
-        _olvex_qs ipc call picker openFreeze
+        _olvex_qs_run ipc call picker openFreeze
     else
         _olvex_backend screenshot
     fi
-elif [ "$1" == "record" ]; then
+elif [ "$1" = "record" ]; then
     shift
     exec "${SCRIPT_DIR}/record.sh" "$@"
-elif [ "$1" == "clipboard" ]; then
+elif [ "$1" = "clipboard" ]; then
     shift
     _olvex_clipboard_bin() {
         if [ -x "${OLVEX_ROOT}/build/lib/olvex-clipboard" ]; then

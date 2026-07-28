@@ -50,6 +50,8 @@ class UtilitiesConfig : public ConfigObject {
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(int, maxToasts, 4)
+    // Drag distance from top-right corner to open QS utilities panel
+    CONFIG_PROPERTY(int, dragThreshold, 40)
     CONFIG_GLOBAL_PROPERTY(bool, keepAwake, false)
     CONFIG_SUBOBJECT(UtilitiesToasts, toasts)
     CONFIG_SUBOBJECT(UtilitiesVpn, vpn)
@@ -58,6 +60,7 @@ class UtilitiesConfig : public ConfigObject {
             vmap({ { u"id"_s, u"wifi"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"bluetooth"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"mic"_s }, { u"enabled"_s, true } }),
+            vmap({ { u"id"_s, u"warp"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"settings"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"gameMode"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"dnd"_s }, { u"enabled"_s, true } }),

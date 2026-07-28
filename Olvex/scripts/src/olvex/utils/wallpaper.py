@@ -98,7 +98,13 @@ def get_smart_opts(wall: Path, cache: Path) -> dict:
     return opts
 
 
-def get_colours_for_wall(wall: Path | str, no_smart: bool) -> None:
+def get_colours_for_wall(wall: Path | str, no_smart: bool, force_mode: str | None = None) -> dict:
+    """Extract M3 palette for a wallpaper.
+
+    force_mode: \"light\" | \"dark\" — lock scheme mode (UI themeMode light/dark).
+    When smart is on, wallpaper still drives variant; mode uses force_mode if set,
+    otherwise smart luminance pick (auto theme).
+    """
     wall = Path(wall)
     scheme = get_scheme()
     cache = wallpapers_cache_dir / compute_hash(wall)
@@ -107,18 +113,28 @@ def get_colours_for_wall(wall: Path | str, no_smart: bool) -> None:
         wall = convert_gif(wall)
 
     name = "dynamic"
+    mode = scheme.mode
+    variant = scheme.variant
+
+    if force_mode in ("light", "dark"):
+        mode = force_mode
 
     if not no_smart:
         smart_opts = get_smart_opts(wall, cache)
-        scheme = Scheme(
-            {
-                "name": name,
-                "flavour": scheme.flavour,
-                "mode": smart_opts["mode"],
-                "variant": smart_opts["variant"],
-                "colours": scheme.colours,
-            }
-        )
+        # Smart variant always (original quality). Mode: forced > smart pick.
+        variant = smart_opts["variant"]
+        if force_mode not in ("light", "dark"):
+            mode = smart_opts["mode"]
+
+    scheme = Scheme(
+        {
+            "name": name,
+            "flavour": scheme.flavour,
+            "mode": mode,
+            "variant": variant,
+            "colours": scheme.colours,
+        }
+    )
 
     return {
         "name": name,
@@ -147,7 +163,7 @@ def convert_gif(wall: Path) -> Path:
     return output_path
 
 
-def set_wallpaper(wall: Path, no_smart: bool) -> None:
+def set_wallpaper(wall: Path, no_smart: bool, force_mode: str | None = None) -> None:
     # Make path absolute
     wall = Path(wall).resolve()
 
@@ -177,8 +193,10 @@ def set_wallpaper(wall: Path, no_smart: bool) -> None:
     # Change mode and variant based on wallpaper colour
     if scheme.name == "dynamic" and not no_smart:
         smart_opts = get_smart_opts(wall_cache, cache)
-        scheme.mode = smart_opts["mode"]
+        scheme.mode = force_mode if force_mode in ("light", "dark") else smart_opts["mode"]
         scheme.variant = smart_opts["variant"]
+    elif force_mode in ("light", "dark"):
+        scheme.mode = force_mode
 
     # Update colours
     scheme.update_colours()
@@ -219,4 +237,5 @@ def set_random(args: Namespace) -> None:
     except (FileNotFoundError, ValueError):
         pass
 
-    set_wallpaper(random.choice(wallpapers), args.no_smart)
+    force_mode = getattr(args, "scheme_mode", None)
+    set_wallpaper(random.choice(wallpapers), args.no_smart, force_mode)

@@ -25,8 +25,8 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Ethernet devices")
-        textPointSize: Tokens.font.size.larger
-        font.weight: 500
+        font.pointSize: Tokens.font.size.larger
+        font.weight: 400
     }
 
     StyledText {
@@ -58,7 +58,7 @@ ColumnLayout {
             StyledText {
                 text: qsTr("%1").arg(Nmcli.ethernetDevices.length)
                 color: Colours.palette.m3outline
-                textPointSize: Tokens.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -69,7 +69,7 @@ ColumnLayout {
             StyledText {
                 text: qsTr("%1").arg(Nmcli.ethernetDevices.filter(d => d.connected).length)
                 color: Colours.palette.m3outline
-                textPointSize: Tokens.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
         }
     }

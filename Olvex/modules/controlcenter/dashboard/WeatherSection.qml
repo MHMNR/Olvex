@@ -17,7 +17,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("Weather Settings")
-        textPointSize: Tokens.font.size.normal
+        font.pointSize: Tokens.font.size.normal
     }
 
     RowLayout {
@@ -26,7 +26,7 @@ SectionContainer {
 
         StyledText {
             text: qsTr("Temperature Unit")
-            textPointSize: Tokens.font.size.normal
+            font.pointSize: Tokens.font.size.normal
         }
 
         Item {
@@ -64,7 +64,7 @@ SectionContainer {
 
         StyledText {
             text: qsTr("Location")
-            textPointSize: Tokens.font.size.normal
+            font.pointSize: Tokens.font.size.normal
         }
 
         Item {
@@ -86,7 +86,7 @@ SectionContainer {
     StyledText {
         Layout.fillWidth: true
         text: qsTr("Enter a city name or 'lat,lon'. Leave empty for auto-detection.")
-        textPointSize: Tokens.font.size.small
+        font.pointSize: Tokens.font.size.small
         color: Colours.palette.m3outline
         wrapMode: Text.WordWrap
     }

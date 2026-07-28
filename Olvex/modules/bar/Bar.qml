@@ -3,11 +3,11 @@ pragma ComponentBehavior: Bound
 import "popouts" as BarPopouts
 import "components"
 import "components/workspaces"
+import "../olvex/bar" as OlvexBar
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
-import "../olvex" as Olvex
 import qs.components
 import qs.services
 
@@ -44,7 +44,6 @@ ColumnLayout {
             buttonSize
         );
     }
-    readonly property bool netSpeedEnabled: GlobalConfig.bar?.netSpeed?.enabled ?? false
     // OS/launcher icon is pinned to the bar bottom — never part of reorderable entries.
     readonly property var barEntries: (Config.bar.entries ?? []).filter(entry => entry.id !== "logo")
 
@@ -76,18 +75,27 @@ ColumnLayout {
         const id = ch.id;
         const top = ch.y;
 
-        if (id === "statusIcons" && Config.bar.popouts.statusIcons) {
-            const statusIcons = ch.item;
-            if (!statusIcons) {
+        if (id === "systemPill" && Config.bar.popouts.systemPill) {
+            const systemPill = ch.item;
+            if (!systemPill) {
                 popouts.hasCurrent = false;
                 return;
             }
-            const items = statusIcons.items;
-            const icon = items.childAt(items.width / 2, mapToItem(items, 0, y).y);
-            if (icon) {
+            const items = systemPill.items;
+            const localY = mapToItem(items, 0, y).y;
+            let icon = items.childAt(items.width / 2, localY);
+            // Walk into group hosts if needed; only use nodes with a popout `name`
+            if (icon && (!icon.name || icon.name.length === 0) && icon.children) {
+                const nested = icon.childAt(icon.width / 2, localY - icon.y);
+                if (nested && nested.name && nested.name.length)
+                    icon = nested;
+            }
+            if (icon && icon.name && icon.name.length) {
                 popouts.currentName = icon.name;
                 popouts.currentCenter = Qt.binding(() => icon.mapToItem(root, 0, icon.implicitHeight / 2).y);
                 popouts.hasCurrent = true;
+            } else {
+                popouts.hasCurrent = false;
             }
         } else if (id === "tray" && Config.bar.popouts.tray) {
             const tray = ch.item;
@@ -170,7 +178,9 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "activeWindow"
                 delegate: WrappedLoader {
-                    Layout.fillWidth: true
+                    Layout.fillHeight: !root.fullscreen && (item ? !item.showMusicPill : true)
+                    Layout.topMargin: root.vPadding
+                    Layout.bottomMargin: root.vPadding
                     visible: !root.fullscreen
                     sourceComponent: ActiveWindow {
                         bar: root
@@ -186,13 +196,6 @@ ColumnLayout {
                 }
             }
             DelegateChoice {
-                roleValue: "netSpeed"
-                delegate: WrappedLoader {
-                    visible: !root.fullscreen && root.netSpeedEnabled
-                    sourceComponent: Olvex.NetSpeedWidget {}
-                }
-            }
-            DelegateChoice {
                 roleValue: "clock"
                 delegate: WrappedLoader {
                     visible: !root.fullscreen
@@ -200,10 +203,15 @@ ColumnLayout {
                 }
             }
             DelegateChoice {
-                roleValue: "statusIcons"
+                roleValue: "systemPill"
                 delegate: WrappedLoader {
                     visible: !root.fullscreen
-                    sourceComponent: StatusIcons {}
+                    sourceComponent: ColumnLayout {
+                        spacing: Tokens.spacing.normal
+                        implicitWidth: Tokens.sizes.bar.innerWidth
+                        OlvexBar.NetSpeedWidget { Layout.alignment: Qt.AlignHCenter }
+                        StatusIcons { Layout.alignment: Qt.AlignHCenter }
+                    }
                 }
             }
             DelegateChoice {

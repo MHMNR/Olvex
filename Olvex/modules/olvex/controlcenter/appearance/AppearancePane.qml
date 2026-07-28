@@ -11,7 +11,7 @@ Item {
 
     anchors.fill: parent
 
-    CoreAppearance.AppearancePane {
+    CoreAppearance.AppearancePage {
         anchors.fill: parent
         session: root.session
     }

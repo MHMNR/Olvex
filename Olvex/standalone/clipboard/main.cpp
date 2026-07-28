@@ -124,17 +124,9 @@ public:
     qreal transparencyLayers() const { return m_transparencyLayers; }
 
     Q_INVOKABLE QColor layerColor(const QColor &color, int layerLevel) const {
-        if (!color.isValid())
-            return color;
-        // Nested panels use opaque M3 tonal tokens — hierarchy via hue, not stacked alpha.
-        if (!m_transparencyEnabled || layerLevel > 0)
-            return color;
-        // Single frosted backdrop on the root shell only. Global shell.json base (~0.4) is
-        // tuned for full-screen drawers; clipboard maps it to denser premium glass (~0.82–0.92).
-        const qreal backdrop = qBound(0.82, 0.76 + m_transparencyBase * 0.16, 0.92);
-        QColor layered = color;
-        layered.setAlphaF(static_cast<float>(backdrop));
-        return layered;
+        Q_UNUSED(layerLevel);
+        // Clipboard is opaque M3 only — no glassmorphism / frosted alpha layers.
+        return color;
     }
 
 signals:
@@ -251,31 +243,10 @@ private:
     }
 
     void loadShellTransparency() {
+        // Standalone clipboard never inherits shell glass transparency.
         m_transparencyEnabled = false;
-        m_transparencyBase = 0.85;
-        m_transparencyLayers = 0.4;
-
-        const QString path = shellConfigPath();
-        if (path.isEmpty())
-            return;
-
-        QFile file(path);
-        if (!file.open(QIODevice::ReadOnly))
-            return;
-
-        const auto root = QJsonDocument::fromJson(file.readAll()).object();
-        const auto transparency = root.value(QStringLiteral("appearance"))
-                                      .toObject()
-                                      .value(QStringLiteral("transparency"))
-                                      .toObject();
-        if (transparency.isEmpty())
-            return;
-
-        m_transparencyEnabled = transparency.value(QStringLiteral("enabled")).toBool(false);
-        m_transparencyBase = transparency.value(QStringLiteral("base")).toDouble(0.85);
-        m_transparencyLayers = transparency.value(QStringLiteral("layers")).toDouble(0.4);
-        m_transparencyBase = qBound(0.0, m_transparencyBase, 1.0);
-        m_transparencyLayers = qBound(0.0, m_transparencyLayers, 1.0);
+        m_transparencyBase = 1.0;
+        m_transparencyLayers = 1.0;
     }
 
     QString olvexStateDir() const {
@@ -400,9 +371,13 @@ private:
         const QColor onSurfaceVariant = schemeColour(colours, "onSurfaceVariant", fb("fgMuted"));
         const QColor surfaceContainer = schemeColour(colours, "surfaceContainer", fb("stage"));
         const QColor surfaceContainerHigh = schemeColour(colours, "surfaceContainerHigh", fb("stageHigh"));
+        const QColor surfaceContainerHighest = schemeColour(colours, "surfaceContainerHighest", fb("stageContent"));
+        const QColor outline = schemeColour(colours, "outline", fb("outline"));
         const QColor outlineVariant = schemeColour(colours, "outlineVariant", fb("outlineVariant"));
         const QColor error = schemeColour(colours, "error", fb("error"));
+        const QColor onError = schemeColour(colours, "onError", fb("fgPrimary"));
         const QColor errorContainer = schemeColour(colours, "errorContainer", fb("errorContainer"));
+        const QColor onErrorContainer = schemeColour(colours, "onErrorContainer", fb("fgErrorContainer"));
 
         QVariantMap palette;
         palette.insert(QStringLiteral("primary"), hex(primary));
@@ -418,19 +393,17 @@ private:
         palette.insert(QStringLiteral("surface"), hex(surface));
         palette.insert(QStringLiteral("fgSurface"), hex(onSurface));
         palette.insert(QStringLiteral("fgMuted"), hex(onSurfaceVariant));
-        // Derived: rail ≈ surface (surfaceContainerLowest ≈ surface in dark mode)
+        // Opaque M3 surface ladder (no glass alpha)
         palette.insert(QStringLiteral("rail"), hex(surface));
         palette.insert(QStringLiteral("stage"), hex(surfaceContainer));
         palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainerHigh));
-        // Derived: stageContent ≈ stageHigh (surfaceContainerHighest ≈ High)
-        palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHigh));
-        // Derived: outline ≈ fgMuted
-        palette.insert(QStringLiteral("outline"), hex(onSurfaceVariant));
+        palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHighest));
+        palette.insert(QStringLiteral("outline"), hex(outline));
         palette.insert(QStringLiteral("outlineVariant"), hex(outlineVariant));
         palette.insert(QStringLiteral("error"), hex(error));
         palette.insert(QStringLiteral("errorContainer"), hex(errorContainer));
-        // Derived: fgErrorContainer ≈ errorContainer (lightened)
-        palette.insert(QStringLiteral("fgErrorContainer"), hex(errorContainer));
+        palette.insert(QStringLiteral("fgErrorContainer"), hex(onErrorContainer));
+        Q_UNUSED(onError);
         return palette;
     }
 

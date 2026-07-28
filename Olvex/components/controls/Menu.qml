@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
 import qs.components
+import qs.components.containers
 import qs.components.effects
 import qs.services
 import qs.modules.drawers
@@ -33,6 +34,11 @@ MouseArea {
     property bool expanded
     property bool highlightActive: false
     property Item hoveredItem: null
+    // Cap popup height; content scrolls when items exceed this (font lists, etc.)
+    property real maxHeight: 320
+    // Only for font-family pickers — NEVER set item text as font.family otherwise
+    // (broke recorder menu: text used as font face → blank/broken rows)
+    property bool previewFontFace: false
 
     readonly property bool _isContextMenu: true
 
@@ -133,8 +139,10 @@ MouseArea {
         radius: Tokens.rounding.normal
         level: 2
 
-        implicitWidth: Math.max(200, column.implicitWidth + column.anchors.margins * 2)
-        implicitHeight: column.implicitHeight + column.anchors.margins * 2
+        readonly property real contentPad: Tokens.padding.small * 2
+        implicitWidth: Math.max(200, flickContent.implicitWidth + contentPad)
+        // Scroll when list exceeds maxHeight
+        implicitHeight: Math.min(root.maxHeight, flickContent.implicitHeight + contentPad)
 
         transform: Scale {
             yScale: root.expanded ? 1 : 0.1
@@ -147,141 +155,200 @@ MouseArea {
             }
         }
 
+        // Same surface + marker language as Panels.qml taskbar context menu
         StyledRect {
+            id: menuSurface
+
             anchors.fill: parent
             radius: parent.radius
             color: Colours.palette.m3surfaceContainerLow
+            clip: true
 
-            // Sliding hover highlight marker
+            // Sliding hover highlight marker — copy of Panels contextMenuHoverHighlight
             StyledRect {
                 id: hoverHighlight
-                visible: root.hoveredItem !== null
+
+                readonly property Item target: root.hoveredItem
+                // Depend on scroll so mapToItem updates while flicking
+                readonly property real _scroll: menuFlick.contentY
+
+                z: 0
+                visible: target !== null && root.expanded
                 opacity: visible ? 0.08 : 0
                 color: Colours.palette.m3onSurface
                 radius: Tokens.rounding.small
-                
-                // Position it matching the hoveredItem
-                x: root.hoveredItem ? root.hoveredItem.mapToItem(parent, 0, 0).x : 0
-                y: root.hoveredItem ? root.hoveredItem.mapToItem(parent, 0, 0).y : 0
-                width: root.hoveredItem ? root.hoveredItem.width : 0
-                height: root.hoveredItem ? root.hoveredItem.height : 0
+
+                x: {
+                    const _ = _scroll;
+                    return target ? target.mapToItem(menuSurface, 0, 0).x : 0;
+                }
+                y: {
+                    const _ = _scroll;
+                    return target ? target.mapToItem(menuSurface, 0, 0).y : 0;
+                }
+                width: target ? target.width : 0
+                height: target ? target.height : 0
 
                 Behavior on x {
                     enabled: hoverHighlight.opacity > 0
-                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    SpringAnimation {
+                        spring: 7.0
+                        damping: 0.8
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
                 }
                 Behavior on y {
                     enabled: hoverHighlight.opacity > 0
-                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    SpringAnimation {
+                        spring: 7.0
+                        damping: 0.8
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+                Behavior on width {
+                    enabled: hoverHighlight.opacity > 0
+                    SpringAnimation {
+                        spring: 7.0
+                        damping: 0.8
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+                Behavior on height {
+                    enabled: hoverHighlight.opacity > 0
+                    SpringAnimation {
+                        spring: 7.0
+                        damping: 0.8
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
                 }
                 Behavior on opacity {
-                    NumberAnimation { duration: 150 }
+                    NumberAnimation {
+                        duration: 150
+                    }
                 }
             }
 
-            ColumnLayout {
-                id: column
-
-                readonly property int menuItemCount: root.itemCount
+            StyledFlickable {
+                id: menuFlick
 
                 anchors.fill: parent
                 anchors.margins: Tokens.padding.small
-                spacing: 0
+                z: 1
+                contentWidth: width
+                contentHeight: flickContent.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                interactive: contentHeight > height + 1
+                flickableDirection: Flickable.VerticalFlick
+                edgeFades: false
+                smoothWheel: true
 
-                Repeater {
-                    id: repeater
+                Column {
+                    id: flickContent
 
-                    model: root.items ?? []
+                    width: menuFlick.width
+                    spacing: 2
 
-                    StyledRect {
-                        id: item
+                    Repeater {
+                        id: repeater
 
-                        required property int index
-                        required property MenuItem modelData
-                        readonly property bool active: modelData != null && modelData === root.active
+                        model: root.items ?? []
 
-                        visible: modelData != null
-                        Layout.fillWidth: true
-                        implicitWidth: menuOptionRow.implicitWidth + Tokens.padding.normal * 2
-                        implicitHeight: menuOptionRow.implicitHeight + Tokens.padding.normal * 2
+                        StyledRect {
+                            id: item
 
-                        radius: Tokens.rounding.small
-                        topLeftRadius: Tokens.rounding.small
-                        topRightRadius: Tokens.rounding.small
-                        bottomLeftRadius: Tokens.rounding.small
-                        bottomRightRadius: Tokens.rounding.small
+                            required property int index
+                            required property MenuItem modelData
+                            readonly property bool active: modelData != null && modelData === root.active
 
-                        color: Qt.alpha(Colours.palette.m3primary, (root.highlightActive && active) ? 0.12 : 0)
+                            visible: modelData != null
+                            width: flickContent.width
+                            implicitWidth: menuOptionRow.implicitWidth + Tokens.padding.normal * 2
+                            implicitHeight: Math.max(40, menuOptionRow.implicitHeight + Tokens.padding.small * 2)
+                            height: implicitHeight
 
-                        Behavior on radius {
-                            Anim {}
-                        }
+                            // Transparent — fill is the sliding marker (Panels pattern)
+                            radius: Tokens.rounding.small
+                            color: "transparent"
 
-                        StateLayer {
-                            topLeftRadius: parent.topLeftRadius
-                            topRightRadius: parent.topRightRadius
-                            bottomLeftRadius: parent.bottomLeftRadius
-                            bottomRightRadius: parent.bottomRightRadius
-
-                            color: (root.highlightActive && item.active) ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                            disabled: !root.expanded
-                            hoverEnabled: false
-                            onClicked: {
-                                if (!item.modelData)
-                                    return;
-                                root.itemSelected(item.modelData);
-                                root.active = item.modelData;
-                                item.modelData.clicked();
-                                root.expanded = false;
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.NoButton
-                            onEntered: {
-                                if (root.expanded) {
-                                    root.hoveredItem = item;
+                            StateLayer {
+                                id: itemState
+                                anchors.fill: parent
+                                radius: parent.radius
+                                color: Colours.palette.m3onSurface
+                                disabled: !root.expanded
+                                // Hover tracked separately (same as Panels context menu)
+                                hoverEnabled: false
+                                onClicked: {
+                                    if (!item.modelData)
+                                        return;
+                                    root.itemSelected(item.modelData);
+                                    root.active = item.modelData;
+                                    item.modelData.clicked();
+                                    root.expanded = false;
                                 }
                             }
-                            onExited: {
-                                if (root.hoveredItem === item) {
-                                    root.hoveredItem = null;
+
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.NoButton
+                                onEntered: {
+                                    if (root.expanded)
+                                        root.hoveredItem = item;
+                                }
+                                onExited: {
+                                    if (root.hoveredItem === item)
+                                        root.hoveredItem = null;
                                 }
                             }
-                        }
 
-                        RowLayout {
-                            id: menuOptionRow
+                            RowLayout {
+                                id: menuOptionRow
 
-                            anchors.fill: parent
-                            anchors.margins: Tokens.padding.normal
-                            spacing: Tokens.spacing.small
+                                anchors.fill: parent
+                                anchors.leftMargin: Tokens.padding.normal
+                                anchors.rightMargin: Tokens.padding.normal
+                                spacing: Tokens.spacing.small
 
-                            MaterialIcon {
-                                Layout.alignment: Qt.AlignVCenter
-                                text: item.modelData ? item.modelData.icon : ""
-                                color: (root.highlightActive && item.active) ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                            }
+                                MaterialIcon {
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: !!(item.modelData && item.modelData.icon && item.modelData.icon.length > 0)
+                                    text: item.modelData ? item.modelData.icon : ""
+                                    color: item.active && root.highlightActive
+                                        ? Colours.palette.m3primary
+                                        : Colours.palette.m3onSurfaceVariant
+                                    iconPointSize: Tokens.font.size.normal
+                                }
 
-                            StyledText {
-                                Layout.alignment: Qt.AlignVCenter
-                                Layout.fillWidth: true
-                                text: item.modelData ? item.modelData.text : ""
-                                horizontalAlignment: Text.AlignLeft
-                                color: (root.highlightActive && item.active) ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                            }
+                                StyledText {
+                                    Layout.alignment: Qt.AlignVCenter
+                                    Layout.fillWidth: true
+                                    text: item.modelData ? item.modelData.text : ""
+                                    horizontalAlignment: Text.AlignLeft
+                                    elide: Text.ElideRight
+                                    color: Colours.palette.m3onSurface
+                                    textPointSize: Tokens.font.size.small
+                                    font.family: root.previewFontFace && item.modelData?.text
+                                        ? item.modelData.text
+                                        : Tokens.font.family.sans
+                                }
 
-                            Loader {
-                                asynchronous: true
-                                Layout.alignment: Qt.AlignVCenter
-                                active: item.modelData && item.modelData.trailingIcon.length > 0
-                                visible: active
+                                Loader {
+                                    asynchronous: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    active: !!(item.modelData && item.modelData.trailingIcon && item.modelData.trailingIcon.length > 0)
+                                    visible: active
 
-                                sourceComponent: MaterialIcon {
-                                    text: item.modelData ? item.modelData.trailingIcon : ""
-                                    color: item.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                                    sourceComponent: MaterialIcon {
+                                        text: item.modelData ? item.modelData.trailingIcon : ""
+                                        color: Colours.palette.m3onSurfaceVariant
+                                        iconPointSize: Tokens.font.size.normal
+                                    }
                                 }
                             }
                         }

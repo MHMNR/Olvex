@@ -28,7 +28,7 @@ Singleton {
     readonly property real sourceVolume: source?.audio?.volume ?? 0
 
     readonly property alias cava: cava
-    readonly property int visualiserFps: Math.max(1, Math.min(GlobalConfig.services["visualiserFps"] || 30, 60))
+    readonly property int visualiserFps: Math.max(1, Math.min(GlobalConfig.services["visualiserFps"] || 60, 60))
 
     function syncCavaFrameRate(): void {
         if ("frameRate" in cava)

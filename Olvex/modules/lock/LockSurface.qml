@@ -20,8 +20,10 @@ WlSessionLockSurface {
     // Triggers directional slides in Content.qml and Center.qml
     property bool contentReady: false
 
-    contentItem.Config.screen: screen.name
-    contentItem.Tokens.screen: screen.name
+    // screen can briefly be null right at lock-surface creation, before the
+    // compositor assigns it — guard instead of dereferencing .name directly.
+    contentItem.Config.screen: screen ? screen.name : ""
+    contentItem.Tokens.screen: screen ? screen.name : ""
 
     // Transparent — wallpaper renders directly, no flash
     color: "transparent"
@@ -163,8 +165,11 @@ WlSessionLockSurface {
                     color: Colours.palette.m3secondary
                     anchors.verticalCenter: parent.verticalCenter
 
+                    // Only run while the status bar is actually shown (card style).
+                    // In minimal style statusBar is invisible, so this infinite blink
+                    // would otherwise keep the animation driver awake for nothing.
                     SequentialAnimation on opacity {
-                        running: true; loops: Animation.Infinite
+                        running: statusBar.visible; loops: Animation.Infinite
                         NumberAnimation { to: 0.3; duration: 800 }
                         NumberAnimation { to: 1.0; duration: 800 }
                     }

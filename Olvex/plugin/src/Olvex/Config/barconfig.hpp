@@ -29,7 +29,7 @@ class BarPopouts : public ConfigObject {
 
     CONFIG_PROPERTY(bool, activeWindow, true)
     CONFIG_PROPERTY(bool, tray, true)
-    CONFIG_PROPERTY(bool, statusIcons, true)
+    CONFIG_PROPERTY(bool, systemPill, true)
 
 public:
     explicit BarPopouts(QObject* parent = nullptr)
@@ -96,7 +96,7 @@ class BarStatus : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, showAudio, false)
+    CONFIG_PROPERTY(bool, showAudio, true)
     CONFIG_PROPERTY(bool, showMicrophone, false)
     CONFIG_PROPERTY(bool, showKbLayout, false)
     CONFIG_PROPERTY(bool, showNetwork, true)
@@ -174,9 +174,8 @@ class BarConfig : public ConfigObject {
             vmap({ { u"id"_s, u"activeWindow"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"spacer"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"tray"_s }, { u"enabled"_s, true } }),
-            vmap({ { u"id"_s, u"netSpeed"_s }, { u"enabled"_s, true } }),
+            vmap({ { u"id"_s, u"systemPill"_s }, { u"enabled"_s, true } }),
             vmap({ { u"id"_s, u"clock"_s }, { u"enabled"_s, true } }),
-            vmap({ { u"id"_s, u"statusIcons"_s }, { u"enabled"_s, true } }),
         })
     CONFIG_PROPERTY(QStringList, excludedScreens)
 

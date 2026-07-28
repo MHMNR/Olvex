@@ -289,70 +289,12 @@ Item {
         anchors.topMargin: 4
         clip: true
 
-        // Sliding hover highlight behind GridView items
-        StyledRect {
-            id: gridHoverHighlight
-            visible: appGrid.hoveredItem !== null && root.state === "apps"
-            opacity: visible ? 1 : 0
-            color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-            border.width: 1
-            radius: 16
-
-            width: 102
-            height: 112
-
-            x: appGrid.hoveredItem ? appGrid.hoveredItem.x + 4 : x
-            y: appGrid.hoveredItem ? appGrid.hoveredItem.y - appGrid.contentY + 4 : y
-
-            Behavior on x {
-                enabled: root.visibilities.launcher
-                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-            }
-            Behavior on y {
-                enabled: root.visibilities.launcher
-                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-            }
-            Behavior on opacity {
-                NumberAnimation { duration: 150 }
-            }
-        }
-
-        // Sliding keyboard-selection highlight
-        StyledRect {
-            id: keyboardHighlight
-
-            visible: root.keyboardHighlightActive && appGrid.hoveredItem === null && appGrid.currentItem !== null && root.state === "apps"
-            opacity: visible ? 1 : 0
-            color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-            border.width: 1
-            radius: 16
-
-            width: 102
-            height: 112
-
-            x: appGrid.currentItem ? appGrid.currentItem.x + 4 : x
-            y: appGrid.currentItem ? appGrid.currentItem.y - appGrid.contentY + 4 : y
-
-            Behavior on x {
-                enabled: root.visibilities.launcher
-                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-            }
-            Behavior on y {
-                enabled: root.visibilities.launcher
-                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-            }
-            Behavior on opacity {
-                NumberAnimation { duration: 150 }
-            }
-        }
-
         GridView {
             id: appGrid
             property Item hoveredItem: null
 
             anchors.fill: parent
+            z: 1
 
             cellWidth: 110
             cellHeight: root.appsRowHeight
@@ -361,6 +303,9 @@ Item {
             boundsBehavior: Flickable.DragAndOvershootBounds
             flickDeceleration: 2200
             maximumFlickVelocity: 3200
+            // Focus chrome is a separate sliding marker (not built-in highlight)
+            highlightFollowsCurrentItem: false
+            keyNavigationEnabled: false
 
             model: root.state === "apps" ? root.modelValues : null
             delegate: gridAppItemComponent
@@ -425,6 +370,118 @@ Item {
 
                     event.accepted = true;
                 }
+            }
+        }
+
+        // Unified sliding focus marker — springs between tiles (hover + keyboard)
+        StyledRect {
+            id: gridFocusMarker
+
+            // Prefer hover; keyboard nav clears hover so currentItem wins
+            readonly property Item targetItem: {
+                if (root.state !== "apps" || !root.visibilities.launcher)
+                    return null;
+                if (appGrid.hoveredItem)
+                    return appGrid.hoveredItem;
+                if (appGrid.currentItem)
+                    return appGrid.currentItem;
+                return null;
+            }
+            readonly property bool active: targetItem !== null && !root.revealPending
+
+            property bool springEnabled: false
+            property real markerX: 0
+            property real markerY: 0
+
+            z: 0 // under GridView tiles
+            width: 102
+            height: 112
+            radius: 16
+            color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+            border.color: Qt.alpha(Colours.palette.m3onSurface, root.keyboardHighlightActive ? 0.22 : 0.12)
+            border.width: 1
+            x: markerX
+            y: markerY
+            opacity: active ? 1 : 0
+            enabled: false
+
+            function retarget(animate: bool): void {
+                const item = targetItem;
+                if (!item)
+                    return;
+                const nx = item.x + 4;
+                const ny = item.y - appGrid.contentY + 4;
+                springEnabled = animate && root.visibilities.launcher && !root.revealPending;
+                markerX = nx;
+                markerY = ny;
+                if (!animate) {
+                    // Re-enable springs after first land so next move animates
+                    Qt.callLater(() => {
+                        if (gridFocusMarker.targetItem)
+                            gridFocusMarker.springEnabled = root.visibilities.launcher;
+                    });
+                }
+            }
+
+            onTargetItemChanged: retarget(springEnabled && targetItem !== null)
+            onActiveChanged: {
+                if (active)
+                    retarget(false);
+                else
+                    springEnabled = false;
+            }
+
+            Connections {
+                target: appGrid
+                function onCurrentIndexChanged(): void {
+                    gridFocusMarker.retarget(true);
+                }
+                function onHoveredItemChanged(): void {
+                    gridFocusMarker.retarget(true);
+                }
+                function onContentYChanged(): void {
+                    // Stick to item while scrolling — no spring lag
+                    gridFocusMarker.retarget(false);
+                }
+            }
+
+            Connections {
+                target: root
+                function onKeyboardHighlightActiveChanged(): void {
+                    gridFocusMarker.retarget(true);
+                }
+                function onRevealPendingChanged(): void {
+                    if (!root.revealPending && gridFocusMarker.targetItem)
+                        gridFocusMarker.retarget(false);
+                }
+            }
+
+            Behavior on markerX {
+                enabled: gridFocusMarker.springEnabled
+                SpringAnimation {
+                    spring: 4.6
+                    damping: 0.74
+                    mass: 1.0
+                    epsilon: 0.005
+                }
+            }
+            Behavior on markerY {
+                enabled: gridFocusMarker.springEnabled
+                SpringAnimation {
+                    spring: 4.6
+                    damping: 0.74
+                    mass: 1.0
+                    epsilon: 0.005
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 160
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on border.color {
+                CAnim {}
             }
         }
     }
@@ -502,34 +559,138 @@ Item {
         visible: appGridHost.visible && appGrid.contentHeight > appGrid.height
     }
 
-    StyledListView {
-        id: actionList
+    Item {
+        id: actionListHost
 
         visible: root.state !== "apps"
         anchors.fill: parent
         clip: true
-        spacing: 8
 
-        model: root.state !== "apps" ? root.modelValues : null
+        // Sliding focus marker under list rows
+        StyledRect {
+            id: listFocusMarker
 
-        delegate: {
-            if (root.state === "actions") return actionItem;
-            if (root.state === "calc") return calcItem;
-            if (root.state === "scheme") return schemeItem;
-            if (root.state === "variant") return variantItem;
-            return null;
-        }
+            readonly property Item targetItem: actionListHost.visible ? actionList.currentItem : null
+            readonly property bool active: targetItem !== null
 
-        highlightFollowsCurrentItem: true
-        highlight: StyledRect {
+            property bool springEnabled: false
+            property real markerY: 0
+            property real markerH: Tokens.sizes.launcher.itemHeight || 56
+
+            z: 0
+            x: 0
+            width: actionList.width
+            y: markerY
+            height: markerH
             radius: Tokens.rounding.normal
             color: Colours.palette.m3primary
-            opacity: 1.0
+            opacity: active ? 1 : 0
+            enabled: false
+
+            function retarget(animate: bool): void {
+                const item = targetItem;
+                if (!item)
+                    return;
+                const ny = item.y - actionList.contentY;
+                const nh = item.height > 0 ? item.height : (Tokens.sizes.launcher.itemHeight || 56);
+                springEnabled = animate && actionListHost.visible;
+                markerY = ny;
+                markerH = nh;
+                if (!animate) {
+                    Qt.callLater(() => {
+                        if (listFocusMarker.targetItem)
+                            listFocusMarker.springEnabled = actionListHost.visible;
+                    });
+                }
+            }
+
+            onTargetItemChanged: retarget(springEnabled && targetItem !== null)
+            onActiveChanged: {
+                if (active)
+                    retarget(false);
+                else
+                    springEnabled = false;
+            }
+
+            Connections {
+                target: actionList
+                function onCurrentIndexChanged(): void {
+                    listFocusMarker.retarget(true);
+                }
+                function onContentYChanged(): void {
+                    listFocusMarker.retarget(false);
+                }
+                function onCountChanged(): void {
+                    listFocusMarker.retarget(false);
+                }
+            }
+
+            Connections {
+                target: actionListHost
+                function onVisibleChanged(): void {
+                    if (actionListHost.visible)
+                        listFocusMarker.retarget(false);
+                    else
+                        listFocusMarker.springEnabled = false;
+                }
+            }
+
+            Behavior on markerY {
+                enabled: listFocusMarker.springEnabled
+                SpringAnimation {
+                    spring: 4.6
+                    damping: 0.74
+                    mass: 1.0
+                    epsilon: 0.005
+                }
+            }
+            Behavior on markerH {
+                enabled: listFocusMarker.springEnabled
+                SpringAnimation {
+                    spring: 5.0
+                    damping: 0.78
+                    mass: 1.0
+                    epsilon: 0.005
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 160
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
 
-        StyledScrollBar.vertical: StyledScrollBar {
-            flickable: actionList
-            visible: actionList.visible && actionList.contentHeight > actionList.height
+        StyledListView {
+            id: actionList
+
+            anchors.fill: parent
+            z: 1
+            clip: true
+            spacing: 8
+
+            model: root.state !== "apps" ? root.modelValues : null
+
+            delegate: {
+                if (root.state === "actions")
+                    return actionItem;
+                if (root.state === "calc")
+                    return calcItem;
+                if (root.state === "scheme")
+                    return schemeItem;
+                if (root.state === "variant")
+                    return variantItem;
+                return null;
+            }
+
+            // Custom sliding marker — disable snap-jump built-in highlight
+            highlightFollowsCurrentItem: false
+            highlight: null
+
+            StyledScrollBar.vertical: StyledScrollBar {
+                flickable: actionList
+                visible: actionList.visible && actionList.contentHeight > actionList.height
+            }
         }
     }
 

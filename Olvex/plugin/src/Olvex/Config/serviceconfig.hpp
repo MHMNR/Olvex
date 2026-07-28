@@ -25,7 +25,7 @@ class ServiceConfig : public ConfigObject {
         bool, useTwelveHourClock, QLocale().timeFormat(QLocale::ShortFormat).toLower().contains(u"a"_s))
     CONFIG_GLOBAL_PROPERTY(QString, gpuType)
     CONFIG_GLOBAL_PROPERTY(int, visualiserBars, 32)
-    CONFIG_GLOBAL_PROPERTY(int, visualiserFps, 30)
+    CONFIG_GLOBAL_PROPERTY(int, visualiserFps, 60)
     CONFIG_GLOBAL_PROPERTY(qreal, audioIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, brightnessIncrement, 0.1)
     CONFIG_GLOBAL_PROPERTY(qreal, maxVolume, 1.0)

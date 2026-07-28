@@ -8,6 +8,7 @@ import Olvex.Config
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.modules.controlcenter
 
 Item {
     id: root
@@ -112,7 +113,12 @@ Item {
             text: qsTr("Open settings")
             icon: "settings"
 
-            onClicked: root.popouts.detachRequested("audio")
+            onClicked: {
+                root.popouts.hasCurrent = false;
+                WindowFactory.create(null, {
+                    active: "sound"
+                });
+            }
         }
     }
 }

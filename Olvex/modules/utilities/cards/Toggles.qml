@@ -8,6 +8,7 @@ import qs.components
 import qs.components.controls
 import qs.services
 import qs.modules.bar.popouts as BarPopouts
+import qs.modules.controlcenter
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.UPower
@@ -112,7 +113,8 @@ StyledRect {
                 icon: "settings"
                 onClicked: {
                     root.visibilities.utilities = false;
-                    root.popouts.detach("launcher");
+                    // Real floating window (same as IPC / shortcut), not bar overlay
+                    WindowFactory.create();
                 }
             }
             IconButton {

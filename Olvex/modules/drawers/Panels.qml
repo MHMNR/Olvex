@@ -33,6 +33,7 @@ Item {
     required property Bar.BarWrapper bar
     required property real borderThickness
     required property var safeBorder
+    property Item osdScreenCapture: null
 
     readonly property alias osd: osd
     readonly property alias osdWrapper: osdWrapper
@@ -349,6 +350,7 @@ Item {
             screen: root.screen
             visibilities: root.visibilities
             sidebarOrSessionVisible: root.sessionVisible
+            screenCapture: root.osdScreenCapture
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
@@ -364,6 +366,8 @@ Item {
 
         anchors.top: parent.top
         anchors.right: parent.right
+        // Above other panel chrome so expand / swipe hit the card, not utilities hot-zone
+        z: 30
     }
 
     Item {
@@ -433,17 +437,20 @@ Item {
         visibilities: root.visibilities
         popouts: popoutsWrapper.content
 
+        // Full height right column — root item already shrinks by bottomMargin, no extra offset needed
+        anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: parent.right
     }
 
-    // Hot corner: bottom-right click opens QS panel when bottom panel is off
+    // Top-right: drag-only open via Interactions (no click MouseArea — would steal heads-up notifs).
+    // Bottom-right: still click-to-open when bottom panel is off.
     MouseArea {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         width: 32
         height: 32
-        visible: !(root.bottomPanelEnabled) && !root.visibilities.utilities
+        visible: !(root.bottomPanelEnabled) && !root.visibilities.utilities && Config.utilities.enabled
         z: 20
 
         onClicked: {
@@ -485,9 +492,11 @@ Item {
     Toasts.Toasts {
         id: toasts
 
-        anchors.bottom: utilities.top
+        // Float above bottom panel / screen bottom (utilities is full-height now)
+        anchors.bottom: (root.bottomPanelEnabled && root.bottomPanelVisible) ? bottomPanel.top : parent.bottom
         anchors.right: parent.right
         anchors.margins: Tokens.padding.normal
+        z: 15
     }
 
     Item {
@@ -573,20 +582,15 @@ Item {
                         const c = pinnedModel.count;
                         return c * 52 + Math.max(0, c - 1) * 12;
                     }
-                    height: 58  // 52px icons + 6px spacing for running indicator bar
+                    height: 58
 
-                    // ListModel.move() reorders WITHOUT recreating items — spring position preserved!
-                    ListModel {
-                        id: pinnedModel
-                    }
+                    ListModel { id: pinnedModel }
 
-                    // Sync ListModel when pinnedApps changes externally (not during drag)
                     Connections {
                         target: root.visibilities
                         function onPinnedAppsChanged() {
-                            if (!pinnedState.isDragging && !pinnedState.isLandingNow) {
+                            if (!pinnedState.isDragging && !pinnedState.isLandingNow)
                                 pinnedState.syncModel(root.visibilities.pinnedApps || []);
-                            }
                         }
                     }
 
@@ -596,7 +600,6 @@ Item {
 
                     QtObject {
                         id: pinnedState
-
                         property string draggedAppId: ""
                         property int draggedOriginalIndex: -1
                         property Item hoveredAppIcon: null
@@ -609,87 +612,51 @@ Item {
                         readonly property real dragThreshold: 10
 
                         function syncModel(apps) {
-                            // Minimal sync: update existing, add/remove as needed
                             while (pinnedModel.count > apps.length)
                                 pinnedModel.remove(pinnedModel.count - 1);
                             for (let i = 0; i < apps.length; i++) {
                                 if (i < pinnedModel.count) {
                                     if (pinnedModel.get(i).appId !== apps[i])
-                                        pinnedModel.set(i, {
-                                            "appId": apps[i]
-                                        });
+                                        pinnedModel.set(i, { "appId": apps[i] });
                                 } else {
-                                    pinnedModel.append({
-                                        "appId": apps[i]
-                                    });
+                                    pinnedModel.append({ "appId": apps[i] });
                                 }
                             }
                         }
-
                         function startDrag(appId, index, startX, startY) {
-                            draggedAppId = appId;
-                            draggedOriginalIndex = index;
-                            dragStartX = startX;
-                            dragStartY = startY;
-                            hoverTargetSlot = index;
-                            isDragging = false;
+                            draggedAppId = appId; draggedOriginalIndex = index;
+                            dragStartX = startX; dragStartY = startY;
+                            hoverTargetSlot = index; isDragging = false;
                         }
-
                         function updateDrag(mouseX, mouseY) {
                             if (!isDragging) {
-                                const dx = mouseX - dragStartX;
-                                const dy = mouseY - dragStartY;
-                                if (Math.sqrt(dx * dx + dy * dy) > dragThreshold)
-                                    isDragging = true;
+                                const dx = mouseX - dragStartX, dy = mouseY - dragStartY;
+                                if (Math.sqrt(dx*dx + dy*dy) > dragThreshold) isDragging = true;
                             }
-                            if (isDragging) {
+                            if (isDragging)
                                 hoverTargetSlot = Math.max(0, Math.min(pinnedModel.count - 1, Math.round((mouseX - layout.x) / 64)));
-                            }
                         }
-
                         function endDrag() {
                             if (isDragging && draggedOriginalIndex !== hoverTargetSlot) {
-                                const from = draggedOriginalIndex;
-                                const to = hoverTargetSlot;
-                                const appId = draggedAppId;
-
-                                isDragging = false;
-                                isLandingNow = true;
-                                landingAppId = appId;
-
-                                // move() reorders without recreation — spring animates smoothly to new pos!
+                                const from = draggedOriginalIndex, to = hoverTargetSlot, appId = draggedAppId;
+                                isDragging = false; isLandingNow = true; landingAppId = appId;
                                 pinnedModel.move(from, to, 1);
-
-                                // Persist
                                 const newOrder = [];
-                                for (let i = 0; i < pinnedModel.count; i++)
-                                    newOrder.push(pinnedModel.get(i).appId);
+                                for (let i = 0; i < pinnedModel.count; i++) newOrder.push(pinnedModel.get(i).appId);
                                 root.visibilities.pinnedApps = newOrder;
-
-                                draggedAppId = "";
-                                draggedOriginalIndex = -1;
-                                hoverTargetSlot = -1;
+                                draggedAppId = ""; draggedOriginalIndex = -1; hoverTargetSlot = -1;
                                 landingEndTimer.restart();
                             } else {
-                                draggedAppId = "";
-                                draggedOriginalIndex = -1;
-                                hoverTargetSlot = -1;
-                                isDragging = false;
-                                isLandingNow = false;
+                                draggedAppId = ""; draggedOriginalIndex = -1; hoverTargetSlot = -1;
+                                isDragging = false; isLandingNow = false;
                             }
                         }
-
                         function cancelDrag() {
-                            draggedAppId = "";
-                            draggedOriginalIndex = -1;
-                            hoverTargetSlot = -1;
-                            isDragging = false;
+                            draggedAppId = ""; draggedOriginalIndex = -1; hoverTargetSlot = -1; isDragging = false;
                         }
-
                         function getTargetX(currentIndex) {
                             if (isDragging) {
-                                if (currentIndex === draggedOriginalIndex)
-                                    return hoverTargetSlot * 64;
+                                if (currentIndex === draggedOriginalIndex) return hoverTargetSlot * 64;
                                 if (draggedOriginalIndex < hoverTargetSlot) {
                                     if (currentIndex > draggedOriginalIndex && currentIndex <= hoverTargetSlot)
                                         return (currentIndex - 1) * 64;
@@ -705,13 +672,9 @@ Item {
                     Timer {
                         id: landingEndTimer
                         interval: 450
-                        onTriggered: {
-                            pinnedState.isLandingNow = false;
-                            pinnedState.landingAppId = "";
-                        }
+                        onTriggered: { pinnedState.isLandingNow = false; pinnedState.landingAppId = ""; }
                     }
 
-                    // Receive landing trigger from AppLaunchMorph after flight completes
                     Connections {
                         target: root.visibilities
                         function onPinnedAppsLandingAppIdChanged() {
@@ -724,7 +687,6 @@ Item {
                         }
                     }
 
-                    // Sliding hover highlight behind pinned icons
                     Rectangle {
                         id: pinnedHoverHighlight
                         visible: pinnedState.hoveredAppIcon !== null
@@ -732,38 +694,12 @@ Item {
                         color: Colours.layer(Colours.palette.m3surfaceVariant, 0.8)
                         border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         border.width: 1
-
-                        width: 52
-                        height: 52
-                        radius: 12
-
-                        // Map coordinates of hoveredAppIcon relative to layout (offset y by +3 to align with 52x52 iconBg)
+                        width: 52; height: 52; radius: 12
                         x: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.x : 0
                         y: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.y + 3 : 0
-
-                        Behavior on x {
-                            enabled: pinnedHoverHighlight.opacity > 0
-                            SpringAnimation {
-                                spring: 7.0
-                                damping: 0.8
-                                mass: 1.0
-                                epsilon: 0.005
-                            }
-                        }
-                        Behavior on y {
-                            enabled: pinnedHoverHighlight.opacity > 0
-                            SpringAnimation {
-                                spring: 7.0
-                                damping: 0.8
-                                mass: 1.0
-                                epsilon: 0.005
-                            }
-                        }
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: 150
-                            }
-                        }
+                        Behavior on x { enabled: pinnedHoverHighlight.opacity > 0; SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
+                        Behavior on y { enabled: pinnedHoverHighlight.opacity > 0; SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
                     }
 
                     Repeater {
@@ -790,41 +726,30 @@ Item {
                             }
 
                             width: 52
-                            height: 52 + 6  // Add space for indicator bar
+                            height: 52 + 6
 
-                            // Count running instances for this app
                             property int runningInstances: 0
 
                             function normalizeAddress(addr) {
-                                // Ensure consistent format: always with 0x prefix
-                                if (!addr)
-                                    return "";
+                                if (!addr) return "";
                                 const str = String(addr);
                                 return str.startsWith("0x") ? str : "0x" + str;
                             }
 
                             function updateRunningCount() {
-                                if (!appId) {
-                                    runningInstances = 0;
-                                    return;
-                                }
+                                if (!appId) { runningInstances = 0; return; }
                                 const toplevels = Hypr.toplevels?.values ?? [];
                                 let count = 0;
                                 for (let i = 0; i < toplevels.length; i++) {
                                     const ipc = toplevels[i].lastIpcObject;
-                                    if (ipc && ipc.class === appId) {
-                                        count++;
-                                    }
+                                    if (ipc && ipc.class === appId) count++;
                                 }
                                 runningInstances = count;
                             }
 
-                            // Track window changes via signal (event-based, more efficient)
                             Connections {
                                 target: Hypr
-                                function onToplevelUpdateCounterChanged() {
-                                    appWrapper.updateRunningCount();
-                                }
+                                function onToplevelUpdateCounterChanged() { appWrapper.updateRunningCount(); }
                             }
 
                             Component.onCompleted: {
@@ -832,12 +757,10 @@ Item {
                                 updateRunningCount();
                             }
 
-                            // Landing trigger via signal
                             Connections {
                                 target: pinnedState
                                 function onLandingAppIdChanged() {
-                                    if (pinnedState.landingAppId === appId)
-                                        landingAnim.start();
+                                    if (pinnedState.landingAppId === appId) landingAnim.start();
                                 }
                             }
 
@@ -845,22 +768,8 @@ Item {
                             y: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? -12 : 0
                             z: pinnedState.draggedAppId === appId ? 100 : 0
 
-                            Behavior on x {
-                                SpringAnimation {
-                                    spring: 6.5
-                                    damping: 0.75
-                                    mass: 1.0
-                                    epsilon: 0.005
-                                }
-                            }
-                            Behavior on y {
-                                SpringAnimation {
-                                    spring: 7.0
-                                    damping: 0.68
-                                    mass: 1.0
-                                    epsilon: 0.005
-                                }
-                            }
+                            Behavior on x { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
+                            Behavior on y { SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 } }
 
                             Rectangle {
                                 id: iconBg
@@ -876,46 +785,27 @@ Item {
                                 border.color: "transparent"
                                 border.width: 1
 
-                                // Scale: during drag 1.25, on hover 1.1, default 1.0
-                                // But NOT during landing — animation takes over
-                                scale: (pinnedState.isLandingNow && pinnedState.landingAppId === appId) ? 1.0  // Landing animation controls scale, don't override
-                                : ((pinnedState.draggedAppId === appId && pinnedState.isDragging) ? 1.25 : (dragArea.containsMouse && !pinnedState.isDragging ? 1.1 : 1.0))
+                                scale: (pinnedState.isLandingNow && pinnedState.landingAppId === appId) ? 1.0
+                                    : ((pinnedState.draggedAppId === appId && pinnedState.isDragging) ? 1.25
+                                    : (dragArea.containsMouse && !pinnedState.isDragging ? 1.1 : 1.0))
 
                                 Behavior on scale {
-                                    // Only animate scale when NOT landing (landing uses explicit animation)
                                     enabled: !(pinnedState.isLandingNow && pinnedState.landingAppId === appId)
-                                    SpringAnimation {
-                                        spring: 7.0
-                                        damping: 0.68
-                                        mass: 1.0
-                                        epsilon: 0.005
-                                    }
+                                    SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 }
                                 }
                                 Behavior on color {
-                                    ColorAnimation {
-                                        duration: Tokens.anim.durations.small
-                                        easing: Tokens.anim.standard
-                                    }
+                                    ColorAnimation { duration: Tokens.anim.durations.small; easing: Tokens.anim.standard }
                                 }
 
-                                // Landing: compress → bounce using M3-Expressive motion system
                                 SequentialAnimation {
                                     id: landingAnim
-                                    // Compress phase: fast decel using expressiveFastSpatial
                                     NumberAnimation {
-                                        target: iconBg
-                                        property: "scale"
-                                        from: 1.0
-                                        to: 0.92
+                                        target: iconBg; property: "scale"; from: 1.0; to: 0.92
                                         duration: Tokens.anim.durations.expressiveFastEffects
                                         easing: Tokens.anim.expressiveFastSpatial
                                     }
-                                    // Bounce phase: decel using emphasizedDecel (standard M3 bounce)
                                     NumberAnimation {
-                                        target: iconBg
-                                        property: "scale"
-                                        from: 0.92
-                                        to: 1.0
+                                        target: iconBg; property: "scale"; from: 0.92; to: 1.0
                                         duration: Tokens.anim.durations.expressiveDefaultEffects
                                         easing: Tokens.anim.emphasizedDecel
                                     }
@@ -927,39 +817,25 @@ Item {
                                     source: appWrapper.cachedIcon
                                     anchors.fill: parent
                                     anchors.margins: 6
-                                    smooth: true  // Enable smooth rendering to prevent pixelation during float
+                                    smooth: true
 
-                                    // During drag: scale up (1.15), otherwise normal (1.0)
-                                    // Don't animate during landing — let iconBg animation control it
-                                    scale: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? 1.15 : (pinnedState.isLandingNow && pinnedState.landingAppId === appId) ? 1.0  // Landing: don't scale separately, iconBg handles scale
-                                    : 1.0
+                                    scale: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? 1.15
+                                        : (pinnedState.isLandingNow && pinnedState.landingAppId === appId) ? 1.0 : 1.0
 
                                     Behavior on scale {
-                                        // Skip animation during landing (landing anim on iconBg takes precedence)
                                         enabled: !(pinnedState.isLandingNow && pinnedState.landingAppId === appId)
-                                        SpringAnimation {
-                                            spring: 7.0
-                                            damping: 0.68
-                                            mass: 1.0
-                                            epsilon: 0.005
-                                        }
+                                        SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 }
                                     }
 
                                     SequentialAnimation {
                                         id: iconAnim
                                         ScaleAnimator {
-                                            target: icon
-                                            from: 1.0
-                                            to: 1.4
-                                            duration: Tokens.anim.durations.small
-                                            easing: Tokens.anim.emphasized
+                                            target: icon; from: 1.0; to: 1.4
+                                            duration: Tokens.anim.durations.small; easing: Tokens.anim.emphasized
                                         }
                                         ScaleAnimator {
-                                            target: icon
-                                            from: 1.4
-                                            to: 1.0
-                                            duration: Tokens.anim.durations.normal
-                                            easing: Tokens.anim.emphasized
+                                            target: icon; from: 1.4; to: 1.0
+                                            duration: Tokens.anim.durations.normal; easing: Tokens.anim.emphasized
                                         }
                                     }
                                 }
@@ -973,31 +849,18 @@ Item {
                                     height: appWrapper.runningInstances > 0 ? 3 : 0
                                     visible: appWrapper.runningInstances > 0
 
-                                    Behavior on height {
-                                        Anim {
-                                            type: Anim.DefaultSpatial
-                                        }
-                                    }
+                                    Behavior on height { Anim { type: Anim.DefaultSpatial } }
 
-                                    // Container for segments
                                     Row {
                                         anchors.fill: parent
                                         spacing: appWrapper.runningInstances > 1 ? 1 : 0
-
                                         Repeater {
                                             model: appWrapper.runningInstances
-
                                             Rectangle {
                                                 width: (52 - (appWrapper.runningInstances > 1 ? (appWrapper.runningInstances - 1) : 0)) / appWrapper.runningInstances
-                                                height: 3
-                                                radius: 1.5
+                                                height: 3; radius: 1.5
                                                 color: Colours.palette.m3primary
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: Tokens.anim.durations.small
-                                                    }
-                                                }
+                                                Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
                                             }
                                         }
                                     }
@@ -1011,7 +874,6 @@ Item {
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 hoverEnabled: true
                                 cursorShape: Qt.ArrowCursor
-
                                 property bool isPressing: false
 
                                 onPressed: mouse => {
@@ -1023,11 +885,10 @@ Item {
                                     }
                                 }
                                 onContainsMouseChanged: {
-                                    if (containsMouse && !pinnedState.isDragging) {
+                                    if (containsMouse && !pinnedState.isDragging)
                                         pinnedState.hoveredAppIcon = appWrapper;
-                                    } else if (pinnedState.hoveredAppIcon === appWrapper) {
+                                    else if (pinnedState.hoveredAppIcon === appWrapper)
                                         pinnedState.hoveredAppIcon = null;
-                                    }
                                 }
                                 onPositionChanged: mouse => {
                                     if (isPressing && pinnedState.draggedAppId === appId)
@@ -1038,66 +899,37 @@ Item {
                                         if (pinnedState.draggedAppId === appId) {
                                             if (!pinnedState.isDragging && appWrapper.entry) {
                                                 iconAnim.start();
-
-                                                // STEP 3: Smart focus/cycle logic
-                                                // Filter windows matching this app
                                                 const toplevels = Hypr.toplevels?.values ?? [];
                                                 const matches = [];
                                                 for (let i = 0; i < toplevels.length; i++) {
                                                     const ipc = toplevels[i].lastIpcObject;
-                                                    if (ipc && ipc.class === appId) {
-                                                        matches.push(toplevels[i]);  // Store full toplevel, not just ipc
-                                                    }
+                                                    if (ipc && ipc.class === appId) matches.push(toplevels[i]);
                                                 }
-
-                                                // Case 1: No windows running → launch new
                                                 if (matches.length === 0) {
                                                     LauncherServices.Apps.launch(appWrapper.entry);
-                                                } else
-                                                // Case 2: Exactly 1 window → focus it directly
-                                                if (matches.length === 1) {
+                                                } else if (matches.length === 1) {
                                                     const ipc = matches[0].lastIpcObject;
                                                     const addr = appWrapper.normalizeAddress(ipc.address);
                                                     const wsId = ipc.workspace?.id ?? 1;
                                                     Hyprland.dispatch(`workspace ${wsId}`);
                                                     Hyprland.dispatch(`focuswindow address:${addr}`);
-                                                } else
-                                                // Case 3: 2+ windows → cycle through
-                                                {
-                                                    // Get currently active window
+                                                } else {
                                                     const activeWindow = Hyprland.activeToplevel;
                                                     const activeIpc = activeWindow?.lastIpcObject;
                                                     const activeAddr = appWrapper.normalizeAddress(activeIpc?.address);
-
-                                                    // Find index of active window in matches
                                                     let activeIndex = -1;
                                                     for (let i = 0; i < matches.length; i++) {
                                                         const matchIpc = matches[i].lastIpcObject;
                                                         const matchAddr = appWrapper.normalizeAddress(matchIpc?.address);
-                                                        if (matchAddr === activeAddr) {
-                                                            activeIndex = i;
-                                                            break;
-                                                        }
+                                                        if (matchAddr === activeAddr) { activeIndex = i; break; }
                                                     }
-
-                                                    // Determine target window
-                                                    let targetWindow;
-                                                    if (activeIndex === -1) {
-                                                        // App not currently focused → focus first
-                                                        targetWindow = matches[0];
-                                                    } else {
-                                                        // App currently focused → cycle to next
-                                                        targetWindow = matches[(activeIndex + 1) % matches.length];
-                                                    }
-
-                                                    // Focus target window
+                                                    const targetWindow = activeIndex === -1 ? matches[0] : matches[(activeIndex + 1) % matches.length];
                                                     const targetIpc = targetWindow.lastIpcObject;
                                                     const targetAddr = appWrapper.normalizeAddress(targetIpc?.address);
                                                     const targetWsId = targetIpc?.workspace?.id ?? 1;
                                                     Hyprland.dispatch(`workspace ${targetWsId}`);
                                                     Hyprland.dispatch(`focuswindow address:${targetAddr}`);
                                                 }
-
                                                 root.visibilities.bottomPanel = false;
                                             }
                                             pinnedState.endDrag();
@@ -1106,8 +938,7 @@ Item {
                                     }
                                 }
                                 onCanceled: {
-                                    if (pinnedState.draggedAppId === appId)
-                                        pinnedState.cancelDrag();
+                                    if (pinnedState.draggedAppId === appId) pinnedState.cancelDrag();
                                     isPressing = false;
                                 }
                             }
@@ -1149,49 +980,31 @@ Item {
 
                     scale: clipState.containsMouse ? 1.12 : 1.0
                     Behavior on scale {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutBack
-                            easing.overshoot: 1.2
-                        }
+                        NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
                     }
 
                     MaterialIcon {
                         id: clipIcon
-                        text: root.visibilities.clipboard ? "content_paste" : "content_paste"
+                        text: "content_paste"
                         anchors.fill: parent
                         anchors.margins: 10
                         fill: root.visibilities.clipboard ? 1 : 0
                         color: root.visibilities.clipboard ? Colours.palette.m3primary : Colours.palette.m3onSurface
 
-                        Behavior on fill {
-                            Anim {}
-                        }
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 200
-                            }
-                        }
+                        Behavior on fill { Anim {} }
+                        Behavior on color { ColorAnimation { duration: 200 } }
 
                         SequentialAnimation {
                             id: clipboardAnim
                             NumberAnimation {
-                                target: clipIcon
-                                property: "scale"
-                                from: 1.0
-                                to: 1.3
-                                duration: 120
-                                easing.type: Easing.OutBack
-                                easing.overshoot: 1.5
+                                target: clipIcon; property: "scale"
+                                from: 1.0; to: 1.3; duration: 120
+                                easing.type: Easing.OutBack; easing.overshoot: 1.5
                             }
                             NumberAnimation {
-                                target: clipIcon
-                                property: "scale"
-                                from: 1.3
-                                to: 1.0
-                                duration: 180
-                                easing.type: Easing.OutElastic
-                                easing.overshoot: 0.5
+                                target: clipIcon; property: "scale"
+                                from: 1.3; to: 1.0; duration: 180
+                                easing.type: Easing.OutElastic; easing.overshoot: 0.5
                             }
                         }
                     }
@@ -1228,13 +1041,8 @@ Item {
                     border.width: 1
 
                     scale: qsState.containsMouse ? 1.12 : 1.0
-
                     Behavior on scale {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutBack
-                            easing.overshoot: 1.2
-                        }
+                        NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
                     }
 
                     MaterialIcon {
@@ -1244,20 +1052,13 @@ Item {
                         anchors.margins: 10
                         color: root.visibilities.utilities ? Colours.palette.m3primary : Colours.palette.m3onSurface
 
-                        // Settings icon rotation animation on click
                         SequentialAnimation {
                             id: settingsAnim
                             RotationAnimator {
-                                target: settingsIcon
-                                from: 0
-                                to: 180
-                                duration: 300
-                                easing.type: Easing.OutBack
-                                easing.overshoot: 0.8
+                                target: settingsIcon; from: 0; to: 180
+                                duration: 300; easing.type: Easing.OutBack; easing.overshoot: 0.8
                             }
-                            ScriptAction {
-                                script: settingsIcon.rotation = 0
-                            }
+                            ScriptAction { script: settingsIcon.rotation = 0 }
                         }
                     }
                 }

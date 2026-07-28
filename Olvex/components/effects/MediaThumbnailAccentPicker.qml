@@ -20,11 +20,11 @@ Item {
     property string trackKey: ""
     property color visualizerAccent: "#4F378A"
     property color playButtonBg: "#CFBCFF"
-    property color playIconColor: AccentMap.playIconOnFill(Colours.light)
+    property color playIconColor: AccentMap.playIconOnFill(Colours.light, playButtonBg)
     property color surfaceColor: Colours.palette.m3surfaceContainerHigh
     property color onSurfaceColor: Colours.palette.m3onSurface
 
-    signal accentColorsChanged()
+    signal accentColorsChanged
 
     property color _pendingSurface: null
     property color _pendingOnSurface: null
@@ -43,7 +43,7 @@ Item {
             return;
         root.visualizerAccent = Colours.palette.m3primaryContainer;
         root.playButtonBg = Colours.palette.m3primary;
-        root.playIconColor = AccentMap.playIconOnFill(Colours.light);
+        root.playIconColor = AccentMap.playIconOnFill(Colours.light, root.playButtonBg);
         root.surfaceColor = Colours.palette.m3surfaceContainerHigh;
         root.onSurfaceColor = Colours.palette.m3onSurface;
         root._notifyAccentColors();
@@ -80,7 +80,7 @@ Item {
         Players.clearLiveAccent();
         root.visualizerAccent = Colours.palette.m3primaryContainer;
         root.playButtonBg = Colours.palette.m3primary;
-        root.playIconColor = AccentMap.playIconOnFill(Colours.light);
+        root.playIconColor = AccentMap.playIconOnFill(Colours.light, root.playButtonBg);
         root.surfaceColor = Colours.palette.m3surfaceContainerHigh;
         root.onSurfaceColor = Colours.palette.m3onSurface;
         root.accentReady = false;
@@ -92,7 +92,8 @@ Item {
     property bool _publishing: false
 
     function publishAccent(url: string): void {
-        if (root._publishing) return;
+        if (root._publishing)
+            return;
         root._publishing = true;
         Players.publishLiveAccent(root.visualizerAccent, root.playButtonBg, url, root.playIconColor, root.surfaceColor, root.onSurfaceColor);
         root._publishing = false;
@@ -113,9 +114,7 @@ Item {
         accentRetryTimer.stop();
         bootRestoreTimer.stop();
 
-        const alreadyLive = Players.liveAccentReady
-            && Players.liveVisualizerAccent.toString() === cached.visualizer.toString()
-            && Players.livePlayButtonBg.toString() === cached.playButtonBg.toString();
+        const alreadyLive = Players.liveAccentReady && Players.liveVisualizerAccent.toString() === cached.visualizer.toString() && Players.livePlayButtonBg.toString() === cached.playButtonBg.toString();
         if (!alreadyLive)
             root.publishAccent(url);
         root._notifyAccentColors();
@@ -132,7 +131,7 @@ Item {
         return {
             visualizer: typeof hit.visualizer === "string" ? Qt.color(hit.visualizer) : hit.visualizer,
             playButtonBg: playBg,
-            playIconColor: AccentMap.playIconOnFill(Colours.light),
+            playIconColor: AccentMap.playIconOnFill(Colours.light, playBg),
             surfaceColor: AccentMap.surfaceColor(rawBg, Colours.light) || Colours.palette.m3surfaceContainerHigh,
             onSurfaceColor: AccentMap.onSurfaceColor(Colours.light)
         };
@@ -166,16 +165,16 @@ Item {
             return;
         root._pendingVisualizer = vis;
         root._pendingPlayBg = fill;
-        root._pendingPlayIcon = AccentMap.playIconOnFill(Colours.light);
+        root._pendingPlayIcon = AccentMap.playIconOnFill(Colours.light, fill);
         root._pendingSurface = AccentMap.surfaceColor(seed, Colours.light);
         root._pendingOnSurface = AccentMap.onSurfaceColor(Colours.light);
-        
+
         root.visualizerAccent = vis;
         root.playButtonBg = fill;
         root.playIconColor = root._pendingPlayIcon;
         root.surfaceColor = root._pendingSurface;
         root.onSurfaceColor = root._pendingOnSurface;
-        
+
         root._notifyAccentColors();
         root.tryCommit();
     }
@@ -221,7 +220,7 @@ Item {
 
         const cleanUrl = root.normalizedArtUrl(url);
         const nextKey = Players.active ? Players.getTrackKey(Players.active) : "";
-        
+
         if (!cleanUrl) {
             if (root.committedNormUrl)
                 root.applySystemFallback();
@@ -233,8 +232,7 @@ Item {
             return;
         }
 
-        if (cleanUrl === root.committedNormUrl && root.accentReady
-                && nextKey === root.committedTrackKey) {
+        if (cleanUrl === root.committedNormUrl && root.accentReady && nextKey === root.committedTrackKey) {
             if (root.artUrl !== cleanUrl)
                 root.artUrl = cleanUrl;
             root.trackKey = nextKey;
@@ -243,7 +241,7 @@ Item {
         }
 
         const trackChanged = nextKey !== root.committedTrackKey || cleanUrl !== root.committedNormUrl;
-        
+
         if (root.artUrl !== cleanUrl)
             root.artUrl = cleanUrl;
         root.trackKey = nextKey;
@@ -261,10 +259,10 @@ Item {
         root.restoreCachedPreview(cleanUrl);
         if (!trackChanged)
             bootRestoreTimer.restart();
-            
+
         if (!root.accentReady)
             root.scheduleAnalysis();
-            
+
         root._settingArtUrl = false;
     }
 
@@ -373,12 +371,16 @@ Item {
     Connections {
         target: GlobalConfig.appearance
         function onSchemeVariantChanged() {
-            if (root.accentReady && root.hasArt) root.commitFromAnalyser();
-            else root.syncSystemDefaults();
+            if (root.accentReady && root.hasArt)
+                root.commitFromAnalyser();
+            else
+                root.syncSystemDefaults();
         }
         function onThemeModeChanged() {
-            if (root.accentReady && root.hasArt) root.commitFromAnalyser();
-            else root.syncSystemDefaults();
+            if (root.accentReady && root.hasArt)
+                root.commitFromAnalyser();
+            else
+                root.syncSystemDefaults();
         }
     }
 

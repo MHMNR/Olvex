@@ -22,7 +22,8 @@ LazyListView {
     anchors.right: parent.right
     implicitHeight: contentHeight
 
-    spacing: Math.round(Tokens.spacing.small / 2)
+    // Tighter when expanded — flat rows, not stacked mini-cards
+    spacing: root.expanded ? Tokens.spacing.small : Math.round(Tokens.spacing.small / 2)
     asynchronous: true
 
     readyDelay: 1

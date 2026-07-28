@@ -23,7 +23,8 @@ StyledRect {
     property alias stateLayer: stateLayer
     property alias label: label
 
-    property bool internalChecked
+    // Keep in sync with `checked` (onCheckedChanged alone misses initial bind)
+    property bool internalChecked: checked
     property color activeColour: type === TextButton.Filled ? Colours.palette.m3primary : Colours.palette.m3secondary
     property color inactiveColour: {
         if (!toggle && type === TextButton.Filled)

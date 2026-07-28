@@ -27,8 +27,8 @@ DeviceList {
 
             StyledText {
                 text: qsTr("Settings")
-                textPointSize: Tokens.font.size.large
-                font.weight: 500
+                font.pointSize: Tokens.font.size.large
+                font.weight: 400
             }
 
             Item {
@@ -101,7 +101,7 @@ DeviceList {
 
                         anchors.centerIn: parent
                         text: "cable"
-                        iconPointSize: Tokens.font.size.large
+                        font.pointSize: Tokens.font.size.large
                         fill: modelData.connected ? 1 : 0
                         color: modelData.connected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
 
@@ -130,8 +130,8 @@ DeviceList {
                             Layout.fillWidth: true
                             text: modelData.connected ? qsTr("Connected") : qsTr("Disconnected")
                             color: modelData.connected ? Colours.palette.m3primary : Colours.palette.m3outline
-                            textPointSize: Tokens.font.size.small
-                            font.weight: modelData.connected ? 500 : 400
+                            font.pointSize: Tokens.font.size.small
+                            font.weight: modelData.connected ? 400 : 400
                             elide: Text.ElideRight
                         }
                     }
