@@ -136,8 +136,8 @@ yay -S --needed \
 
 #### Step 2: Clone the Repository
 ```bash
-git clone https://github.com/your-username/QS-Config.git
-cd QS-Config/Github
+git clone https://github.com/MHMNR/Olvex.git
+cd Olvex
 ```
 
 ---
