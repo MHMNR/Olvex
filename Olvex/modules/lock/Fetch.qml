@@ -11,103 +11,160 @@ import qs.utils
 ColumnLayout {
     id: root
 
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: parent.top
-    anchors.margins: 10
-    spacing: 10
+    anchors.fill: parent
+    anchors.margins: Tokens.padding.large
+    spacing: Tokens.spacing.normal
 
+    // ── Header Chip ───────────────────────────────────────────────────────────
     RowLayout {
         Layout.fillWidth: true
-        Layout.topMargin: Tokens.padding.large
-        Layout.bottomMargin: Tokens.padding.small
+        spacing: 8
 
         StyledRect {
-            implicitWidth:  sysIcon.implicitWidth  + 8
-            implicitHeight: sysIcon.implicitHeight + 8
+            implicitWidth: 24
+            implicitHeight: 24
             color: Qt.alpha(Colours.palette.m3primary, 0.15)
             radius: Tokens.rounding.small
 
             MaterialIcon {
-                id: sysIcon
                 anchors.centerIn: parent
-                text: "code"
+                text: "computer"
                 color: Colours.palette.m3primary
-                iconPointSize: Tokens.font.size.smaller
+                iconPointSize: 14
             }
         }
 
         StyledText {
             Layout.fillWidth: true
-            text: (SysInfo.osPrettyName || SysInfo.osName || qsTr("System")).toUpperCase()
+            text: (SysInfo.osPrettyName || SysInfo.osName || qsTr("CACHYOS")).toUpperCase()
             color: Colours.palette.m3outline
             font.family: Tokens.font.family.mono
             textPointSize: Tokens.font.size.smaller
-            font.weight: 600
+            font.weight: Font.Bold
+            font.letterSpacing: 1
+            elide: Text.ElideRight
         }
     }
 
-    GridLayout {
+    // ── Grid Stats List ───────────────────────────────────────────────────────
+    ColumnLayout {
         Layout.fillWidth: true
-        Layout.bottomMargin: Tokens.padding.large
-        columns: 2
-        columnSpacing: Tokens.spacing.large
-        rowSpacing: Tokens.spacing.small
+        spacing: 6
 
-        MonoText {
-            text: "WM:"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-        }
-        MonoText {
+        // WM Row
+        RowLayout {
             Layout.fillWidth: true
-            text: SysInfo.wm || "Hyprland"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-            horizontalAlignment: Text.AlignRight
+
+            RowLayout {
+                spacing: 6
+                MaterialIcon {
+                    text: "desktop_windows"
+                    color: Colours.palette.m3primary
+                    iconPointSize: 14
+                }
+                StyledText {
+                    text: "WM"
+                    color: Colours.palette.m3outline
+                    textPointSize: Tokens.font.size.small
+                    font.weight: Font.Medium
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            StyledText {
+                text: SysInfo.wm || "Hyprland"
+                color: Colours.palette.m3primary
+                textPointSize: Tokens.font.size.small
+                font.weight: Font.Bold
+            }
         }
 
-        MonoText {
-            text: "User:"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-        }
-        MonoText {
+        // User Row
+        RowLayout {
             Layout.fillWidth: true
-            text: SysInfo.user || "admin"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-            horizontalAlignment: Text.AlignRight
+
+            RowLayout {
+                spacing: 6
+                MaterialIcon {
+                    text: "person"
+                    color: Colours.palette.m3secondary
+                    iconPointSize: 14
+                }
+                StyledText {
+                    text: "User"
+                    color: Colours.palette.m3outline
+                    textPointSize: Tokens.font.size.small
+                    font.weight: Font.Medium
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            StyledText {
+                text: SysInfo.user || "abm"
+                color: Colours.palette.m3secondary
+                textPointSize: Tokens.font.size.small
+                font.weight: Font.Bold
+            }
         }
 
-        MonoText {
-            text: "Up:"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-        }
-        MonoText {
+        // Uptime Row
+        RowLayout {
             Layout.fillWidth: true
-            text: SysInfo.uptime || "0m"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-            horizontalAlignment: Text.AlignRight
+
+            RowLayout {
+                spacing: 6
+                MaterialIcon {
+                    text: "schedule"
+                    color: Colours.palette.m3tertiary
+                    iconPointSize: 14
+                }
+                StyledText {
+                    text: "Uptime"
+                    color: Colours.palette.m3outline
+                    textPointSize: Tokens.font.size.small
+                    font.weight: Font.Medium
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            StyledText {
+                text: SysInfo.uptime || "4h 26m"
+                color: Colours.palette.m3tertiary
+                textPointSize: Tokens.font.size.small
+                font.weight: Font.Bold
+            }
         }
 
-        MonoText {
-            text: "Batt:"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-        }
-        MonoText {
+        // Battery / Power Row
+        RowLayout {
             Layout.fillWidth: true
-            text: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Charging ? `${Math.round(UPower.displayDevice.percentage * 100)}% Charging` : `${Math.round(UPower.displayDevice.percentage * 100)}%`) : "AC Power"
-            color: Colours.palette.m3primary
-            textPointSize: Tokens.font.size.smaller
-            horizontalAlignment: Text.AlignRight
-        }
-    }
 
-    component MonoText: StyledText {
-        font.family: Tokens.font.family.mono
+            RowLayout {
+                spacing: 6
+                MaterialIcon {
+                    text: UPower.displayDevice && UPower.displayDevice.state === UPowerDeviceState.Charging ? "battery_charging_full" : "battery_full"
+                    color: Colours.palette.m3primary
+                    iconPointSize: 14
+                }
+                StyledText {
+                    text: "Power"
+                    color: Colours.palette.m3outline
+                    textPointSize: Tokens.font.size.small
+                    font.weight: Font.Medium
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            StyledText {
+                text: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Charging ? `${Math.round(UPower.displayDevice.percentage * 100)}% ⚡` : `${Math.round(UPower.displayDevice.percentage * 100)}%`) : "AC Power"
+                color: Colours.palette.m3primary
+                textPointSize: Tokens.font.size.small
+                font.weight: Font.Bold
+            }
+        }
     }
 }

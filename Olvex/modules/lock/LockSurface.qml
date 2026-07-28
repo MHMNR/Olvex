@@ -147,7 +147,7 @@ WlSessionLockSurface {
             bottomMargin: Tokens.padding.large * 2
         }
         implicitHeight: leftRow.implicitHeight
-        visible: root.effectiveStyle === "card"
+        visible: false
         opacity: 0  // set to 1 in onCompleted
 
         Row {

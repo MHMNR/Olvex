@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import M3Shapes
 import Olvex.Config
@@ -87,60 +88,122 @@ ColumnLayout {
     ColumnLayout {
         id: clockCol
         Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-        Layout.topMargin: 20
-        spacing: Tokens.spacing.small
-        
+        Layout.topMargin: 24
+        spacing: 12 * root.centerScale
+
         transform: Translate { id: clockTrans; y: -800 }
 
-        RowLayout {
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: Colours.palette.m3shadow
+            shadowOpacity: 0.35
+            shadowBlur: 0.6
+            shadowHorizontalOffset: 0
+            shadowVerticalOffset: 2
+        }
+
+        // ── Top Date & Day Capsule Badge ──
+        StyledRect {
             Layout.alignment: Qt.AlignHCenter
-            spacing: Tokens.spacing.small
+            implicitWidth: dateRow.implicitWidth + (28 * root.centerScale)
+            implicitHeight: dateRow.implicitHeight + (10 * root.centerScale)
+            radius: Tokens.rounding.full
+            color: Qt.alpha(Colours.palette.m3primary, 0.14)
+            border.color: Qt.alpha(Colours.palette.m3primary, 0.3)
+            border.width: 1
 
-            StyledText {
-                text: Time.hourStr
-                color: Colours.current.m3onSurface
-                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
-                font.family: Tokens.font.family.clock
-                font.bold: true
-            }
+            RowLayout {
+                id: dateRow
+                anchors.centerIn: parent
+                spacing: 10 * root.centerScale
 
-            StyledText {
-                text: ":"
-                color: Colours.current.m3primary
-                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
-                font.family: Tokens.font.family.clock
-                font.bold: true
-            }
+                StyledText {
+                    text: Time.format("dddd").toUpperCase()
+                    textPointSize: Math.floor(Tokens.font.size.large * 1.05 * root.centerScale)
+                    font.letterSpacing: 3
+                    font.weight: Font.Bold
+                    color: Colours.palette.m3primary
+                }
 
-            StyledText {
-                text: Time.minuteStr
-                color: Colours.current.m3primary
-                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.0 * root.centerScale)
-                font.family: Tokens.font.family.clock
-                font.bold: true
-            }
+                StyledRect {
+                    width: 5 * root.centerScale
+                    height: 5 * root.centerScale
+                    radius: Tokens.rounding.full
+                    color: Colours.palette.m3tertiary
+                    Layout.alignment: Qt.AlignVCenter
+                }
 
-            Loader {
-                asynchronous: true
-                active: GlobalConfig.services.useTwelveHourClock
-                visible: active
-                sourceComponent: StyledText {
-                    text: Time.amPmStr
-                    color: Colours.current.m3primary
-                    textPointSize: Math.floor(Tokens.font.size.extraLarge * 1.8 * root.centerScale)
-                    font.family: Tokens.font.family.clock
-                    font.bold: true
+                StyledText {
+                    text: Time.format("d MMMM yyyy").toUpperCase()
+                    textPointSize: Math.floor(Tokens.font.size.large * 1.05 * root.centerScale)
+                    font.letterSpacing: 2
+                    font.weight: Font.DemiBold
+                    color: Colours.palette.m3secondary
                 }
             }
         }
 
-        StyledText {
+        // ── Main Time Display ──
+        RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            text: Time.format("dddd, d MMMM yyyy")
-            color: Colours.current.m3onSurfaceVariant
-            textPointSize: Math.floor(Tokens.font.size.extraLarge * 1.2 * root.centerScale)
-            font.family: Tokens.font.family.mono
-            font.bold: true
+            spacing: 6 * root.centerScale
+
+            StyledText {
+                text: Time.hourStr
+                color: Colours.palette.m3onSurface
+                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.5 * root.centerScale)
+                font.family: Tokens.font.family.clock
+                font.weight: Font.Black
+            }
+
+            StyledText {
+                text: ":"
+                color: Colours.palette.m3primary
+                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.5 * root.centerScale)
+                font.family: Tokens.font.family.clock
+                font.weight: Font.Bold
+                opacity: 0.85
+                Layout.topMargin: -Tokens.padding.large * 1.8 * root.centerScale
+            }
+
+            StyledText {
+                text: Time.minuteStr
+                color: Colours.palette.m3primary
+                textPointSize: Math.floor(Tokens.font.size.extraLarge * 4.5 * root.centerScale)
+                font.family: Tokens.font.family.clock
+                font.weight: Font.Black
+            }
+
+            Loader {
+                asynchronous: true
+                Layout.alignment: Qt.AlignTop
+                Layout.topMargin: Tokens.padding.large * 1.8 * root.centerScale
+                Layout.leftMargin: 4 * root.centerScale
+
+                active: GlobalConfig.services.useTwelveHourClock
+                visible: active
+
+                sourceComponent: StyledRect {
+                    implicitWidth: amPmText.implicitWidth + (12 * root.centerScale)
+                    implicitHeight: amPmText.implicitHeight + (4 * root.centerScale)
+                    radius: Tokens.rounding.small
+                    color: Qt.alpha(Colours.palette.m3primary, 0.16)
+                    border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
+                    border.width: 1
+
+                    StyledText {
+                        id: amPmText
+                        anchors.centerIn: parent
+                        text: Time.amPmStr
+                        color: Colours.palette.m3primary
+                        textPointSize: Math.floor(Tokens.font.size.normal * 0.9 * root.centerScale)
+                        font.family: Tokens.font.family.clock
+                        font.weight: Font.Bold
+                        font.letterSpacing: 1
+                    }
+                }
+            }
         }
     }
 

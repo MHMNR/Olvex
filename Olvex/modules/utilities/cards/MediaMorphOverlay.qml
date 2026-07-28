@@ -550,7 +550,7 @@ Item {
             id: trackInfo
             x: 116
             y: 16
-            width: Math.max(100, musicPill.width - x - 90)
+            width: Math.max(100, musicPill.width - x - 16)
             spacing: 2
             opacity: 0
 
@@ -1318,7 +1318,7 @@ Item {
         id: sourceSelector
         z: 100
         x: musicPill.x + musicPill.width - sourceSelector.width - 16
-        y: musicPill.y + 36
+        y: musicPill.y + 39
         width: sourcePillWidth
         height: 24
         opacity: (musicPill.state === "expanded" && trackInfo.opacity > 0.90 && !root.closingDown) ? 1 : 0

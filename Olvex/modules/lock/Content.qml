@@ -49,8 +49,7 @@ RowLayout {
 
         color: bgColor
 
-        scale: cardHover.hovered ? 1.02 : 1
-        Behavior on scale { Anim { type: Anim.FastSpatial } }
+        scale: 1.0
 
         antialiasing: true
 

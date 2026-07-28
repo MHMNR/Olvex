@@ -320,6 +320,7 @@ Singleton {
     Process {
         id: storage
 
+        running: true
         // Mounted partitions/volumes — labels match file-manager folder names (root, efi, games, …)
         command: ["lsblk", "-J", "-b", "-o", "NAME,SIZE,TYPE,FSUSED,FSSIZE,MOUNTPOINT"]
 
