@@ -167,7 +167,7 @@ Item {
 
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.topMargin: 24
+        anchors.topMargin: 32
 
         implicitWidth: topBarRow.implicitWidth
         implicitHeight: 48
@@ -1252,8 +1252,8 @@ Item {
             right: parent.right
             topMargin: 20
             bottomMargin: 20
-            leftMargin: 100
-            rightMargin: 80
+            leftMargin: 32
+            rightMargin: 32
         }
 
         spacing: 0
@@ -1274,7 +1274,7 @@ Item {
             Column {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 32
+                anchors.leftMargin: 0
                 spacing: 24
 
                 // Hour + Minutes column + AM/PM
@@ -1657,7 +1657,7 @@ Item {
 
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottomMargin: 48
+        anchors.bottomMargin: 32
 
         implicitWidth: actRow.implicitWidth + 32
         implicitHeight: actRow.implicitHeight + 20
