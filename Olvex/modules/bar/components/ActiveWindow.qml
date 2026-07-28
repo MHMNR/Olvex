@@ -23,8 +23,8 @@ StyledRect {
 
     Behavior on color {
         CAnim {
-            duration: Tokens.anim.durations.expressiveSlowSpatial
-            easing: Tokens.anim.expressiveSlowSpatial
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
         }
     }
     // No Behavior on opacity — snap visible immediately on collapse so bar
@@ -359,9 +359,8 @@ StyledRect {
     readonly property int titleSlotHeight: Math.min(root.availableTitleHeight, root.preferredTitleHeight)
 
     clip: true
-
     implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
-    implicitHeight: root.playerActive ? root.musicPillHeight : root.maxHeight
+    implicitHeight: root.playerActive ? root.musicPillHeight : icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
 
     Loader {
         asynchronous: true
@@ -707,18 +706,10 @@ StyledRect {
     }
 
     Behavior on implicitHeight {
-        SpringAnimation {
-            spring: 3.5
-            damping: 0.80
-            epsilon: 0.25
-        }
+        Anim { type: Anim.SlowSpatial }
     }
 
     Behavior on implicitWidth {
-        SpringAnimation {
-            spring: 3.5
-            damping: 0.80
-            epsilon: 0.25
-        }
+        Anim { type: Anim.SlowSpatial }
     }
 }
