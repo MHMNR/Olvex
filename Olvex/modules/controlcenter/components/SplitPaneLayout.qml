@@ -28,7 +28,7 @@ RowLayout {
         Layout.minimumWidth: root.leftMinimumWidth
         Layout.fillHeight: true
 
-        ClippingRectangle {
+        StyledClippingRect {
             id: leftClippingRect
 
             anchors.fill: parent
@@ -72,7 +72,7 @@ RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        ClippingRectangle {
+        StyledClippingRect {
             id: rightClippingRect
 
             anchors.fill: parent

@@ -536,14 +536,9 @@ Item {
         transform: Translate {
             y: (!LockState.locked) ? 0 : 120
             Behavior on y {
-                SequentialAnimation {
-                    PauseAnimation {
-                        duration: 80
-                    }
-                    NumberAnimation {
-                        duration: 750
-                        easing.type: Easing.OutExpo
-                    }
+                NumberAnimation {
+                    duration: 350
+                    easing.type: Easing.OutExpo
                 }
             }
         }

@@ -54,7 +54,7 @@ ColumnLayout {
         }
     }
 
-    WrapperItem {
+    Item {
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.large * 2
         Layout.rightMargin: Tokens.padding.large * 2
@@ -62,8 +62,8 @@ ColumnLayout {
         Layout.preferredHeight: root.moveToWsExpanded ? implicitHeight : 0
         clip: true
 
-        topMargin: Tokens.spacing.normal
-        bottomMargin: Tokens.spacing.normal
+        Layout.topMargin: Tokens.spacing.normal
+        Layout.bottomMargin: Tokens.spacing.normal
 
         GridLayout {
             id: wsGrid

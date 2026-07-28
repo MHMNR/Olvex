@@ -195,7 +195,7 @@ Item {
             }
         }
 
-        ClippingRectangle {
+        StyledClippingRect {
             anchors.top: parent.top
             anchors.topMargin: wrapper.idx === 0 ? 0 : Tokens.spacing.smaller
             anchors.horizontalCenter: parent.horizontalCenter
@@ -204,8 +204,6 @@ Item {
             height: Math.max(1, notif.implicitHeight)
             radius: root.cardRadius
             color: "transparent"
-            contentUnderBorder: true
-            contentInsideBorder: false
             antialiasing: true
 
             Notification {

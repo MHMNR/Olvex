@@ -28,11 +28,12 @@ Text {
         return Math.max(10, Math.round(Tokens.font.size.smaller * 96 / 72));
     }
 
-    renderType: Text.NativeRendering
+    renderType: Text.QtRendering
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
     font.family: Tokens.font.family.sans
     font.pixelSize: resolvedPixelSize
+    font.hintingPreference: Font.PreferFullHinting
 
     Behavior on color {
         CAnim {}

@@ -249,14 +249,9 @@ StyledWindow {
             // Background fade-in on unlock
             opacity: root.isVisible ? 1 : 0
             Behavior on opacity {
-                SequentialAnimation {
-                    PauseAnimation {
-                        duration: 300
-                    }
-                    NumberAnimation {
-                        duration: 1000
-                        easing.type: Easing.OutCubic
-                    }
+                NumberAnimation {
+                    duration: 200
+                    easing.type: Easing.OutCubic
                 }
             }
 
@@ -521,26 +516,16 @@ StyledWindow {
                 transform: Translate {
                     x: root.isVisible ? 0 : -120
                     Behavior on x {
-                        SequentialAnimation {
-                            PauseAnimation {
-                                duration: 50
-                            }
-                            NumberAnimation {
-                                duration: 800
-                                easing.type: Easing.OutExpo
-                            }
+                        NumberAnimation {
+                            duration: 350
+                            easing.type: Easing.OutExpo
                         }
                     }
                 }
                 Behavior on opacity {
-                    SequentialAnimation {
-                        PauseAnimation {
-                            duration: 50
-                        }
-                        NumberAnimation {
-                            duration: 600
-                            easing.type: Easing.OutCubic
-                        }
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutCubic
                     }
                 }
 

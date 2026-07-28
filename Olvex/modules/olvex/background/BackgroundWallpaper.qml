@@ -17,7 +17,13 @@ Item {
 
     property string source: Wallpapers.perMonitorWallpaper ? (Wallpapers.monitorWallpapers[screen?.name ?? ""] ?? Wallpapers.actualCurrent) : Wallpapers.actualCurrent
     readonly property bool sourceIsVideo: Wallpapers.isVideoPath(source)
-    readonly property bool liveWallpaperActive: sourceIsVideo
+    property bool startupReady: false
+    Timer {
+        interval: 200
+        running: true
+        onTriggered: root.startupReady = true
+    }
+    readonly property bool liveWallpaperActive: sourceIsVideo && startupReady
     property string actualTransitionType: Config.background.wallpaperTransition.type
     property real transitionProgress: 0
     property bool effectActive: false

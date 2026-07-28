@@ -14,7 +14,7 @@ StyledRect {
 
     // All config values are read manually (not bound) to avoid stale reads
     // during the race between QML init and GlobalConfig's shell.json load.
-    property bool enabled: true
+    property bool widgetEnabled: true
     property bool showIcons: true
     property bool showBackground: false
     property int fontSize: 11
@@ -25,7 +25,7 @@ StyledRect {
         const ns = GlobalConfig.bar?.netSpeed;
         if (!ns)
             return;
-        root.enabled = ns.enabled ?? true;
+        root.widgetEnabled = ns.enabled ?? true;
         root.showIcons = ns.showIcons ?? true;
         root.showBackground = ns.background ?? false;
         root.fontSize = ns.fontSize ?? 11;
@@ -40,7 +40,7 @@ StyledRect {
         }
     }
 
-    visible: root.enabled
+    visible: root.widgetEnabled
 
     // Combined-mode helpers (re-evaluate each frame — cheap, NetworkUsage
     // caches internally).

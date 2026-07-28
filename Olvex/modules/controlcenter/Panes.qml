@@ -16,7 +16,7 @@ import qs.components
 import qs.services
 import qs.modules.controlcenter
 
-ClippingRectangle {
+StyledClippingRect {
     id: root
 
     required property Session session

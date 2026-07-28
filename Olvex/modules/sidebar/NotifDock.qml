@@ -107,7 +107,7 @@ Item {
         }
     }
 
-    ClippingRectangle {
+    StyledClippingRect {
         id: clipRect
 
         anchors.left: parent.left

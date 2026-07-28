@@ -60,7 +60,7 @@ Item {
 
     anchors.fill: parent
 
-    ClippingRectangle {
+    StyledClippingRect {
         id: notificationsClippingRect
 
         anchors.fill: parent

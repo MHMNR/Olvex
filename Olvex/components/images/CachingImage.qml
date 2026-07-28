@@ -14,6 +14,8 @@ Image {
 
     asynchronous: true
     fillMode: Image.PreserveAspectCrop
+    smooth: true
+    mipmap: true
 
     Connections {
         function onDevicePixelRatioChanged(): void {

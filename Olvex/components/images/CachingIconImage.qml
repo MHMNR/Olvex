@@ -30,6 +30,8 @@ Item {
         CachingImage {
             path: Paths.toLocalFile(root.source)
             fillMode: Image.PreserveAspectFit
+            smooth: true
+            mipmap: true
         }
     }
 
@@ -41,6 +43,7 @@ Item {
             anchors.margins: Math.max(2, root.actualSize * 0.08)
             source: root.source
             asynchronous: true
+            smooth: true
         }
     }
 }

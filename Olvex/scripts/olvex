@@ -15,6 +15,7 @@ OLVEX_BACKEND="${SCRIPT_DIR}/olvex-backend.sh"
 OLVEX_SHELL_DEFAULT="${OLVEX_ROOT}/shell.qml"
 
 export QML_IMPORT_PATH="${OLVEX_ROOT}/build/qml${QML_IMPORT_PATH:+:${QML_IMPORT_PATH}}"
+export QT_LOGGING_RULES="quickshell.dbus*=false;quickshell.dbus.properties*=false;qt.qml.propertyCache.append.warning=false${QT_LOGGING_RULES:+;${QT_LOGGING_RULES}}"
 
 # Resolve qs instance: prefer running Olvex shell (project path > installed -c).
 _olvex_qs_prefix() {

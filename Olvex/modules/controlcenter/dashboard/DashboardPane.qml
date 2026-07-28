@@ -67,7 +67,7 @@ Item {
 
     anchors.fill: parent
 
-    ClippingRectangle {
+    StyledClippingRect {
         id: dashboardClippingRect
 
         anchors.fill: parent

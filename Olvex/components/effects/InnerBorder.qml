@@ -1,44 +1,28 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import Olvex.Config
 import qs.components
 import qs.services
 
-StyledRect {
-    property alias innerRadius: maskInner.radius
-    property alias thickness: maskInner.anchors.margins
-    property alias leftThickness: maskInner.anchors.leftMargin
-    property alias topThickness: maskInner.anchors.topMargin
-    property alias rightThickness: maskInner.anchors.rightMargin
-    property alias bottomThickness: maskInner.anchors.bottomMargin
+Item {
+    id: root
+
+    property real innerRadius: Tokens.rounding.normal
+    property real thickness: 1
+    property real leftThickness: thickness
+    property real topThickness: thickness
+    property real rightThickness: thickness
+    property real bottomThickness: thickness
 
     anchors.fill: parent
-    color: Colours.tPalette.m3surfaceContainer
 
-    layer.enabled: true
-    layer.effect: MultiEffect {
-        maskSource: mask
-        maskEnabled: true
-        maskInverted: true
-        maskThresholdMin: 0.5
-        maskSpreadAtMin: 1
-    }
-
-    Item {
-        id: mask
-
+    Rectangle {
         anchors.fill: parent
-        layer.enabled: true
-        visible: false
-
-        Rectangle {
-            id: maskInner
-
-            anchors.fill: parent
-            anchors.margins: Tokens.padding.normal
-            radius: Tokens.rounding.normal
-        }
+        color: "transparent"
+        border.color: Qt.alpha(Colours.tPalette.m3outline, 0.15)
+        border.width: Math.max(root.leftThickness, root.topThickness, root.rightThickness, root.bottomThickness)
+        radius: root.innerRadius
+        antialiasing: true
     }
 }

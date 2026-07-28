@@ -293,15 +293,15 @@ Searcher {
 
         _bootstrapDone = true;
 
-        if (root.applyPersistedScheme(sourcePath))
+        if (root.applyPersistedScheme(sourcePath)) {
             console.log("[Wallpapers] Startup: restored persisted scheme for", sourcePath);
+        } else {
+            console.log("[Wallpapers] Startup: live extract for", sourcePath);
+            root._forceNextAccentRefresh = true;
+            root.requestAccentRefresh(path, false);
+        }
 
         root.applyWallpaperToDisplays(path);
-
-        // Media-pill pattern: always live-extract from wallpaper image on startup.
-        console.log("[Wallpapers] Startup: live extract for", sourcePath);
-        root._forceNextAccentRefresh = true;
-        root.requestAccentRefresh(path, false);
     }
 
     function applyWallpaperToDisplays(path: string): void {
@@ -629,7 +629,7 @@ Searcher {
                 videoThumbnailMap = newMap;
                 root.queueAllVideoThumbnails();
                 
-                if (root.isVideoPath(root.actualCurrent)) {
+                if (root.isVideoPath(root.actualCurrent) && !root._lastCurrentData) {
                     console.log("[Wallpapers] Post-scan refresh for current video wallpaper");
                     root.requestAccentRefresh(root.actualCurrent, false);
                 }

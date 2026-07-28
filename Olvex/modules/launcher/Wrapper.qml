@@ -14,7 +14,7 @@ Item {
     required property var panels
 
     readonly property bool shouldBeActive: visibilities.launcher && Config.launcher.enabled
-    readonly property bool contentActive: root.contentPrewarmed || root.shouldBeActive || root.visible || teardownGrace.running
+    readonly property bool contentActive: root.contentPrewarmed || root.shouldBeActive || teardownGrace.running
     property bool contentPrewarmed: false
 
     readonly property real maxHeight: {

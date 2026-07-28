@@ -82,7 +82,7 @@ Item {
             }
         }
 
-        ClippingWrapperRectangle {
+        StyledClippingRect {
             color: "transparent"
             radius: Tokens.rounding.small
             visible: Hypr.canLivePreviewToplevel(Hypr.activeToplevel)

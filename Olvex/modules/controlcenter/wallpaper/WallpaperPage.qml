@@ -339,66 +339,7 @@ Item {
             }
         }
 
-        Section {
-            title: qsTr("Visualiser")
-            description: qsTr("Audio-reactive bars behind the desktop")
-            icon: "graphic_eq"
 
-            SettingRow {
-                title: qsTr("Enable visualiser")
-                description: qsTr("Show bars that react to playing audio")
-                StyledSwitch {
-                    checked: GlobalConfig.background.visualiser?.enabled ?? false
-                    onToggled: {
-                        GlobalConfig.background.visualiser.enabled = checked;
-                        GlobalConfig.save();
-                    }
-                }
-            }
-
-            SettingRow {
-                title: qsTr("Auto-hide when idle")
-                description: qsTr("Fade out when no audio plays")
-                StyledSwitch {
-                    checked: GlobalConfig.background.visualiser?.autoHide ?? true
-                    onToggled: {
-                        GlobalConfig.background.visualiser.autoHide = checked;
-                        GlobalConfig.save();
-                    }
-                }
-            }
-
-            SettingRow {
-                title: qsTr("Bars")
-                description: qsTr("Number of frequency bars")
-                CustomSpinBox {
-                    value: GlobalConfig.services.visualiserBars ?? 32
-                    min: 8
-                    max: 128
-                    step: 4
-                    onValueModified: v => {
-                        GlobalConfig.services.visualiserBars = v;
-                        GlobalConfig.save();
-                    }
-                }
-            }
-
-            SettingRow {
-                title: qsTr("Frame rate")
-                description: qsTr("Refresh rate of the visualiser")
-                divider: false
-                CustomSpinBox {
-                    value: GlobalConfig.services.visualiserFps ?? 60
-                    min: 30
-                    max: 144
-                    step: 6
-                    onValueModified: v => {
-                        GlobalConfig.services.visualiserFps = v;
-                        GlobalConfig.save();
-                    }
-                }
-            }
-        }
 
         Section {
             title: qsTr("Location")

@@ -62,10 +62,6 @@ Item {
     property bool wallpaperCyclingShuffle: GlobalConfig.background?.wallpaperCycling?.shuffle ?? true
     property bool wallpaperCyclingPauseOnFullscreen: GlobalConfig.background?.wallpaperCycling?.pauseOnFullscreen ?? true
     property bool wallpaperCyclingPauseOnLock: GlobalConfig.background?.wallpaperCycling?.pauseOnLock ?? true
-    property bool visualiserEnabled: Config.background.visualiser.enabled ?? false
-    property bool visualiserAutoHide: Config.background.visualiser.autoHide ?? true
-    property real visualiserRounding: Config.background.visualiser.rounding ?? 1
-    property real visualiserSpacing: Config.background.visualiser.spacing ?? 1
     property string lockStyle: GlobalConfig.lock.style ?? "card"
     property real lockMinimalOpacity: GlobalConfig.lock?.minimalOpacity ?? 1.0
     property bool lockBlurBackground: GlobalConfig.lock?.blurBackground ?? true
@@ -123,11 +119,6 @@ Item {
                 GlobalConfig.background.wallpaperCycling.pauseOnLock = root.wallpaperCyclingPauseOnLock;
             }
         }
-
-        GlobalConfig.background.visualiser.enabled = root.visualiserEnabled;
-        GlobalConfig.background.visualiser.autoHide = root.visualiserAutoHide;
-        GlobalConfig.background.visualiser.rounding = root.visualiserRounding;
-        GlobalConfig.background.visualiser.spacing = root.visualiserSpacing;
 
         if (GlobalConfig.border) {
             GlobalConfig.border.rounding = root.borderRounding;

@@ -6,6 +6,8 @@ import qs.services
 StyledRect {
     id: root
 
+    antialiasing: true
+
     enum ButtonType {
         Filled,
         Tonal,
