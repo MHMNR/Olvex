@@ -100,8 +100,8 @@ Ensure the following packages are installed before compiling and launching Olvex
 Clone the repository and run the setup script:
 
 ```bash
-git clone https://github.com/your-username/QS-Config.git
-cd QS-Config/Github
+git clone https://github.com/MHMNR/Olvex.git
+cd Olvex
 ./setup.sh
 ```
 
