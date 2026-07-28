@@ -84,6 +84,24 @@ RowLayout {
         }
     }
 
+    function increment(): void {
+        let newValue = Math.min(root.max, root.value + root.step);
+        const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
+        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
+        root.value = newValue;
+        root.displayText = newValue.toString();
+        root.valueModified(newValue);
+    }
+
+    function decrement(): void {
+        let newValue = Math.max(root.min, root.value - root.step);
+        const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
+        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
+        root.value = newValue;
+        root.displayText = newValue.toString();
+        root.valueModified(newValue);
+    }
+
     StyledRect {
         radius: Tokens.rounding.small
         color: Colours.palette.m3primary
@@ -99,15 +117,7 @@ RowLayout {
             onPressAndHold: timer.start()
             onReleased: timer.stop()
 
-            onClicked: {
-                let newValue = Math.min(root.max, root.value + root.step);
-                // Round to avoid floating point precision errors
-                const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
-                newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
-                root.value = newValue;
-                root.displayText = newValue.toString();
-                root.valueModified(newValue);
-            }
+            onClicked: root.increment()
         }
 
         MaterialIcon {
@@ -129,15 +139,7 @@ RowLayout {
         StateLayer {
             id: downState
 
-            onClicked: {
-                let newValue = Math.max(root.min, root.value - root.step);
-                // Round to avoid floating point precision errors
-                const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
-                newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
-                root.value = newValue;
-                root.displayText = newValue.toString();
-                root.valueModified(newValue);
-            }
+            onClicked: root.decrement()
 
             color: Colours.palette.m3onPrimary
 
@@ -162,9 +164,9 @@ RowLayout {
         triggeredOnStart: true
         onTriggered: {
             if (upState.pressed)
-                upState.clicked();
+                root.increment();
             else if (downState.pressed)
-                downState.clicked();
+                root.decrement();
         }
     }
 }
