@@ -22,13 +22,13 @@ Item {
     readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
     readonly property color safeSecondary: useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
     readonly property color safeTertiary: useLightSet ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary
+    readonly property color safeOnSurface: Colours.palette.m3onSurface
 
     implicitWidth: layout.implicitWidth + (Tokens.padding.large * 4 * root.clockScale)
-    implicitHeight: layout.implicitHeight + (Tokens.padding.large * 2 * root.clockScale)
+    implicitHeight: layout.implicitHeight + (Tokens.padding.large * 2.5 * root.clockScale)
 
     Item {
         id: clockContainer
-
         anchors.fill: parent
 
         layer.enabled: Config.background.desktopClock.shadow.enabled
@@ -65,92 +65,115 @@ Item {
             anchors.fill: parent
             radius: Tokens.rounding.large * root.clockScale
             opacity: Config.background.desktopClock.background.opacity
-            color: Colours.palette.m3surface
+            color: Colours.palette.m3surfaceContainerLow
+            border.color: Colours.palette.m3outlineVariant
+            border.width: 1
 
             layer.enabled: root.blurEnabled
         }
 
-        RowLayout {
+        ColumnLayout {
             id: layout
 
             anchors.centerIn: parent
-            spacing: Tokens.spacing.larger * root.clockScale
+            spacing: 8 * root.clockScale
 
+            // ── Top Date & Day Capsule Badge ──
+            StyledRect {
+                Layout.alignment: Qt.AlignHCenter
+                implicitWidth: dateRow.implicitWidth + (20 * root.clockScale)
+                implicitHeight: dateRow.implicitHeight + (8 * root.clockScale)
+                radius: Tokens.rounding.full
+                color: Qt.alpha(root.safePrimary, 0.12)
+                border.color: Qt.alpha(root.safePrimary, 0.25)
+                border.width: 1
+
+                RowLayout {
+                    id: dateRow
+                    anchors.centerIn: parent
+                    spacing: 8 * root.clockScale
+
+                    StyledText {
+                        text: Time.format("dddd").toUpperCase()
+                        textPointSize: Tokens.font.size.normal * 0.9 * root.clockScale
+                        font.letterSpacing: 3
+                        font.weight: Font.Bold
+                        color: root.safePrimary
+                    }
+
+                    StyledRect {
+                        width: 4 * root.clockScale
+                        height: 4 * root.clockScale
+                        radius: Tokens.rounding.full
+                        color: root.safeTertiary
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    StyledText {
+                        text: Time.format("MMMM d").toUpperCase()
+                        textPointSize: Tokens.font.size.normal * 0.9 * root.clockScale
+                        font.letterSpacing: 2
+                        font.weight: Font.Medium
+                        color: root.safeSecondary
+                    }
+                }
+            }
+
+            // ── Main Time Display ──
             RowLayout {
-                spacing: Tokens.spacing.small
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 4 * root.clockScale
 
                 StyledText {
                     text: Time.hourStr
-                    textPointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
-                    font.weight: Font.Bold
+                    textPointSize: Tokens.font.size.extraLarge * 3.6 * root.clockScale
+                    font.weight: Font.Black
                     color: root.safePrimary
                 }
 
                 StyledText {
                     text: ":"
-                    textPointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
+                    textPointSize: Tokens.font.size.extraLarge * 3.6 * root.clockScale
+                    font.weight: Font.Bold
                     color: root.safeTertiary
-                    opacity: 0.8
-                    Layout.topMargin: -Tokens.padding.large * 1.5 * root.clockScale
+                    opacity: 0.85
+                    Layout.topMargin: -Tokens.padding.large * 1.8 * root.clockScale
                 }
 
                 StyledText {
                     text: Time.minuteStr
-                    textPointSize: Tokens.font.size.extraLarge * 3 * root.clockScale
-                    font.weight: Font.Bold
+                    textPointSize: Tokens.font.size.extraLarge * 3.6 * root.clockScale
+                    font.weight: Font.Black
                     color: root.safeSecondary
                 }
 
                 Loader {
                     asynchronous: true
                     Layout.alignment: Qt.AlignTop
-                    Layout.topMargin: Tokens.padding.large * 1.4 * root.clockScale
+                    Layout.topMargin: Tokens.padding.large * 1.6 * root.clockScale
+                    Layout.leftMargin: 4 * root.clockScale
 
                     active: GlobalConfig.services.useTwelveHourClock
                     visible: active
 
-                    sourceComponent: StyledText {
-                        text: Time.amPmStr
-                        textPointSize: Tokens.font.size.large * root.clockScale
-                        color: root.safeSecondary
+                    sourceComponent: StyledRect {
+                        implicitWidth: amPmText.implicitWidth + (12 * root.clockScale)
+                        implicitHeight: amPmText.implicitHeight + (4 * root.clockScale)
+                        radius: Tokens.rounding.small
+                        color: Qt.alpha(root.safeSecondary, 0.15)
+                        border.color: Qt.alpha(root.safeSecondary, 0.3)
+                        border.width: 1
+
+                        StyledText {
+                            id: amPmText
+                            anchors.centerIn: parent
+                            text: Time.amPmStr
+                            textPointSize: Tokens.font.size.normal * 0.85 * root.clockScale
+                            font.weight: Font.Bold
+                            font.letterSpacing: 1
+                            color: root.safeSecondary
+                        }
                     }
-                }
-            }
-
-            StyledRect {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 4 * root.clockScale
-                Layout.topMargin: Tokens.spacing.larger * root.clockScale
-                Layout.bottomMargin: Tokens.spacing.larger * root.clockScale
-                radius: Tokens.rounding.full
-                color: root.safePrimary
-                opacity: 0.8
-            }
-
-            ColumnLayout {
-                spacing: 0
-
-                StyledText {
-                    text: Time.format("MMMM").toUpperCase()
-                    textPointSize: Tokens.font.size.large * root.clockScale
-                    font.letterSpacing: 4
-                    font.weight: Font.Bold
-                    color: root.safeSecondary
-                }
-
-                StyledText {
-                    text: Time.format("dd")
-                    textPointSize: Tokens.font.size.extraLarge * root.clockScale
-                    font.letterSpacing: 2
-                    font.weight: Font.Medium
-                    color: root.safePrimary
-                }
-
-                StyledText {
-                    text: Time.format("dddd")
-                    textPointSize: Tokens.font.size.larger * root.clockScale
-                    font.letterSpacing: 2
-                    color: root.safeSecondary
                 }
             }
         }

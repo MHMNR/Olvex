@@ -1533,7 +1533,7 @@ Item {
                                     anchors.leftMargin: 12
                                     anchors.rightMargin: 12
                                     verticalAlignment: Text.AlignVCenter
-                                    text: Players.getIdentity(sourceItem.modelData) || sourceItem.modelData.identity || "Media Source"
+                                    text: Players.getIdentity(sourceItem.modelData) || "Media App"
                                     textPointSize: Tokens.font.size.smaller
                                     font.weight: sourceItem.isActive ? Font.Medium : Font.Normal
                                     color: sourceItem.isActive ? root.playIconColor : Players.musicOnSurfaceColor

@@ -154,6 +154,11 @@ Singleton {
         return ["sh", "-c", hybridGpuScanSh];
     }
 
+    Component.onCompleted: {
+        // Pre-warm GPU queries on shell initialization for instant reading when Dashboard opens
+        gpuUsage.running = true;
+    }
+
     function parseGpuStdout(output: string): void {
         const list = [];
 
@@ -182,13 +187,14 @@ Singleton {
             });
         }
 
-        list.sort((a, b) => {
-            if (a.source !== b.source)
-                return a.source === "nvidia" ? -1 : 1;
-            return a.id - b.id;
-        });
-
-        gpus = list;
+        if (list.length > 0) {
+            list.sort((a, b) => {
+                if (a.source !== b.source)
+                    return a.source === "nvidia" ? -1 : 1;
+                return a.id - b.id;
+            });
+            gpus = list;
+        }
         syncLegacyGpu();
     }
 
@@ -239,7 +245,7 @@ Singleton {
         id: fastResourceTimer
 
         running: root.refCount > 0
-        interval: 1000
+        interval: 500
         repeat: true
         triggeredOnStart: true
         onTriggered: root.refreshFast()

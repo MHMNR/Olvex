@@ -420,14 +420,14 @@ Item {
 
                     Timer {
                         id: clearHoverTimer
-                        interval: 80
+                        interval: 100
                         onTriggered: expandedMenuArea.hoveredItem = null
                     }
 
                     Behavior on opacity { Anim { duration: sortContainer.expanded ? Tokens.anim.durations.normal : 100 } }
                     Behavior on scale { Anim { type: Anim.Emphasized } }
 
-                    // Sliding hover highlight marker — context menu style smooth spring animation
+                    // Sliding hover highlight marker — exact Panels.qml context menu hover pill
                     StyledRect {
                         id: sortHoverHighlight
 
@@ -435,11 +435,10 @@ Item {
 
                         z: 0
                         visible: target !== null && sortContainer.expanded
-                        opacity: visible ? 1 : 0
-                        color: target && target.isActive ? Colours.palette.m3primaryContainer
-                                                         : (Colours.light ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.12))
+                        opacity: visible ? 0.08 : 0
+                        color: Colours.palette.m3onSurface
                         border.width: 0
-                        radius: 10
+                        radius: Tokens.rounding.small
 
                         x: target ? target.mapToItem(expandedMenuArea, 0, 0).x : 0
                         y: target ? target.mapToItem(expandedMenuArea, 0, 0).y : 0
@@ -449,8 +448,8 @@ Item {
                         Behavior on x {
                             enabled: sortHoverHighlight.opacity > 0
                             SpringAnimation {
-                                spring: 8.0
-                                damping: 0.75
+                                spring: 7.0
+                                damping: 0.8
                                 mass: 1.0
                                 epsilon: 0.005
                             }
@@ -458,8 +457,8 @@ Item {
                         Behavior on y {
                             enabled: sortHoverHighlight.opacity > 0
                             SpringAnimation {
-                                spring: 8.0
-                                damping: 0.75
+                                spring: 7.0
+                                damping: 0.8
                                 mass: 1.0
                                 epsilon: 0.005
                             }
@@ -467,8 +466,8 @@ Item {
                         Behavior on width {
                             enabled: sortHoverHighlight.opacity > 0
                             SpringAnimation {
-                                spring: 8.0
-                                damping: 0.75
+                                spring: 7.0
+                                damping: 0.8
                                 mass: 1.0
                                 epsilon: 0.005
                             }
@@ -476,14 +475,15 @@ Item {
                         Behavior on height {
                             enabled: sortHoverHighlight.opacity > 0
                             SpringAnimation {
-                                spring: 8.0
-                                damping: 0.75
+                                spring: 7.0
+                                damping: 0.8
                                 mass: 1.0
                                 epsilon: 0.005
                             }
                         }
-                        Behavior on color { CAnim {} }
-                        Behavior on opacity { CAnim {} }
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150 }
+                        }
                     }
 
                     ColumnLayout {
@@ -493,6 +493,7 @@ Item {
                         z: 1
 
                         Repeater {
+                            id: sortRepeater
                             model: [
                                 { mode: "recent", label: qsTr("Recently Opened"), icon: "history" },
                                 { mode: "az", label: qsTr("A  -  Z"), icon: "sort_by_alpha" },
@@ -508,13 +509,12 @@ Item {
 
                                 readonly property bool isActive: root.sortMode === modelData.mode
 
-                                // Static background for active state when not hovered; sliding sortHoverHighlight takes over on hover
+                                // Active selection background pill (m3primary)
                                 StyledRect {
                                     anchors.fill: parent
-                                    radius: 10
-                                    color: itemRect.isActive ? Colours.palette.m3primaryContainer : "transparent"
-                                    opacity: (expandedMenuArea.hoveredItem === itemRect) ? 0 : 1
-                                    Behavior on opacity { CAnim {} }
+                                    radius: Tokens.rounding.small
+                                    color: itemRect.isActive ? Colours.palette.m3primary : "transparent"
+                                    z: 0
                                     Behavior on color { CAnim {} }
                                 }
 
@@ -527,14 +527,14 @@ Item {
 
                                     MaterialIcon {
                                         text: itemRect.modelData.icon
-                                        color: itemRect.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                                        color: itemRect.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                                         iconPointSize: 14
                                     }
 
                                     StyledText {
                                         Layout.fillWidth: true
                                         text: itemRect.modelData.label
-                                        color: itemRect.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+                                        color: itemRect.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                                         textPointSize: Tokens.font.size.smaller
                                         font.weight: itemRect.isActive ? Font.Bold : Font.Normal
                                     }

@@ -20,12 +20,29 @@ Singleton {
             const dbus = (p.dbusName || p.identity || "").toLowerCase();
             return dbus.includes("plasma") || dbus.includes("browser-integration");
         });
-        if (!hasPlasma)
-            return players;
-        return players.filter(p => {
+        const filtered = hasPlasma ? players.filter(p => {
             const dbus = (p.dbusName || p.identity || "").toLowerCase();
             const isRawBrowser = (dbus.includes("firefox") || dbus.includes("chrome") || dbus.includes("chromium") || dbus.includes("brave")) && !dbus.includes("plasma");
             return !isRawBrowser;
+        }) : players;
+
+        return filtered.filter(p => {
+            const dbus = (p.dbusName || "").toLowerCase();
+            const id = (p.identity || "").toLowerCase().trim();
+
+            // 1. Check Bluetooth speaker/headset device names (e.g. "m3", "m3 speaker", bluetooth devices)
+            if (id === "m3" || id.startsWith("m3 ") || id.endsWith(" m3") || id.includes("m3") || id.includes("bluetooth") || id.includes("speaker") || id.includes("headset") || id.includes("headphone") || id.includes("earbud") || id.includes("airpods") || id.includes("soundbar") || id.includes("wireless"))
+                return false;
+
+            // 2. Check DBus names for Bluetooth & audio infrastructure daemons
+            if (dbus.includes("bluez") || dbus.includes("bluetooth") || dbus.includes("a2dp") || dbus.includes("avrcp") || dbus.includes("pipewire") || dbus.includes("pulseaudio") || dbus.includes("alsa"))
+                return false;
+
+            // 3. Check hardware audio sink keywords
+            if (id.includes("analog stereo") || id.includes("audio controller") || id.includes("built-in audio") || id.includes("output device") || id.includes("hd audio") || id.includes("default sink") || id.includes("pipewire-output") || id.includes("sound card"))
+                return false;
+
+            return true;
         });
     }
 
@@ -173,7 +190,36 @@ Singleton {
         if (!player)
             return "";
         const alias = GlobalConfig.services.playerAliases.find(a => a.from === player.identity);
-        return alias?.to ?? player.identity;
+        if (alias?.to)
+            return alias.to;
+
+        let name = player.identity || "";
+        if (!name && player.dbusName) {
+            const parts = player.dbusName.split('.');
+            name = parts[parts.length - 1] || "";
+        }
+
+        // Clean up raw dbus name formatting
+        name = name.replace(/^(org\.mpris\.MediaPlayer2\.|MediaPlayer2\.)/i, "");
+
+        // If identity string is a Bluetooth device or audio output device description, fallback to app name or "Media App"
+        const lower = name.toLowerCase();
+        const dbusLower = (player.dbusName || "").toLowerCase();
+        if (dbusLower.includes("bluez") || dbusLower.includes("bluetooth") || lower.includes("analog stereo") || lower.includes("audio controller") || lower.includes("built-in audio") || lower.includes("hd audio") || lower.includes("output device") || lower.includes("speaker") || lower.includes("headphones") || lower.includes("alsa plug-in") || lower.includes("sound card")) {
+            if (player.dbusName) {
+                const parts = player.dbusName.split('.');
+                const appPart = parts[parts.length - 1] || "";
+                if (appPart && !appPart.toLowerCase().includes("sink") && !appPart.toLowerCase().includes("audio") && !appPart.toLowerCase().includes("bluez")) {
+                    name = appPart;
+                } else {
+                    return "Media App";
+                }
+            } else {
+                return "Media App";
+            }
+        }
+
+        return name || "Media App";
     }
 
     function sanitizeArtUrl(url: string): string {
