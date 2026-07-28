@@ -519,7 +519,7 @@ StyledWindow {
                 // Staggered entry for bar
                 opacity: visibilities.session ? 0 : (root.isVisible ? 1 : 0)
                 transform: Translate {
-                    x: root.isVisible ? 0 : -30
+                    x: root.isVisible ? 0 : -120
                     Behavior on x {
                         SequentialAnimation {
                             PauseAnimation {

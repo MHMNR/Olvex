@@ -503,6 +503,8 @@ Item {
     Item {
         id: bottomPanel
 
+        readonly property real safeParentHeight: parent ? (parent.height > 100 ? parent.height : (root.screen?.height ?? 1080)) : 1080
+
         // Anchor horizontally to cover the full width of the content area
         anchors.left: parent.left
         anchors.leftMargin: 0
@@ -516,7 +518,7 @@ Item {
 
         // Slide-up behavior relative to parent (which has bottomMargin)
         opacity: root.bottomPanelVisible ? 1 : 0
-        y: root.bottomPanelVisible ? parent.height + root.bottomMargin - height : parent.height + root.bottomMargin
+        y: root.bottomPanelVisible ? safeParentHeight + root.bottomMargin - height : safeParentHeight + root.bottomMargin
 
         Behavior on opacity {
             NumberAnimation {
@@ -525,8 +527,24 @@ Item {
             }
         }
         Behavior on y {
+            enabled: parent ? parent.height > 100 : false
             Anim {
                 type: Anim.DefaultSpatial
+            }
+        }
+
+        transform: Translate {
+            y: (!LockState.locked) ? 0 : 120
+            Behavior on y {
+                SequentialAnimation {
+                    PauseAnimation {
+                        duration: 80
+                    }
+                    NumberAnimation {
+                        duration: 750
+                        easing.type: Easing.OutExpo
+                    }
+                }
             }
         }
 
