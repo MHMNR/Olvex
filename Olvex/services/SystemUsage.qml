@@ -16,7 +16,7 @@ Singleton {
     // GPU properties
     readonly property string gpuType: GlobalConfig.services.gpuType.toUpperCase() || autoGpuType
     readonly property bool explicitGpuType: GlobalConfig.services.gpuType !== ""
-    property string autoGpuType: "NONE"
+    property string autoGpuType: "GENERIC"
     property string gpuName: ""
     property real gpuPerc
     property real gpuTemp
@@ -140,9 +140,9 @@ Singleton {
         syncLegacyGpu();
     }
 
-    readonly property string nvidiaGpuScanSh: "nvidia-smi --query-gpu=index,name,utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | while IFS= read -r line; do [ -z \"$line\" ] && continue; idx=$(echo \"$line\" | cut -d, -f1 | tr -d ' '); name=$(echo \"$line\" | cut -d, -f2 | sed 's/^ *//'); perc=$(echo \"$line\" | cut -d, -f3 | tr -d ' '); temp=$(echo \"$line\" | cut -d, -f4 | tr -d ' '); echo \"nvidia|$idx|$name|$perc|$temp\"; done"
+    readonly property string nvidiaGpuScanSh: "nvidia-smi --query-gpu=index,name,utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{print \"nvidia|\" $1 \"|\" $2 \"|\" $3 \"|\" $4}'"
 
-    readonly property string drmGpuScanSh: "for card in /sys/class/drm/card[0-9]; do dev=\"$card/device\"; [ -f \"$dev/gpu_busy_percent\" ] || continue; idx=${card##*card}; name=$(cat \"$dev/name\" 2>/dev/null); if [ -z \"$name\" ]; then slot=$(grep -m1 \"^PCI_SLOT_NAME=\" \"$dev/uevent\" 2>/dev/null | cut -d= -f2); if [ -n \"$slot\" ] && command -v lspci >/dev/null; then name=$(lspci -s \"$slot\" 2>/dev/null | sed 's/.*: //'); fi; fi; [ -z \"$name\" ] && name=GPU; perc=$(cat \"$dev/gpu_busy_percent\"); temp=0; for h in \"$dev\"/hwmon/hwmon*/temp*_input; do [ -f \"$h\" ] || continue; t=$(cat \"$h\" 2>/dev/null); [ -n \"$t\" ] && temp=$((t/1000)) && break; done; echo \"drm|$idx|$name|$perc|$temp\"; done"
+    readonly property string drmGpuScanSh: "for dev in /sys/class/drm/card*/device; do [ -f \"$dev/gpu_busy_percent\" ] || continue; card=\"${dev%/device}\"; idx=\"${card##*card}\"; perc=$(cat \"$dev/gpu_busy_percent\" 2>/dev/null || echo 0); temp=0; for h in \"$dev\"/hwmon/hwmon*/temp*_input; do [ -f \"$h\" ] || continue; t=$(cat \"$h\" 2>/dev/null); [ -n \"$t\" ] && temp=$((t/1000)) && break; done; echo \"drm|$idx|GPU|$perc|$temp\"; done"
 
     readonly property string hybridGpuScanSh: nvidiaGpuScanSh + "; " + drmGpuScanSh
 
@@ -411,7 +411,12 @@ Singleton {
         running: !GlobalConfig.services.gpuType
         command: ["sh", "-c", "if command -v nvidia-smi &>/dev/null && nvidia-smi -L &>/dev/null; then echo NVIDIA; elif ls /sys/class/drm/card*/device/gpu_busy_percent 2>/dev/null | grep -q .; then echo GENERIC; else echo NONE; fi"]
         stdout: StdioCollector {
-            onStreamFinished: root.autoGpuType = text.trim()
+            onStreamFinished: {
+                const detected = text.trim();
+                root.autoGpuType = detected;
+                if (detected !== "NONE")
+                    root.refreshFast();
+            }
         }
     }
 

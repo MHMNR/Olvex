@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Window
 import Quickshell
+import Quickshell.Services.Mpris
 import Olvex.Components
 import M3Shapes
 import Olvex.Config
@@ -244,6 +245,8 @@ Item {
     function close(): void {
         seekPreview = -1;
         closingDown = true;
+        if (typeof sourceSelector !== "undefined")
+            sourceSelector.expanded = false;
         musicPill.state = "compact";
         hideTimer.start();
     }
@@ -547,7 +550,7 @@ Item {
             id: trackInfo
             x: 116
             y: 16
-            width: Math.max(120, musicPill.width - x - 24)
+            width: Math.max(100, musicPill.width - x - 90)
             spacing: 2
             opacity: 0
 
@@ -1192,27 +1195,20 @@ Item {
                 from: "expanded"
                 to: "compact"
                 ParallelAnimation {
-                    // Card content fades + slides early in collapse so it's gone before pill arrives
-                    SequentialAnimation {
-                        PauseAnimation {
-                            duration: Math.round(root.collapseDur * 0.2)
-                        }
-                        ParallelAnimation {
-                            NumberAnimation {
-                                targets: [titleChip, trackInfo, controlsSurface, expandedContent]
-                                property: "opacity"
-                                to: 0
-                                duration: Math.round(root.collapseDur * 0.35)
-                                easing: root.spatialEasing
-                            }
-                            NumberAnimation {
-                                target: trackInfo
-                                property: "y"
-                                to: 24
-                                duration: Math.round(root.collapseDur * 0.35)
-                                easing: root.spatialEasing
-                            }
-                        }
+                    // Card content fades out immediately so it's gone before pill shifts position
+                    NumberAnimation {
+                        targets: [titleChip, trackInfo, controlsSurface, expandedContent]
+                        property: "opacity"
+                        to: 0
+                        duration: Math.round(root.collapseDur * 0.35)
+                        easing.type: Easing.InQuad
+                    }
+                    NumberAnimation {
+                        target: trackInfo
+                        property: "y"
+                        to: 24
+                        duration: Math.round(root.collapseDur * 0.35)
+                        easing: root.spatialEasing
                     }
                     SequentialAnimation {
                         PauseAnimation {
@@ -1307,6 +1303,248 @@ Item {
                 }
             }
         ]
+    }
+
+    // ── Tap outside to dismiss expanded sourceSelector dropdown ────────────────
+    MouseArea {
+        anchors.fill: parent
+        z: 99
+        enabled: sourceSelector.expanded
+        onClicked: sourceSelector.expanded = false
+    }
+
+    // ── Floating Media Source Selector Overlay (Unclipped M3 Expressive, z:100) ──
+    Item {
+        id: sourceSelector
+        z: 100
+        x: musicPill.x + musicPill.width - sourceSelector.width - 16
+        y: musicPill.y + 36
+        width: sourcePillWidth
+        height: 24
+        opacity: (musicPill.state === "expanded" && trackInfo.opacity > 0.90 && !root.closingDown) ? 1 : 0
+        visible: opacity > 0.01
+
+        readonly property real sourcePillWidth: Math.max(64, currentSourceText.implicitWidth + 20)
+        property bool expanded: false
+
+        state: expanded ? "expanded" : "collapsed"
+
+        states: [
+            State {
+                name: "collapsed"
+                PropertyChanges { target: sourceSelector; width: sourcePillWidth; height: 24 }
+                PropertyChanges { target: selectorRect; radius: 12 }
+                PropertyChanges { target: collapsedPillView; opacity: 1 }
+                PropertyChanges { target: expandedListView; opacity: 0 }
+            },
+            State {
+                name: "expanded"
+                PropertyChanges { target: sourceSelector; width: 190; height: Math.min(180, sourceList.implicitHeight + 20) }
+                PropertyChanges { target: selectorRect; radius: 16 }
+                PropertyChanges { target: collapsedPillView; opacity: 0 }
+                PropertyChanges { target: expandedListView; opacity: 1 }
+            }
+        ]
+
+        transitions: [
+            Transition {
+                from: "collapsed"
+                to: "expanded"
+                ParallelAnimation {
+                    NumberAnimation {
+                        targets: [sourceSelector]
+                        properties: "width,height"
+                        duration: 300
+                        easing: root.spatialEasing
+                    }
+                    NumberAnimation {
+                        target: selectorRect
+                        property: "radius"
+                        duration: 240
+                        easing: root.spatialEasing
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: collapsedPillView
+                            property: "opacity"
+                            to: 0
+                            duration: 90
+                            easing.type: Easing.OutQuad
+                        }
+                        NumberAnimation {
+                            target: expandedListView
+                            property: "opacity"
+                            to: 1
+                            duration: 180
+                            easing.type: Easing.OutQuad
+                        }
+                    }
+                }
+            },
+            Transition {
+                from: "expanded"
+                to: "collapsed"
+                ParallelAnimation {
+                    NumberAnimation {
+                        targets: [sourceSelector]
+                        properties: "width,height"
+                        duration: 250
+                        easing: root.spatialEasingDecel
+                    }
+                    NumberAnimation {
+                        target: selectorRect
+                        property: "radius"
+                        duration: 200
+                        easing: root.spatialEasingDecel
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: expandedListView
+                            property: "opacity"
+                            to: 0
+                            duration: 90
+                            easing.type: Easing.InQuad
+                        }
+                        NumberAnimation {
+                            target: collapsedPillView
+                            property: "opacity"
+                            to: 1
+                            duration: 160
+                            easing.type: Easing.OutQuad
+                        }
+                    }
+                }
+            }
+        ]
+
+        StyledRect {
+            id: selectorRect
+            anchors.fill: parent
+            radius: 12
+            color: Players.musicSurfaceColor
+            border.width: 1
+            border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.16)
+            clip: true
+
+            layer.enabled: sourceSelector.expanded
+            layer.effect: MultiEffect {
+                shadowEnabled: true
+                shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.40)
+                shadowOpacity: 0.35
+                shadowBlur: 0.60
+                shadowVerticalOffset: 4
+            }
+
+            // Collapsed Content (Light Cyan Pill matching play button)
+            Item {
+                id: collapsedPillView
+                anchors.fill: parent
+                opacity: 1
+                visible: opacity > 0.01
+
+                StyledRect {
+                    anchors.fill: parent
+                    radius: 12
+                    color: root.playButtonBg
+                }
+
+                StyledText {
+                    id: currentSourceText
+                    anchors.centerIn: parent
+                    text: Players.active ? (Players.getIdentity(Players.active) || "Media") : "Media"
+                    textPointSize: Tokens.font.size.smaller - 1
+                    font.weight: Font.Normal
+                    color: root.playIconColor
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                }
+
+                MouseArea {
+                    id: sourceHoverArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        if (Mpris.players.values.length > 0)
+                            sourceSelector.expanded = !sourceSelector.expanded;
+                    }
+                }
+            }
+
+            // Expanded Content (Source List Dropdown view on dark surface)
+            Item {
+                id: expandedListView
+                anchors.fill: parent
+                opacity: 0
+                visible: opacity > 0.01
+
+                Flickable {
+                    anchors.fill: parent
+                    contentHeight: sourceList.implicitHeight + 12
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Column {
+                        id: sourceList
+                        width: parent.width - 12
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 6
+                        spacing: 4
+
+                        StyledText {
+                            text: qsTr("MEDIA SOURCE")
+                            textPointSize: Tokens.font.size.smaller - 2
+                            font.weight: Font.Medium
+                            color: Qt.alpha(Players.musicOnSurfaceColor, 0.48)
+                            anchors.left: parent.left
+                            anchors.leftMargin: 8
+                            anchors.topMargin: 2
+                        }
+
+                        Repeater {
+                            model: Players.list
+
+                            delegate: Rectangle {
+                                id: sourceItem
+                                required property var modelData
+                                width: sourceList.width
+                                height: 30
+                                radius: 10
+                                color: sourceItem.isActive ? root.playButtonBg : (itemHover.containsMouse ? Qt.alpha(Players.musicOnSurfaceColor, 0.12) : "transparent")
+
+                                readonly property bool isActive: Players.active === modelData
+
+                                Behavior on color {
+                                    CAnim { duration: Tokens.anim.durations.expressiveFastEffects }
+                                }
+
+                                MouseArea {
+                                    id: itemHover
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: {
+                                        Players.manualActive = sourceItem.modelData;
+                                        sourceSelector.expanded = false;
+                                    }
+                                }
+
+                                StyledText {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 12
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: Players.getIdentity(sourceItem.modelData) || sourceItem.modelData.identity || "Media Source"
+                                    textPointSize: Tokens.font.size.smaller
+                                    font.weight: sourceItem.isActive ? Font.Medium : Font.Normal
+                                    color: sourceItem.isActive ? root.playIconColor : Players.musicOnSurfaceColor
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     component MarqueeText: Item {

@@ -105,7 +105,10 @@ MouseArea {
             let off = root.attachSideX === Menu.Left ? 0 : item.width;
             if (root.thisSideX === Menu.Right)
                 off -= width;
-            return item.mapToItem(root.parent, off, 0).x + root.marginX;
+            const rawX = item.mapToItem(root.parent, off, 0).x + root.marginX;
+            const minX = 8;
+            const maxX = Math.max(minX, root.parent.width - width - 8);
+            return Math.max(minX, Math.min(rawX, maxX));
         }
         y: {
             watcher.transform; // mapToItem is not reactive so this forces updates
@@ -115,37 +118,25 @@ MouseArea {
             let off = root.attachSideY === Menu.Top ? 0 : item.height;
             if (root.thisSideY === Menu.Bottom)
                 off -= height;
-            return item.mapToItem(root.parent, 0, off).y + root.marginY;
-        }
-
-        Behavior on x {
-            enabled: root.expanded
-            NumberAnimation {
-                duration: 250
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: menu.m3Emphasized
-            }
-        }
-
-        Behavior on y {
-            enabled: root.expanded
-            NumberAnimation {
-                duration: 250
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: menu.m3Emphasized
-            }
+            const rawY = item.mapToItem(root.parent, 0, off).y + root.marginY;
+            const minY = 8;
+            const maxY = Math.max(minY, root.parent.height - height - 8);
+            return Math.max(minY, Math.min(rawY, maxY));
         }
 
         radius: Tokens.rounding.normal
         level: 2
 
         readonly property real contentPad: Tokens.padding.small * 2
+        readonly property real availableParentHeight: root.parent ? root.parent.height : 600
+        readonly property real effectiveMaxHeight: Math.min(root.maxHeight, Math.max(120, availableParentHeight - 24))
+
         implicitWidth: Math.max(200, flickContent.implicitWidth + contentPad)
-        // Scroll when list exceeds maxHeight
-        implicitHeight: Math.min(root.maxHeight, flickContent.implicitHeight + contentPad)
+        // Scroll when list exceeds maxHeight or available parent space
+        implicitHeight: Math.min(effectiveMaxHeight, flickContent.implicitHeight + contentPad)
 
         transform: Scale {
-            yScale: root.expanded ? 1 : 0.1
+            yScale: root.expanded ? 1 : 0.05
             origin.y: root.thisSideY === Menu.Bottom ? menu.height : 0
 
             Behavior on yScale {
@@ -271,9 +262,11 @@ MouseArea {
                             implicitHeight: Math.max(40, menuOptionRow.implicitHeight + Tokens.padding.small * 2)
                             height: implicitHeight
 
-                            // Transparent — fill is the sliding marker (Panels pattern)
+                            // Active item gets primary background, otherwise transparent
                             radius: Tokens.rounding.small
-                            color: "transparent"
+                            color: item.active && root.highlightActive
+                                ? Colours.palette.m3primary
+                                : "transparent"
 
                             StateLayer {
                                 id: itemState
@@ -320,7 +313,7 @@ MouseArea {
                                     visible: !!(item.modelData && item.modelData.icon && item.modelData.icon.length > 0)
                                     text: item.modelData ? item.modelData.icon : ""
                                     color: item.active && root.highlightActive
-                                        ? Colours.palette.m3primary
+                                        ? Colours.palette.m3onPrimary
                                         : Colours.palette.m3onSurfaceVariant
                                     iconPointSize: Tokens.font.size.normal
                                 }
@@ -331,7 +324,9 @@ MouseArea {
                                     text: item.modelData ? item.modelData.text : ""
                                     horizontalAlignment: Text.AlignLeft
                                     elide: Text.ElideRight
-                                    color: Colours.palette.m3onSurface
+                                    color: item.active && root.highlightActive
+                                        ? Colours.palette.m3onPrimary
+                                        : Colours.palette.m3onSurface
                                     textPointSize: Tokens.font.size.small
                                     font.family: root.previewFontFace && item.modelData?.text
                                         ? item.modelData.text

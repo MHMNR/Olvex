@@ -115,11 +115,7 @@ StyledRect {
             return;
         }
         if (root.barArtIsLocal) {
-            root.barArtSource = "";
-            Qt.callLater(() => {
-                if (root.musicArtUrl === url)
-                    root.barArtSource = url;
-            });
+            root.barArtSource = url;
             return;
         }
         root.barArtSource = url + "#olvex-art=" + Players.artReloadNonce;
@@ -361,11 +357,24 @@ StyledRect {
     }
     readonly property int availableTitleHeight: Math.max(0, root.maxHeight - Tokens.spacing.small * 4)
     readonly property int preferredTitleHeight: Math.max(64, Math.round((bar?.height ?? 0) * 0.18))
-    readonly property int titleSlotHeight: Math.min(root.availableTitleHeight, root.preferredTitleHeight)
+    // Non-music pill is flex-sized by Bar.qml (Layout.fillHeight: true), so
+    // the title spans whatever the pill actually rendered, not a calc against
+    // the full bar height. 64px floor keeps the title legible if the bar is
+    // crushed by a fully-expanded workspace pill.
+    readonly property int titleSlotHeight: root.playerActive
+        ? 0
+        : Math.max(64, root.height - icon.height - Tokens.spacing.small * 4)
 
     clip: true
+    anchors.fill: parent
     implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
     implicitHeight: root.playerActive ? root.musicPillHeight : icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
+
+    property real animatedMaxHeight: root.playerActive ? root.musicPillHeight : root.maxHeight
+
+    Behavior on animatedMaxHeight {
+        Anim { type: Anim.SlowSpatial }
+    }
 
     Loader {
         // No click handler — clicking the active-window pill must NOT pop a
@@ -495,12 +504,6 @@ StyledRect {
                                 blurEnabled: true
                                 blur: 1.0
                                 blurMax: glowLayer.modelData.bmax
-                            }
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: Tokens.anim.durations.expressiveDefaultEffects
-                                    easing: Tokens.anim.emphasizedDecel
-                                }
                             }
                         }
                     }

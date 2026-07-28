@@ -30,9 +30,8 @@ Item {
         Qt.callLater(() => root.search.forceActiveFocus());
     }
 
-    readonly property alias currentItem: view.currentItem
-    readonly property alias count: view.count
     readonly property alias currentIndex: view.currentIndex
+    readonly property int count: scriptModel.values.length
 
     function decrementCurrentIndex() {
         view.decrementCurrentIndex();
@@ -42,10 +41,25 @@ Item {
         view.incrementCurrentIndex();
     }
 
-    function suspend(): void {
+    function applyWallpaper(path, index) {
+        if (!path) return;
+        console.log("[WallpaperList] Direct apply wallpaper:", path, "at index:", index);
+        previewTimer.stop();
+        previewTimer.pendingPath = "";
         Wallpapers.stopPreview();
-        view.currentIndex = 0;
-        scriptModel.values = [];
+        Wallpapers.setWallpaper(path);
+        if (typeof index === "number" && index >= 0) {
+            root.suppressPreview = true;
+            view.snapTo(index);
+            root.suppressPreview = false;
+        }
+    }
+
+    function suspend(): void {
+        previewTimer.stop();
+        previewTimer.pendingPath = "";
+        Wallpapers.stopPreview();
+        // Keep scriptModel.values intact so thumbnails stay cached in memory
     }
 
     function resume(): void {
@@ -53,7 +67,7 @@ Item {
         Qt.callLater(() => view.jumpToCurrent(true));
     }
 
-    implicitWidth: view.implicitWidth
+    anchors.fill: parent
     implicitHeight: tabs.height + view.implicitHeight + Tokens.padding.normal
 
     Item {
@@ -71,20 +85,115 @@ Item {
 
             spacing: Tokens.spacing.small
 
-            TextButton {
-                text: qsTr("Static")
-                checked: root.mode === "static"
-                toggle: false
-                type: TextButton.Tonal
-                onClicked: root.selectMode("static")
-            }
+            // Sliding Segmented Mode Switch (Standalone Clipboard & Settings FilterButtonGroup design)
+            StyledRect {
+                id: sliderSwitch
 
-            TextButton {
-                text: qsTr("Live")
-                checked: root.mode === "live"
-                toggle: false
-                type: TextButton.Tonal
-                onClicked: root.selectMode("live")
+                height: 40
+                implicitWidth: 184
+                radius: height / 2
+                color: Colours.palette.m3secondaryContainer
+
+                readonly property bool isLive: root.mode === "live"
+                readonly property real inset: 4
+                readonly property real segW: (width - inset * 2) / 2
+
+                // Sliding primary indicator thumb
+                StyledRect {
+                    id: thumb
+
+                    y: sliderSwitch.inset
+                    height: parent.height - sliderSwitch.inset * 2
+                    width: sliderSwitch.segW
+                    x: sliderSwitch.inset + (sliderSwitch.isLive ? 1 : 0) * sliderSwitch.segW
+                    radius: height / 2
+                    color: Colours.palette.m3primary
+                    z: 0
+
+                    Behavior on x {
+                        SpringAnimation { spring: 4.6; damping: 0.74; mass: 1.0; epsilon: 0.005 }
+                    }
+                }
+
+                Row {
+                    anchors.fill: parent
+                    anchors.margins: sliderSwitch.inset
+                    z: 1
+
+                    // Static Segment
+                    Item {
+                        width: sliderSwitch.segW
+                        height: parent.height
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.extraSmall || 6
+
+                            MaterialIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "image"
+                                scale: !sliderSwitch.isLive ? 1.12 : 1.0
+                                iconPointSize: Tokens.font.size.normal || 14
+                                color: !sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                                Behavior on color { CAnim {} }
+                                Behavior on scale { Anim {} }
+                            }
+
+                            StyledText {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: qsTr("Static")
+                                textPointSize: Tokens.font.size.smaller || 12
+                                font.weight: !sliderSwitch.isLive ? Font.DemiBold : Font.Normal
+                                color: !sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                                Behavior on color { CAnim {} }
+                            }
+                        }
+
+                        StateLayer {
+                            anchors.fill: parent
+                            radius: height / 2
+                            color: !sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                            onClicked: root.selectMode("static")
+                        }
+                    }
+
+                    // Live Segment
+                    Item {
+                        width: sliderSwitch.segW
+                        height: parent.height
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.extraSmall || 6
+
+                            MaterialIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "movie"
+                                scale: sliderSwitch.isLive ? 1.12 : 1.0
+                                iconPointSize: Tokens.font.size.normal || 14
+                                color: sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                                Behavior on color { CAnim {} }
+                                Behavior on scale { Anim {} }
+                            }
+
+                            StyledText {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: qsTr("Live")
+                                textPointSize: Tokens.font.size.smaller || 12
+                                font.weight: sliderSwitch.isLive ? Font.DemiBold : Font.Normal
+                                color: sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                                Behavior on color { CAnim {} }
+                            }
+                        }
+
+                        StateLayer {
+                            anchors.fill: parent
+                            radius: height / 2
+                            color: sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                            onClicked: root.selectMode("live")
+                        }
+                    }
+                }
             }
 
             Item {
@@ -108,48 +217,109 @@ Item {
         }
     }
 
-    PathView {
+    M3Carousel {
         id: view
 
-        anchors.top: tabs.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top:   tabs.bottom
+        anchors.left:  parent.left
+        anchors.right: parent.right
 
-        width: implicitWidth
-        height: implicitHeight
+        layout: "heroCenter"
+        itemHeight: Tokens.sizes.launcher.wallpaperHeight
+        model: scriptModel.values
 
-        readonly property int itemWidth: Tokens.sizes.launcher.wallpaperWidth * 0.8 + Tokens.padding.larger * 2
-
-        readonly property int numItems: {
-            const screen = (QsWindow.window as QsWindow)?.screen;
-            if (!screen) {
-                const maxItems = Config.launcher.maxWallpapers;
-                const visible = Math.min(maxItems, scriptModel.values.length);
-                if (visible === 2) return 1;
-                if (visible > 1 && visible % 2 === 0) return visible - 1;
-                return Math.max(1, visible);
+        onCurrentIndexChanged: {
+            if (root.suppressPreview)
+                return;
+            const itemData = scriptModel.values[currentIndex];
+            if (itemData && itemData.path) {
+                previewTimer.stop();
+                previewTimer.pendingPath = itemData.path;
+                previewTimer.start();
             }
-
-            // Guard Config.border access: use safe default object when unavailable
-            const _safeBorder = (typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0};
-            const barMargins = Math.max(_safeBorder.thickness, root.panels.bar.implicitWidth);
-            let outerMargins = 0;
-            if (root.panels.popouts.hasCurrent && root.panels.popouts.currentCenter + root.panels.popouts.nonAnimHeight / 2 > screen.height - root.content.implicitHeight - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness * 2)
-                outerMargins = root.panels.popouts.nonAnimWidth;
-            if (root.visibilities.utilities && root.panels.utilities.implicitWidth > outerMargins)
-                outerMargins = root.panels.utilities.implicitWidth;
-            const maxWidth = screen.width - _safeBorder.rounding * 4 - (barMargins + outerMargins) * 2;
-
-            if (maxWidth <= 0) return 0;
-
-            const maxItemsOnScreen = Math.floor(maxWidth / itemWidth);
-            const visible = Math.min(maxItemsOnScreen, Config.launcher.maxWallpapers, scriptModel.values.length);
-
-            if (visible === 2) return 1;
-            if (visible > 1 && visible % 2 === 0) return visible - 1;
-            return Math.max(1, visible);
         }
 
-        model: ScriptModel {
+        onItemClicked: (index, itemData) => {
+            if (itemData && itemData.path) {
+                console.log("[WallpaperList] onItemClicked:", itemData.path);
+                Wallpapers.setWallpaper(itemData.path);
+            }
+        }
+
+        delegate: Item {
+            id: itemCell
+            property var modelData
+            property int index
+            property real parallaxOffset: 0
+            property bool isCurrent: false
+
+            readonly property bool hasEntry: itemCell.modelData !== null && itemCell.modelData !== undefined
+
+            Image {
+                id: img
+                anchors.fill: parent
+                source: {
+                    if (!itemCell.hasEntry) return "";
+                    const p = itemCell.modelData.path;
+                    if (!p) return "";
+                    if (itemCell.modelData.isVideo || Wallpapers.isVideoPath(p)) {
+                        const _ = Wallpapers.thumbnailUpdateCount;
+                        const thumb = Wallpapers.videoThumbnailMap[p] || Wallpapers.thumbnailPathFor(p);
+                        return thumb ? (thumb.startsWith("file://") ? thumb : "file://" + thumb) : "";
+                    }
+                    return p.startsWith("file://") ? p : "file://" + p;
+                }
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                cache: true
+                opacity: 1
+            }
+
+            // Loading placeholder
+            Rectangle {
+                anchors.fill: parent
+                visible: img.status !== Image.Ready
+                color: Colours.tPalette.m3surfaceContainerHigh
+                StyledText {
+                    anchors.centerIn: parent
+                    text: itemCell.hasEntry && itemCell.modelData.name ? itemCell.modelData.name.charAt(0) : ""
+                    font.pixelSize: 32
+                    font.weight: 600
+                    color: Colours.tPalette.m3onSurfaceVariant
+                    opacity: 0.4
+                }
+            }
+
+            // Bottom title gradient overlay
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 52
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop { position: 1.0; color: "#CC000000" }
+                }
+                opacity: itemCell.isCurrent ? 1 : 0.7
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                StyledText {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Tokens.padding.normal
+                    anchors.right: parent.right
+                    anchors.rightMargin: Tokens.padding.normal
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: Tokens.padding.small
+                    text: itemCell.hasEntry && itemCell.modelData.name ? itemCell.modelData.name : ""
+                    color: "#FFFFFF"
+                    font.pixelSize: 12
+                    font.weight: itemCell.isCurrent ? 600 : 400
+                    elide: Text.ElideRight
+                }
+            }
+        }
+
+        ScriptModel {
             id: scriptModel
 
             readonly property string searchQuery: root.search.text.split(" ").slice(1).join(" ")
@@ -190,14 +360,13 @@ Item {
             }
         }
 
-        function jumpToCurrent(autoSwitch) {
+        function jumpToCurrent(autoSwitch, animate = false) {
             if (autoSwitch && root.userModeLock)
                 autoSwitch = false;
 
             const current = Wallpapers.actualCurrent;
             const isLive = Wallpapers.isVideoPath(current);
             
-            // Auto-switch mode to match current wallpaper type if we are not searching
             if (autoSwitch && scriptModel.searchQuery === "") {
                 if (isLive && root.mode !== "live") {
                     root.mode = "live";
@@ -211,9 +380,11 @@ Item {
             const idx = scriptModel.values.findIndex(w => w && w.path === current);
             console.log(`[WallpaperList] jumpToCurrent: ${current} (idx: ${idx}, modelCount: ${scriptModel.values.length})`);
             if (idx !== -1) {
-                currentIndex = idx;
+                if (animate) view.snapTo(idx);
+                else view.jumpTo(idx);
             } else if (scriptModel.values.length > 0) {
-                currentIndex = 0;
+                if (animate) view.snapTo(0);
+                else view.jumpTo(0);
             }
         }
 
@@ -222,7 +393,7 @@ Item {
             function onWallpaperLauncherChanged() {
                 if (root.visibilities.wallpaperLauncher) {
                     root.userModeLock = false;
-                    view.jumpToCurrent(true);
+                    view.jumpToCurrent(true, false);
                 } else {
                     root.userModeLock = false;
                     Wallpapers.stopPreview();
@@ -234,33 +405,44 @@ Item {
             target: Wallpapers
             function onActualCurrentChanged() {
                 if (root.visibilities.wallpaperLauncher && !root.userModeLock) {
-                    view.jumpToCurrent(true);
+                    view.jumpToCurrent(true, true);
                 }
             }
         }
 
-        Component.onCompleted: Qt.callLater(() => jumpToCurrent(true))
+        Component.onCompleted: Qt.callLater(() => jumpToCurrent(true, false))
         Component.onDestruction: Wallpapers.stopPreview()
 
-        Keys.onLeftPressed: event => {
-            decrementCurrentIndex();
-            event.accepted = true;
+        Shortcut {
+            sequences: ["Left"]
+            enabled: root.visibilities.wallpaperLauncher
+            onActivated: view.decrementCurrentIndex()
         }
-        Keys.onRightPressed: event => {
-            incrementCurrentIndex();
-            event.accepted = true;
+
+        Shortcut {
+            sequences: ["Right"]
+            enabled: root.visibilities.wallpaperLauncher
+            onActivated: view.incrementCurrentIndex()
         }
-        Keys.onReturnPressed: event => {
-            if (currentItem)
-                currentItem.select?.();
-            event.accepted = true;
+
+        Shortcut {
+            sequences: ["Return", "Enter"]
+            enabled: root.visibilities.wallpaperLauncher
+            onActivated: {
+                const itemData = scriptModel.values[view.currentIndex];
+                if (itemData && itemData.path) {
+                    root.applyWallpaper(itemData.path, view.currentIndex);
+                }
+            }
         }
 
         MouseArea {
             anchors.fill: parent
-            onWheel: wheel => {
+            acceptedButtons: Qt.NoButton
+            onWheel: (wheel) => {
                 if (wheel.angleDelta.y > 0) view.decrementCurrentIndex();
-                else view.incrementCurrentIndex();
+                else if (wheel.angleDelta.y < 0) view.incrementCurrentIndex();
+                wheel.accepted = true;
             }
         }
 
@@ -274,40 +456,6 @@ Item {
                     Wallpapers.preview(pendingPath);
                 }
             }
-        }
-
-        onCurrentItemChanged: {
-            if (root.suppressPreview)
-                return;
-            const item = currentItem;
-            if (item?.hasEntry && item.modelData?.path) {
-                previewTimer.stop();
-                previewTimer.pendingPath = item.modelData.path;
-                previewTimer.start();
-            }
-        }
-
-        readonly property int visibleItemCount: count > 0 ? Math.min(numItems, count) : 0
-
-        implicitWidth: Math.max(1, visibleItemCount) * itemWidth
-        implicitHeight: Tokens.sizes.launcher.wallpaperHeight
-        pathItemCount: visibleItemCount
-        cacheItemCount: 4
-
-        snapMode: PathView.SnapToItem
-        preferredHighlightBegin: 0.5
-        preferredHighlightEnd: 0.5
-        highlightRangeMode: PathView.StrictlyEnforceRange
-        highlightMoveDuration: Tokens.anim.durations.large
-
-        delegate: WallpaperItem { visibilities: root.visibilities }
-
-        path: Path {
-            startY: view.height / 2
-            PathAttribute { name: "z"; value: 0 }
-            PathLine { x: view.width / 2; relativeY: 0 }
-            PathAttribute { name: "z"; value: 1 }
-            PathLine { x: view.width; relativeY: 0 }
         }
     }
 }

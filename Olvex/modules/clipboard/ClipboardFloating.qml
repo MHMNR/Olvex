@@ -251,6 +251,38 @@ PanelWindow {
                             root.refreshFiltered()
                         }
 
+                        Keys.onUpPressed: event => {
+                            root.selectedIndex = Math.max(0, root.selectedIndex - 1)
+                            listView.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                            event.accepted = true
+                        }
+                        Keys.onDownPressed: event => {
+                            root.selectedIndex = Math.min(root.filteredEntries.length - 1, root.selectedIndex + 1)
+                            listView.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                            event.accepted = true
+                        }
+                        Keys.onReturnPressed: event => {
+                            if (root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length)
+                                root.copyAndClose(root.filteredEntries[root.selectedIndex])
+                            event.accepted = true
+                        }
+                        Keys.onEnterPressed: event => {
+                            if (root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length)
+                                root.copyAndClose(root.filteredEntries[root.selectedIndex])
+                            event.accepted = true
+                        }
+                        Keys.onEscapePressed: event => {
+                            root.visible = false
+                            event.accepted = true
+                        }
+                        Keys.onDeletePressed: event => {
+                            if (root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length) {
+                                Cliphist.deleteEntry(root.filteredEntries[root.selectedIndex])
+                                root.selectedIndex = Math.max(0, root.selectedIndex - 1)
+                            }
+                            event.accepted = true
+                        }
+
                         Keys.forwardTo: [container]
                     }
                 }

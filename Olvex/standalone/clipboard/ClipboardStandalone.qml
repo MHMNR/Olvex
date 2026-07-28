@@ -1087,9 +1087,8 @@ Window {
             selectedIndex = idx
         if (listView.currentIndex !== idx)
             listView.currentIndex = idx
-        // Only auto-scroll for keyboard nav — hover-driven selection was warping the list under the cursor
-        if (keyboardNavActive)
-            listView.positionViewAtIndex(idx, ListView.Contain)
+        if (keyboardNavActive && typeof listView.smoothEnsureVisible === "function")
+            listView.smoothEnsureVisible(idx)
     }
 
     function bumpPreview() {
@@ -1288,7 +1287,6 @@ Window {
         if (!clipListModel.count) return
         keyboardNavActive = true
         freezeListHoverSelect()
-        reclaimFocus()
         const next = Math.max(0, Math.min(clipListModel.count - 1, selectedIndex + delta))
         if (next === selectedIndex) return
         selectedIndex = next
@@ -1301,7 +1299,6 @@ Window {
         if (!clipListModel.count) return
         keyboardNavActive = true
         freezeListHoverSelect()
-        reclaimFocus()
         const next = Math.max(0, Math.min(clipListModel.count - 1, toIndex))
         if (next === selectedIndex) return
         selectedIndex = next
@@ -1447,13 +1444,13 @@ Window {
 
     // Window shortcuts — work even when list steals focus under the cursor
     Shortcut {
-        sequences: ["Up", StandardKey.MoveToPreviousLine]
+        sequence: "Up"
         context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: moveSelection(-1)
     }
     Shortcut {
-        sequences: ["Down", StandardKey.MoveToNextLine]
+        sequence: "Down"
         context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: moveSelection(1)
@@ -1793,6 +1790,22 @@ Window {
                                         applyFilter()
                                     }
                                     Keys.priority: Keys.BeforeItem
+                                    Keys.onUpPressed: function(event) {
+                                        win.moveSelection(-1)
+                                        event.accepted = true
+                                    }
+                                    Keys.onDownPressed: function(event) {
+                                        win.moveSelection(1)
+                                        event.accepted = true
+                                    }
+                                    Keys.onReturnPressed: function(event) {
+                                        win.copySelected()
+                                        event.accepted = true
+                                    }
+                                    Keys.onEnterPressed: function(event) {
+                                        win.copySelected()
+                                        event.accepted = true
+                                    }
                                     Keys.onPressed: function(event) {
                                         if (win.handleFilterArrow(event))
                                             return
@@ -1948,7 +1961,7 @@ Window {
                                         return null
                                     return listView.itemAtIndex(win.selectedIndex)
                                 }
-                                readonly property bool active: targetItem !== null && clipListModel.count > 0
+                                readonly property bool active: win.selectedIndex >= 0 && win.selectedIndex < clipListModel.count && clipListModel.count > 0
                                 readonly property int insetX: 6
                                 readonly property int insetY: 4
 
@@ -1966,50 +1979,45 @@ Window {
 
                                 function retarget(animate) {
                                     const item = targetItem
-                                    if (!item)
+                                    let ny = 0
+                                    let nh = 48
+                                    if (item && item.y !== undefined) {
+                                        const rowH = item.height > 0 ? item.height : 60
+                                        ny = item.y - listView.contentY + insetY
+                                        nh = Math.max(36, rowH - insetY * 2)
+                                    } else if (win.selectedIndex >= 0 && win.selectedIndex < clipListModel.count) {
+                                        const estItemY = win.selectedIndex * 60 + win.selectedIndex * listView.spacing
+                                        ny = estItemY - listView.contentY + insetY
+                                        nh = Math.max(36, 60 - insetY * 2)
+                                    } else {
                                         return
-                                    const rowH = item.height > 0 ? item.height : 60
-                                    const ny = item.y - listView.contentY + insetY
-                                    const nh = Math.max(36, rowH - insetY * 2)
-                                    const wantAnim = !!(animate && !win.reducedMotion && springEnabled)
-                                    if (!wantAnim)
-                                        springEnabled = false
+                                    }
+                                    if (animate && !win.reducedMotion)
+                                        springEnabled = true
                                     markerY = ny
                                     markerH = nh
-                                    if (!wantAnim) {
-                                        Qt.callLater(function() {
-                                            if (listFocusMarker.targetItem)
-                                                listFocusMarker.springEnabled = !win.reducedMotion
-                                        })
-                                    }
                                 }
 
                                 onTargetItemChanged: {
-                                    if (targetItem)
-                                        retarget(springEnabled)
-                                    else
-                                        springEnabled = false
+                                    if (targetItem || win.selectedIndex >= 0)
+                                        retarget(true)
                                 }
                                 onActiveChanged: {
                                     if (active)
-                                        retarget(false)
-                                    else
-                                        springEnabled = false
+                                        retarget(true)
                                 }
 
                                 Connections {
                                     target: win
                                     function onSelectedIndexChanged() {
-                                        Qt.callLater(function() {
-                                            listFocusMarker.retarget(true)
-                                        })
+                                        listFocusMarker.retarget(true)
                                     }
                                 }
 
                                 Connections {
                                     target: listView
                                     function onContentYChanged() {
-                                        listFocusMarker.retarget(false)
+                                        listFocusMarker.retarget(listFocusMarker.springEnabled)
                                     }
                                     function onCountChanged() {
                                         Qt.callLater(function() {
@@ -2113,6 +2121,40 @@ Window {
                                     } else {
                                         smoothScrollAnim.stop()
                                         contentY = targetY
+                                    }
+                                }
+
+                                function smoothEnsureVisible(idx) {
+                                    if (idx < 0 || idx >= clipListModel.count) return
+                                    const item = itemAtIndex(idx)
+                                    let itemY = idx * 60 + idx * spacing
+                                    let itemH = 60
+                                    if (item && item.height > 0) {
+                                        itemY = item.y
+                                        itemH = item.height
+                                    }
+
+                                    const currentY = smoothScrollAnim.running ? smoothScrollAnim.to : contentY
+                                    const viewTop = currentY
+                                    const viewBottom = currentY + height
+                                    const padding = 16
+
+                                    let targetY = currentY
+                                    if (itemY + itemH + padding > viewBottom) {
+                                        targetY = clampScrollY(itemY + itemH + padding - height)
+                                    } else if (itemY - padding < viewTop) {
+                                        targetY = clampScrollY(itemY - padding)
+                                    }
+
+                                    if (Math.abs(targetY - currentY) > 0.5) {
+                                        if (!win.reducedMotion) {
+                                            smoothScrollAnim.stop()
+                                            smoothScrollAnim.duration = tok.motion.emphasizedMedium
+                                            smoothScrollAnim.to = targetY
+                                            smoothScrollAnim.start()
+                                        } else {
+                                            contentY = targetY
+                                        }
                                     }
                                 }
 
@@ -2418,6 +2460,25 @@ Window {
 
                                     Rectangle {
                                         id: previewEditFrame
+                                        // Handle click-to-edit in view mode (disabled in edit mode so text selection works)
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            z: 10
+                                            enabled: !win.previewEditing
+                                            onClicked: win.beginPreviewEdit()
+                                        }
+
+                                        // Independent cursor overlay (z:10 to sit above TextEdit, independent of MouseArea)
+                                        Item {
+                                            anchors.fill: parent
+                                            z: 10
+                                            HoverHandler {
+                                                cursorShape: win.previewEditing ? Qt.IBeamCursor : Qt.ArrowCursor
+                                            }
+                                        }
+
+
+
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
                                         Layout.minimumHeight: 140
@@ -2425,11 +2486,7 @@ Window {
                                         color: tok.palette.stageHigh
                                         clip: true
 
-                                        HoverHandler {
-                                            id: previewFrameHover
-                                            enabled: !win.previewEditing
-                                        }
-
+                                        // Arrow cursor overlay for view mode — sits on top of everything
                                         Behavior on radius {
                                             enabled: !win.reducedMotion
                                             NumberAnimation { duration: tok.motion.effectsExpressive.fast }
@@ -2512,11 +2569,12 @@ Window {
                                                     font: tok.type.preview
                                                     color: tok.palette.fgSurface
                                                     selectedTextColor: tok.palette.fgPrimary
-                                                    selectionColor: Qt.alpha(tok.palette.primary, 0.35)
+                                                    selectionColor: tok.palette.primary
                                                     leftPadding: 12
                                                     rightPadding: 12
                                                     topPadding: 12
                                                     bottomPadding: 12
+
                                                     selectByMouse: true
                                                     selectByKeyboard: true
                                                     persistentSelection: true
@@ -2530,8 +2588,10 @@ Window {
                                                     cursorDelegate: Rectangle {
                                                         id: caret
                                                         width: 2
+                                                        height: previewEditor.cursorRectangle.height > 0
+                                                            ? previewEditor.cursorRectangle.height
+                                                            : Math.max(20, previewEditor.font.pixelSize * 1.2)
                                                         color: tok.palette.primary
-                                                        // height is set by TextEdit to line height
                                                         visible: previewEditor.activeFocus
                                                             && !previewEditor.readOnly
                                                             && previewEditor.selectionStart === previewEditor.selectionEnd
@@ -2551,7 +2611,7 @@ Window {
 
                                                         Timer {
                                                             id: caretBlink
-                                                            interval: Math.max(200, Application.styleHints.cursorFlashTime / 2)
+                                                            interval: 500
                                                             running: caret.visible
                                                             repeat: true
                                                             onTriggered: caret.opacity = caret.opacity > 0.5 ? 0 : 1
@@ -2577,14 +2637,6 @@ Window {
                                                                 previewEditor.cursorVisible = false
                                                             }
                                                         }
-                                                    }
-
-                                                    // Enter edit mode on click when idle
-                                                    MouseArea {
-                                                        anchors.fill: parent
-                                                        enabled: !win.previewEditing
-                                                        cursorShape: Qt.IBeamCursor
-                                                        onClicked: win.beginPreviewEdit()
                                                     }
 
                                                     onActiveFocusChanged: {
@@ -2934,7 +2986,6 @@ Window {
                 propagateComposedEvents: true
                 hoverEnabled: false
                 preventStealing: false
-                cursorShape: Qt.ArrowCursor
                 onPressed: function(mouse) {
                     const pt = mapToItem(previewEditFrame, mouse.x, mouse.y)
                     const inside = pt.x >= 0 && pt.y >= 0

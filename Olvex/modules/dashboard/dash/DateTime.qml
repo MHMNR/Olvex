@@ -1,11 +1,15 @@
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
+import Quickshell
+import Olvex
 import Olvex.Config
 import Olvex.Services
 import qs.components
 import qs.components.effects
 import qs.services
 import qs.utils
+import "../../../utils/os_jokes.js" as OsJokes
 
 Item {
     id: root
@@ -13,212 +17,354 @@ Item {
     property bool dashboardVisible: true
     readonly property bool waveActive: root.dashboardVisible && root.visible && width > 0 && height > 0
 
+    property var osQuotes: OsJokes.jokes
+    property int lastQuoteIndex: -1
+    property string fullOsQuote: ""
+    property string currentOsQuote: ""
+    
+    function startTypewriter(quoteText: string): void {
+        fullOsQuote = quoteText;
+        currentOsQuote = "";
+        typewriterTimer.charIndex = 0;
+        typewriterTimer.restart();
+    }
+
+    function pickRandomQuote(): void {
+        if (osQuotes.length === 0) return;
+        let newIdx = lastQuoteIndex;
+        if (osQuotes.length > 1) {
+            while (newIdx === lastQuoteIndex) {
+                newIdx = Math.floor(Math.random() * osQuotes.length);
+            }
+        } else {
+            newIdx = 0;
+        }
+        lastQuoteIndex = newIdx;
+        startTypewriter(osQuotes[newIdx]);
+    }
+
+    onDashboardVisibleChanged: {
+        if (dashboardVisible) {
+            pickRandomQuote();
+        }
+    }
+
+    Timer {
+        id: typewriterTimer
+        interval: 35 // typewriter typing speed
+        repeat: true
+        property int charIndex: 0
+        onTriggered: {
+            if (charIndex < root.fullOsQuote.length) {
+                root.currentOsQuote += root.fullOsQuote[charIndex];
+                charIndex++;
+            } else {
+                stop();
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        pickRandomQuote();
+    }
+
     readonly property color accentColor: Colours.palette.m3primary
     readonly property color fillBase: Colours.layer(Colours.palette.m3primaryContainer, 1)
 
-    // --- Animated Wave Background (Minute Progress) ---
+    // ── Compiled Hardware GPU Shader Effect (clock_wave.frag.qsb) ──
+    ShaderEffect {
+        id: gpuWave
+        anchors.fill: parent
+        z: 0
+        visible: gpuWave.status === ShaderEffect.Ready
+
+        property real iTime: waveTimer.elapsed
+        property real iFillProgress: waveTimer.fillProgress
+        property color iPrimary: Colours.palette.m3primary
+        property color iPrimaryContainer: Colours.layer(Colours.palette.m3primaryContainer, 1)
+        property color iOnPrimaryContainer: Colours.palette.m3onPrimaryContainer
+        property real iWidth: Math.max(width, 1)
+        property real iHeight: Math.max(height, 1)
+
+        fragmentShader: Qt.resolvedUrl("../../../assets/shaders/clock_wave.frag.qsb")
+    }
+
+    // Canvas fallback if ShaderEffect isn't ready
     Canvas {
         id: waveCanvas
         anchors.fill: parent
-        opacity: 0.62
+        opacity: 0.82
         z: 0
-
-        property real phase: 0
-        property real fillProgress: 0.0
-        property bool isResetting: false
+        visible: gpuWave.status !== ShaderEffect.Ready
 
         onPaint: {
             var ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height);
 
-            function drawWave(fillColor, amplitude, freq, phaseOffset) {
-                ctx.beginPath();
-                ctx.fillStyle = fillColor;
-                
-                // Base goes from bottom (height + max_amplitude) to top (-max_amplitude)
-                var maxAmplitude = 10;
+            function getGerstnerY(x, baseLevel, amplitude, freq, phaseOffset, trochFactor) {
+                var p = waveTimer.elapsed * 2.2 + phaseOffset;
+                var w1 = Math.sin(x * freq + p);
+                var w2 = Math.cos(x * (freq * 1.8) + p * 1.3) * 0.38;
+                var norm = (w1 + 1.0) * 0.5;
+                var troch = Math.pow(norm, trochFactor) * 2.0 - 1.0;
+                var slosh = Math.sin(p * 0.35 + (x / width) * 1.5) * (amplitude * 0.3);
+                return baseLevel + (troch * amplitude) + (w2 * amplitude * 0.5) + slosh;
+            }
+
+            function drawTrochoidalWave(fillColor, amplitude, freq, phaseOffset, trochFactor, strokeColor) {
+                var maxAmplitude = 18;
                 var startBase = height + maxAmplitude;
                 var endBase = -maxAmplitude;
-                var base = startBase + (endBase - startBase) * waveCanvas.fillProgress;
-                
+                var baseLevel = startBase + (endBase - startBase) * waveTimer.fillProgress;
+
+                ctx.beginPath();
+                ctx.fillStyle = fillColor;
                 ctx.moveTo(0, height);
-                for (var x = 0; x <= width; x++) {
-                    var y = base + Math.sin(x * freq + waveCanvas.phase + phaseOffset) * amplitude;
+
+                for (var x = 0; x <= width; x += 2) {
+                    var y = getGerstnerY(x, baseLevel, amplitude, freq, phaseOffset, trochFactor);
                     ctx.lineTo(x, y);
                 }
                 ctx.lineTo(width, height);
                 ctx.closePath();
                 ctx.fill();
-            }
 
-            drawWave(String(Qt.alpha(root.fillBase, 0.92)), 10, 0.016, 0);
-            drawWave(String(Qt.alpha(root.fillBase, 0.68)), 7,  0.022, 1.2);
-            drawWave(String(Qt.alpha(root.fillBase, 0.44)), 5,  0.028, 2.5);
-        }
-
-        Timer {
-            running: root.waveActive
-            repeat: true
-            interval: 33
-            onTriggered: {
-                waveCanvas.phase += 0.045;
-                
-                // Calculate actual progress based on seconds and milliseconds
-                var d = new Date();
-                var target = (d.getSeconds() + d.getMilliseconds() / 1000) / 60.0;
-                
-                // Detect wrap-around (minute changed)
-                if (waveCanvas.fillProgress > 0.8 && target < 0.2) {
-                    waveCanvas.isResetting = true;
-                }
-                
-                if (waveCanvas.isResetting) {
-                    // Smooth, fast drop animation (takes ~800ms to empty)
-                    waveCanvas.fillProgress -= 0.02;
-                    if (waveCanvas.fillProgress <= target) {
-                        waveCanvas.fillProgress = target;
-                        waveCanvas.isResetting = false;
+                if (strokeColor) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = 1.8;
+                    for (var sx = 0; sx <= width; sx += 2) {
+                        var sy = getGerstnerY(sx, baseLevel, amplitude, freq, phaseOffset, trochFactor);
+                        if (sx === 0) ctx.moveTo(sx, sy);
+                        else ctx.lineTo(sx, sy);
                     }
-                } else {
-                    // Smooth follow for the rising animation
-                    waveCanvas.fillProgress += (target - waveCanvas.fillProgress) * 0.15;
+                    ctx.stroke();
                 }
-                
-                waveCanvas.requestPaint();
             }
+
+            drawTrochoidalWave(String(Qt.alpha(root.fillBase, 0.92)), 14, 0.016, 0.0, 1.8, String(Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.88)));
+            drawTrochoidalWave(String(Qt.alpha(root.fillBase, 0.65)), 10, 0.022, 1.5, 1.5, null);
+            drawTrochoidalWave(String(Qt.alpha(root.fillBase, 0.40)), 7,  0.032, 2.9, 1.3, null);
         }
     }
 
+    Timer {
+        id: waveTimer
+        running: root.waveActive
+        repeat: true
+        interval: 30
+
+        property real elapsed: 0
+        property real fillProgress: 0.0
+        property bool isResetting: false
+
+        onTriggered: {
+            waveTimer.elapsed += interval / 1000.0;
+
+            var d = new Date();
+            var target = (d.getSeconds() + d.getMilliseconds() / 1000) / 60.0;
+
+            if (waveTimer.fillProgress > 0.85 && target < 0.15) {
+                waveTimer.isResetting = true;
+            }
+
+            if (waveTimer.isResetting) {
+                waveTimer.fillProgress -= 0.035;
+                if (waveTimer.fillProgress <= target) {
+                    waveTimer.fillProgress = target;
+                    waveTimer.isResetting = false;
+                }
+            } else {
+                waveTimer.fillProgress += (target - waveTimer.fillProgress) * 0.22;
+            }
+
+            if (waveCanvas.visible) waveCanvas.requestPaint();
+        }
+    }
+
+    // ── Perfect Visual Hierarchy Container ──
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
         spacing: 0
         z: 1
 
-        // Top Clock Icon — top-left
-        StyledRect {
-            Layout.alignment: Qt.AlignLeft
-            width: 36
-            height: 36
-            radius: Tokens.rounding.small
-            color: Colours.layer(Colours.palette.m3primaryContainer, 1)
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
-            border.width: 1
-            MaterialIcon {
-                anchors.centerIn: parent
-                text: "schedule"
+        Item { Layout.preferredHeight: 12 }
+
+        // 1. TOP: Hero Time Stack
+        Column {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: -4
+
+            property string hh: { var _ = Time.minuteStr; return Time.format(GlobalConfig.services.useTwelveHourClock ? "hh A" : "HH").substring(0, 2) }
+            property string mm: { var _ = Time.minuteStr; return Time.format("mm") }
+
+            StyledText {
+                text: parent.hh.charAt(0)
+                textPointSize: 48
+                font.weight: Font.Black
+                color: Colours.palette.m3onSurface
+                anchors.horizontalCenter: parent.horizontalCenter
+                rotation: 90
+            }
+
+            StyledText {
+                text: parent.hh.charAt(1)
+                textPointSize: 48
+                font.weight: Font.Black
+                color: Colours.palette.m3onSurface
+                anchors.horizontalCenter: parent.horizontalCenter
+                rotation: 90
+            }
+
+            // Animated M3 Capsule Separator
+            Rectangle {
+                id: sepCapsule
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 24
+                height: 3.5
+                radius: 1.75
                 color: root.accentColor
-                iconPointSize: 16
+
+                SequentialAnimation on opacity {
+                    running: root.waveActive
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.4; duration: 750; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 0.95; duration: 750; easing.type: Easing.InOutSine }
+                }
+            }
+
+            StyledText {
+                text: parent.mm.charAt(0)
+                textPointSize: 48
+                font.weight: Font.Black
+                color: Colours.palette.m3onSurface
+                anchors.horizontalCenter: parent.horizontalCenter
+                rotation: 90
+            }
+
+            StyledText {
+                text: parent.mm.charAt(1)
+                textPointSize: 48
+                font.weight: Font.Black
+                color: Colours.palette.m3onSurface
+                anchors.horizontalCenter: parent.horizontalCenter
+                rotation: 90
             }
         }
 
         Item { Layout.fillHeight: true }
 
-        // Time Section
-        Column {
+        // 2. MIDDLE: Spinning Seconds Badge
+        Item {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 0
+            Layout.preferredWidth: 56
+            Layout.preferredHeight: 56
 
-            StyledText {
-                text: Time.hourStr
-                textPointSize: 48
-                font.weight: Font.Black
-                color: Colours.palette.m3onSurface
-                anchors.horizontalCenter: parent.horizontalCenter
+            property var secondShapes: [
+                MaterialShape.Circle, MaterialShape.Square, MaterialShape.Slanted, MaterialShape.Arch,
+                MaterialShape.Fan, MaterialShape.Arrow, MaterialShape.SemiCircle, MaterialShape.Oval,
+                MaterialShape.Pill, MaterialShape.Triangle, MaterialShape.Diamond, MaterialShape.ClamShell,
+                MaterialShape.Pentagon, MaterialShape.Gem, MaterialShape.Sunny, MaterialShape.VerySunny,
+                MaterialShape.Cookie4Sided, MaterialShape.Cookie6Sided, MaterialShape.Cookie7Sided, MaterialShape.Cookie9Sided,
+                MaterialShape.Cookie12Sided, MaterialShape.Ghostish, MaterialShape.Clover4Leaf, MaterialShape.Clover8Leaf,
+                MaterialShape.Burst, MaterialShape.SoftBurst, MaterialShape.Boom, MaterialShape.SoftBoom,
+                MaterialShape.Flower, MaterialShape.Puffy, MaterialShape.PuffyDiamond, MaterialShape.PixelCircle,
+                MaterialShape.PixelTriangle, MaterialShape.Bun, MaterialShape.Heart
+            ]
+
+            MaterialShape {
+                id: m3DialShape
+                anchors.centerIn: parent
+                implicitSize: 52
+                
+                property int s: Time.seconds
+                property int currentIndex: 0
+                
+                onSChanged: {
+                    var newIndex = currentIndex;
+                    while (newIndex === currentIndex) {
+                        newIndex = Math.floor(Math.random() * parent.secondShapes.length);
+                    }
+                    currentIndex = newIndex;
+                }
+                
+                shape: parent.secondShapes[currentIndex]
+                
+                color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.70)
             }
 
-            // Three dots separator
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 6
-                Repeater {
-                    model: 3
-                    Rectangle {
-                        width: 5
-                        height: 5
-                        radius: 2.5
-                        color: index === 1
-                            ? Colours.palette.m3onSurface
-                            : root.accentColor
-                        opacity: 0.7
-                    }
+            StyledText {
+                anchors.centerIn: parent
+                text: `${Time.format("ss")}s`
+                textPointSize: Tokens.font.size.smaller
+                font.weight: Font.Bold
+                font.family: Tokens.font.family.mono
+                color: root.accentColor
+            }
+        }
+
+        Item { Layout.fillHeight: true }
+
+        // 3. BOTTOM: Quote Banner
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: quoteText.implicitHeight + 8
+            Layout.alignment: Qt.AlignHCenter
+
+            StyledText {
+                id: quoteText
+                anchors.centerIn: parent
+                width: parent.width
+                text: root.currentOsQuote
+                textPointSize: Tokens.font.size.smaller - 1
+                font.weight: Font.Medium
+                color: Colours.palette.m3onSurface
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            HoverHandler {
+                id: quoteHover
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            TapHandler {
+                onTapped: {
+                    Quickshell.execDetached(["wl-copy", root.fullOsQuote]);
+                    Toaster.toast("Quote Copied", "The quote has been copied to your clipboard.", "content_copy", Toast.Success);
                 }
             }
 
-            StyledText {
-                text: Time.minuteStr
-                textPointSize: 48
-                font.weight: Font.Black
-                color: Colours.palette.m3onSurface
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-        }
+            // Hover Icon
+            Item {
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.topMargin: -4
+                anchors.rightMargin: 0
+                width: 20
+                height: 20
+                opacity: quoteHover.hovered ? 1 : 0
+                Behavior on opacity { CAnim {} }
 
-        Item { Layout.preferredHeight: 6 }
+                StyledRect {
+                    anchors.fill: parent
+                    radius: 10
+                    color: Colours.palette.m3surfaceContainerHighest
+                    border.color: Colours.palette.m3outlineVariant
+                    border.width: 1
 
-        // AM · Friday · 12
-        RowLayout {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 0
-
-            StyledText {
-                visible: Time.amPmStr.length > 0
-                text: Time.amPmStr
-                textPointSize: Tokens.font.size.small
-                font.weight: Font.Medium
-                color: Colours.palette.m3onSurfaceVariant
-            }
-
-            MetaDot {
-                visible: Time.amPmStr.length > 0
-            }
-
-            StyledText {
-                text: Time.format("dddd")
-                textPointSize: Tokens.font.size.smaller
-                font.weight: Font.Medium
-                color: Colours.palette.m3onSurface
-            }
-
-            MetaDot {}
-
-            StyledText {
-                text: Time.format("dd")
-                textPointSize: Tokens.font.size.small
-                font.weight: Font.Normal
-                font.family: Tokens.font.family.mono
-                color: Colours.palette.m3onSurfaceVariant
-                opacity: 0.65
-            }
-        }
-
-        Item { Layout.preferredHeight: 10 }
-
-        // Decorative Dot Grid
-        Grid {
-            Layout.alignment: Qt.AlignHCenter
-            columns: 4
-            rows: 2
-            columnSpacing: 7
-            rowSpacing: 7
-
-            Repeater {
-                model: 8
-                Rectangle {
-                    width: 4; height: 4; radius: 2
-                    color: root.accentColor
-                    opacity: 0.3
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "content_copy"
+                        iconPointSize: 10
+                        color: Colours.palette.m3onSurface
+                    }
                 }
             }
         }
 
         Item { Layout.preferredHeight: 8 }
-    }
-
-    component MetaDot: StyledText {
-        text: " · "
-        textPointSize: Tokens.font.size.small
-        color: Colours.palette.m3onSurfaceVariant
-        opacity: 0.4
     }
 }

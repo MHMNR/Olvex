@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
 import qs.components
@@ -49,15 +50,42 @@ Item {
     }
 
     property bool suspended: false
+    property string sortMode: "recent" // "recent", "az", "za"
 
-    // Reactive model — auto-updates on search text change
-    readonly property var modelValues: {
+    onSortModeChanged: {
+        if (state === "apps") {
+            appGrid.currentIndex = 0;
+            appGrid.contentY = 0;
+        }
+    }
+
+    // Reactive model — auto-updates on search text change and sorting
+    readonly property var rawModelValues: {
         if (state === "apps") return Apps.search(search.text);
         if (state === "actions") return Actions.query(search.text);
         if (state === "calc") return [0];
         if (state === "scheme") return Schemes.query(search.text);
         if (state === "variant") return M3Variants.query(search.text);
         return [];
+    }
+
+    readonly property var modelValues: {
+        if (state !== "apps" || !rawModelValues) return rawModelValues;
+        const list = rawModelValues.slice();
+        if (sortMode === "az") {
+            return list.sort((a, b) => {
+                const nameA = (a && a.name) ? a.name : "";
+                const nameB = (b && b.name) ? b.name : "";
+                return nameA.localeCompare(nameB);
+            });
+        } else if (sortMode === "za") {
+            return list.sort((a, b) => {
+                const nameA = (a && a.name) ? a.name : "";
+                const nameB = (b && b.name) ? b.name : "";
+                return nameB.localeCompare(nameA);
+            });
+        }
+        return list;
     }
 
     Connections {
@@ -202,6 +230,7 @@ Item {
                 resume();
             else {
                 suspend();
+                sortContainer.expanded = false;
                 // Dismiss context menu when launcher closes
                 sharedContextMenu.expanded = false;
             }
@@ -277,15 +306,249 @@ Item {
         return (Tokens.sizes.launcher.itemHeight + 8) * Math.min(maxShown, count) - 8;
     }
 
+    // Top Header Bar with Sort Button
+    Item {
+        id: headerBar
+
+        visible: root.state === "apps"
+        width: 550
+        height: 32
+        z: 100
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 4
+
+        StyledText {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: qsTr("Applications")
+            color: Colours.palette.m3onSurfaceVariant
+            textPointSize: Tokens.font.size.normal
+            font.weight: Font.DemiBold
+        }
+
+        // Container Transform Sort Control (Icon morphs into sorting list menu)
+        Item {
+            id: sortControlHost
+            anchors.right: parent.right
+            anchors.top: parent.top
+            width: sortContainer.width
+            height: sortContainer.height
+            z: sortContainer.expanded ? 99 : 1
+
+            // Click-outside overlay to dismiss menu & block mouse focus/hover leaks
+            MouseArea {
+                anchors.fill: parent
+                anchors.margins: -2000
+                visible: sortContainer.expanded
+                hoverEnabled: true
+                preventStealing: true
+                z: 0
+                onClicked: sortContainer.expanded = false
+            }
+
+            StyledRect {
+                id: sortContainer
+                anchors.right: parent.right
+                anchors.top: parent.top
+                z: 1
+                clip: true
+
+                property bool expanded: false
+
+                width: expanded ? 180 : 32
+                height: expanded ? 124 : 32
+                radius: expanded ? 16 : Tokens.rounding.full
+
+                // Opaque Material 3 surface color (non-transparent background)
+                color: expanded ? Colours.palette.m3surfaceContainerLow
+                                : (sortIconHover.hovered ? Colours.palette.m3surfaceContainerHigh
+                                                         : Colours.palette.m3surfaceContainer)
+                border.color: expanded ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
+                border.width: 1
+
+                Behavior on width { Anim { type: Anim.EmphasizedSpatial } }
+                Behavior on height { Anim { type: Anim.EmphasizedSpatial } }
+                Behavior on radius { Anim { type: Anim.EmphasizedSpatial } }
+                Behavior on color { CAnim {} }
+                Behavior on border.color { CAnim {} }
+
+                // ── LAYER 1: Collapsed Icon State ──
+                Item {
+                    id: collapsedIcon
+                    anchors.centerIn: parent
+                    width: 32
+                    height: 32
+                    opacity: sortContainer.expanded ? 0 : 1
+                    scale: sortContainer.expanded ? 0.5 : 1
+                    visible: opacity > 0.01
+
+                    Behavior on opacity { Anim { duration: Tokens.anim.durations.short } }
+                    Behavior on scale { Anim { duration: Tokens.anim.durations.short } }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: root.sortMode === "az" ? "sort_by_alpha" : (root.sortMode === "za" ? "swap_vert" : "history")
+                        color: Colours.palette.m3primary
+                        iconPointSize: 16
+                    }
+
+                    HoverHandler {
+                        id: sortIconHover
+                        cursorShape: Qt.PointingHandCursor
+                    }
+
+                    TapHandler {
+                        onTapped: sortContainer.expanded = !sortContainer.expanded
+                    }
+                }
+
+                // ── LAYER 2: Expanded Container Transform List Menu ──
+                // Plain Item wrapper isolates sliding sortHoverHighlight from ColumnLayout (prevents re-layout glitch)
+                Item {
+                    id: expandedMenuArea
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 6
+                    width: 168
+                    height: 112
+                    opacity: sortContainer.expanded ? 1 : 0
+                    scale: sortContainer.expanded ? 1 : 0.85
+                    visible: opacity > 0.01
+
+                    property Item hoveredItem: null
+
+                    Behavior on opacity { Anim { duration: sortContainer.expanded ? Tokens.anim.durations.normal : 100 } }
+                    Behavior on scale { Anim { type: Anim.EmphasizedSpatial } }
+
+                    // Sliding hover highlight marker — clearly visible M3 hover fill
+                    StyledRect {
+                        id: sortHoverHighlight
+
+                        readonly property Item target: expandedMenuArea.hoveredItem
+
+                        z: 0
+                        visible: target !== null && sortContainer.expanded
+                        opacity: visible ? 1 : 0
+                        color: target && target.isActive ? Colours.palette.m3primaryContainer
+                                                         : (Colours.light ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.12))
+                        border.color: target && target.isActive ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
+                        border.width: 1
+                        radius: 10
+
+                        x: target ? target.mapToItem(expandedMenuArea, 0, 0).x : 0
+                        y: target ? target.mapToItem(expandedMenuArea, 0, 0).y : 0
+                        width: target ? target.width : 0
+                        height: target ? target.height : 0
+
+                        Behavior on y {
+                            enabled: sortHoverHighlight.opacity > 0
+                            SpringAnimation {
+                                spring: 7.0
+                                damping: 0.8
+                                mass: 1.0
+                                epsilon: 0.005
+                            }
+                        }
+                        Behavior on opacity { CAnim {} }
+                    }
+
+                    ColumnLayout {
+                        id: expandedList
+                        anchors.fill: parent
+                        spacing: 2
+                        z: 1
+
+                        Repeater {
+                            model: [
+                                { mode: "recent", label: qsTr("Recently Opened"), icon: "history" },
+                                { mode: "az", label: qsTr("A  -  Z"), icon: "sort_by_alpha" },
+                                { mode: "za", label: qsTr("Z  -  A"), icon: "swap_vert" }
+                            ]
+
+                            delegate: Item {
+                                id: itemRect
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 34
+                                z: 1
+
+                                readonly property bool isActive: root.sortMode === modelData.mode
+
+                                // Static background for active state when not hovered; sliding sortHoverHighlight takes over on hover
+                                StyledRect {
+                                    anchors.fill: parent
+                                    radius: 10
+                                    color: itemRect.isActive ? Colours.palette.m3primaryContainer : "transparent"
+                                    opacity: (expandedMenuArea.hoveredItem === itemRect) ? 0 : 1
+                                    Behavior on opacity { CAnim {} }
+                                    Behavior on color { CAnim {} }
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
+                                    z: 2
+
+                                    MaterialIcon {
+                                        text: itemRect.modelData.icon
+                                        color: itemRect.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                                        iconPointSize: 14
+                                    }
+
+                                    StyledText {
+                                        Layout.fillWidth: true
+                                        text: itemRect.modelData.label
+                                        color: itemRect.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+                                        textPointSize: Tokens.font.size.smaller
+                                        font.weight: itemRect.isActive ? Font.Bold : Font.Normal
+                                    }
+
+                                    MaterialIcon {
+                                        visible: itemRect.isActive
+                                        text: "check"
+                                        color: Colours.palette.m3onPrimaryContainer
+                                        iconPointSize: 12
+                                    }
+                                }
+
+                                HoverHandler {
+                                    id: itemHover
+                                    cursorShape: Qt.PointingHandCursor
+                                    onHoveredChanged: {
+                                        if (hovered) {
+                                            expandedMenuArea.hoveredItem = itemRect;
+                                        } else if (expandedMenuArea.hoveredItem === itemRect) {
+                                            expandedMenuArea.hoveredItem = null;
+                                        }
+                                    }
+                                }
+
+                                TapHandler {
+                                    onTapped: {
+                                        root.sortMode = itemRect.modelData.mode;
+                                        sortContainer.expanded = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Item {
         id: appGridHost
 
         visible: root.state === "apps"
         width: 550
-        height: root.appsPaneHeight - 8
+        height: root.appsPaneHeight - 44
         transformOrigin: Item.Bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
+        anchors.top: headerBar.bottom
         anchors.topMargin: 4
         clip: true
 

@@ -40,27 +40,28 @@ Item {
         if (shouldBeActive) {
             teardownGrace.stop();
             implicitHeight = Qt.binding(() => innerContent.implicitHeight);
-            implicitWidth  = Qt.binding(() => innerContent.implicitWidth);
         } else {
             teardownGrace.restart();
-            implicitHeight = implicitHeight; // break binding
-            implicitWidth  = implicitWidth;  // break binding
+            implicitHeight = implicitHeight; // break binding — freeze height for exit anim
         }
     }
 
     visible: offsetScale < 1
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: innerContent.implicitHeight
-    implicitWidth:  innerContent.implicitWidth
 
     // ── Inner content ──────────────────────────────────────────────────────
     Item {
         id: innerContent
 
-        implicitWidth:  (listLoader.item?.implicitWidth  ?? (Tokens.sizes.launcher?.wallpaperWidth ?? 400))  + root.padding * 2
-        implicitHeight: (listLoader.item?.implicitHeight ?? (Tokens.sizes.launcher?.wallpaperHeight ?? 220)) + searchWrapper.implicitHeight + root.padding * 3
+        // Height = tabs row + carousel + search bar + spacing
+        // We use explicit sizes since WallpaperList uses anchors.fill (doesn't propagate implicitHeight)
+        readonly property int carouselHeight: Tokens.sizes.launcher.wallpaperHeight
+        readonly property int tabsHeight:     40  // approx TextButton row height
+        implicitHeight: tabsHeight + carouselHeight + searchWrapper.implicitHeight + root.padding * 3
 
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.left:   parent.left
+        anchors.right:  parent.right
         anchors.bottom: parent.bottom
 
         // Wallpaper list (loader keeps it inactive while hidden to save memory)
@@ -68,9 +69,10 @@ Item {
             id: listLoader
 
             active: root.shouldBeActive || teardownGrace.running
-            asynchronous: true
 
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top:    parent.top
+            anchors.left:   parent.left
+            anchors.right:  parent.right
             anchors.bottom: searchWrapper.top
             anchors.bottomMargin: root.padding
 
@@ -79,13 +81,7 @@ Item {
                 search:      wallpaperSearch
                 visibilities: root.visibilities
                 panels:      root.panels
-                // Pass self as `content` so WallpaperList can compute its own
-                // height for popout-overlap avoidance geometry calculations.
                 content:     root
-
-                // Intercept visibility toggle: WallpaperList watches visibilities.launcher
-                // but we are a separate drawer, so override the connection inside.
-                // The suspend/resume hooks still work via the Connections below.
             }
         }
 
@@ -93,8 +89,13 @@ Item {
         StyledRect {
             id: searchWrapper
 
-            color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+            color: wallpaperSearch.activeFocus ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2) : Colours.layer(Colours.palette.m3surfaceContainer, 2)
             radius: Tokens.rounding.full
+            border.color: wallpaperSearch.activeFocus ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
+            border.width: wallpaperSearch.activeFocus ? 2 : 1
+
+            Behavior on border.color { CAnim {} }
+            Behavior on color { CAnim {} }
 
             anchors.left:    parent.left
             anchors.right:   parent.right
@@ -111,11 +112,15 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: root.padding
                 text: "wallpaper_slideshow"
-                color: Colours.palette.m3onSurfaceVariant
+                color: wallpaperSearch.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+
+                Behavior on color { CAnim {} }
             }
 
             StyledTextField {
                 id: wallpaperSearch
+
+                background: null
 
                 anchors.left:        searchIcon.right
                 anchors.right:       clearIcon.left

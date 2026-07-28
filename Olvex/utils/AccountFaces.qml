@@ -70,6 +70,13 @@ Singleton {
 
         path: root.customPath
         watchChanges: true
+        printErrors: false
+
+        onLoadFailed: err => {
+            if (err === FileViewError.FileNotFound) {
+                root.applyBundledFace(root.defaultRel);
+            }
+        }
     }
 
     readonly property bool hasCustomFace: customFaceFile.loaded
@@ -176,11 +183,10 @@ Singleton {
     }
 
     function ensureDefault(): void {
-        customFaceFile.reload();
-        if (customFaceFile.loaded)
-            return;
-        if (!applyBundledFace(defaultRel))
-            console.warn("[AccountFaces] failed to install default face");
+        if (!customFaceFile.loaded && customFaceFile.error === FileViewError.FileNotFound) {
+            if (!applyBundledFace(defaultRel))
+                console.warn("[AccountFaces] failed to install default face");
+        }
     }
 
     Component.onCompleted: Qt.callLater(root.ensureDefault)

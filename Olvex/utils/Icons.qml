@@ -476,15 +476,26 @@ Singleton {
     }
 
     function getTrayIcon(id: string, icon: string): string {
+        if (!icon)
+            return "";
+
         for (const sub of GlobalConfig.bar.tray.iconSubs)
             if (sub.id === id)
                 return sub.image ? Qt.resolvedUrl(sub.image) : Quickshell.iconPath(sub.icon);
 
         if (icon.includes("?path=")) {
             const [name, path] = icon.split("?path=");
-            icon = Qt.resolvedUrl(`${path}/${name.slice(name.lastIndexOf("/") + 1)}`);
+            return Qt.resolvedUrl(`${path}/${name.slice(name.lastIndexOf("/") + 1)}`);
         }
-        return icon;
+
+        if (icon.startsWith("file:") || icon.startsWith("http:") || icon.startsWith("https:") || icon.startsWith("image:"))
+            return icon;
+
+        if (icon.startsWith("/"))
+            return "file://" + icon;
+
+        const resolved = Quickshell.iconPath(icon);
+        return resolved !== "" ? resolved : icon;
     }
 
     function getBatteryIcon(charge: int): string {

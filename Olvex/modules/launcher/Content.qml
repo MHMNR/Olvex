@@ -75,8 +75,13 @@ Item {
     StyledRect {
         id: searchWrapper
 
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+        color: search.activeFocus ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2) : Colours.layer(Colours.palette.m3surfaceContainer, 2)
         radius: Tokens.rounding.full
+        border.color: search.activeFocus ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
+        border.width: search.activeFocus ? 2 : 1
+
+        Behavior on border.color { CAnim {} }
+        Behavior on color { CAnim {} }
 
         anchors.left: parent.left
         anchors.right: parent.right
@@ -93,11 +98,15 @@ Item {
             anchors.leftMargin: root.padding
 
             text: "search"
-            color: Colours.palette.m3onSurfaceVariant
+            color: search.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+
+            Behavior on color { CAnim {} }
         }
 
         StyledTextField {
             id: search
+
+            background: null
 
             anchors.left: searchIcon.right
             anchors.right: clearIcon.left

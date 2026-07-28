@@ -16,7 +16,22 @@ TextField {
     renderType: echoMode === TextField.Password ? TextField.QtRendering : TextField.NativeRendering
     cursorVisible: !readOnly
 
-    background: null
+    leftPadding: 12
+    rightPadding: 12
+    topPadding: 8
+    bottomPadding: 8
+
+    background: StyledRect {
+        implicitHeight: 36
+        implicitWidth: 120
+        radius: Tokens.rounding.normal
+        color: Colours.palette.m3surfaceVariant
+        
+        border.color: root.activeFocus ? Colours.palette.m3primary : "transparent"
+        border.width: root.activeFocus ? 2 : 0
+        
+        Behavior on border.color { CAnim {} }
+    }
 
     cursorDelegate: StyledRect {
         id: cursor

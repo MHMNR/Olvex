@@ -56,7 +56,8 @@ Item {
     property int netSpeedInterval: GlobalConfig.bar?.netSpeed?.refreshInterval ?? 1000
     property int netSpeedFontSize: GlobalConfig.bar?.netSpeed?.fontSize ?? 11
     property int netSpeedMaxDigits: GlobalConfig.bar?.netSpeed?.maxDigits ?? 0
-    property bool netSpeedEnabled: false
+    property bool netSpeedEnabled: GlobalConfig.bar?.netSpeed?.enabled ?? true
+    property string netSpeedMode: GlobalConfig.bar?.netSpeed?.mode || "separate"
     property list<string> monitorNames: Hypr.monitorNames()
     property list<string> excludedScreens: Config.bar.excludedScreens ?? []
     property bool bottomPanelEnabled: Config.bar.bottomPanel.enabled ?? true
@@ -95,6 +96,7 @@ Item {
         GlobalConfig.bar.popouts.tray = root.popoutTray;
         GlobalConfig.bar.popouts.statusIcons = root.popoutStatusIcons;
         if (GlobalConfig.bar?.netSpeed) {
+            GlobalConfig.bar.netSpeed.enabled = root.netSpeedEnabled;
             GlobalConfig.bar.netSpeed.showIcons = root.netSpeedShowIcons;
             GlobalConfig.bar.netSpeed.background = root.netSpeedBackground;
             GlobalConfig.bar.netSpeed.refreshInterval = root.netSpeedInterval;

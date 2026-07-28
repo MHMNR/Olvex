@@ -47,6 +47,16 @@ ColumnLayout {
     // OS/launcher icon is pinned to the bar bottom — never part of reorderable entries.
     readonly property var barEntries: (Config.bar.entries ?? []).filter(entry => entry.id !== "logo")
 
+    readonly property bool isMusicMode: {
+        for (let i = 0; i < repeater.count; i++) {
+            const loader = repeater.itemAt(i);
+            if (loader?.enabled && loader.id === "activeWindow") {
+                return loader.item?.playerActive ?? false;
+            }
+        }
+        return false;
+    }
+
     function closeTray(): void {
         if (!Config.bar.tray.compact)
             return;
@@ -81,7 +91,11 @@ ColumnLayout {
                 popouts.hasCurrent = false;
                 return;
             }
-            const items = systemPill.items;
+            const items = systemPill.item;
+            if (!items) {
+                popouts.hasCurrent = false;
+                return;
+            }
             const localY = mapToItem(items, 0, y).y;
             let icon = items.childAt(items.width / 2, localY);
             // Walk into group hosts if needed; only use nodes with a popout `name`
@@ -163,7 +177,8 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "spacer"
                 delegate: WrappedLoader {
-                    Layout.fillHeight: enabled
+                    visible: enabled && root.isMusicMode
+                    Layout.fillHeight: enabled && root.isMusicMode
                 }
             }
             DelegateChoice {
@@ -178,17 +193,15 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "activeWindow"
                 delegate: WrappedLoader {
-                    Layout.topMargin: root.vPadding
-                    Layout.bottomMargin: root.vPadding
                     visible: !root.fullscreen
-                    // Fill leftover column space, but cap to the pill's natural
-                    // compact height so it never pushes pills below. When the
-                    // workspace pill above expands, the ColumnLayout compresses
-                    // this loader down to its min instead of overflowing
-                    // downward.
+                    
+                    // Music pill keeps its fixed musicPillHeight (don't stretch
+                    // the controls). Non-music pill flexes: the ColumnLayout
+                    // hands it whatever's left, and compresses it when the
+                    // workspace pill above expands — pills below stay put.
                     Layout.fillHeight: true
-                    Layout.minimumHeight: item ? item.implicitHeight : 0
-                    Layout.maximumHeight: item ? item.implicitHeight : 0
+                    Layout.minimumHeight: 64
+                    Layout.maximumHeight: item ? item.animatedMaxHeight : 0
                     sourceComponent: ActiveWindow {
                         bar: root
                         monitor: Brightness.getMonitorForScreen(root.screen)

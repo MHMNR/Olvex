@@ -29,13 +29,12 @@ StyledRect {
     property alias label: label
     property alias stateLayer: stateLayer
 
-    // Dark: primaryContainer (readable chroma). Light: secondaryContainer (soft tonal).
-    property color colour: Colours.light
-        ? Colours.palette.m3secondaryContainer
-        : Colours.palette.m3primaryContainer
-    property color textColour: Colours.light
-        ? Colours.palette.m3onSecondaryContainer
-        : Colours.palette.m3onPrimaryContainer
+    property color colour: type === 0
+        ? Colours.palette.m3primary
+        : Colours.palette.m3secondaryContainer
+    property color textColour: type === 0
+        ? Colours.palette.m3onPrimary
+        : Colours.palette.m3onSecondaryContainer
     property color disabledColour: Qt.alpha(Colours.palette.m3onSurface, 0.1)
     property color disabledTextColour: Qt.alpha(Colours.palette.m3onSurface, 0.38)
 

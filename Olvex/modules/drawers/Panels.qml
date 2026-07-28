@@ -412,6 +412,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.horizontalCenterOffset: -(bar.implicitWidth - root.borderThickness) / 2
         anchors.bottom: parent.bottom
+        width: Math.min(parent.width - 32, 1030)
     }
 
     Dashboard.Wrapper {
@@ -911,8 +912,8 @@ Item {
                                                     const ipc = matches[0].lastIpcObject;
                                                     const addr = appWrapper.normalizeAddress(ipc.address);
                                                     const wsId = ipc.workspace?.id ?? 1;
-                                                    Hyprland.dispatch(`workspace ${wsId}`);
-                                                    Hyprland.dispatch(`focuswindow address:${addr}`);
+                                                    Hypr.dispatch(`workspace ${wsId}`);
+                                                    Hypr.dispatch(`focuswindow address:${addr}`);
                                                 } else {
                                                     const activeWindow = Hyprland.activeToplevel;
                                                     const activeIpc = activeWindow?.lastIpcObject;
@@ -927,8 +928,8 @@ Item {
                                                     const targetIpc = targetWindow.lastIpcObject;
                                                     const targetAddr = appWrapper.normalizeAddress(targetIpc?.address);
                                                     const targetWsId = targetIpc?.workspace?.id ?? 1;
-                                                    Hyprland.dispatch(`workspace ${targetWsId}`);
-                                                    Hyprland.dispatch(`focuswindow address:${targetAddr}`);
+                                                    Hypr.dispatch(`workspace ${targetWsId}`);
+                                                    Hypr.dispatch(`focuswindow address:${targetAddr}`);
                                                 }
                                                 root.visibilities.bottomPanel = false;
                                             }
@@ -1239,7 +1240,7 @@ Item {
                                 onTriggered: {
                                     const win = windowItem.modelData;
                                     if (win && win.address) {
-                                        Hyprland.dispatch(`closewindow address:${win.address}`);
+                                        Hypr.dispatch(`closewindow address:${win.address}`);
                                     }
                                 }
                             }
@@ -1271,8 +1272,8 @@ Item {
                                 onClicked: {
                                     const win = windowItem.modelData;
                                     if (win) {
-                                        Hyprland.dispatch(`workspace ${win.workspaceId}`);
-                                        Hyprland.dispatch(`focuswindow address:${win.address}`);
+                                        Hypr.dispatch(`workspace ${win.workspaceId}`);
+                                        Hypr.dispatch(`focuswindow address:${win.address}`);
                                         root.hideContextMenu();
                                         root.visibilities.bottomPanel = false;
                                     }

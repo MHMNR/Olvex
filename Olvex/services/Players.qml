@@ -14,7 +14,20 @@ import qs.utils
 Singleton {
     id: root
 
-    readonly property list<MprisPlayer> list: Mpris.players.values
+    readonly property list<MprisPlayer> list: {
+        const players = Mpris.players.values;
+        const hasPlasma = players.some(p => {
+            const dbus = (p.dbusName || p.identity || "").toLowerCase();
+            return dbus.includes("plasma") || dbus.includes("browser-integration");
+        });
+        if (!hasPlasma)
+            return players;
+        return players.filter(p => {
+            const dbus = (p.dbusName || p.identity || "").toLowerCase();
+            const isRawBrowser = (dbus.includes("firefox") || dbus.includes("chrome") || dbus.includes("chromium") || dbus.includes("brave")) && !dbus.includes("plasma");
+            return !isRawBrowser;
+        });
+    }
 
     property MprisPlayer active: null
     property string currentArtUrl: ""
@@ -34,12 +47,51 @@ Singleton {
         return player.uniqueId !== undefined ? String(player.uniqueId) : "";
     }
 
+    function _isSameMediaSource(p1: MprisPlayer, p2: MprisPlayer): bool {
+        if (!p1 || !p2)
+            return false;
+        if (p1 === p2)
+            return true;
+        const id1 = (p1.dbusName || p1.identity || "").toLowerCase();
+        const id2 = (p2.dbusName || p2.identity || "").toLowerCase();
+        const isPlasma1 = id1.includes("plasma") || id1.includes("browser-integration");
+        const isPlasma2 = id2.includes("plasma") || id2.includes("browser-integration");
+        const isBrowser1 = id1.includes("firefox") || id1.includes("chrome") || id1.includes("chromium") || id1.includes("brave") || id1.includes("opera") || id1.includes("vivaldi");
+        const isBrowser2 = id2.includes("firefox") || id2.includes("chrome") || id2.includes("chromium") || id2.includes("brave") || id2.includes("opera") || id2.includes("vivaldi");
+
+        if ((isPlasma1 && isBrowser2) || (isPlasma2 && isBrowser1) || (isPlasma1 && isPlasma2))
+            return true;
+
+        const t1 = (p1.trackTitle || "").toLowerCase().trim();
+        const t2 = (p2.trackTitle || "").toLowerCase().trim();
+        if (t1 && t2 && (t1.includes(t2) || t2.includes(t1)))
+            return true;
+
+        return false;
+    }
+
     function _pickActivePlayer(): MprisPlayer {
-        const players = Mpris.players.values;
-        if (props.manualActive)
-            return props.manualActive;
+        const players = root.list;
+        if (props.manualActive) {
+            const manualMatch = players.find(p => p === props.manualActive || root._isSameMediaSource(p, props.manualActive));
+            if (manualMatch)
+                return manualMatch;
+            props.manualActive = null;
+        }
+
+        if (root.active && players.some(p => root._isSameMediaSource(p, root.active))) {
+            const playing = players.find(p => root._isPlaying(p));
+            if (playing && !root._isSameMediaSource(playing, root.active)) {
+                return playing;
+            }
+            return root.active;
+        }
+
         const playing = players.find(p => root._isPlaying(p));
-        return playing ?? players.find(p => root.getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? players[0] ?? null;
+        if (playing)
+            return playing;
+
+        return players.find(p => root.getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? players[0] ?? null;
     }
 
     function _recomputeActive(): void {
@@ -213,13 +265,19 @@ Singleton {
         }
 
         const key = root.getTrackKey(p);
-        const url = root.getArtUrl(p);
+        let url = root.getArtUrl(p);
+
+        // Preserve current artwork for the same track if URL is empty or temporary during pause
+        if (!url && key === root.currentTrackKey && root.currentArtUrl !== "") {
+            url = root.currentArtUrl;
+        }
+
         let changed = false;
         if (key !== root.currentTrackKey) {
             root.currentTrackKey = key;
             changed = true;
         }
-        if (url !== root.currentArtUrl) {
+        if (url !== root.currentArtUrl && (key !== root.currentTrackKey || !root.currentArtUrl)) {
             root.currentArtUrl = url;
             changed = true;
         }
@@ -321,6 +379,10 @@ Singleton {
         id: props
         property MprisPlayer manualActive
         reloadableId: "players"
+
+        onManualActiveChanged: {
+            root._recomputeActive();
+        }
     }
 
     PersistentProperties {

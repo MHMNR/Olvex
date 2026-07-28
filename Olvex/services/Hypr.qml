@@ -43,7 +43,11 @@ Singleton {
     signal configReloaded
 
     function dispatch(request: string): void {
-        Hyprland.dispatch(request);
+        const parts = request.trim().split(/\s+/);
+        if (parts.length > 0) {
+            const args = ["hyprctl", "dispatch"].concat(parts);
+            Quickshell.execDetached(args);
+        }
     }
 
     function cycleSpecialWorkspace(direction: string): void {

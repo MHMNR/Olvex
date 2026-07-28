@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Olvex
 import Olvex.Config
 import qs.utils
@@ -104,6 +105,21 @@ Singleton {
 
     readonly property var cachedCities: new Map()
 
+    function fetchCoordsFromIp(): void {
+        Requests.get("https://get.geojs.io/v1/ip/geo.json", text => {
+            try {
+                const response = JSON.parse(text);
+                if (response.latitude && response.longitude) {
+                    loc = response.latitude + "," + response.longitude;
+                    city = response.city || response.region || "Unknown City";
+                    timer.restart();
+                }
+            } catch (e) {
+                console.log("Failed to parse geojs.io response");
+            }
+        });
+    }
+
     function reload(): void {
         const configLocation = GlobalConfig.services.weatherLocation;
 
@@ -115,14 +131,7 @@ Singleton {
                 fetchCoordsFromCity(configLocation);
             }
         } else if (!loc || timer.elapsed() > 900) {
-            Requests.get("https://ipinfo.io/json", text => {
-                const response = JSON.parse(text);
-                if (response.loc) {
-                    loc = response.loc;
-                    city = response.city ?? "";
-                    timer.restart();
-                }
-            });
+            geoclueProcess.running = true;
         }
     }
 
@@ -305,5 +314,38 @@ Singleton {
 
     ElapsedTimer {
         id: timer
+    }
+
+    Process {
+        id: geoclueProcess
+        command: ["/usr/lib/geoclue-2.0/demos/where-am-i", "-t", "5"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                let parsedLat = "";
+                let parsedLon = "";
+                let accuracy = 999999;
+                
+                const lines = text.split("\n");
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].trim().startsWith("Latitude:")) {
+                        parsedLat = lines[i].split(":")[1].trim().replace("°", "");
+                    } else if (lines[i].trim().startsWith("Longitude:")) {
+                        parsedLon = lines[i].split(":")[1].trim().replace("°", "");
+                    } else if (lines[i].trim().startsWith("Accuracy:")) {
+                        accuracy = parseFloat(lines[i].split(":")[1].trim().replace(" meters", ""));
+                    }
+                }
+                
+                // Only trust Geoclue if it has high accuracy (less than 10km)
+                // Desktop Wi-Fi/IP fallbacks in Geoclue often give 25000m+ which is highly inaccurate
+                if (parsedLat !== "" && parsedLon !== "" && accuracy < 10000) {
+                    loc = parsedLat + "," + parsedLon;
+                    root.fetchCityFromCoords(loc);
+                    timer.restart();
+                } else {
+                    root.fetchCoordsFromIp();
+                }
+            }
+        }
     }
 }

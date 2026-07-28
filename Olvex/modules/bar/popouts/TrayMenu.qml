@@ -45,8 +45,8 @@ StackView {
         property bool isSubMenu
         property bool shown
 
-        padding: Tokens.padding.smaller
-        spacing: Tokens.spacing.small
+        padding: Tokens.padding.small
+        spacing: 2
 
         opacity: shown ? 1 : 0
         scale: shown ? 1 : 0.8
@@ -80,27 +80,23 @@ StackView {
 
                 visible: !!modelData
                 implicitWidth: Tokens.sizes.bar.trayMenuWidth
-                implicitHeight: !modelData || modelData.isSeparator ? 1 : children.implicitHeight
+                implicitHeight: !modelData || modelData.isSeparator ? 1 : children.implicitHeight + Tokens.padding.small * 2
 
-                radius: Tokens.rounding.full
+                radius: Tokens.rounding.small
                 color: !modelData || modelData.isSeparator ? Colours.palette.m3outlineVariant : "transparent"
 
                 Loader {
                     id: children
 
                     asynchronous: true
-                    anchors.left: parent.left
-                    anchors.right: parent.right
+                    anchors.fill: parent
 
                     active: !!item.modelData && !item.modelData.isSeparator
 
                     sourceComponent: Item {
                         implicitHeight: label.implicitHeight
-
                         StateLayer {
-                            anchors.margins: -Tokens.padding.small / 2
-                            anchors.leftMargin: -Tokens.padding.smaller
-                            anchors.rightMargin: -Tokens.padding.smaller
+                            anchors.fill: parent
 
                             radius: item.radius
                             disabled: !item.modelData.enabled
@@ -124,6 +120,8 @@ StackView {
 
                             asynchronous: true
                             anchors.left: parent.left
+                            anchors.leftMargin: Tokens.padding.small
+                            anchors.verticalCenter: parent.verticalCenter
 
                             active: item.modelData.icon !== ""
 
@@ -139,7 +137,8 @@ StackView {
                             id: label
 
                             anchors.left: icon.right
-                            anchors.leftMargin: icon.active ? Tokens.spacing.smaller : 0
+                            anchors.leftMargin: icon.active ? Tokens.spacing.small : Tokens.padding.small
+                            anchors.verticalCenter: parent.verticalCenter
 
                             text: labelMetrics.elidedText
                             color: item.modelData.enabled ? Colours.palette.m3onSurface : Colours.palette.m3outline
@@ -162,6 +161,7 @@ StackView {
                             asynchronous: true
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
+                            anchors.rightMargin: Tokens.padding.small
 
                             active: item.modelData.hasChildren
 
@@ -180,34 +180,28 @@ StackView {
             active: menu.isSubMenu
 
             sourceComponent: Item {
-                implicitWidth: back.implicitWidth
-                implicitHeight: back.implicitHeight + Tokens.spacing.small / 2
+                implicitWidth: Tokens.sizes.bar.trayMenuWidth
+                implicitHeight: back.implicitHeight + Tokens.padding.small * 2
 
-                Item {
-                    anchors.bottom: parent.bottom
-                    implicitWidth: back.implicitWidth
-                    implicitHeight: back.implicitHeight
+                StyledRect {
+                    anchors.fill: parent
 
-                    StyledRect {
+                    radius: Tokens.rounding.small
+                    color: Colours.palette.m3secondaryContainer
+
+                    StateLayer {
                         anchors.fill: parent
-                        anchors.margins: -Tokens.padding.small / 2
-                        anchors.leftMargin: -Tokens.padding.smaller
-                        anchors.rightMargin: -Tokens.padding.smaller * 2
-
-                        radius: Tokens.rounding.full
-                        color: Colours.palette.m3secondaryContainer
-
-                        StateLayer {
-                            radius: parent.radius
-                            color: Colours.palette.m3onSecondaryContainer
-                            onClicked: root.pop()
-                        }
+                        radius: parent.radius
+                        color: Colours.palette.m3onSecondaryContainer
+                        onClicked: root.pop()
                     }
 
                     Row {
                         id: back
-
+                        anchors.left: parent.left
+                        anchors.leftMargin: Tokens.padding.small
                         anchors.verticalCenter: parent.verticalCenter
+                        spacing: Tokens.spacing.small
 
                         MaterialIcon {
                             anchors.verticalCenter: parent.verticalCenter

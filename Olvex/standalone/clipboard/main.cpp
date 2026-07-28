@@ -1228,6 +1228,7 @@ static int printPalette(SystemAccent &accent) {
 }
 
 int main(int argc, char **argv) {
+    qputenv("QSG_RENDER_LOOP", "threaded");
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("olvex"));
     app.setApplicationName(QStringLiteral("olvex-clipboard"));

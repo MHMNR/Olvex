@@ -141,7 +141,7 @@ StyledWindow {
         function onContextMenuVisibleChanged(): void { root.pulseShellMotion(); }
     }
 
-    mask: (morph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
+    mask: (hasFullscreen || morph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
 
     Regions {
         id: regions
@@ -315,9 +315,11 @@ StyledWindow {
 
                 panel: panels.sessionWrapper
                 deformAmount: 0.2
-                x: panels.sessionWrapper.x + panels.session.x + panels.x
-                implicitWidth: visibilities.session ? panels.session.width : 0
-                implicitHeight: visibilities.session ? panels.session.height : 0
+                x: visibilities.session ? 0 : panels.sessionWrapper.x + panels.session.x + panels.x
+                y: visibilities.session ? 0 : panels.sessionWrapper.y + panels.session.y + panels.y
+                implicitWidth: visibilities.session ? root.width : 0
+                implicitHeight: visibilities.session ? root.height : 0
+                radius: visibilities.session ? 0 : Tokens.rounding.large
             }
 
             PanelBg {

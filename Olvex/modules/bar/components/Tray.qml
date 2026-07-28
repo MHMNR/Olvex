@@ -17,16 +17,17 @@ StyledRect {
     readonly property int padding: Config.bar.tray.background ? Tokens.padding.normal : Tokens.padding.small
     readonly property int spacing: Config.bar.tray.background ? Tokens.spacing.small : 0
 
-    property bool expanded
+    property bool expanded: false
 
     readonly property real nonAnimHeight: {
+        if (items.count === 0) return 0;
         if (!Config.bar.tray.compact)
             return layout.implicitHeight + padding * 2;
         return (expanded ? expandIcon.implicitHeight + layout.implicitHeight + spacing : expandIcon.implicitHeight) + padding * 2;
     }
 
     clip: true
-    visible: height > 0
+    visible: implicitHeight > 0
 
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: nonAnimHeight
@@ -51,7 +52,11 @@ StyledRect {
         id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.LeftButton
+        onClicked: {
+            if (Config.bar.tray.compact)
+                root.expanded = !root.expanded;
+        }
     }
 
     Column {
@@ -62,7 +67,7 @@ StyledRect {
         anchors.topMargin: root.padding
         spacing: Tokens.spacing.small
 
-        opacity: root.expanded || !Config.bar.tray.compact ? 1 : 0
+        opacity: (!Config.bar.tray.compact || root.expanded) && items.count > 0 ? 1 : 0
 
         add: Transition {
             Anim {

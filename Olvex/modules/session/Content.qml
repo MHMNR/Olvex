@@ -171,7 +171,7 @@ Item {
                 
                 text: col.label
                 color: Colours.palette[`m3${col.hue.toLowerCase()}`]
-                font.family: Tokens.font.family.display
+                font.family: Tokens.font.family.sans
                 textPixelSize: 57 // display-lg
                 font.weight: 700
                 font.letterSpacing: col.isHovered ? 15 : 0

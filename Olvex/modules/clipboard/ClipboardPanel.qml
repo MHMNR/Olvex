@@ -21,6 +21,7 @@ Item {
     readonly property bool visible_: visibilities.clipboard ?? false
     property var filteredEntries: []
     property string searchText: ""
+    property int selectedIndex: 0
     property int hoveredIndex: -1
 
     function isImage(entry) { return Cliphist.entryIsImage(entry) }
@@ -52,7 +53,11 @@ Item {
     }
 
     onVisible_Changed: {
-        if (visible_) { Cliphist.refresh() }
+        if (visible_) {
+            Cliphist.refresh()
+            selectedIndex = 0
+            panelSearchInput.forceActiveFocus()
+        }
     }
 
     // M3 list row — tonal surface, radius morph, emphasized motion
@@ -65,7 +70,7 @@ Item {
         readonly property bool isImg: root.isImage(modelData)
         readonly property string imgPath: `/tmp/olvex-clip/${root.entryId(modelData)}.png`
         readonly property string preview: root.entryText(modelData)
-        readonly property bool isHovered: root.hoveredIndex === index
+        readonly property bool isHovered: root.hoveredIndex === index || root.selectedIndex === index
 
         signal activated()
         signal deleteRequested()
@@ -390,7 +395,40 @@ Item {
 
                         onTextChanged: {
                             root.searchText = text
+                            root.selectedIndex = 0
                             root.refreshFiltered()
+                        }
+
+                        Keys.onUpPressed: event => {
+                            root.selectedIndex = Math.max(0, root.selectedIndex - 1)
+                            panelList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                            event.accepted = true
+                        }
+                        Keys.onDownPressed: event => {
+                            root.selectedIndex = Math.min(root.filteredEntries.length - 1, root.selectedIndex + 1)
+                            panelList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+                            event.accepted = true
+                        }
+                        Keys.onReturnPressed: event => {
+                            if (root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length) {
+                                Cliphist.copy(root.filteredEntries[root.selectedIndex])
+                                root.visibilities.clipboard = false
+                            }
+                            event.accepted = true
+                        }
+                        Keys.onEnterPressed: event => {
+                            if (root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length) {
+                                Cliphist.copy(root.filteredEntries[root.selectedIndex])
+                                root.visibilities.clipboard = false
+                            }
+                            event.accepted = true
+                        }
+                        Keys.onDeletePressed: event => {
+                            if (root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length) {
+                                Cliphist.deleteEntry(root.filteredEntries[root.selectedIndex])
+                                root.selectedIndex = Math.max(0, root.selectedIndex - 1)
+                            }
+                            event.accepted = true
                         }
                     }
                 }

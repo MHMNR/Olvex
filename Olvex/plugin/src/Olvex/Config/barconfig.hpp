@@ -128,6 +128,7 @@ class BarNetSpeed : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(QString, mode, u"separate"_s)
     CONFIG_PROPERTY(bool, showIcons, true)
     CONFIG_PROPERTY(bool, background, false)
     CONFIG_PROPERTY(int, refreshInterval, 1000)

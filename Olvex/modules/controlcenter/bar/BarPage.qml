@@ -15,40 +15,15 @@ Item {
     signal back
 
     function setNetSpeedEnabled(on: bool): void {
-        const entries = [];
-        const src = Config.bar.entries || [];
-        let found = false;
-        for (let i = 0; i < src.length; i++) {
-            const e = src[i];
-            if (e.id === "netSpeed") {
-                found = true;
-                entries.push({
-                    id: "netSpeed",
-                    enabled: on
-                });
-            } else {
-                entries.push({
-                    id: e.id,
-                    enabled: e.enabled !== false
-                });
-            }
+        console.log("Setting netSpeed enabled to", on);
+        if (GlobalConfig.bar?.netSpeed) {
+            GlobalConfig.bar.netSpeed.enabled = on;
         }
-        if (!found)
-            entries.push({
-                id: "netSpeed",
-                enabled: on
-            });
-        GlobalConfig.bar.entries = entries;
         GlobalConfig.save();
     }
 
     function netSpeedOn(): bool {
-        const src = Config.bar.entries || [];
-        for (let i = 0; i < src.length; i++) {
-            if (src[i].id === "netSpeed")
-                return src[i].enabled !== false;
-        }
-        return false;
+        return GlobalConfig.bar?.netSpeed?.enabled ?? true;
     }
 
     SettingsPage {
@@ -486,6 +461,39 @@ Item {
                     onToggled: {
                         if (GlobalConfig.bar?.netSpeed)
                             GlobalConfig.bar.netSpeed.showIcons = checked;
+                        GlobalConfig.save();
+                    }
+                }
+            }
+            SettingRow {
+                title: qsTr("Layout")
+                description: qsTr("Separate rows or combined into one line")
+                Segmented {
+                    model: [{
+                            label: qsTr("Separate")
+                        }, {
+                            label: qsTr("Combined")
+                        }]
+                    currentIndex: (GlobalConfig.bar?.netSpeed?.mode || "separate") === "combined" ? 1 : 0
+                    onSelected: i => {
+                        console.log("Segmented selected:", i, "=>", i === 1 ? "combined" : "separate");
+                        if (GlobalConfig.bar?.netSpeed) {
+                            console.log("  → Writing mode to GlobalConfig");
+                            GlobalConfig.bar.netSpeed.mode = i === 1 ? "combined" : "separate";
+                        }
+                        GlobalConfig.save();
+                        console.log("  → GlobalConfig.save() called");
+                    }
+                }
+            }
+            SettingRow {
+                title: qsTr("Speed meter background")
+                description: qsTr("Fill the readout with a subtle surface tint")
+                StyledSwitch {
+                    checked: GlobalConfig.bar?.netSpeed?.background ?? false
+                    onToggled: {
+                        if (GlobalConfig.bar?.netSpeed)
+                            GlobalConfig.bar.netSpeed.background = checked;
                         GlobalConfig.save();
                     }
                 }

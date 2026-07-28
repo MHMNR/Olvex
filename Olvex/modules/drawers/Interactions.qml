@@ -244,27 +244,7 @@ CustomMouseArea {
             return;
         }
 
-        // Pass clicks through to launcher UI (wallpaper tabs, items, search, etc.)
-        if (visibilities.launcher
-                && inBottomPanel(panels.launcher, event.x, event.y)
-                && withinPanelWidth(panels.launcher, event.x, event.y)) {
-            event.accepted = false;
-            return;
-        }
-
-        if (event.x < bar.implicitWidth) {
-            // Bar music pill uses child MouseAreas — parent must not steal presses
-            if (Players.active) {
-                event.accepted = false;
-                return;
-            }
-            event.accepted = true;
-        } else if (!visibilities.dashboard && !visibilities.utilities && !visibilities.clipboard) {
-            // Accept ONLY if no overlay panel is open — otherwise passthrough to app
-            event.accepted = true;
-        } else {
-            event.accepted = false;
-        }
+        dragStart = Qt.point(event.x, event.y);
     }
 
     // No click-to-open on top-right — drag only (see onPositionChanged).

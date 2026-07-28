@@ -46,7 +46,6 @@ StyledRect {
             id: splitButton
 
             enabled: root.enabled
-            type: SplitButton.Filled
 
             menu.z: 1
 
