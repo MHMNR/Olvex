@@ -71,7 +71,14 @@ Ensure the following packages are installed before compiling and launching Olvex
 - `networkmanager`, `bluez`, `bluez-utils` (Network & Bluetooth)
 - `fprintd` (Fingerprint PAM Integration)
 
-#### 4. Desktop Utilities, Capture & Terminal
+#### 4. File Management, Authentication & Browser
+- `thunar`, `thunar-volman`, `thunar-archive-plugin`, `thunar-media-tags-plugin` (File Manager & Extensions)
+- `tumbler`, `ffmpegthumbnailer` (Thumbnail Generators)
+- `gvfs`, `gvfs-mtp`, `gvfs-gphoto2`, `gvfs-afc`, `gvfs-smb` (Virtual File System & Mounting)
+- `polkit-gnome` (Authentication Agent)
+- `firefox` (Web Browser)
+
+#### 5. Desktop Utilities, Capture & Terminal
 - `cliphist`, `wl-clipboard` (Clipboard History & Selection)
 - `grim`, `slurp`, `swappy` (Interactive Screenshot & Annotation)
 - `gpu-screen-recorder` (Hardware-Accelerated Screen Recorder)
@@ -83,12 +90,12 @@ Ensure the following packages are installed before compiling and launching Olvex
 - `foot` (Terminal Emulator)
 - `bash`, `fish`, `xdg-utils`
 
-#### 5. Fonts & Icon Typography
+#### 6. Fonts & Icon Typography
 - `ttf-material-symbols` / `material-symbols`
 - `caskaydia-cove-nerd`
 - `ttf-rubik`
 
-#### 6. Python Runtime & Image Libraries
+#### 7. Python Runtime & Image Libraries
 - `python3`, `python-pip`, `python-pillow`
 
 ---
@@ -120,6 +127,8 @@ sudo pacman -S --needed \
     qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-5compat qt6-svg qt6-imageformats \
     hyprland swww pipewire libpipewire wireplumber cava aubio \
     brightnessctl ddcutil lm-sensors upower networkmanager bluez bluez-utils fprintd \
+    thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer \
+    gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb polkit-gnome firefox \
     cliphist wl-clipboard grim slurp swappy gpu-screen-recorder ydotool \
     libqalculate libnotify mpv foot bash fish xdg-utils \
     ttf-rubik python3 python-pip python-pillow

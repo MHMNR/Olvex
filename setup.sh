@@ -169,7 +169,9 @@ precheck_and_resolve_dependencies() {
         noto-fonts ttf-cascadia-code-nerd
         swappy libqalculate bash mpv ydotool grim slurp
         python-pillow python-pip python3 gpu-screen-recorder fprintd foot
-        util-linux pciutils fzf gammastep
+        util-linux pciutils fzf firefox
+        thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin
+        tumbler ffmpegthumbnailer gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb polkit-gnome
     )
 
     MISSING_PKGS=()
