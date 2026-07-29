@@ -5,6 +5,16 @@
 # ==============================================================================
 
 function fish_prompt --description "Olvex M3 Expressive prompt"
+    # TTY console (/dev/tty1-6) 16-color fallback: 24-bit hex colors print raw \033[0m text on TTY
+    if test "$TERM" = "linux"
+        set -l last_status $status
+        set_color (test $last_status -eq 0; and echo green; or echo red)
+        echo -n (prompt_pwd)
+        set_color normal
+        echo -n " ❯ "
+        return
+    end
+
     set -l last_status $status
 
     # ── Token Defaults (Fallback to live scheme values) ───────────────────────

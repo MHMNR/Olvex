@@ -5,6 +5,11 @@
 # ==============================================================================
 
 function fish_greeting --description "Olvex M3 Expressive Welcome Screen"
+    # Skip greeting on TTY console (/dev/tty1-6) where 24-bit ANSI/braille isn't supported
+    if test "$TERM" = "linux"; or not set -q WAYLAND_DISPLAY
+        return
+    end
+
     echo
 
     set -l scheme_file "$HOME/.local/state/olvex/scheme.json"
