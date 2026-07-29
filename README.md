@@ -48,7 +48,7 @@ Olvex includes a comprehensive suite of shell interfaces:
 
 ## Prerequisites & Dependencies
 
-### Package Requirements (Arch Linux / CachyOS)
+### Package Requirements (Arch Linux)
 
 Ensure the following packages are installed before compiling and launching Olvex:
 
