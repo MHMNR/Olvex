@@ -293,6 +293,22 @@ olvex shell kill                          # Terminate shell process
 
 ---
 
+## Credits
+
+Olvex began as a fork of [**Caelestia**](https://github.com/caelestia-dots/shell) and has since been substantially redesigned — the majority of the UI, component architecture, and the native C++ plugin layer are original to this project. That said, none of this exists in a vacuum, and it would be dishonest not to name the work this project stands on.
+
+### Special thanks
+
+- **[Caelestia](https://github.com/caelestia-dots/shell)** ([@caelestia-dots](https://github.com/caelestia-dots)) — the original base this shell was forked from, and the project that first showed what a fluid, morphing Quickshell environment for Hyprland could look like. Large parts of Olvex's architecture trace their lineage back here, even where the implementation has since diverged completely.
+- **[Dank Material Shell](https://github.com/AvengeMedia/DankMaterialShell)** ([@AvengeMedia](https://github.com/AvengeMedia)) — several UI ideas and interaction patterns in Olvex were inspired by DMS's take on Material theming for Quickshell.
+- **[illogical-impulse](https://github.com/end-4/dots-hyprland)** ([@end-4](https://github.com/end-4)) — an early and ongoing influence on the Hyprland + Quickshell rice scene, and the source of a few conventions adapted into Olvex.
+- **[Quickshell](https://github.com/quickshell-mirror/quickshell)** ([@outfoxxed](https://github.com/outfoxxed)) — for building and maintaining the framework all of this runs on.
+- **[Hyprland](https://github.com/hyprwm/Hyprland)** ([@vaxry](https://github.com/vaxry) and contributors) — the compositor Olvex is built for.
+
+If you recognize a component, animation, or pattern from your own project and think it deserves a more specific mention here, please open an issue — attribution gaps are bugs, not decisions.
+
+---
+
 <div align="center">
   <p>Olvex Shell &mdash; Qt Quick & Material Design 3 Interface Engine</p>
 </div>
