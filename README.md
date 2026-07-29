@@ -217,18 +217,25 @@ Add the following execution lines to your Hyprland configuration file (`~/.confi
 # Start ydotool daemon
 exec-once = ydotool daemon
 
-# Launch Olvex Shell via Quickshell
+# Launch Olvex Shell via Quickshell (standard deployed path)
 exec-once = quickshell -p ~/.config/quickshell/olvex/
+
+# Or launch directly from your custom clone/development directory:
+# exec-once = quickshell -p /PATH_TO_YOUR_DIR/Olvex/
 ```
 
 ---
 
 #### Step 7: Launch Olvex Shell
 
-Start the shell manually for testing or live usage:
+Start the shell manually for testing or live development:
 
 ```bash
+# Standard deployed configuration path:
 quickshell -p ~/.config/quickshell/olvex/
+
+# Or launch directly from custom development directory:
+quickshell -p /PATH_TO_YOUR_DIR/Olvex/
 ```
 
 Or run via the CLI dispatcher:
@@ -308,7 +315,3 @@ Olvex began as a fork of [**Caelestia**](https://github.com/caelestia-dots/shell
 If you recognize a component, animation, or pattern from your own project and think it deserves a more specific mention here, please open an issue — attribution gaps are bugs, not decisions.
 
 ---
-
-<div align="center">
-  <p>Olvex Shell &mdash; Qt Quick & Material Design 3 Interface Engine</p>
-</div>
