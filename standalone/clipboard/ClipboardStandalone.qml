@@ -1351,7 +1351,7 @@ Window {
             moveSelection(-Math.max(1, Math.floor(listView.height / 48))); event.accepted = true
         } else if (event.key === Qt.Key_PageDown) {
             moveSelection(Math.max(1, Math.floor(listView.height / 48))); event.accepted = true
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { copyBtn.simulateClick(); event.accepted = true }
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { win.copySelected(); event.accepted = true }
         else if (event.key === Qt.Key_Delete) { deleteSelected(); event.accepted = true }
         else if (event.key === Qt.Key_Backspace) {
             if (!searchField.activeFocus || searchField.text.length === 0) {
@@ -1468,12 +1468,6 @@ Window {
         context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
         onActivated: moveSelection(Math.max(1, Math.floor(listView.height / 48)))
-    }
-    Shortcut {
-        sequences: ["Return", "Enter", StandardKey.InsertParagraphSeparator, StandardKey.InsertLineSeparator]
-        context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
-        onActivated: win.copySelected()
     }
     Shortcut {
         sequence: "Delete"
@@ -1765,25 +1759,9 @@ Window {
                                         applyFilter()
                                     }
                                     Keys.priority: Keys.BeforeItem
-                                    Keys.onUpPressed: function(event) {
-                                        win.moveSelection(-1)
-                                        event.accepted = true
-                                    }
-                                    Keys.onDownPressed: function(event) {
-                                        win.moveSelection(1)
-                                        event.accepted = true
-                                    }
-                                    onAccepted: {
-                                        win.copySelected()
-                                    }
                                     Keys.onPressed: function(event) {
                                         if (win.handleFilterArrow(event))
                                             return
-                                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                            win.copySelected()
-                                            event.accepted = true
-                                            return
-                                        }
                                         if (event.key === Qt.Key_Backspace && searchField.text.length > 0)
                                             return
                                         win.handleKey(event)
