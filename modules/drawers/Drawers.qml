@@ -29,21 +29,8 @@ Variants {
         Loader {
             id: oskLoader
 
-            readonly property bool shouldBeActive: content.visibilities.osk
-            active: shouldBeActive || teardownGrace.running
+            active: true
             asynchronous: true
-
-            Timer {
-                id: teardownGrace
-                interval: Tokens.anim.durations.expressiveDefaultSpatial + 150
-            }
-
-            onShouldBeActiveChanged: {
-                if (shouldBeActive)
-                    teardownGrace.stop();
-                else
-                    teardownGrace.restart();
-            }
 
             onItemChanged: {
                 content.oskWindow = item ?? null;
