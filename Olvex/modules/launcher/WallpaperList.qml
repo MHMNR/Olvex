@@ -18,7 +18,7 @@ Item {
 
     property string mode: "static"
     property bool userModeLock: false
-    property bool suppressPreview: false
+
 
     function selectMode(nextMode: string): void {
         if (root.mode === nextMode)
@@ -44,21 +44,13 @@ Item {
     function applyWallpaper(path, index) {
         if (!path) return;
         console.log("[WallpaperList] Direct apply wallpaper:", path, "at index:", index);
-        previewTimer.stop();
-        previewTimer.pendingPath = "";
-        Wallpapers.stopPreview();
         Wallpapers.setWallpaper(path);
         if (typeof index === "number" && index >= 0) {
-            root.suppressPreview = true;
             view.snapTo(index);
-            root.suppressPreview = false;
         }
     }
 
     function suspend(): void {
-        previewTimer.stop();
-        previewTimer.pendingPath = "";
-        Wallpapers.stopPreview();
         // Keep scriptModel.values intact so thumbnails stay cached in memory
     }
 
@@ -228,16 +220,7 @@ Item {
         itemHeight: Tokens.sizes.launcher.wallpaperHeight
         model: scriptModel.values
 
-        onCurrentIndexChanged: {
-            if (root.suppressPreview)
-                return;
-            const itemData = scriptModel.values[currentIndex];
-            if (itemData && itemData.path) {
-                previewTimer.stop();
-                previewTimer.pendingPath = itemData.path;
-                previewTimer.start();
-            }
-        }
+
 
         onItemClicked: (index, itemData) => {
             if (itemData && itemData.path) {
@@ -350,11 +333,9 @@ Item {
         Connections {
             target: root
             function onModeChanged() {
-                root.suppressPreview = true;
                 scriptModel.updateValues();
                 Qt.callLater(() => {
                     view.jumpToCurrent(false);
-                    root.suppressPreview = false;
                     root.search.forceActiveFocus();
                 });
             }
@@ -446,16 +427,6 @@ Item {
             }
         }
 
-        Timer {
-            id: previewTimer
-            interval: 150
-            repeat: false
-            property string pendingPath: ""
-            onTriggered: {
-                if (pendingPath) {
-                    Wallpapers.preview(pendingPath);
-                }
-            }
-        }
+
     }
 }
