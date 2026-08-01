@@ -1,0 +1,4 @@
+module olvex.features.lock
+
+MinimalLockContent 1.0 MinimalLockContent.qml
+

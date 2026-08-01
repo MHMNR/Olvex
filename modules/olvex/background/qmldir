@@ -1,0 +1,4 @@
+module olvex.features.background
+
+BackgroundWallpaper 1.0 BackgroundWallpaper.qml
+

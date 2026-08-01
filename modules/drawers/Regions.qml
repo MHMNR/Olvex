@@ -1,0 +1,98 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import qs.modules.bar as Bar
+
+Region {
+    id: root
+
+    required property Bar.BarWrapper bar
+    required property Panels panels
+    required property var win
+    required property var morph
+
+    readonly property real borderThickness: win.safeBorder.thickness
+    readonly property real clampedThickness: win.safeBorder.clampedThickness
+    readonly property bool borderFloating: win.safeBorder.floating
+
+    x: bar.clampedWidth + win.dragMaskPadding
+    y: clampedThickness + win.dragMaskPadding
+    width: win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
+    height: win.height - clampedThickness * 2 - win.dragMaskPadding * 2
+    intersection: Intersection.Xor
+
+    R {
+        panel: root.panels.dashboard
+        y: 0
+        customHeight: (1 - root.panels.dashboard.offsetScale) > 0 ? (panel.height * (1 - root.panels.dashboard.offsetScale) + root.borderThickness) : 0
+    }
+
+    R {
+        panel: root.panels.launcher
+        y: root.win.height - height
+        customHeight: (1 - root.panels.launcher.offsetScale) > 0 ? (panel.height * (1 - root.panels.launcher.offsetScale) + root.borderThickness) : 0
+    }
+
+    R {
+        panel: root.panels.wallpaperSelector
+        y: root.win.height - height
+        customHeight: (1 - root.panels.wallpaperSelector.offsetScale) > 0 ? (panel.height * (1 - root.panels.wallpaperSelector.offsetScale) + root.borderThickness) : 0
+    }
+
+    R {
+        id: sessionRegion
+
+        panel: root.panels.sessionWrapper
+        x: root.win.width - width
+        customWidth: (1 - root.panels.session.offsetScale) > 0 ? (panel.width * (1 - root.panels.session.offsetScale) + root.borderThickness) : 0
+    }
+
+    R {
+        panel: root.panels.osdWrapper
+        x: root.win.width - width
+        customWidth: (1 - root.panels.osd.offsetScale) > 0 ? (panel.width * (1 - root.panels.osd.offsetScale) + root.borderThickness + sessionRegion.width) : 0
+    }
+
+    R {
+        panel: root.panels.notifications
+        y: 0
+        customHeight: panel.height > 0 ? (panel.height + root.borderThickness) : 0
+    }
+
+    R {
+        // QS / utilities panel slides in from the right
+        panel: root.panels.utilities
+        x: root.win.width - width
+        customWidth: (1 - root.panels.utilities.offsetScale) > 0
+            ? (panel.width * (1 - root.panels.utilities.offsetScale) + root.borderThickness)
+            : 0
+        customHeight: panel.height > 0 ? (panel.height + root.borderThickness) : 0
+    }
+
+    R {
+        panel: root.panels.bottomPanel
+        y: root.win.height - height
+        customHeight: root.panels.bottomPanelVisible ? panel.height : 0
+    }
+
+    R {
+        panel: root.panels.popoutsWrapper
+        customWidth: (1 - root.panels.popoutsWrapper.offsetScale) > 0 ? (panel.width * (1 - root.panels.popoutsWrapper.offsetScale)) : 0
+    }
+
+    component R: Region {
+        required property Item panel
+        property real customWidth: panel.width
+        property real customHeight: panel.height
+
+        readonly property int gap: root.borderFloating ? 5 : 0
+        readonly property real extra: root.borderThickness + gap + 15
+
+        x: panel.x + root.bar.implicitWidth + gap - extra
+        y: panel.y + root.borderThickness + gap - extra
+        width: customWidth > 0 && customHeight > 0 ? (customWidth + extra * 2) : 0
+        height: customWidth > 0 && customHeight > 0 ? (customHeight + extra * 2) : 0
+        intersection: Intersection.Subtract
+    }
+}

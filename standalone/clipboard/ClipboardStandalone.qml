@@ -464,6 +464,18 @@ Window {
 
         Accessible.role: Accessible.Button
         Accessible.name: pbtn.label
+
+        function simulateClick() {
+            if (!enabled) return
+            clickAnim.restart()
+            triggered()
+        }
+
+        SequentialAnimation {
+            id: clickAnim
+            NumberAnimation { target: pbtn; property: "scale"; to: 0.92; duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutBack }
+            NumberAnimation { target: pbtn; property: "scale"; to: 1.0; duration: tok.motion.effectsExpressive.defaultMs; easing.type: Easing.OutCubic }
+        }
     }
 
     component TonalButton: Rectangle {
@@ -599,42 +611,7 @@ Window {
         }
     }
 
-    component WavyBar: Item {
-        id: wbar
-        property real phase: 0
-        implicitHeight: 3
 
-        Timer {
-            interval: 16
-            running: win.busy && !win.reducedMotion
-            repeat: true
-            onTriggered: { wbar.phase += 0.09; wavyCanvas.requestPaint() }
-        }
-
-        Connections {
-            target: SystemAccent
-            function onPaletteChanged() { wavyCanvas.requestPaint() }
-        }
-
-        Canvas {
-            id: wavyCanvas
-            anchors.fill: parent
-            onPaint: {
-                const ctx = getContext("2d")
-                const W = width, H = height, mid = H / 2
-                ctx.clearRect(0, 0, W, H)
-                ctx.beginPath()
-                for (let x = 0; x <= W; x += 2) {
-                    const y = mid + Math.sin(x * 0.07 + wbar.phase) * 1.4
-                    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
-                }
-                ctx.strokeStyle = tok.palette.primary
-                ctx.lineWidth = H
-                ctx.lineCap = "round"
-                ctx.stroke()
-            }
-        }
-    }
 
     // M3 list row — tonal surface, radius morph, emphasized motion
     component ClipListRow : Item {
@@ -1259,8 +1236,8 @@ Window {
         if (!item) return
         if (item.isImage) {
             Cliphist.copy(item.entryRaw)
-        } else if (item.edited || previewDirty) {
-            Cliphist.copyText(previewEditing ? previewEditText : item.entryText)
+        } else if (win.previewEditText && win.previewEditText.length > 0) {
+            Cliphist.copyText(win.previewEditText)
         } else {
             Cliphist.copy(item.entryRaw)
         }
@@ -1269,11 +1246,18 @@ Window {
 
     function deleteSelected() {
         if (!clipListModel.count) return
-        const item = clipListModel.get(selectedIndex)
+        const idx = selectedIndex
+        const item = clipListModel.get(idx)
         if (!item) return
         busy = true
+        clipListModel.remove(idx)
+        if (clipListModel.count > 0)
+            selectedIndex = Math.min(idx, clipListModel.count - 1)
+        else
+            selectedIndex = 0
+        bumpPreview()
+        syncListSelection()
         Cliphist.deleteEntry(item.entryRaw)
-        refreshHistory()
     }
 
     function wipeAll() {
@@ -1367,8 +1351,14 @@ Window {
             moveSelection(-Math.max(1, Math.floor(listView.height / 48))); event.accepted = true
         } else if (event.key === Qt.Key_PageDown) {
             moveSelection(Math.max(1, Math.floor(listView.height / 48))); event.accepted = true
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { copySelected(); event.accepted = true }
-        else if (event.key === Qt.Key_Delete || (event.key === Qt.Key_Backspace && !(searchField.activeFocus && searchField.text.length > 0))) { deleteSelected(); event.accepted = true }
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { copyBtn.simulateClick(); event.accepted = true }
+        else if (event.key === Qt.Key_Delete) { deleteSelected(); event.accepted = true }
+        else if (event.key === Qt.Key_Backspace) {
+            if (!searchField.activeFocus || searchField.text.length === 0) {
+                deleteSelected()
+                event.accepted = true
+            }
+        }
     }
 
     readonly property var filterModes: ["all", "text", "image"]
@@ -1483,7 +1473,7 @@ Window {
         sequences: ["Return", "Enter", StandardKey.InsertParagraphSeparator, StandardKey.InsertLineSeparator]
         context: Qt.WindowShortcut
         enabled: !previewEditing && clipListModel.count > 0
-        onActivated: copySelected()
+        onActivated: win.copySelected()
     }
     Shortcut {
         sequence: "Delete"
@@ -1576,22 +1566,7 @@ Window {
                 NumberAnimation { duration: tok.motion.effectsExpressive.defaultMs; easing.type: Easing.OutCubic }
             }
 
-            WavyBar {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                opacity: win.busy ? 1 : 0
-                visible: opacity > 0
-                z: 10
 
-                Behavior on opacity {
-                    enabled: !win.reducedMotion
-                    NumberAnimation {
-                        duration: tok.motion.effectsExpressive.fast
-                        easing.type: Easing.OutCubic
-                    }
-                }
-            }
 
             RowLayout {
                 anchors.fill: parent
@@ -1798,16 +1773,18 @@ Window {
                                         win.moveSelection(1)
                                         event.accepted = true
                                     }
-                                    Keys.onReturnPressed: function(event) {
+                                    onAccepted: {
                                         win.copySelected()
-                                        event.accepted = true
-                                    }
-                                    Keys.onEnterPressed: function(event) {
-                                        win.copySelected()
-                                        event.accepted = true
                                     }
                                     Keys.onPressed: function(event) {
                                         if (win.handleFilterArrow(event))
+                                            return
+                                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                            win.copySelected()
+                                            event.accepted = true
+                                            return
+                                        }
+                                        if (event.key === Qt.Key_Backspace && searchField.text.length > 0)
                                             return
                                         win.handleKey(event)
                                     }
@@ -2460,6 +2437,8 @@ Window {
 
                                     Rectangle {
                                         id: previewEditFrame
+                                        property bool isHovered: false
+
                                         // Handle click-to-edit in view mode (disabled in edit mode so text selection works)
                                         MouseArea {
                                             anchors.fill: parent
@@ -2473,7 +2452,9 @@ Window {
                                             anchors.fill: parent
                                             z: 10
                                             HoverHandler {
+                                                id: previewFrameHover
                                                 cursorShape: win.previewEditing ? Qt.IBeamCursor : Qt.ArrowCursor
+                                                onHoveredChanged: previewEditFrame.isHovered = hovered
                                             }
                                         }
 
@@ -2699,10 +2680,10 @@ Window {
                                         visible: !win.previewEditing
                                         text: qsTr("Click to edit")
                                         font: tok.type.label
-                                        color: previewFrameHover.hovered
+                                        color: previewEditFrame.isHovered
                                             ? tok.palette.primary
                                             : tok.palette.fgMuted
-                                        opacity: visible ? (previewFrameHover.hovered ? 0.85 : 0.6) : 0
+                                        opacity: visible ? (previewEditFrame.isHovered ? 0.85 : 0.6) : 0
 
                                         Behavior on opacity {
                                             enabled: !win.reducedMotion
@@ -2889,6 +2870,7 @@ Window {
                                         spacing: 6
 
                                         PrimaryButton {
+                                            id: copyBtn
                                             label: qsTr("Copy")
                                             glyph: "⏎"
                                             implicitHeight: 36

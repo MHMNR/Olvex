@@ -430,11 +430,13 @@ Item {
                             }
                             event.accepted = true
                         }
-                        Keys.onBackspacePressed: event => {
-                            if (panelSearch.text.length === 0 && root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length) {
-                                Cliphist.deleteEntry(root.filteredEntries[root.selectedIndex])
-                                root.selectedIndex = Math.max(0, root.selectedIndex - 1)
-                                event.accepted = true
+                        Keys.onPressed: event => {
+                            if (event.key === Qt.Key_Backspace && panelSearch.text.length === 0) {
+                                if (root.filteredEntries.length > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.filteredEntries.length) {
+                                    Cliphist.deleteEntry(root.filteredEntries[root.selectedIndex])
+                                    root.selectedIndex = Math.max(0, root.selectedIndex - 1)
+                                    event.accepted = true
+                                }
                             }
                         }
                     }
