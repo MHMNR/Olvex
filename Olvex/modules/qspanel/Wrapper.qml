@@ -57,12 +57,6 @@ Item {
     readonly property bool bottomPanelOff: !(Config.bar.bottomPanel?.enabled ?? true)
     property real peekOffset: (hovered && !shouldBeActive && bottomPanelOff) ? 17 : 0
 
-    property bool _forceRender: false
-    Timer {
-        id: forceRenderTimer
-        interval: 250
-        onTriggered: root._forceRender = false
-    }
 
     Behavior on peekOffset {
         Anim {
@@ -70,7 +64,7 @@ Item {
         }
     }
 
-    visible: root._forceRender || offsetScale < 1 || (peekOffset > 0 && Config.qspanel.enabled)
+    visible: offsetScale < 1 || (peekOffset > 0 && Config.qspanel.enabled)
     // Render to offscreen layer during peek so the rounded corner is anti-aliased
     // at the screen-edge clip boundary instead of appearing jaggy
     layer.enabled: peekOffset > 0 && !shouldBeActive
@@ -82,7 +76,7 @@ Item {
     implicitWidth: Tokens.sizes.qspanel.width
     // Fallback when not yet anchored
     implicitHeight: parent ? parent.height : ((content.item?.implicitHeight || 0) + content.anchors.margins * 2)
-    opacity: (root._forceRender && offsetScale === 1) ? 1 : ((hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale))
+    opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)
 
     states: State {
         name: "attachedToSidebar"
@@ -128,17 +122,6 @@ Item {
 
         asynchronous: true
         active: root.contentActive
-
-        onStatusChanged: {
-            if (status === Loader.Ready) {
-                if (root.shouldBeActive) {
-                    Qt.callLater(() => root.openAnimationReady = true);
-                } else {
-                    root._forceRender = true;
-                    forceRenderTimer.start();
-                }
-            }
-        }
 
         sourceComponent: Content {
             // Fill the loader so ColumnLayout can expand the notification tile

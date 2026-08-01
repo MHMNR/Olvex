@@ -23,15 +23,8 @@ Item {
         onTriggered: root.contentPrewarmed = true
     }
 
-    property bool _forceRender: false
-    Timer {
-        id: forceRenderTimer
-        interval: 250
-        onTriggered: root._forceRender = false
-    }
-
-    visible: root._forceRender || offsetScale < 1
-    opacity: (root._forceRender && offsetScale === 1) ? 1 : (1 - offsetScale)
+    visible: offsetScale < 1
+    opacity: 1 - offsetScale
     scale: 0.95 + (0.05 * (1 - offsetScale))
 
     anchors.fill: parent
@@ -52,13 +45,5 @@ Item {
             visibilities: root.visibilities
         }
 
-        onStatusChanged: {
-            if (status === Loader.Ready && !root.shouldBeActive) {
-                if (root.contentPrewarmed) {
-                    root._forceRender = true;
-                    forceRenderTimer.start();
-                }
-            }
-        }
     }
 }

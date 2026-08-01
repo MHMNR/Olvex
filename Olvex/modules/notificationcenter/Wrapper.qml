@@ -23,17 +23,8 @@ Item {
         onTriggered: root.contentPrewarmed = true
     }
 
-    property bool _forceRender: false
-    Timer {
-        id: forceRenderTimer
-        interval: 250
-        onTriggered: root._forceRender = false
-    }
-
-    visible: root._forceRender || offsetScale < 1
-    anchors.rightMargin: (-implicitWidth - 5) * offsetScale
-    implicitWidth: Tokens.sizes.sidebar.width
-    opacity: (root._forceRender && offsetScale === 1) ? 1 : (1 - offsetScale)
+    visible: offsetScale < 1
+    opacity: 1 - offsetScale
 
     Behavior on offsetScale {
         Anim {
@@ -59,13 +50,5 @@ Item {
             visibilities: root.visibilities
         }
 
-        onStatusChanged: {
-            if (status === Loader.Ready && !root.shouldBeActive) {
-                if (root.contentPrewarmed) {
-                    root._forceRender = true;
-                    forceRenderTimer.start();
-                }
-            }
-        }
     }
 }

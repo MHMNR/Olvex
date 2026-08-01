@@ -39,18 +39,11 @@ Item {
         brightness = root.monitor?.brightness ?? 0;
     }
 
-    property bool _forceRender: false
-    Timer {
-        id: forceRenderTimer
-        interval: 250
-        onTriggered: root._forceRender = false
-    }
-
-    visible: root._forceRender || offsetScale < 1
+    visible: offsetScale < 1
     anchors.rightMargin: (-implicitWidth - 5 - sidebarOffset) * offsetScale
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
-    opacity: (root._forceRender && offsetScale === 1) ? 1 : (1 - offsetScale)
+    opacity: 1 - offsetScale
 
     Behavior on offsetScale {
         Anim {
@@ -121,11 +114,5 @@ Item {
             screenCapture: root.screenCapture
         }
 
-        onStatusChanged: {
-            if (status === Loader.Ready && !root.shouldBeActive) {
-                root._forceRender = true;
-                forceRenderTimer.start();
-            }
-        }
     }
 }

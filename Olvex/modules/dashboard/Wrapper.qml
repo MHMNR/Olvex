@@ -59,15 +59,7 @@ Item {
         interval: Math.max(Tokens.anim.durations.large, Tokens.anim.durations.expressiveDefaultSpatial) + 120
     }
 
-    property bool _forceRender: false
-    Timer {
-        id: forceRenderTimer
-        interval: 250
-        onTriggered: root._forceRender = false
-    }
-
-    visible: root._forceRender || offsetScale < 1 || (peekOffset > 0 && Config.dashboard.enabled)
-
+    visible: offsetScale < 1 || (peekOffset > 0 && Config.dashboard.enabled)
     // Top margin defaults to fully hiding the panel (-implicitHeight - 10)
     // If hovered and inactive, we peek 7px by adding 17 (10 + 7) to the top margin
     property real peekOffset: (hovered && !shouldBeActive) ? 17 : 0
@@ -84,7 +76,7 @@ Item {
     implicitHeight: Math.max(480, content.implicitHeight)
     implicitWidth: Math.max(854, content.implicitWidth)
     // Match launcher: linear 1-offsetScale (snaps to fully opaque at rest).
-    opacity: (root._forceRender && offsetScale === 1) ? 1 : (1 - offsetScale)
+    opacity: 1 - offsetScale
 
     Behavior on offsetScale {
         Anim {
@@ -105,13 +97,6 @@ Item {
             visibilities: root.visibilities
             dashState: root.dashState
             facePicker: root.facePicker
-        }
-
-        onStatusChanged: {
-            if (status === Loader.Ready && !root.shouldBeActive) {
-                root._forceRender = true;
-                forceRenderTimer.start();
-            }
         }
     }
 }

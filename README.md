@@ -58,7 +58,7 @@ Ensure the following packages are installed before compiling and launching Olvex
 
 #### 2. Compositor, Shell & Wallpaper Engine
 - `hyprland` (Wayland Compositor)
-- `quickshell-git` (AUR) (Qt6 QML Desktop Shell Framework)
+- `quickshell` (Extra) (Qt6 QML Desktop Shell Framework)
 - `swww` (Wallpaper Daemon)
 - `matugen` (Material Design 3 Dynamic Color Generator)
 - `m3shapes` (C++ Shape Mask Library)
@@ -137,7 +137,7 @@ sudo pacman -S --needed \
 **AUR Packages (via `yay` or `paru`):**
 ```bash
 yay -S --needed \
-    quickshell-git matugen m3shapes app2unit \
+    quickshell matugen m3shapes app2unit \
     material-symbols caskaydia-cove-nerd
 ```
 
