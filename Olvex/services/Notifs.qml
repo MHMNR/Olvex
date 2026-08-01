@@ -38,7 +38,7 @@ Singleton {
     }
 
     onDndChanged: {
-        if (!GlobalConfig.utilities.toasts.dndChanged)
+        if (!GlobalConfig.qspanel.toasts.dndChanged)
             return;
 
         if (dnd)

@@ -11,8 +11,8 @@ Item {
     id: root
 
     required property DrawerVisibilities visibilities
-    required property Item osdPanel
-    required property Item sessionPanel
+    required property Item flyoutsPanel
+    required property Item powermenuPanel
 
     // Same inset on top / sides / bottom so the stack container padding matches
     readonly property int padding: Tokens.padding.large
@@ -46,14 +46,14 @@ Item {
         // Outer padding equal on all sides (top == sides == bottom)
         height += padding * 2;
 
-        if (visibilities.osd) {
-            const h = osdPanel.y - safeBorder.rounding * 2;
+        if (visibilities.flyouts) {
+            const h = flyoutsPanel.y - safeBorder.rounding * 2;
             if (height > h)
                 height = h;
         }
 
-        if (visibilities.session) {
-            const h = sessionPanel.y - safeBorder.rounding * 2;
+        if (visibilities.powermenu) {
+            const h = powermenuPanel.y - safeBorder.rounding * 2;
             if (height > h)
                 height = h;
         }

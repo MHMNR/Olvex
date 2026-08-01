@@ -10,7 +10,7 @@ import qs.components
 import qs.components.controls
 import qs.services
 import qs.utils
-import qs.modules.controlcenter
+import qs.modules.settings
 
 ColumnLayout {
     id: root

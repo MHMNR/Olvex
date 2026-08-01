@@ -13,18 +13,18 @@ qml_module(olvex-config
         backgroundconfig.hpp
         barconfig.hpp
         borderconfig.hpp
-        controlcenterconfig.hpp
+        settingsconfig.hpp
         dashboardconfig.hpp
         generalconfig.hpp
         launcherconfig.hpp
         lockconfig.hpp
         notifsconfig.hpp
-        osdconfig.hpp
+        flyoutsconfig.hpp
         serviceconfig.hpp
-        sessionconfig.hpp
-        sidebarconfig.hpp
+        powermenuconfig.hpp
+        notificationcenterconfig.hpp
         userpaths.hpp
-        utilitiesconfig.hpp
+        qspanelconfig.hpp
         winfoconfig.hpp
     LIBRARIES
         Qt::Quick

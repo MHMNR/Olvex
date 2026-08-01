@@ -4,7 +4,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell.Wayland
 import Olvex.Config
-import "../olvex" as Olvex
+import "../olvex/background" as OlvexBg
 import qs.components
 import qs.services
 
@@ -38,7 +38,7 @@ WlSessionLockSurface {
     }
 
     // ── Wallpaper with optional blur/dim ─────────────────────────────────────
-    Olvex.BackgroundWallpaper {
+    OlvexBg.BackgroundWallpaper {
         id: wallpaper
         anchors.fill: parent
         screen: root.screen
@@ -203,7 +203,7 @@ WlSessionLockSurface {
 
     Component {
         id: minimalContentComponent
-        Olvex.MinimalLockContent {
+        MinimalLockContent {
             lock: root
             pam: root.pam
             screen: root.screen

@@ -94,11 +94,18 @@ Item {
         content.item?.navigateEnter?.();
     }
 
-    visible: offsetScale < 1
+    property bool _forceRender: false
+    Timer {
+        id: forceRenderTimer
+        interval: 250
+        onTriggered: root._forceRender = false
+    }
+
+    visible: root._forceRender || offsetScale < 1
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: closingAnimationActive ? cachedImplicitHeight : (content.implicitHeight || cachedImplicitHeight)
     implicitWidth: closingAnimationActive ? cachedImplicitWidth : (content.implicitWidth || cachedImplicitWidth)
-    opacity: 1 - offsetScale
+    opacity: (root._forceRender && offsetScale === 1) ? 1 : (1 - offsetScale)
 
     Behavior on offsetScale {
         Anim {
@@ -143,8 +150,12 @@ Item {
         onStatusChanged: {
             if (status === Loader.Ready) {
                 root.syncCachedSize();
-                if (root.shouldBeActive)
+                if (root.shouldBeActive) {
                     content.item?.resumeLists?.();
+                } else if (root.contentPrewarmed) {
+                    root._forceRender = true;
+                    forceRenderTimer.start();
+                }
             }
         }
     }

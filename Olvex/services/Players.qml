@@ -410,7 +410,7 @@ Singleton {
 
     Connections {
         function onPostTrackChanged() {
-            if (!GlobalConfig.utilities.toasts.nowPlaying) {
+            if (!GlobalConfig.qspanel.toasts.nowPlaying) {
                 return;
             }
             if (root.active && root.active.trackArtist != "" && root.active.trackTitle != "") {

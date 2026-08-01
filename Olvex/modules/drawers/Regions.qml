@@ -43,15 +43,15 @@ Region {
     R {
         id: sessionRegion
 
-        panel: root.panels.sessionWrapper
+        panel: root.panels.powermenuWrapper
         x: root.win.width - width
-        customWidth: (1 - root.panels.session.offsetScale) > 0 ? (panel.width * (1 - root.panels.session.offsetScale) + root.borderThickness) : 0
+        customWidth: (1 - root.panels.powermenu.offsetScale) > 0 ? (panel.width * (1 - root.panels.powermenu.offsetScale) + root.borderThickness) : 0
     }
 
     R {
-        panel: root.panels.osdWrapper
+        panel: root.panels.flyoutsWrapper
         x: root.win.width - width
-        customWidth: (1 - root.panels.osd.offsetScale) > 0 ? (panel.width * (1 - root.panels.osd.offsetScale) + root.borderThickness + sessionRegion.width) : 0
+        customWidth: (1 - root.panels.flyouts.offsetScale) > 0 ? (panel.width * (1 - root.panels.flyouts.offsetScale) + root.borderThickness + sessionRegion.width) : 0
     }
 
     R {
@@ -61,11 +61,11 @@ Region {
     }
 
     R {
-        // QS / utilities panel slides in from the right
-        panel: root.panels.utilities
+        // QS / qspanel panel slides in from the right
+        panel: root.panels.qspanel
         x: root.win.width - width
-        customWidth: (1 - root.panels.utilities.offsetScale) > 0
-            ? (panel.width * (1 - root.panels.utilities.offsetScale) + root.borderThickness)
+        customWidth: (1 - root.panels.qspanel.offsetScale) > 0
+            ? (panel.width * (1 - root.panels.qspanel.offsetScale) + root.borderThickness)
             : 0
         customHeight: panel.height > 0 ? (panel.height + root.borderThickness) : 0
     }

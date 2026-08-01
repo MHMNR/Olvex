@@ -8,7 +8,7 @@ import Olvex.Config
 import qs.components
 import qs.components.controls
 import qs.services
-import qs.modules.controlcenter
+import qs.modules.settings
 
 Item {
     id: root

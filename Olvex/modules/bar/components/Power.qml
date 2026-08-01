@@ -18,7 +18,7 @@ Item {
         implicitWidth: implicitHeight
         implicitHeight: icon.implicitHeight + Tokens.padding.small * 2
         radius: Tokens.rounding.full
-        onClicked: root.visibilities.session = !root.visibilities.session
+        onClicked: root.visibilities.powermenu = !root.visibilities.powermenu
     }
 
     MaterialIcon {

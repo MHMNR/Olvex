@@ -106,7 +106,7 @@ Item {
         arr = arr.filter(i => i.layoutIndex !== activeIndex);
         arr.forEach(i => _visibleModel.append(i));
 
-        if (!GlobalConfig.utilities.toasts.kbLimit)
+        if (!GlobalConfig.qspanel.toasts.kbLimit)
             return;
 
         if (_layoutsModel.count > 4) {

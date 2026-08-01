@@ -7,7 +7,7 @@ import Quickshell.Wayland
 import Olvex.Config
 import qs.components
 import qs.services
-import qs.modules.controlcenter
+import qs.modules.settings
 import qs.modules.windowinfo
 
 FocusScope {

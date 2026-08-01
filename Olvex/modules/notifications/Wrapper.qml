@@ -5,8 +5,8 @@ Item {
     id: root
 
     required property DrawerVisibilities visibilities
-    property alias osdPanel: content.osdPanel
-    property alias sessionPanel: content.sessionPanel
+    property alias flyoutsPanel: content.flyoutsPanel
+    property alias powermenuPanel: content.powermenuPanel
 
     visible: height > 0
     implicitWidth: content.implicitWidth

@@ -1,0 +1,7 @@
+module olvex.features.settings
+
+PaneRegistryOverlay 1.0 PaneRegistryOverlay.qml
+AppearancePane 1.0 appearance/AppearancePane.qml
+TaskbarPane 1.0 taskbar/TaskbarPane.qml
+AudioPane 1.0 audio/AudioPane.qml
+

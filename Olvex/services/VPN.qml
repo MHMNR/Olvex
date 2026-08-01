@@ -18,9 +18,9 @@ Singleton {
         })
 
     readonly property bool connecting: connectProc.running || disconnectProc.running
-    readonly property bool enabled: GlobalConfig.utilities.vpn.provider.some(p => typeof p === "object" ? (p.enabled === true) : false)
+    readonly property bool enabled: GlobalConfig.qspanel.vpn.provider.some(p => typeof p === "object" ? (p.enabled === true) : false)
     readonly property var providerInput: {
-        const enabledProvider = GlobalConfig.utilities.vpn.provider.find(p => typeof p === "object" ? (p.enabled === true) : false);
+        const enabledProvider = GlobalConfig.qspanel.vpn.provider.find(p => typeof p === "object" ? (p.enabled === true) : false);
         return enabledProvider || "wireguard";
     }
     readonly property bool isCustomProvider: typeof providerInput === "object"
@@ -279,7 +279,7 @@ Singleton {
     }
 
     function emitStatusToast(statusObj: var): void {
-        if (!GlobalConfig.utilities.toasts.vpnChanged)
+        if (!GlobalConfig.qspanel.toasts.vpnChanged)
             return;
 
         const displayName = root.currentConfig ? (root.currentConfig.displayName || "VPN") : "VPN";

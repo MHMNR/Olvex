@@ -1,6 +1,0 @@
-module olvex.features.controlcenter.appearance.sections
-
-ThemeModeSection 1.0 ThemeModeSection.qml
-BackgroundSection 1.0 BackgroundSection.qml
-LockscreenSection 1.0 LockscreenSection.qml
-

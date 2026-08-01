@@ -116,7 +116,7 @@ Singleton {
 
         const newSinkName = sink.description || sink.name || qsTr("Unknown Device");
 
-        if (previousSinkName && previousSinkName !== newSinkName && GlobalConfig.utilities.toasts.audioOutputChanged)
+        if (previousSinkName && previousSinkName !== newSinkName && GlobalConfig.qspanel.toasts.audioOutputChanged)
             Toaster.toast(qsTr("Audio output changed"), qsTr("Now using: %1").arg(newSinkName), "volume_up");
 
         previousSinkName = newSinkName;
@@ -128,7 +128,7 @@ Singleton {
 
         const newSourceName = source.description || source.name || qsTr("Unknown Device");
 
-        if (previousSourceName && previousSourceName !== newSourceName && GlobalConfig.utilities.toasts.audioInputChanged)
+        if (previousSourceName && previousSourceName !== newSourceName && GlobalConfig.qspanel.toasts.audioInputChanged)
             Toaster.toast(qsTr("Audio input changed"), qsTr("Now using: %1").arg(newSourceName), "mic");
 
         previousSourceName = newSourceName;

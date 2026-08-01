@@ -166,8 +166,19 @@ RowLayout {
         implicitHeight: Layout.preferredHeight
 
         // Android 16 Fluid Spring Animation (Opening Only - Bouncy)
+        // Delay the animation slightly to allow Qt Quick to compile shaders and layout the scene graph on the first open
         property bool _ready: false
-        Component.onCompleted: Qt.callLater(() => _ready = true)
+        Timer {
+            interval: 50
+            running: root.dashboardActive && !cardRoot._ready
+            onTriggered: cardRoot._ready = true
+        }
+        Connections {
+            target: root
+            function onDashboardActiveChanged() {
+                if (!root.dashboardActive) cardRoot._ready = false;
+            }
+        }
 
         state: (root.dashboardActive && _ready) ? "visible" : "hidden"
 

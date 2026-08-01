@@ -13,7 +13,7 @@ import qs.components.containers
 import qs.modules.bar
 import qs.services
 import QtCore
-import "../utilities/cards" as Cards
+import "../qspanel/cards" as Cards
 
 StyledWindow {
     id: root
@@ -57,7 +57,7 @@ StyledWindow {
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : safeBorder.thickness
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
-    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (morph.active || visibilities.utilities || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.session || visibilities.sidebar || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible)
+    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible)
     readonly property bool shellMotionActive: shellMotionGrace.running
 
     property real bottomBorderHeight: {
@@ -83,7 +83,7 @@ StyledWindow {
             return 0;
 
         const thresholds = [];
-        for (const panel of ["dashboard", "launcher", "session", "sidebar", "utilities"])
+        for (const panel of ["dashboard", "launcher", "powermenu", "notificationcenter", "qspanel"])
             if (contentItem.Config[panel]?.enabled)
                 thresholds.push(contentItem.Config[panel].dragThreshold ?? 40);
         return Math.max(...thresholds);
@@ -91,7 +91,7 @@ StyledWindow {
 
     onHasFullscreenChanged: {
         visibilities.launcher = false;
-        visibilities.session = false;
+        visibilities.powermenu = false;
         visibilities.dashboard = false;
     }
 
@@ -120,12 +120,12 @@ StyledWindow {
     Connections {
         target: visibilities
 
-        function onUtilitiesChanged(): void { root.pulseShellMotion(); }
+        function onQspanelChanged(): void { root.pulseShellMotion(); }
         function onDashboardChanged(): void { root.pulseShellMotion(); }
         function onLauncherChanged(): void { root.pulseShellMotion(); }
         function onWallpaperLauncherChanged(): void { root.pulseShellMotion(); }
-        function onSessionChanged(): void { root.pulseShellMotion(); }
-        function onSidebarChanged(): void { root.pulseShellMotion(); }
+        function onPowermenuChanged(): void { root.pulseShellMotion(); }
+        function onNotificationcenterChanged(): void { root.pulseShellMotion(); }
         function onClipboardChanged(): void { root.pulseShellMotion(); }
     }
 
@@ -183,14 +183,14 @@ StyledWindow {
                 visibilities.launcher = false;
             else if (visibilities.dashboard)
                 visibilities.dashboard = false;
-            else if (visibilities.utilities)
-                visibilities.utilities = false;
+            else if (visibilities.qspanel)
+                visibilities.qspanel = false;
             else if (visibilities.clipboard)
                 visibilities.clipboard = false;
-            else if (visibilities.sidebar)
-                visibilities.sidebar = false;
-            else if (visibilities.session)
-                visibilities.session = false;
+            else if (visibilities.notificationcenter)
+                visibilities.notificationcenter = false;
+            else if (visibilities.powermenu)
+                visibilities.powermenu = false;
             else if (panels.popouts.hasCurrent) {
                 panels.popouts.hasCurrent = false;
                 bar.closeTray();
@@ -201,7 +201,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.wallpaperLauncher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.session && root.contentItem?.Config?.session?.enabled) || (visibilities.sidebar && root.contentItem?.Config?.sidebar?.enabled) || (visibilities.dashboard && root.contentItem?.Config?.dashboard?.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.utilities || visibilities.clipboard
+        active: (visibilities.launcher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.wallpaperLauncher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.powermenu && root.contentItem?.Config?.powermenu?.enabled) || (visibilities.notificationcenter && root.contentItem?.Config?.notificationcenter?.enabled) || (visibilities.dashboard && root.contentItem?.Config?.dashboard?.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.qspanel || visibilities.clipboard
         windows: root.oskWindow && visibilities.osk ? [root, root.oskWindow] : [root]
         onActiveChanged: {
             if (active) {
@@ -214,8 +214,8 @@ StyledWindow {
                 return;
             visibilities.launcher = false;
             visibilities.wallpaperLauncher = false;
-            visibilities.session = false;
-            visibilities.sidebar = false;
+            visibilities.powermenu = false;
+            visibilities.notificationcenter = false;
             visibilities.dashboard = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
@@ -224,7 +224,7 @@ StyledWindow {
 
     StyledRect {
         anchors.fill: parent
-        opacity: visibilities.session && Config.session.enabled ? 0.5 : 0
+        opacity: visibilities.powermenu && Config.powermenu.enabled ? 0.5 : 0
         color: Colours.palette.m3scrim
 
         Behavior on opacity {
@@ -239,14 +239,7 @@ StyledWindow {
         layer.effect: MultiEffect {
             shadowEnabled: true
             blurMax: 15
-            shadowColor: Qt.alpha(Colours.palette.m3shadow, (root.effectLayerActive && !root.shellMotionActive) ? Math.max(0, root.shadowOpacity) : 0)
-
-            Behavior on shadowColor {
-                ColorAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
-                }
-            }
+            shadowColor: Qt.alpha(Colours.palette.m3shadow, Math.max(0, root.shadowOpacity))
         }
 
         Item {
@@ -313,21 +306,21 @@ StyledWindow {
             }
 
             PanelBg {
-                id: sessionBg
+                id: powermenuBg
 
-                panel: panels.sessionWrapper
+                panel: panels.powermenuWrapper
                 deformAmount: 0.2
-                x: visibilities.session ? 0 : panels.sessionWrapper.x + panels.session.x + panels.x
-                y: visibilities.session ? 0 : panels.sessionWrapper.y + panels.session.y + panels.y
-                implicitWidth: visibilities.session ? root.width : 0
-                implicitHeight: visibilities.session ? root.height : 0
-                radius: visibilities.session ? 0 : Tokens.rounding.large
+                x: visibilities.powermenu ? 0 : panels.powermenuWrapper.x + panels.powermenu.x + panels.x
+                y: visibilities.powermenu ? 0 : panels.powermenuWrapper.y + panels.powermenu.y + panels.y
+                implicitWidth: visibilities.powermenu ? root.width : 0
+                implicitHeight: visibilities.powermenu ? root.height : 0
+                radius: visibilities.powermenu ? 0 : Tokens.rounding.large
             }
 
             PanelBg {
-                id: osdBg
+                id: flyoutsBg
 
-                panel: panels.osdWrapper
+                panel: panels.flyoutsWrapper
                 deformAmount: 0.1
             }
 
@@ -340,7 +333,7 @@ StyledWindow {
             PanelBg {
                 id: utilsBg
 
-                panel: panels.utilities
+                panel: panels.qspanel
                 deformAmount: 0.15
             }
 
@@ -434,13 +427,13 @@ StyledWindow {
 
         // Full-screen live capture used as the backdrop-blur source for OSD
         // sliders. Invisible here — each slider crops its own region via
-        // ShaderEffectSource.sourceRect using mapToItem(osdScreenCapture).
+        // ShaderEffectSource.sourceRect using mapToItem(flyoutsScreenCapture).
         // live only while the OSD is actually on screen to save bandwidth.
         ScreencopyView {
-            id: osdScreenCapture
+            id: flyoutsScreenCapture
             anchors.fill: parent
             captureSource: root.screen
-            live: visibilities.osd
+            live: visibilities.flyouts
             visible: false
         }
 
@@ -460,19 +453,19 @@ StyledWindow {
 
             Panels {
                 id: panels
-                z: visibilities.session ? 100 : 0
+                z: visibilities.powermenu ? 100 : 0
 
                 screen: root.screen
                 visibilities: visibilities
                 bar: bar
                 borderThickness: root.borderThickness
                 safeBorder: root.safeBorder
-                osdScreenCapture: osdScreenCapture
+                flyoutsScreenCapture: flyoutsScreenCapture
 
                 // Wire the flying-icon morph overlay back into Panels so GridAppItem → Panels.triggerAppMorph reaches it
                 appLaunchMorph: appLaunchMorphId
 
-                utilities.deformMatrix: utilsBg.rawDeformMatrix
+                qspanel.deformMatrix: utilsBg.rawDeformMatrix
 
                 dashboard.transform: Matrix4x4 {
                     matrix: dashBg.deformMatrix
@@ -483,10 +476,10 @@ StyledWindow {
                 wallpaperSelector.transform: Matrix4x4 {
                     matrix: wallpaperSelectorBg.deformMatrix
                 }
-                session.transform: Matrix4x4 {
-                    matrix: sessionBg.deformMatrix
+                powermenu.transform: Matrix4x4 {
+                    matrix: powermenuBg.deformMatrix
                 }
-                // No deform on the OSD content: its backing blob (osdBg) is now
+                // No deform on the OSD content: its backing blob (flyoutsBg) is now
                 // invisible, so warping the sliders to follow the blob's liquid
                 // spring-settle just distorts their rounded bottoms with nothing
                 // to justify it (the "goes buggy ~1s after open"). The sliders
@@ -494,7 +487,7 @@ StyledWindow {
                 notifications.transform: Matrix4x4 {
                     matrix: notifsBg.deformMatrix
                 }
-                utilities.transform: Matrix4x4 {
+                qspanel.transform: Matrix4x4 {
                     matrix: utilsBg.deformMatrix
                 }
                 popouts.transform: Matrix4x4 {
@@ -515,11 +508,11 @@ StyledWindow {
 
                 fullscreen: root.hasFullscreen
                 safeBorder: root.safeBorder
-                enabled: !visibilities.session
+                enabled: !visibilities.powermenu
                 visible: opacity > 0
 
                 // Staggered entry for bar
-                opacity: visibilities.session ? 0 : (root.isVisible ? 1 : 0)
+                opacity: visibilities.powermenu ? 0 : (root.isVisible ? 1 : 0)
                 transform: Translate {
                     x: root.isVisible ? 0 : -120
                     Behavior on x {

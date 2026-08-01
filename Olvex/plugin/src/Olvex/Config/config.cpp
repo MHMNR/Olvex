@@ -3,20 +3,20 @@
 #include "backgroundconfig.hpp"
 #include "barconfig.hpp"
 #include "borderconfig.hpp"
-#include "controlcenterconfig.hpp"
+#include "settingsconfig.hpp"
 #include "dashboardconfig.hpp"
 #include "generalconfig.hpp"
 #include "launcherconfig.hpp"
 #include "lockconfig.hpp"
 #include "monitorconfigmanager.hpp"
 #include "notifsconfig.hpp"
-#include "osdconfig.hpp"
+#include "flyoutsconfig.hpp"
 #include "serviceconfig.hpp"
-#include "sessionconfig.hpp"
-#include "sidebarconfig.hpp"
+#include "powermenuconfig.hpp"
+#include "notificationcenterconfig.hpp"
 #include "tokens.hpp"
 #include "userpaths.hpp"
-#include "utilitiesconfig.hpp"
+#include "qspanelconfig.hpp"
 #include "winfoconfig.hpp"
 
 #include <qqmlengine.h>
@@ -40,15 +40,15 @@ GlobalConfig::GlobalConfig(QObject* parent)
     , m_bar(new BarConfig(this))
     , m_border(new BorderConfig(this))
     , m_dashboard(new DashboardConfig(this))
-    , m_controlCenter(new ControlCenterConfig(this))
+    , m_settings(new SettingsConfig(this))
     , m_launcher(new LauncherConfig(this))
     , m_notifs(new NotifsConfig(this))
-    , m_osd(new OsdConfig(this))
-    , m_session(new SessionConfig(this))
+    , m_flyouts(new FlyoutsConfig(this))
+    , m_powermenu(new PowermenuConfig(this))
     , m_winfo(new WInfoConfig(this))
     , m_lock(new LockConfig(this))
-    , m_utilities(new UtilitiesConfig(this))
-    , m_sidebar(new SidebarConfig(this))
+    , m_qspanel(new QspanelConfig(this))
+    , m_notificationcenter(new NotificationcenterConfig(this))
     , m_services(new ServiceConfig(this))
     , m_paths(new UserPaths(this)) {
     setupFileBackend(configDir() + QStringLiteral("shell.json"));
@@ -62,15 +62,15 @@ GlobalConfig::GlobalConfig(GlobalConfig* fallback, const QString& filePath, cons
     , m_bar(new BarConfig(this))
     , m_border(new BorderConfig(this))
     , m_dashboard(new DashboardConfig(this))
-    , m_controlCenter(new ControlCenterConfig(this))
+    , m_settings(new SettingsConfig(this))
     , m_launcher(new LauncherConfig(this))
     , m_notifs(new NotifsConfig(this))
-    , m_osd(new OsdConfig(this))
-    , m_session(new SessionConfig(this))
+    , m_flyouts(new FlyoutsConfig(this))
+    , m_powermenu(new PowermenuConfig(this))
     , m_winfo(new WInfoConfig(this))
     , m_lock(new LockConfig(this))
-    , m_utilities(new UtilitiesConfig(this))
-    , m_sidebar(new SidebarConfig(this))
+    , m_qspanel(new QspanelConfig(this))
+    , m_notificationcenter(new NotificationcenterConfig(this))
     , m_services(new ServiceConfig(this))
     , m_paths(new UserPaths(this)) {
     if (!filePath.isEmpty())

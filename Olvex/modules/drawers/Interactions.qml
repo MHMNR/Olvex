@@ -22,8 +22,8 @@ CustomMouseArea {
 
     property point dragStart
     property bool dashboardShortcutActive
-    property bool osdShortcutActive
-    property bool utilitiesShortcutActive: false
+    property bool flyoutsShortcutActive
+    property bool qspanelShortcutActive: false
     property bool bottomPanelShortcutActive: false
     property bool wallpaperShortcutActive: false
     property bool launcherHoverDisabled: false
@@ -54,7 +54,7 @@ CustomMouseArea {
         return x < bar.implicitWidth + floatingGap + panel.x + panel.width + hoverTolerance && withinPanelHeight(panel, x, y);
     }
 
-    // Right-edge panels (OSD, session, QS utilities). isCorner: closed-peek strip (bottom-right).
+    // Right-edge panels (OSD, powermenu, QS qspanel). isCorner: closed-peek strip (bottom-right).
     function inRightPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         const offset = panel.offsetScale ?? 0; // qmllint disable missing-property
         if (offset < 1 && panel.width > 0) {
@@ -62,7 +62,7 @@ CustomMouseArea {
             return x > Math.min(width - safeBorder.minThickness - floatingGap, bar.implicitWidth + floatingGap + panel.x) - hoverTolerance
                 && withinPanelHeight(panel, x, y);
         }
-        // Fully closed — right-edge hot zone (utilities hover-peek)
+        // Fully closed — right-edge hot zone (qspanel hover-peek)
         const zoneW = Math.max(isCorner ? 60 : 24, safeBorder.minThickness + floatingGap);
         const inX = x > width - zoneW - (isCorner ? safeBorder.rounding : 0) - verticalTolerance;
         if (isCorner) {
@@ -72,7 +72,7 @@ CustomMouseArea {
         return inX && withinPanelHeight(panel, x, y);
     }
 
-    // Top-right corner hot zone — drag-only opens QS utilities panel (no click).
+    // Top-right corner hot zone — drag-only opens QS qspanel panel (no click).
     // Match Regions.qsHotCorner so hit-test aligns with interactive mask.
     readonly property real topRightZone: Math.max(72, safeBorder.clampedThickness + floatingGap + 48)
     function inTopRightCorner(x: real, y: real): bool {
@@ -129,21 +129,21 @@ CustomMouseArea {
             return;
         }
 
-        // Click peeked utilities to open (only when bottom panel is off and utilities is peeking)
+        // Click peeked qspanel to open (only when bottom panel is off and qspanel is peeking)
         const bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
-        if (bottomPanelOff && panels.utilities.hovered && !visibilities.utilities
-                && inRightPanel(panels.utilities, event.x, event.y, true)) {
-            visibilities.utilities = true;
-            utilitiesShortcutActive = true;
+        if (bottomPanelOff && panels.qspanel.hovered && !visibilities.qspanel
+                && inRightPanel(panels.qspanel, event.x, event.y, true)) {
+            visibilities.qspanel = true;
+            qspanelShortcutActive = true;
             event.accepted = true;
             return;
         }
 
-        // Right-edge / bottom-right corner click opens utilities (only when bottom panel is off)
-        if (bottomPanelOff && !visibilities.utilities
-                && inRightPanel(panels.utilities, event.x, event.y, true)) {
-            visibilities.utilities = true;
-            utilitiesShortcutActive = true;
+        // Right-edge / bottom-right corner click opens qspanel (only when bottom panel is off)
+        if (bottomPanelOff && !visibilities.qspanel
+                && inRightPanel(panels.qspanel, event.x, event.y, true)) {
+            visibilities.qspanel = true;
+            qspanelShortcutActive = true;
             event.accepted = true;
             return;
         }
@@ -155,16 +155,16 @@ CustomMouseArea {
         }
 
         // Top-right corner press — claim only for drag-to-open QS (no click-open)
-        if (Config.utilities.enabled && !visibilities.utilities
+        if (Config.qspanel.enabled && !visibilities.qspanel
                 && inTopRightCorner(event.x, event.y)) {
             event.accepted = true;
             return;
         }
 
-        // Dismiss utilities (QS panel) when clicking outside — only if NOT on a shell panel.
+        // Dismiss qspanel (QS panel) when clicking outside — only if NOT on a shell panel.
         // Must close + reject here (not ContentWindow MouseArea) so Wayland gets the event.
-        if (visibilities.utilities) {
-            const util = panels.utilities;
+        if (visibilities.qspanel) {
+            const util = panels.qspanel;
             const utilMapped = util.mapToItem(root, event.x, event.y);
             const inUtil = utilMapped.x >= 0 && utilMapped.y >= 0 
                         && utilMapped.x <= util.width && utilMapped.y <= util.height;
@@ -180,7 +180,7 @@ CustomMouseArea {
                       && cbMapped.x <= cb.width && cbMapped.y <= cb.height;
 
             if (!inUtil && !inBp && !inCb) {
-                visibilities.utilities = false;
+                visibilities.qspanel = false;
                 event.accepted = false;
                 return;
             }
@@ -252,9 +252,9 @@ CustomMouseArea {
     onContainsMouseChanged: {
         if (!containsMouse) {
             // Only hide if not activated by shortcut
-            if (!osdShortcutActive) {
-                visibilities.osd = false;
-                root.panels.osd.hovered = false;
+            if (!flyoutsShortcutActive) {
+                visibilities.flyouts = false;
+                root.panels.flyouts.hovered = false;
             }
 
             if (!dashboardShortcutActive) {
@@ -262,10 +262,10 @@ CustomMouseArea {
             }
             root.panels.dashboard.hovered = false;
 
-            // Close utilities on hover-away
-            if (!utilitiesShortcutActive)
-                visibilities.utilities = false;
-            root.panels.utilities.hovered = false;
+            // Close qspanel on hover-away
+            if (!qspanelShortcutActive)
+                visibilities.qspanel = false;
+            root.panels.qspanel.hovered = false;
 
             if (!bottomPanelShortcutActive)
                 visibilities.bottomPanel = false;
@@ -302,42 +302,42 @@ CustomMouseArea {
         }
 
         // Show OSD on hover
-        const showOsd = inRightPanel(panels.osdWrapper, x, y);
+        const showOsd = inRightPanel(panels.flyoutsWrapper, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
-        if (!osdShortcutActive) {
-            visibilities.osd = showOsd;
-            root.panels.osd.hovered = showOsd;
+        if (!flyoutsShortcutActive) {
+            visibilities.flyouts = showOsd;
+            root.panels.flyouts.hovered = showOsd;
         } else if (showOsd) {
             // If hovering over OSD area while in shortcut mode, transition to hover control
-            osdShortcutActive = false;
-            root.panels.osd.hovered = true;
+            flyoutsShortcutActive = false;
+            root.panels.flyouts.hovered = true;
         }
 
-        // Show/hide session on drag
+        // Show/hide powermenu on drag
         if (pressed && (dragStart.x > width - 50)) {
-            if (dragX > Config.session.dragThreshold)
-                visibilities.session = false;
+            if (dragX > Config.powermenu.dragThreshold)
+                visibilities.powermenu = false;
         }
 
-        // QS utilities: drag left from top-right → open; drag right from right edge → close.
+        // QS qspanel: drag left from top-right → open; drag right from right edge → close.
         // Inward (left) only — pure down/up would steal heads-up notif expand.
         // Hugging: slightly lower threshold (thinner chrome).
-        if (pressed && Config.utilities.enabled) {
-            const baseThresh = Config.utilities.dragThreshold ?? 40;
+        if (pressed && Config.qspanel.enabled) {
+            const baseThresh = Config.qspanel.dragThreshold ?? 40;
             const utilThresh = safeBorder.floating ? baseThresh : Math.max(20, Math.round(baseThresh * 0.65));
-            if (!visibilities.utilities
+            if (!visibilities.qspanel
                     && inTopRightCorner(dragStart.x, dragStart.y)
                     && !overNotifications(dragStart.x, dragStart.y)) {
                 // Require clear leftward drag; horizontal must dominate vertical
                 if (dragX < -utilThresh && Math.abs(dragX) >= Math.abs(dragY) * 0.55) {
-                    visibilities.utilities = true;
-                    utilitiesShortcutActive = true;
+                    visibilities.qspanel = true;
+                    qspanelShortcutActive = true;
                 }
-            } else if (visibilities.utilities && dragStart.x > width - Math.max(60, utilThresh + 20)) {
+            } else if (visibilities.qspanel && dragStart.x > width - Math.max(60, utilThresh + 20)) {
                 if (dragX > utilThresh) {
-                    visibilities.utilities = false;
-                    utilitiesShortcutActive = false;
+                    visibilities.qspanel = false;
+                    qspanelShortcutActive = false;
                 }
             }
         }
@@ -386,16 +386,16 @@ CustomMouseArea {
                 visibilities.dashboard = false;
         }
 
-        // Show/hide utilities hover peek from the right edge when bottom panel is off
+        // Show/hide qspanel hover peek from the right edge when bottom panel is off
         const _bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
-        if (_bottomPanelOff && !visibilities.utilities && !utilitiesShortcutActive) {
-            panels.utilities.hovered = inRightPanel(panels.utilities, x, y, true);
+        if (_bottomPanelOff && !visibilities.qspanel && !qspanelShortcutActive) {
+            panels.qspanel.hovered = inRightPanel(panels.qspanel, x, y, true);
         } else if (!_bottomPanelOff) {
-            panels.utilities.hovered = false;
+            panels.qspanel.hovered = false;
         }
 
-        // Show bottomPanel on hover (suppressed while session/power menu is open)
-        const showBottomPanel = !visibilities.session && root.inBottomPanelArea(x, y);
+        // Show bottomPanel on hover (suppressed while powermenu/power menu is open)
+        const showBottomPanel = !visibilities.powermenu && root.inBottomPanelArea(x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!bottomPanelShortcutActive) {
@@ -422,8 +422,8 @@ CustomMouseArea {
             } else {
                 // If launcher is hidden, clear shortcut flags for dashboard and OSD
                 root.dashboardShortcutActive = false;
-                root.osdShortcutActive = false;
-                root.utilitiesShortcutActive = false;
+                root.flyoutsShortcutActive = false;
+                root.qspanelShortcutActive = false;
                 root.wallpaperShortcutActive = false;
 
                 // Disable hover activation if mouse is still in the launcher area
@@ -432,15 +432,15 @@ CustomMouseArea {
 
                 // Also hide dashboard and OSD if they're not being hovered
                 const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
-                const inOsdArea = root.inRightPanel(root.panels.osdWrapper, root.mouseX, root.mouseY);
+                const inOsdArea = root.inRightPanel(root.panels.flyoutsWrapper, root.mouseX, root.mouseY);
 
                 if (!inDashboardArea) {
                     root.visibilities.dashboard = false;
                     root.panels.dashboard.hovered = false;
                 }
                 if (!inOsdArea) {
-                    root.visibilities.osd = false;
-                    root.panels.osd.hovered = false;
+                    root.visibilities.flyouts = false;
+                    root.panels.flyouts.hovered = false;
                 }
             }
         }
@@ -458,29 +458,29 @@ CustomMouseArea {
             }
         }
 
-        function onOsdChanged() {
-            if (root.visibilities.osd) {
+        function onFlyoutsChanged() {
+            if (root.visibilities.flyouts) {
                 // OSD became visible, immediately check if this should be shortcut mode
-                const inOsdArea = root.inRightPanel(root.panels.osdWrapper, root.mouseX, root.mouseY);
+                const inOsdArea = root.inRightPanel(root.panels.flyoutsWrapper, root.mouseX, root.mouseY);
                 if (!inOsdArea) {
-                    root.osdShortcutActive = true;
+                    root.flyoutsShortcutActive = true;
                 }
             } else {
                 // OSD hidden, clear shortcut flag
-                root.osdShortcutActive = false;
+                root.flyoutsShortcutActive = false;
             }
         }
 
-        function onUtilitiesChanged() {
-            if (root.visibilities.utilities) {
+        function onQspanelChanged() {
+            if (root.visibilities.qspanel) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inRightPanel(root.panels.utilities, root.mouseX, root.mouseY, true);
+                const inUtilitiesArea = root.inRightPanel(root.panels.qspanel, root.mouseX, root.mouseY, true);
                 if (!inUtilitiesArea) {
-                    root.utilitiesShortcutActive = true;
+                    root.qspanelShortcutActive = true;
                 }
             } else {
                 // Utilities hidden, clear shortcut flag
-                root.utilitiesShortcutActive = false;
+                root.qspanelShortcutActive = false;
             }
         }
 
@@ -495,8 +495,8 @@ CustomMouseArea {
             }
         }
 
-        function onSessionChanged() {
-            if (root.visibilities.session) {
+        function onPowermenuChanged() {
+            if (root.visibilities.powermenu) {
                 root.visibilities.bottomPanel = false;
                 root.bottomPanelShortcutActive = false;
             }

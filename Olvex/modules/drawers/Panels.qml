@@ -15,11 +15,11 @@ import qs.modules.bar as Bar
 import qs.modules.dashboard as Dashboard
 import qs.modules.launcher as Launcher
 import qs.modules.notifications as Notifications
-import qs.modules.osd as Osd
-import qs.modules.session as Session
-import qs.modules.utilities as Utilities
+import qs.modules.flyouts as Osd
+import qs.modules.powermenu as Session
+import qs.modules.qspanel as Utilities
 import qs.modules.bar.popouts as BarPopouts
-import qs.modules.utilities.toasts as Toasts
+import qs.modules.qspanel.toasts as Toasts
 import Quickshell.Widgets
 import qs.modules.launcher.services as LauncherServices
 import qs.modules.clipboard as Clipboard
@@ -33,19 +33,19 @@ Item {
     required property Bar.BarWrapper bar
     required property real borderThickness
     required property var safeBorder
-    property Item osdScreenCapture: null
+    property Item flyoutsScreenCapture: null
 
-    readonly property alias osd: osd
-    readonly property alias osdWrapper: osdWrapper
+    readonly property alias flyouts: flyouts
+    readonly property alias flyoutsWrapper: flyoutsWrapper
     readonly property alias notifications: notifications
-    readonly property alias session: session
-    readonly property alias sessionWrapper: sessionWrapper
+    readonly property alias powermenu: powermenu
+    readonly property alias powermenuWrapper: powermenuWrapper
     readonly property alias launcher: launcher
     readonly property alias wallpaperSelector: wallpaperSelector
     readonly property alias dashboard: dashboard
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
-    readonly property alias utilities: utilities
+    readonly property alias qspanel: qspanel
     readonly property alias toasts: toasts
     readonly property alias bottomPanel: bottomPanel
     readonly property alias clipboard: clipboard
@@ -54,7 +54,7 @@ Item {
     // App launch morph — set by ContentWindow after creation
     property var appLaunchMorph: null
 
-    readonly property bool sessionVisible: session.visible
+    readonly property bool powermenuVisible: powermenu.visible
 
     // Focus to receive key events
     focus: true
@@ -71,17 +71,17 @@ Item {
         } else if (visibilities.dashboard) {
             visibilities.dashboard = false;
             event.accepted = true;
-        } else if (visibilities.utilities) {
-            visibilities.utilities = false;
+        } else if (visibilities.qspanel) {
+            visibilities.qspanel = false;
             event.accepted = true;
         } else if (visibilities.clipboard) {
             visibilities.clipboard = false;
             event.accepted = true;
-        } else if (visibilities.sidebar) {
-            visibilities.sidebar = false;
+        } else if (visibilities.notificationcenter) {
+            visibilities.notificationcenter = false;
             event.accepted = true;
-        } else if (visibilities.session) {
-            visibilities.session = false;
+        } else if (visibilities.powermenu) {
+            visibilities.powermenu = false;
             event.accepted = true;
         } else if (popoutsWrapper.content.hasCurrent) {
             popoutsWrapper.content.hasCurrent = false;
@@ -299,7 +299,7 @@ Item {
     readonly property bool bottomPanelVisible: {
         if (!bottomPanelEnabled)
             return false;
-        if (visibilities.session)
+        if (visibilities.powermenu)
             return false;
         // Force panel visible when context menu is open (suppress autohide)
         if (contextMenuVisible)
@@ -334,23 +334,23 @@ Item {
     anchors.leftMargin: bar.implicitWidth + (safeBorder.floating ? 5 : 0)
 
     Item {
-        id: osdWrapper
+        id: flyoutsWrapper
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         anchors.rightMargin: 0
-        clip: root.sessionVisible
+        clip: root.powermenuVisible
 
-        implicitWidth: osd.implicitWidth * (1 - osd.offsetScale)
-        implicitHeight: osd.implicitHeight
+        implicitWidth: flyouts.implicitWidth * (1 - flyouts.offsetScale)
+        implicitHeight: flyouts.implicitHeight
 
         Osd.Wrapper {
-            id: osd
+            id: flyouts
 
             screen: root.screen
             visibilities: root.visibilities
-            sidebarOrSessionVisible: root.sessionVisible
-            screenCapture: root.osdScreenCapture
+            sidebarOrSessionVisible: root.powermenuVisible
+            screenCapture: root.flyoutsScreenCapture
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
@@ -361,17 +361,17 @@ Item {
         id: notifications
 
         visibilities: root.visibilities
-        osdPanel: osdWrapper
-        sessionPanel: sessionWrapper
+        flyoutsPanel: flyoutsWrapper
+        powermenuPanel: powermenuWrapper
 
         anchors.top: parent.top
         anchors.right: parent.right
-        // Above other panel chrome so expand / swipe hit the card, not utilities hot-zone
+        // Above other panel chrome so expand / swipe hit the card, not qspanel hot-zone
         z: 30
     }
 
     Item {
-        id: sessionWrapper
+        id: powermenuWrapper
 
         anchors.fill: parent
         anchors.leftMargin: -bar.implicitWidth
@@ -381,7 +381,7 @@ Item {
         z: 999
 
         Session.Wrapper {
-            id: session
+            id: powermenu
 
             visibilities: root.visibilities
 
@@ -433,7 +433,7 @@ Item {
     }
 
     Utilities.Wrapper {
-        id: utilities
+        id: qspanel
 
         visibilities: root.visibilities
         popouts: popoutsWrapper.content
@@ -451,11 +451,11 @@ Item {
         anchors.bottom: parent.bottom
         width: 32
         height: 32
-        visible: !(root.bottomPanelEnabled) && !root.visibilities.utilities && Config.utilities.enabled
+        visible: !(root.bottomPanelEnabled) && !root.visibilities.qspanel && Config.qspanel.enabled
         z: 20
 
         onClicked: {
-            root.visibilities.utilities = true;
+            root.visibilities.qspanel = true;
         }
     }
 
@@ -469,7 +469,7 @@ Item {
         anchors.bottomMargin: Tokens.spacing.normal
         anchors.rightMargin: Tokens.spacing.normal
 
-        width: Tokens.sizes.utilities.width || 380
+        width: Tokens.sizes.qspanel.width || 380
         height: 520
 
         visible: root.visibilities.clipboard
@@ -493,7 +493,7 @@ Item {
     Toasts.Toasts {
         id: toasts
 
-        // Float above bottom panel / screen bottom (utilities is full-height now)
+        // Float above bottom panel / screen bottom (qspanel is full-height now)
         anchors.bottom: (root.bottomPanelEnabled && root.bottomPanelVisible) ? bottomPanel.top : parent.bottom
         anchors.right: parent.right
         anchors.margins: Tokens.padding.normal
@@ -560,8 +560,8 @@ Item {
                         root.visibilities.launcher = false;
                         return;
                     }
-                    if (root.visibilities.utilities) {
-                        root.visibilities.utilities = false;
+                    if (root.visibilities.qspanel) {
+                        root.visibilities.qspanel = false;
                     } else if (root.visibilities.clipboard) {
                         root.visibilities.clipboard = false;
                     }
@@ -980,8 +980,8 @@ Item {
                     onClicked: {
                         clipboardAnim.start();
                         root.visibilities.clipboard = !root.visibilities.clipboard;
-                        if (root.visibilities.utilities)
-                            root.visibilities.utilities = false;
+                        if (root.visibilities.qspanel)
+                            root.visibilities.qspanel = false;
                     }
                 }
 
@@ -1043,15 +1043,15 @@ Item {
 
                     onClicked: {
                         settingsAnim.start();
-                        root.visibilities.utilities = !root.visibilities.utilities;
+                        root.visibilities.qspanel = !root.visibilities.qspanel;
                     }
                 }
 
                 Rectangle {
                     anchors.fill: parent
                     radius: 10
-                    color: qsState.containsMouse || root.visibilities.utilities ? Colours.layer(Colours.palette.m3surfaceVariant, 0.8) : "transparent"
-                    border.color: qsState.containsMouse || root.visibilities.utilities ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : "transparent"
+                    color: qsState.containsMouse || root.visibilities.qspanel ? Colours.layer(Colours.palette.m3surfaceVariant, 0.8) : "transparent"
+                    border.color: qsState.containsMouse || root.visibilities.qspanel ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : "transparent"
                     border.width: 1
 
                     scale: qsState.containsMouse ? 1.12 : 1.0
@@ -1064,7 +1064,7 @@ Item {
                         text: "settings"
                         anchors.fill: parent
                         anchors.margins: 10
-                        color: root.visibilities.utilities ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                        color: root.visibilities.qspanel ? Colours.palette.m3primary : Colours.palette.m3onSurface
 
                         SequentialAnimation {
                             id: settingsAnim
@@ -1078,7 +1078,7 @@ Item {
                 }
             }
 
-            // Bottom-right corner click area for utilities (cursor at bottom-right)
+            // Bottom-right corner click area for qspanel (cursor at bottom-right)
             MouseArea {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -1086,7 +1086,7 @@ Item {
                 height: 100
 
                 onClicked: {
-                    root.visibilities.utilities = !root.visibilities.utilities;
+                    root.visibilities.qspanel = !root.visibilities.qspanel;
                 }
             }
         }

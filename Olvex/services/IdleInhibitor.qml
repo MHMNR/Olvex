@@ -20,15 +20,15 @@ Singleton {
     }
 
     function syncFromConfig() {
-        if (props.enabled === GlobalConfig.utilities.keepAwake)
+        if (props.enabled === GlobalConfig.qspanel.keepAwake)
             return
-        props.enabled = GlobalConfig.utilities.keepAwake
+        props.enabled = GlobalConfig.qspanel.keepAwake
     }
 
     function syncToConfig() {
-        if (GlobalConfig.utilities.keepAwake === props.enabled)
+        if (GlobalConfig.qspanel.keepAwake === props.enabled)
             return
-        GlobalConfig.utilities.keepAwake = props.enabled
+        GlobalConfig.qspanel.keepAwake = props.enabled
     }
 
     property Process inhibitProcess: Process {
@@ -71,7 +71,7 @@ Singleton {
     }
 
     Connections {
-        target: GlobalConfig.utilities
+        target: GlobalConfig.qspanel
         function onKeepAwakeChanged() {
             root.syncFromConfig()
             root.applyState(root.enabled)

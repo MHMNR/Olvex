@@ -21,8 +21,19 @@ StyledRect {
     readonly property bool isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
 
     // Perspective Kinetic Bloom Animation (Opening Only)
+    // Delay the animation slightly to allow Qt Quick to compile shaders on the first open
     property bool _ready: false
-    Component.onCompleted: Qt.callLater(() => _ready = true)
+    Timer {
+        interval: 50
+        running: root.isPanelVisible && !root._ready
+        onTriggered: root._ready = true
+    }
+    Connections {
+        target: root
+        function onIsPanelVisibleChanged() {
+            if (!root.isPanelVisible) root._ready = false;
+        }
+    }
 
     state: root.isExpanding ? "expanding" : ((isPanelVisible && _ready) ? "visible" : "hidden")
 
@@ -44,7 +55,7 @@ StyledRect {
     states: [
         State {
             name: "hidden"
-            PropertyChanges { target: root; opacity: 0 }
+            PropertyChanges { target: root; opacity: 0.01 }
             PropertyChanges { target: trans; x: -20; y: root.isLowPower ? 0 : 20 }
             PropertyChanges { target: scale; xScale: root.isLowPower ? 1.0 : 0.8; yScale: root.isLowPower ? 1.0 : 1.1 }
         },

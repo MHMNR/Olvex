@@ -1,4 +1,0 @@
-module olvex.features.controlcenter.audio
-
-AudioPane 1.0 AudioPane.qml
-

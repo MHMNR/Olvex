@@ -125,7 +125,7 @@ Singleton {
     Component.onCompleted: reloadDynamicConfs()
 
     onCapsLockChanged: {
-        if (!GlobalConfig.utilities.toasts.capsLockChanged)
+        if (!GlobalConfig.qspanel.toasts.capsLockChanged)
             return;
 
         if (capsLock)
@@ -135,7 +135,7 @@ Singleton {
     }
 
     onNumLockChanged: {
-        if (!GlobalConfig.utilities.toasts.numLockChanged)
+        if (!GlobalConfig.qspanel.toasts.numLockChanged)
             return;
 
         if (numLock)
@@ -145,7 +145,7 @@ Singleton {
     }
 
     onKbLayoutFullChanged: {
-        if (hadKeyboard && GlobalConfig.utilities.toasts.kbLayoutChanged)
+        if (hadKeyboard && GlobalConfig.qspanel.toasts.kbLayoutChanged)
             Toaster.toast(qsTr("Keyboard layout changed"), qsTr("Layout changed to: %1").arg(kbLayoutFull), "keyboard");
 
         hadKeyboard = !!keyboard;

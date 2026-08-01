@@ -5,7 +5,7 @@ import Olvex
 import Olvex.Config
 import qs.components.misc
 import qs.services
-import qs.modules.controlcenter
+import qs.modules.settings
 
 Scope {
     id: root
@@ -26,10 +26,10 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
-        name: "controlCenter"
+        name: "settings"
         description: "Open control center"
         onPressed: {
-            if (!root.shouldTrigger("controlCenter")) return;
+            if (!root.shouldTrigger("settings")) return;
             WindowFactory.create();
             Visibilities.launcherInterrupted = true;
         }
@@ -39,13 +39,13 @@ Scope {
     CustomShortcut {
         // qmllint enable unresolved-type
         name: "showall"
-        description: "Toggle launcher, dashboard and osd"
+        description: "Toggle launcher, dashboard and flyouts"
         onPressed: {
             if (!root.shouldTrigger("showall")) return;
             if (root.hasFullscreen)
                 return;
             const v = Visibilities.getForActive();
-            v.launcher = v.dashboard = v.osd = v.utilities = !(v.launcher || v.dashboard || v.osd || v.utilities);
+            v.launcher = v.dashboard = v.flyouts = v.qspanel = !(v.launcher || v.dashboard || v.flyouts || v.qspanel);
             Visibilities.launcherInterrupted = true;
         }
     }
@@ -68,14 +68,14 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
-        name: "session"
-        description: "Toggle session menu"
+        name: "powermenu"
+        description: "Toggle powermenu menu"
         onPressed: {
-            if (!root.shouldTrigger("session")) return;
+            if (!root.shouldTrigger("powermenu")) return;
             if (root.hasFullscreen)
                 return;
             const visibilities = Visibilities.getForActive();
-            visibilities.session = !visibilities.session;
+            visibilities.powermenu = !visibilities.powermenu;
             Visibilities.launcherInterrupted = true;
         }
     }
@@ -121,14 +121,14 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
-        name: "utilities"
-        description: "Toggle utilities"
+        name: "qspanel"
+        description: "Toggle qspanel"
         onPressed: {
-            if (!root.shouldTrigger("utilities")) return;
+            if (!root.shouldTrigger("qspanel")) return;
             if (root.hasFullscreen)
                 return;
             const visibilities = Visibilities.getForActive();
-            visibilities.utilities = !visibilities.utilities;
+            visibilities.qspanel = !visibilities.qspanel;
             Visibilities.launcherInterrupted = true;
         }
     }
@@ -177,7 +177,7 @@ Scope {
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "powermenu", "dashboard"].includes(drawer))
                     return;
                 const visibilities = Visibilities.getForActive();
                 visibilities[drawer] = !visibilities[drawer];
@@ -205,7 +205,7 @@ Scope {
             WindowFactory.create();
         }
 
-        target: "controlCenter"
+        target: "settings"
     }
 
     IpcHandler {

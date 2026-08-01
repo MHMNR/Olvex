@@ -224,8 +224,8 @@ Item {
                     }
                 }
 
-                function onSessionChanged(): void {
-                    if (!root.visibilities.session && root.launcherVisible) {
+                function onPowermenuChanged(): void {
+                    if (!root.visibilities.powermenu && root.launcherVisible) {
                         search.forceActiveFocus();
                         if (!search.activeFocus) {
                             focusTimer.attempts = 0;

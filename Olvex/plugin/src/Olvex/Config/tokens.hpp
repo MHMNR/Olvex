@@ -211,7 +211,7 @@ public:
         : ConfigObject(parent) {}
 };
 
-class OsdTokens : public ConfigObject {
+class FlyoutsTokens : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
@@ -219,33 +219,33 @@ class OsdTokens : public ConfigObject {
     CONFIG_PROPERTY(int, sliderHeight, 150)
 
 public:
-    explicit OsdTokens(QObject* parent = nullptr)
+    explicit FlyoutsTokens(QObject* parent = nullptr)
         : ConfigObject(parent) {}
 };
 
-class SessionTokens : public ConfigObject {
+class PowermenuTokens : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(int, button, 80)
 
 public:
-    explicit SessionTokens(QObject* parent = nullptr)
+    explicit PowermenuTokens(QObject* parent = nullptr)
         : ConfigObject(parent) {}
 };
 
-class SidebarTokens : public ConfigObject {
+class NotificationcenterTokens : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(int, width, 430)
 
 public:
-    explicit SidebarTokens(QObject* parent = nullptr)
+    explicit NotificationcenterTokens(QObject* parent = nullptr)
         : ConfigObject(parent) {}
 };
 
-class UtilitiesTokens : public ConfigObject {
+class QspanelTokens : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
@@ -253,7 +253,7 @@ class UtilitiesTokens : public ConfigObject {
     CONFIG_PROPERTY(int, toastWidth, 430)
 
 public:
-    explicit UtilitiesTokens(QObject* parent = nullptr)
+    explicit QspanelTokens(QObject* parent = nullptr)
         : ConfigObject(parent) {}
 };
 
@@ -282,7 +282,7 @@ public:
         : ConfigObject(parent) {}
 };
 
-class ControlCenterTokens : public ConfigObject {
+class SettingsTokens : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
@@ -290,7 +290,7 @@ class ControlCenterTokens : public ConfigObject {
     CONFIG_PROPERTY(qreal, ratio, 16.0 / 9.0)
 
 public:
-    explicit ControlCenterTokens(QObject* parent = nullptr)
+    explicit SettingsTokens(QObject* parent = nullptr)
         : ConfigObject(parent) {}
 };
 
@@ -302,13 +302,13 @@ class SizeTokens : public ConfigObject {
     CONFIG_SUBOBJECT(DashboardTokens, dashboard)
     CONFIG_SUBOBJECT(LauncherTokens, launcher)
     CONFIG_SUBOBJECT(NotifsTokens, notifs)
-    CONFIG_SUBOBJECT(OsdTokens, osd)
-    CONFIG_SUBOBJECT(SessionTokens, session)
-    CONFIG_SUBOBJECT(SidebarTokens, sidebar)
-    CONFIG_SUBOBJECT(UtilitiesTokens, utilities)
+    CONFIG_SUBOBJECT(FlyoutsTokens, flyouts)
+    CONFIG_SUBOBJECT(PowermenuTokens, powermenu)
+    CONFIG_SUBOBJECT(NotificationcenterTokens, notificationcenter)
+    CONFIG_SUBOBJECT(QspanelTokens, qspanel)
     CONFIG_SUBOBJECT(LockTokens, lock)
     CONFIG_SUBOBJECT(WInfoTokens, winfo)
-    CONFIG_SUBOBJECT(ControlCenterTokens, controlCenter)
+    CONFIG_SUBOBJECT(SettingsTokens, settings)
 
 public:
     explicit SizeTokens(QObject* parent = nullptr)
@@ -317,13 +317,13 @@ public:
         , m_dashboard(new DashboardTokens(this))
         , m_launcher(new LauncherTokens(this))
         , m_notifs(new NotifsTokens(this))
-        , m_osd(new OsdTokens(this))
-        , m_session(new SessionTokens(this))
-        , m_sidebar(new SidebarTokens(this))
-        , m_utilities(new UtilitiesTokens(this))
+        , m_flyouts(new FlyoutsTokens(this))
+        , m_powermenu(new PowermenuTokens(this))
+        , m_notificationcenter(new NotificationcenterTokens(this))
+        , m_qspanel(new QspanelTokens(this))
         , m_lock(new LockTokens(this))
         , m_winfo(new WInfoTokens(this))
-        , m_controlCenter(new ControlCenterTokens(this)) {}
+        , m_settings(new SettingsTokens(this)) {}
 };
 
 class TokenConfig : public RootConfig {

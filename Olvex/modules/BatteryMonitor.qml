@@ -12,10 +12,10 @@ Scope {
     Connections {
         function onOnBatteryChanged(): void {
             if (UPower.onBattery) {
-                if (GlobalConfig.utilities.toasts.chargingChanged)
+                if (GlobalConfig.qspanel.toasts.chargingChanged)
                     Toaster.toast(qsTr("Charger unplugged"), qsTr("Battery is discharging"), "power_off");
             } else {
-                if (GlobalConfig.utilities.toasts.chargingChanged)
+                if (GlobalConfig.qspanel.toasts.chargingChanged)
                     Toaster.toast(qsTr("Charger plugged in"), qsTr("Battery is charging"), "power");
                 for (const level of root.warnLevels)
                     level.warned = false;
