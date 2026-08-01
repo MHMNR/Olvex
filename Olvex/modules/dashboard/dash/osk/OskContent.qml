@@ -1,5 +1,7 @@
 import QtQuick
+import QtCore
 import QtQuick.Layouts
+import QtCore
 import Olvex.Config
 import "layouts.js" as Layouts
 
@@ -14,6 +16,30 @@ Item {
     signal layoutSwitchRequested(string targetLayout)
     property bool isSplit: false
     property var wordEngine: null  
+    property var sessionRecentEmojis: []
+    
+    property bool _settingsLoaded: false
+    
+    Settings {
+        id: recentSettings
+        category: "OnScreenKeyboard"
+        property string savedRecents: "[]"
+    }
+
+    Component.onCompleted: {
+        try {
+            root.sessionRecentEmojis = JSON.parse(recentSettings.savedRecents);
+        } catch(e) {
+            root.sessionRecentEmojis = [];
+        }
+        root._settingsLoaded = true;
+    }
+
+    onSessionRecentEmojisChanged: {
+        if (root._settingsLoaded) {
+            recentSettings.savedRecents = JSON.stringify(root.sessionRecentEmojis);
+        }
+    }
 
     property bool isDocked: false
     property real dockProgress: 0.0
@@ -203,6 +229,7 @@ Item {
             Binding { target: item; property: "baseWidth"; value: root.currentBaseWidth; restoreMode: Binding.RestoreBinding }
             Binding { target: item; property: "baseHeight"; value: root.currentBaseHeight; restoreMode: Binding.RestoreBinding }
             Binding { target: item; property: "wordEngine"; value: root.wordEngine; restoreMode: Binding.RestoreBinding }
+            Binding { target: item; property: "sessionRecentsContext"; value: root; restoreMode: Binding.RestoreBinding }
             
             Connections {
                 target: item

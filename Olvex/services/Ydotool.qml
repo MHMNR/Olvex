@@ -310,9 +310,7 @@ Singleton {
 
     function typeString(text) {
         if (!text || text.length === 0) return;
-        if (root._ydotoolAvailable) {
-            Quickshell.execDetached(["ydotool", "type", text]);
-            consumeLatches();
-        }
+        Quickshell.execDetached(["wtype", text]);
+        consumeLatches();
     }
 }

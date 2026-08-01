@@ -20,9 +20,12 @@ Item {
     readonly property bool isDocked: visibilities && visibilities.isOskDocked ? true : false
     property bool showingSettings: false
     readonly property real padding: 22
-    property bool isSplit: false
-    property string activeLayoutName: "Default"
-    onActiveLayoutNameChanged: Ydotool.activeLayout = activeLayoutName
+    property bool isSplit: oskSettings.isSplit
+    property string activeLayoutName: {
+        let saved = oskSettings.activeLayoutName;
+        if (saved.includes("Emoji") || saved.includes("Symbols")) return "Default";
+        return saved;
+    }
     Component.onCompleted: {
         Ydotool.activeLayout = activeLayoutName
         // Trigger initial auto-cap check
@@ -36,10 +39,17 @@ Item {
         id: oskSettings
         category: "OnScreenKeyboard"
         property real scale: 1.0
+        property bool isSplit: false
+        property string activeLayoutName: "Default"
     }
 
-    onOskScaleChanged: {
-        oskSettings.scale = oskScale
+    onOskScaleChanged: oskSettings.scale = oskScale
+    onIsSplitChanged: oskSettings.isSplit = isSplit
+    onActiveLayoutNameChanged: {
+        if (!activeLayoutName.includes("Emoji") && !activeLayoutName.includes("Symbols")) {
+            oskSettings.activeLayoutName = activeLayoutName;
+        }
+        Ydotool.activeLayout = activeLayoutName
     }
     
     signal hideRequested()
@@ -253,7 +263,7 @@ Item {
                 scaleFactor: root.oskScale
                 isDocked: root.isDocked
                 isSplit: root.isSplit && root.isDocked && root.canSplit
-                dockProgress: parent.parent.parent.parent.dockProgress // Accessing PanelWindow.dockProgress
+                dockProgress: (parent && parent.parent && parent.parent.parent && parent.parent.parent.parent && typeof parent.parent.parent.parent.dockProgress !== "undefined") ? parent.parent.parent.parent.dockProgress : 0.0
                 wordEngine: wordEngine
                 Layout.fillWidth: true
                 onHideRequested: root.hideRequested()
