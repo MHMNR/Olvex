@@ -799,14 +799,15 @@ Item {
                             color: progressTrackRow.activeColor
                             border.width: 1
                             border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.26)
-                            layer.enabled: visible && (progressTrackRow.dragging || hoverArea.containsMouse)
+                            layer.enabled: true
                             layer.effect: MultiEffect {
                                 shadowEnabled: true
                                 shadowColor: Qt.alpha(progressTrackRow.activeColor, 0.58)
-                                shadowOpacity: 0.46
+                                shadowOpacity: (visible && (progressTrackRow.dragging || hoverArea.containsMouse)) ? 0.46 : 0
                                 shadowBlur: 0.7
                                 shadowHorizontalOffset: 0
                                 shadowVerticalOffset: 0
+                                Behavior on shadowOpacity { NumberAnimation { duration: 150 } }
                             }
                             Behavior on x {
                                 enabled: !progressTrackRow.dragging

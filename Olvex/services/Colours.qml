@@ -371,12 +371,7 @@ Singleton {
     property real lastBaseTransparency
 
     function requestReloadHyprRules() {
-        if (cooldownTimer.running) {
-            cooldownPending = true;
-        } else {
-            reloadHyprRules();
-            cooldownTimer.restart();
-        }
+        cooldownTimer.restart();
     }
 
     function reloadHyprRules() {
@@ -458,11 +453,7 @@ Singleton {
         id: cooldownTimer
         interval: 30
         onTriggered: {
-            if (root.cooldownPending) {
-                root.cooldownPending = false;
-                root.reloadHyprRules();
-                restart();
-            }
+            root.reloadHyprRules();
         }
     }
 

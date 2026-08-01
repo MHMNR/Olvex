@@ -91,7 +91,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
-        active: root.dashboardActive || root.hovered
+        active: true
 
         sourceComponent: Content {
             dashboardActive: root.dashboardActive

@@ -134,8 +134,8 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        active: root.contentActive
         asynchronous: true
+        active: root.contentActive
         sourceComponent: contentComponent
 
         onImplicitHeightChanged: root.syncCachedSize()

@@ -235,11 +235,18 @@ StyledWindow {
     Item {
         anchors.fill: parent
         opacity: Colours.transparencyEnabled ? Colours.transparencyBase : 1
-        layer.enabled: root.effectLayerActive && !root.shellMotionActive
+        layer.enabled: true
         layer.effect: MultiEffect {
             shadowEnabled: true
             blurMax: 15
-            shadowColor: Qt.alpha(Colours.palette.m3shadow, Math.max(0, root.shadowOpacity))
+            shadowColor: Qt.alpha(Colours.palette.m3shadow, (root.effectLayerActive && !root.shellMotionActive) ? Math.max(0, root.shadowOpacity) : 0)
+
+            Behavior on shadowColor {
+                ColorAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
 
         Item {

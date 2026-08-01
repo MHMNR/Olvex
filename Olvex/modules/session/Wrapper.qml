@@ -13,6 +13,16 @@ Item {
     readonly property bool shouldBeActive: visibilities.session && Config.session.enabled
     property real offsetScale: shouldBeActive ? 0 : 1
 
+    property bool contentPrewarmed: false
+
+    Timer {
+        id: prewarmTimer
+        interval: 2400
+        running: true
+        repeat: false
+        onTriggered: root.contentPrewarmed = true
+    }
+
     visible: offsetScale < 1
     opacity: 1 - offsetScale
     scale: 0.95 + (0.05 * (1 - offsetScale))
@@ -28,7 +38,8 @@ Item {
     Loader {
         id: content
         anchors.fill: parent
-        active: root.shouldBeActive || root.visible
+        asynchronous: true
+        active: root.contentPrewarmed || root.shouldBeActive || root.visible
 
         sourceComponent: Content {
             visibilities: root.visibilities

@@ -13,6 +13,16 @@ Item {
     readonly property bool shouldBeActive: visibilities.sidebar && Config.sidebar.enabled
     property real offsetScale: shouldBeActive ? 0 : 1
 
+    property bool contentPrewarmed: false
+
+    Timer {
+        id: prewarmTimer
+        interval: 2000
+        running: true
+        repeat: false
+        onTriggered: root.contentPrewarmed = true
+    }
+
     visible: offsetScale < 1
     anchors.rightMargin: (-implicitWidth - 5) * offsetScale
     implicitWidth: Tokens.sizes.sidebar.width
@@ -33,7 +43,8 @@ Item {
         anchors.margins: Tokens.padding.large
         anchors.bottomMargin: 0
 
-        active: root.shouldBeActive || root.visible
+        asynchronous: true
+        active: root.contentPrewarmed || root.shouldBeActive || root.visible
 
         sourceComponent: Content {
             implicitWidth: Tokens.sizes.sidebar.width - Tokens.padding.large * 2

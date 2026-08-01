@@ -62,7 +62,7 @@ Item {
 
         anchors.fill: parent
         visible: root.renderActive || root.opacity > 0
-        layer.enabled: Config.background.visualiser.blur && (root.renderActive || root.opacity > 0)
+        layer.enabled: Config.background.visualiser.blur
 
         Loader {
             asynchronous: true

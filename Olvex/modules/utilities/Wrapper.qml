@@ -40,7 +40,17 @@ Item {
     property real offsetScale: shouldBeActive && openAnimationReady ? 0 : 1
     property real sidebarLerp
     readonly property bool needsKeyboard: (content.item as Content)?.needsKeyboard ?? false
-    readonly property bool contentActive: root.shouldBeActive || root.visible
+    property bool contentPrewarmed: false
+
+    Timer {
+        id: prewarmTimer
+        interval: 1600
+        running: true
+        repeat: false
+        onTriggered: root.contentPrewarmed = true
+    }
+
+    readonly property bool contentActive: root.contentPrewarmed || root.shouldBeActive || root.visible
 
     // Peek: when hovered while closed and bottom panel is off, slide a strip in from the right
     property bool hovered: false
