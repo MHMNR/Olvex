@@ -162,7 +162,7 @@ precheck_and_resolve_dependencies() {
 
     local pkgs=(
         base-devel cmake ninja git pkgconf gcc-libs glibc
-        qt6-base qt6-declarative qt6-wayland qt6-shadertools
+        qt6-base qt6-declarative qt6-wayland qt6-shadertools qt6-5compat qt6-multimedia qt6-svg qt6-imageformats
         quickshell-git hyprland wl-clipboard cliphist app2unit
         libnotify upower bluez bluez-utils
         ddcutil brightnessctl libcava networkmanager lm_sensors fish aubio libpipewire pipewire wireplumber

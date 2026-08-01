@@ -48,13 +48,13 @@ Olvex includes a comprehensive suite of shell interfaces:
 
 ## Prerequisites & Dependencies
 
-### Package Requirements (Arch Linux)
+### Package Requirements (Arch Linux / CachyOS)
 
 Ensure the following packages are installed before compiling and launching Olvex:
 
 #### 1. Core Build & Qt6 Framework
 - `base-devel`, `cmake`, `ninja`, `git`, `pkgconf`, `gcc-libs`, `glibc`
-- `qt6-base`, `qt6-declarative`, `qt6-shadertools`, `qt6-wayland`, `qt6-5compat`, `qt6-svg`, `qt6-imageformats`
+- `qt6-base`, `qt6-declarative`, `qt6-shadertools`, `qt6-wayland`, `qt6-5compat`, `qt6-multimedia`, `qt6-svg`, `qt6-imageformats`
 
 #### 2. Compositor, Shell & Wallpaper Engine
 - `hyprland` (Wayland Compositor)
@@ -124,7 +124,7 @@ If you prefer building and installing all components manually, follow these deta
 ```bash
 sudo pacman -S --needed \
     base-devel cmake ninja git pkgconf gcc-libs glibc \
-    qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-5compat qt6-svg qt6-imageformats \
+    qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-5compat qt6-multimedia qt6-svg qt6-imageformats \
     hyprland swww pipewire libpipewire wireplumber cava aubio \
     brightnessctl ddcutil lm-sensors upower networkmanager bluez bluez-utils fprintd \
     thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer \
