@@ -71,8 +71,6 @@ if("shell" IN_LIST ENABLE_MODULES)
     string(REPLACE "settings.watchFiles: Quickshell.env(\"OLVEX_DEV\") === \"1\"" "settings.watchFiles: false" SHELL_QML "${SHELL_QML}")
     file(WRITE "${CMAKE_BINARY_DIR}/qml/shell.qml" "${SHELL_QML}")
     install(FILES "${CMAKE_BINARY_DIR}/qml/shell.qml" DESTINATION "${INSTALL_QSCONFDIR}")
-
-    install(FILES LICENSE DESTINATION "${INSTALL_QSCONFDIR}")
 endif()
 
 if("m3shapes" IN_LIST ENABLE_MODULES)
