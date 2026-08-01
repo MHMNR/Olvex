@@ -651,10 +651,20 @@ public:
         if (entry.isEmpty())
             return;
 
-        const QString escaped = shellSingleQuoteEscape(entry);
-        const QString cmd = QStringLiteral("printf '%1' | cliphist %2decode | wl-copy")
-                                .arg(escaped, cliphistDbShellPrefix());
-        runBash(cmd);
+        const QString id = entryId(entry);
+        if (!id.isEmpty()) {
+            const QString cmd = QStringLiteral("cliphist %1decode %2 | wl-copy")
+                                    .arg(cliphistDbShellPrefix(), id);
+            runBash(cmd);
+        } else {
+            QProcess proc;
+            proc.setProgram(QStringLiteral("bash"));
+            proc.setArguments({QStringLiteral("-lc"), QStringLiteral("cliphist %1decode | wl-copy").arg(cliphistDbShellPrefix())});
+            proc.start();
+            proc.write(entry.toUtf8());
+            proc.closeWriteChannel();
+            proc.waitForFinished(3000);
+        }
         scheduleRefresh();
     }
 
@@ -662,9 +672,12 @@ public:
         if (text.isEmpty())
             return;
 
-        const QString escaped = shellSingleQuoteEscape(text);
-        const QString cmd = QStringLiteral("printf '%1' | wl-copy").arg(escaped);
-        runBash(cmd);
+        QProcess proc;
+        proc.setProgram(QStringLiteral("wl-copy"));
+        proc.start();
+        proc.write(text.toUtf8());
+        proc.closeWriteChannel();
+        proc.waitForFinished(3000);
         scheduleRefresh();
     }
 
@@ -672,10 +685,20 @@ public:
         if (entry.isEmpty())
             return;
 
-        const QString escaped = shellSingleQuoteEscape(entry);
-        const QString cmd = QStringLiteral("printf '%1' | cliphist %2delete")
-                                .arg(escaped, cliphistDbShellPrefix());
-        runBash(cmd);
+        const QString id = entryId(entry);
+        if (!id.isEmpty()) {
+            const QString cmd = QStringLiteral("cliphist %1delete %2")
+                                    .arg(cliphistDbShellPrefix(), id);
+            runBash(cmd);
+        } else {
+            QProcess proc;
+            proc.setProgram(QStringLiteral("bash"));
+            proc.setArguments({QStringLiteral("-lc"), QStringLiteral("cliphist %1delete").arg(cliphistDbShellPrefix())});
+            proc.start();
+            proc.write(entry.toUtf8());
+            proc.closeWriteChannel();
+            proc.waitForFinished(3000);
+        }
         refresh();
     }
 
@@ -720,7 +743,7 @@ public:
         QProcess proc;
         proc.setProgram(QStringLiteral("bash"));
         proc.setArguments({QStringLiteral("-lc"),
-                           QStringLiteral("printf '%1' | cliphist %2decode")
+                           QStringLiteral("printf '%%s' '%1' | cliphist %2decode")
                                .arg(escaped, cliphistDbShellPrefix())});
         proc.start();
 
@@ -787,7 +810,7 @@ public:
 
         QDir().mkpath(QFileInfo(outPngPath).absolutePath());
 
-        const QString cmd = QStringLiteral("printf '%1' | cliphist %3decode > '%2'")
+        const QString cmd = QStringLiteral("printf '%%s' '%1' | cliphist %3decode > '%2'")
                                  .arg(escaped, outPngPath, cliphistDbShellPrefix());
         runBash(cmd);
 

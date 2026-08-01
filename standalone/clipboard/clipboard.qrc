@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>ClipboardStandalone.qml</file>
-    </qresource>
-</RCC>

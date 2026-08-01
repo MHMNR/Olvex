@@ -1,4 +1,0 @@
-module qs.modules.clipboard
-ClipboardManager 1.0 ClipboardManager.qml
-ClipboardFloating 1.0 ClipboardFloating.qml
-ClipboardPanel 1.0 ClipboardPanel.qml

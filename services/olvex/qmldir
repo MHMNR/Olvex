@@ -1,5 +1,0 @@
-module olvex.features.services
-
-singleton WallpapersOlvex 1.0 WallpapersOlvex.qml
-singleton WallpaperCyclingServiceOlvex 1.0 WallpaperCyclingServiceOlvex.qml
-

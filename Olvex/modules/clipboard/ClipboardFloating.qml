@@ -126,7 +126,7 @@ PanelWindow {
                 root.selectedIndex = Math.min(root.filteredEntries.length - 1, root.selectedIndex + 1)
                 listView.positionViewAtIndex(root.selectedIndex, ListView.Contain)
                 event.accepted = true
-            } else if (event.key === Qt.Key_Delete) {
+            } else if (event.key === Qt.Key_Delete || (event.key === Qt.Key_Backspace && (!searchField.activeFocus || searchField.text.length === 0))) {
                 if (root.filteredEntries.length > 0) {
                     Cliphist.deleteEntry(root.filteredEntries[root.selectedIndex])
                     root.selectedIndex = Math.max(0, root.selectedIndex - 1)

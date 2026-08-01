@@ -171,6 +171,10 @@ elif [ "$1" = "record" ]; then
 elif [ "$1" = "clipboard" ]; then
     shift
     _olvex_clipboard_bin() {
+        if [ -x "${HOME}/.local/bin/olvex-clipboard" ]; then
+            printf '%s\n' "${HOME}/.local/bin/olvex-clipboard"
+            return 0
+        fi
         if [ -x "${OLVEX_ROOT}/build/lib/olvex-clipboard" ]; then
             printf '%s\n' "${OLVEX_ROOT}/build/lib/olvex-clipboard"
             return 0

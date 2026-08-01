@@ -54,12 +54,22 @@ Singleton {
 
     function copy(entry) {
         if (!entry) return;
-        Quickshell.execDetached(["bash", "-c", `printf '%s' '${shellSingleQuoteEscape(entry)}' | ${root.cliphistBinary} decode | wl-copy`]);
+        const id = entryId(entry);
+        if (id) {
+            Quickshell.execDetached(["bash", "-c", `${root.cliphistBinary} decode ${id} | wl-copy`]);
+        } else {
+            Quickshell.execDetached(["bash", "-c", `printf '%s' '${shellSingleQuoteEscape(entry)}' | ${root.cliphistBinary} decode | wl-copy`]);
+        }
     }
 
     function paste(entry) {
         if (!entry) return;
-        Quickshell.execDetached(["bash", "-c", `printf '%s' '${shellSingleQuoteEscape(entry)}' | ${root.cliphistBinary} decode | wl-copy && wl-paste`]);
+        const id = entryId(entry);
+        if (id) {
+            Quickshell.execDetached(["bash", "-c", `${root.cliphistBinary} decode ${id} | wl-copy && wl-paste`]);
+        } else {
+            Quickshell.execDetached(["bash", "-c", `printf '%s' '${shellSingleQuoteEscape(entry)}' | ${root.cliphistBinary} decode | wl-copy && wl-paste`]);
+        }
     }
 
     function superpaste(count, isImage) {
@@ -68,7 +78,9 @@ Singleton {
             return root.entryIsImage(entry);
         }).slice(0, count);
         const pasteCommands = targetEntries.slice().reverse().map(function(entry) {
-            return `printf '%s' '${shellSingleQuoteEscape(entry)}' | ${root.cliphistBinary} decode | wl-copy && sleep ${root.pasteDelay} && ${root.pressPasteCommand}`;
+            const id = root.entryId(entry);
+            const cmd = id ? `${root.cliphistBinary} decode ${id}` : `printf '%s' '${root.shellSingleQuoteEscape(entry)}' | ${root.cliphistBinary} decode`;
+            return `${cmd} | wl-copy && sleep ${root.pasteDelay} && ${root.pressPasteCommand}`;
         });
         if (pasteCommands.length === 0) return;
         Quickshell.execDetached(["bash", "-c", pasteCommands.join(` && sleep ${root.pasteDelay} && `)]);
@@ -82,8 +94,15 @@ Singleton {
     }
 
     function deleteEntry(entry) {
-        deleteProc.pendingEntry = entry;
-        deleteProc.running = true;
+        if (!entry) return;
+        const id = entryId(entry);
+        if (id) {
+            Quickshell.execDetached(["bash", "-c", `${root.cliphistBinary} delete ${id}`]);
+            root.refresh();
+        } else {
+            deleteProc.pendingEntry = entry;
+            deleteProc.running = true;
+        }
     }
 
     Process {
