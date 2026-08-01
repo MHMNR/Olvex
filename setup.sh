@@ -100,15 +100,9 @@ optimize_mirrors_and_keyring() {
     log_info "Updating archlinux-keyring package..."
     sudo pacman -Sy --needed --noconfirm archlinux-keyring || true
 
-    if command -v reflector &>/dev/null; then
-        log_info "Reflector detected. Optimizing mirrorlist for bandwidth and latency..."
-        sudo reflector --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist || true
-        log_success "Mirrorlist optimized."
-    else
-        log_info "Refreshing package databases..."
-        sudo pacman -Sy --noconfirm || true
-        log_success "Databases synchronized."
-    fi
+    log_info "Refreshing package databases..."
+    sudo pacman -Sy --noconfirm || true
+    log_success "Databases synchronized."
 }
 
 # 2. Setup AUR Helper (yay/paru selection)
