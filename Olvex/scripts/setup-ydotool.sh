@@ -14,16 +14,20 @@ sudo usermod -aG input "$USER"
 
 echo "[3/4] Install /dev/uinput rule..."
 sudo tee /etc/udev/rules.d/80-uinput.rules >/dev/null <<'EOF'
-KERNEL=="uinput", GROUP="input", MODE="0660"
+KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"
 EOF
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
 echo "[4/4] Enable ydotool user service..."
+SVC="ydotoold.service"
+if ! systemctl --user list-unit-files | grep -q "^ydotoold"; then
+  SVC="ydotool.service"
+fi
 systemctl --user daemon-reload
-systemctl --user enable ydotool.service
-systemctl --user reset-failed ydotool.service || true
-systemctl --user start ydotool.service || true
+systemctl --user enable "$SVC"
+systemctl --user reset-failed "$SVC" || true
+systemctl --user restart "$SVC" || true
 
 echo
 echo "Done."
