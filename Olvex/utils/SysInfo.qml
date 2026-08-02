@@ -39,8 +39,24 @@ Singleton {
             if (GlobalConfig.general.logo && GlobalConfig.general.logo !== "olvex") {
                 root.osLogo = Quickshell.iconPath(GlobalConfig.general.logo, true) || "file://" + Paths.absolutePath(GlobalConfig.general.logo);
                 root.isDefaultLogo = false;
-            } else if (logoName) {
-                root.osLogo = "file:///usr/share/icons/" + logoName + ".svg";
+            } else {
+                const candidates = [
+                    logoName,
+                    root.osId + "-logo",
+                    root.osId,
+                    "distributor-logo-" + root.osId,
+                    ...(root.osIdLike || []).map(id => id ? id + "-logo" : ""),
+                    ...(root.osIdLike || []),
+                    "linux"
+                ];
+                let resolved = "";
+                for (const c of candidates) {
+                    if (c) {
+                        resolved = Quickshell.iconPath(c, true);
+                        if (resolved) break;
+                    }
+                }
+                root.osLogo = resolved || ("file:///usr/share/pixmaps/" + (logoName || root.osId) + ".svg");
                 root.isDefaultLogo = GlobalConfig.general.logo === "olvex";
             }
         }
