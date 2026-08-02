@@ -165,7 +165,7 @@ precheck_and_resolve_dependencies() {
         python-pillow python-pip python3 gpu-screen-recorder fprintd foot kitty
         util-linux pciutils fzf firefox
         thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin
-        tumbler ffmpegthumbnailer gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb polkit-gnome
+        tumbler ffmpegthumbnailer gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb polkit-gnome wtype
     )
 
     MISSING_PKGS=()

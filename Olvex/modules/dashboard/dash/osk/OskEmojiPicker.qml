@@ -69,7 +69,7 @@ Item {
 
     function typeEmoji(emojiText, baseEmoji) {
         if (!emojiText) return;
-        Quickshell.execDetached(["wtype", emojiText]);
+        Quickshell.execDetached(["sh", "-c", "if command -v wtype >/dev/null; then wtype \"$1\"; else notify-send 'Missing Dependency' 'Please install wtype to type emojis.'; fi", "--", emojiText]);
         if (root.wordEngine && typeof root.wordEngine.onChar === "function") {
             root.wordEngine.onChar(emojiText);
         }
