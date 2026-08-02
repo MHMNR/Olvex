@@ -380,6 +380,10 @@ finish() {
     echo -e "   • Toggle Launcher : ${CLR_YELLOW}olvex shell drawers toggle launcher${CLR_RESET}"
     echo -e "   • Reload Hyprland : ${CLR_YELLOW}hyprctl reload${CLR_RESET}\n"
 
+    # Fix permissions for common user directories that may have been touched by sudo pacman or installer hooks
+    log_info "Restoring ownership of user configuration and cache directories..."
+    sudo chown -R "$USER:$USER" "${HOME}/.config" "${HOME}/.cache" "${HOME}/.local" 2>/dev/null || true
+
     echo -e "\n"
 }
 
