@@ -103,6 +103,7 @@ if [ "$1" = "shell" ]; then
                 IFS= read -r -d '' mode
                 IFS= read -r -d '' path
             } < <(_olvex_qs_prefix)
+            cd "${HOME}" || true
             exec qs -v "$mode" "$path" -d
             ;;
         kill|-k|--kill)
@@ -114,6 +115,7 @@ if [ "$1" = "shell" ]; then
                 IFS= read -r -d '' mode
                 IFS= read -r -d '' path
             } < <(_olvex_qs_prefix)
+            cd "${HOME}" || true
             exec qs -v "$mode" "$path" -d
             ;;
         -s|--show|show|ipc-show)

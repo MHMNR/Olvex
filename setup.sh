@@ -331,6 +331,7 @@ build_and_setup_olvex() {
 }
 
 finish() {
+    cd "${HOME}" || true
     section_header "Post-Installation Tasks"
 
     if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x Hyprland &>/dev/null; then
