@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 import ".."
 import "../chrome"
-import "../../olvex/controlcenter/components" as OlvexWp
+import "../../olvex/settings/components" as OlvexWp
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
