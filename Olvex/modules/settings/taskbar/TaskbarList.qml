@@ -11,14 +11,15 @@ import qs.services
 Item {
     id: root
 
-    property string activeSection: "bar"
+    property string activeSection: "behavior"
     signal sectionSelected(string section)
 
     readonly property var sections: [
-        { id: "bar", label: qsTr("Bottom Panel"), icon: "dock" },
-        { id: "widgets", label: qsTr("Dock Widgets"), icon: "widgets" },
+        { id: "behavior", label: qsTr("Bar & Behavior"), icon: "dock" },
+        { id: "status", label: qsTr("Status Icons"), icon: "tune" },
         { id: "workspaces", label: qsTr("Workspaces"), icon: "grid_view" },
-        { id: "status", label: qsTr("Status Icons"), icon: "tune" }
+        { id: "widgets", label: qsTr("Widgets & Tray"), icon: "widgets" },
+        { id: "bottomPanel", label: qsTr("Bottom Panel"), icon: "bottom_panel_open" }
     ]
 
     ColumnLayout {

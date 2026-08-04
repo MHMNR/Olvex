@@ -17,6 +17,7 @@ ColumnLayout {
         title: qsTr("Dashboard Options")
         description: qsTr("Layout and behavior settings for the dashboard panel")
         icon: "dashboard"
+        accentColor: Colours.palette.m3secondary
 
         SettingRow {
             title: qsTr("Enable dashboard")
@@ -125,6 +126,7 @@ ColumnLayout {
         title: qsTr("Performance Widgets")
         description: qsTr("Select system monitors displayed on the dashboard")
         icon: "monitoring"
+        accentColor: Colours.palette.m3secondary
 
         SettingRow {
             title: qsTr("Battery")

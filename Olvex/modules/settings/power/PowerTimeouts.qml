@@ -61,6 +61,7 @@ ColumnLayout {
         title: qsTr("Automated Idle Actions")
         description: qsTr("Configure automatic screen off, lock screen, and suspend behaviors")
         icon: "schedule"
+        accentColor: Colours.palette.m3secondary
 
         SettingRow {
             title: qsTr("Turn off screen")
@@ -195,6 +196,7 @@ ColumnLayout {
         title: qsTr("Idle & Sleep Safeguards")
         description: qsTr("Security and media playback sleep prevention rules")
         icon: "security"
+        accentColor: Colours.palette.m3secondary
 
         SettingRow {
             title: qsTr("Lock before sleep")

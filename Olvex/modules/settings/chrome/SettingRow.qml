@@ -19,6 +19,10 @@ Item {
     property bool clickable: false
     property bool divider: true
 
+    // Accent color for description text — set by parent Section or page.
+    // Defaults to a gentle primary tint; override per-page for themed look.
+    property color descriptionColor: Qt.alpha(Colours.palette.m3primary, 0.65)
+
     default property alias control: controlHolder.data
 
     signal clicked
@@ -54,7 +58,7 @@ Item {
             text: root.title
             wrapMode: Text.WordWrap
             maximumLineCount: 2
-            font.weight: 700
+            font.weight: Font.Medium
             font.letterSpacing: 0.0
             lineHeight: 1.25
             lineHeightMode: Text.ProportionalHeight
@@ -68,9 +72,9 @@ Item {
             text: root.description
             wrapMode: Text.WordWrap
             maximumLineCount: 3
-            color: Colours.palette.m3onSurfaceVariant
+            color: root.descriptionColor
             font.weight: Font.Normal
-            font.letterSpacing: 0.2
+            font.letterSpacing: 0.1
             lineHeight: 1.4
             lineHeightMode: Text.ProportionalHeight
             textPointSize: Tokens.font.size.small
@@ -98,7 +102,7 @@ Item {
         anchors.rightMargin: Tokens.padding.small
         height: 1
         visible: root.divider
-        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
     }
 
     MouseArea {

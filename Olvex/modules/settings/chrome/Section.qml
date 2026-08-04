@@ -6,13 +6,16 @@ import Olvex.Config
 import qs.components
 import qs.services
 
-// Carded settings group (demo Section look, real tokens/primitives).
+// Carded settings group — Section header + child SettingRows.
 Item {
     id: root
 
     property string title: ""
     property string description: ""
     property string icon: ""
+    // Per-section accent color — propagates to header icon/title and
+    // description text. Defaults to m3primary; override for themed pages.
+    property color accentColor: Colours.palette.m3primary
 
     default property alias content: col.data
 
@@ -34,7 +37,7 @@ Item {
             visible: !!root.icon
             text: root.icon
             fill: 1
-            color: Colours.palette.m3primary
+            color: root.accentColor
             iconPointSize: Tokens.font.size.larger
         }
 
@@ -49,7 +52,7 @@ Item {
                 font.letterSpacing: -0.25
                 lineHeight: 1.2
                 lineHeightMode: Text.ProportionalHeight
-                color: Colours.palette.m3primary
+                color: root.accentColor
                 textPointSize: Tokens.font.size.larger
             }
 
@@ -59,7 +62,7 @@ Item {
                 text: root.description
                 wrapMode: Text.WordWrap
                 maximumLineCount: 2
-                color: Colours.palette.m3onSurfaceVariant
+                color: Qt.alpha(root.accentColor, 0.65)
                 font.weight: Font.Normal
                 font.letterSpacing: 0.15
                 lineHeight: 1.35

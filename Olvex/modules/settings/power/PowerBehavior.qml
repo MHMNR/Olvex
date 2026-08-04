@@ -26,6 +26,7 @@ ColumnLayout {
         title: qsTr("Hardware Controls & Lid Actions")
         description: qsTr("System reaction when closing laptop lid or pressing physical buttons")
         icon: "power_settings_new"
+        accentColor: Colours.palette.m3secondary
 
         SettingRow {
             title: qsTr("Laptop lid close action")

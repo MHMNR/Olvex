@@ -105,10 +105,12 @@ ColumnLayout {
         title: qsTr("Power Mode")
         description: qsTr("System performance and energy savings profiles")
         icon: "bolt"
+        accentColor: Colours.palette.m3secondary
 
         SettingRow {
             title: qsTr("Energy profile")
             description: qsTr("Balance system performance and battery endurance")
+            descriptionColor: Qt.alpha(Colours.palette.m3secondary, 0.65)
             divider: true
             
             Segmented {
@@ -127,6 +129,7 @@ ColumnLayout {
         SettingRow {
             title: qsTr("Automatic battery saver")
             description: qsTr("Turn on power saver mode when battery drops below 20%")
+            descriptionColor: Qt.alpha(Colours.palette.m3secondary, 0.65)
             divider: false
             StyledSwitch {
                 checked: GlobalConfig.general.batterySaverAuto ?? true
@@ -143,6 +146,7 @@ ColumnLayout {
         Layout.fillWidth: true
         title: qsTr("Battery Protection & Critical Actions")
         description: qsTr("Automated actions when battery charge drops to critical levels")
+        accentColor: Colours.palette.m3secondary
         icon: "battery_alert"
 
         SettingRow {
