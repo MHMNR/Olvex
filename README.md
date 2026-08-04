@@ -127,7 +127,7 @@ sudo pacman -S --needed \
     qt6-base qt6-declarative qt6-shadertools qt6-wayland qt6-5compat qt6-multimedia qt6-svg qt6-imageformats \
     hyprland swww pipewire libpipewire wireplumber cava aubio \
     brightnessctl ddcutil lm-sensors upower networkmanager bluez bluez-utils fprintd \
-    thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin tumbler ffmpegthumbnailer \
+    thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin adw-gtk-theme xdg-desktop-portal-gtk tumbler ffmpegthumbnailer \
     gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb polkit-gnome firefox \
     cliphist wl-clipboard grim slurp swappy gpu-screen-recorder ydotool \
     libqalculate libnotify mpv foot bash fish xdg-utils \

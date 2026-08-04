@@ -1,9 +1,10 @@
+/* GTK 4 / Libadwaita Named Colors */
 @define-color accent_color {{ $primary }};
 @define-color accent_fg_color {{ $onPrimary }};
 @define-color accent_bg_color {{ $primary }};
-@define-color window_bg_color {{ $background }};
-@define-color window_fg_color {{ $onBackground }};
-@define-color headerbar_bg_color {{ $surfaceDim }};
+@define-color window_bg_color {{ $surface }};
+@define-color window_fg_color {{ $onSurface }};
+@define-color headerbar_bg_color {{ $surface }};
 @define-color headerbar_fg_color {{ $onSurface }};
 @define-color popover_bg_color {{ $surfaceDim }};
 @define-color popover_fg_color {{ $onSurface }};
@@ -17,5 +18,43 @@
 @define-color sidebar_backdrop_color @window_bg_color;
 @define-color theme_selected_bg_color alpha(@accent_color, 0.15);
 @define-color theme_selected_fg_color @primary;
+
+/* GTK 3 Named Colors (Fixes Thunar, LocalSend, GTK 3 Titlebars, Menubars, Toolbars, SSD) */
+@define-color theme_bg_color {{ $surface }};
+@define-color theme_fg_color {{ $onSurface }};
+@define-color theme_base_color {{ $surface }};
+@define-color theme_text_color {{ $onSurface }};
+@define-color theme_headerbar_bg_color {{ $surface }};
+@define-color theme_headerbar_fg_color {{ $onSurface }};
+
+/* Global Window, Headerbar, Titlebar, Menubar & Frame Styles for GTK 3 & SSD */
+window,
+dialog,
+.window-frame,
+headerbar,
+headerbar.titlebar,
+.titlebar,
+menubar,
+toolbar,
+headerbar:backdrop,
+.titlebar:backdrop,
+window.ssd headerbar,
+window.ssd .titlebar,
+window.ssd titlebar {
+    background-color: {{ $surface }};
+    color: {{ $onSurface }};
+}
+
+menubar,
+menubar > menuitem {
+    background-color: {{ $surface }};
+    color: {{ $onSurface }};
+}
+
+entry,
+spinbutton {
+    background-color: {{ $surfaceContainerLow }};
+    color: {{ $onSurface }};
+}
 
 @import "thunar.css";

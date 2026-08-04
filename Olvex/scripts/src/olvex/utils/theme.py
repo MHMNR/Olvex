@@ -83,40 +83,35 @@ def hex_to_ansi(c: str, *i: int) -> str:
 
 
 def gen_sequences(colours: dict[str, str]) -> str:
-    """
-    10: foreground
-    11: background
-    12: cursor
-    17: selection
-    4:
-        0 - 7: normal colours
-        8 - 15: bright colours
-        16+: 256 colours
-    """
+    """Generate ANSI escape sequences for dynamic terminal recoloring."""
+    bg = colours.get("surface", "120d0f")
+    fg = colours.get("onSurface", "f4e0e8")
+    sec = colours.get("secondary", "edb7d2")
+    pri = colours.get("primary", "edb7d2")
     return (
-        hex_to_ansi(colours["onSurface"], 10)
-        + hex_to_ansi(colours["surface"], 11)
-        + hex_to_ansi(colours["secondary"], 12)
-        + hex_to_ansi(colours["secondary"], 17)
-        + hex_to_ansi(colours["term0"], 4, 0)
-        + hex_to_ansi(colours["term1"], 4, 1)
-        + hex_to_ansi(colours["term2"], 4, 2)
-        + hex_to_ansi(colours["term3"], 4, 3)
-        + hex_to_ansi(colours["term4"], 4, 4)
-        + hex_to_ansi(colours["term5"], 4, 5)
-        + hex_to_ansi(colours["term6"], 4, 6)
-        + hex_to_ansi(colours["term7"], 4, 7)
-        + hex_to_ansi(colours["term8"], 4, 8)
-        + hex_to_ansi(colours["term9"], 4, 9)
-        + hex_to_ansi(colours["term10"], 4, 10)
-        + hex_to_ansi(colours["term11"], 4, 11)
-        + hex_to_ansi(colours["term12"], 4, 12)
-        + hex_to_ansi(colours["term13"], 4, 13)
-        + hex_to_ansi(colours["term14"], 4, 14)
-        + hex_to_ansi(colours["term15"], 4, 15)
-        + hex_to_ansi(colours["primary"], 4, 16)
-        + hex_to_ansi(colours["secondary"], 4, 17)
-        + hex_to_ansi(colours["tertiary"], 4, 18)
+        hex_to_ansi(fg, 10)
+        + hex_to_ansi(bg, 11)
+        + hex_to_ansi(sec, 12)
+        + hex_to_ansi(sec, 17)
+        + hex_to_ansi(colours.get("term0", bg), 4, 0)
+        + hex_to_ansi(colours.get("term1", pri), 4, 1)
+        + hex_to_ansi(colours.get("term2", pri), 4, 2)
+        + hex_to_ansi(colours.get("term3", pri), 4, 3)
+        + hex_to_ansi(colours.get("term4", pri), 4, 4)
+        + hex_to_ansi(colours.get("term5", pri), 4, 5)
+        + hex_to_ansi(colours.get("term6", pri), 4, 6)
+        + hex_to_ansi(colours.get("term7", fg), 4, 7)
+        + hex_to_ansi(colours.get("term8", bg), 4, 8)
+        + hex_to_ansi(colours.get("term9", pri), 4, 9)
+        + hex_to_ansi(colours.get("term10", pri), 4, 10)
+        + hex_to_ansi(colours.get("term11", pri), 4, 11)
+        + hex_to_ansi(colours.get("term12", pri), 4, 12)
+        + hex_to_ansi(colours.get("term13", pri), 4, 13)
+        + hex_to_ansi(colours.get("term14", pri), 4, 14)
+        + hex_to_ansi(colours.get("term15", fg), 4, 15)
+        + hex_to_ansi(colours.get("primary", pri), 4, 16)
+        + hex_to_ansi(colours.get("secondary", sec), 4, 17)
+        + hex_to_ansi(colours.get("tertiary", pri), 4, 18)
     )
 
 
@@ -313,10 +308,33 @@ def apply_gtk(colours: dict[str, str], mode: str, icon_theme: str | None = None)
         atomic_write(gtk_config_dir / "gtk.css", gtk_template)
         atomic_write(gtk_config_dir / "thunar.css", thunar_template)
 
-    subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/gtk-theme", "'adw-gtk3-dark'"])
+    has_adw_gtk = Path("/usr/share/themes/adw-gtk3-dark").exists() or Path("/usr/share/themes/adw-gtk3").exists() or Path(os.path.expanduser("~/.themes/adw-gtk3-dark")).exists()
+    if mode == "dark":
+        gtk_theme = "adw-gtk3-dark" if has_adw_gtk else "Adwaita-dark"
+        prefer_dark_val = "1"
+    else:
+        gtk_theme = "adw-gtk3" if has_adw_gtk else "Adwaita"
+        prefer_dark_val = "0"
+
+    # 1. Update dconf settings for GNOME / GTK & XDG Desktop Portal
+    subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/gtk-theme", f"'{gtk_theme}'"])
     subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/color-scheme", f"'prefer-{mode}'"])
+
+    # 2. Update gsettings directly so portals and active apps notice immediately
+    subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", f"prefer-{mode}"])
+    subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", gtk_theme])
+
+    # 3. Write ~/.config/gtk-3.0/settings.ini & ~/.config/gtk-4.0/settings.ini
     gtk_icon_theme = icon_theme if icon_theme is not None else f"Papirus-{mode.capitalize()}"
     subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/icon-theme", f"'{gtk_icon_theme}'"])
+
+    settings_content = f"""[Settings]
+gtk-theme-name={gtk_theme}
+gtk-icon-theme-name={gtk_icon_theme}
+gtk-application-prefer-dark-theme={prefer_dark_val}
+"""
+    for gtk_version in ["gtk-3.0", "gtk-4.0"]:
+        atomic_write(config_dir / gtk_version / "settings.ini", settings_content)
 
     sync_papirus_colors(colours["primary"])
 

@@ -1,5 +1,4 @@
 pragma Singleton
-pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
@@ -429,6 +428,19 @@ Singleton {
         }
     }
 
+    // Sync system GTK & XDG Desktop Portal theme for Flutter (LocalSend), GTK (Thunar), etc.
+    Process {
+        id: portalThemeSyncProc
+    }
+
+    function syncSystemPortalTheme() {
+        const mode = light ? "light" : "dark";
+        const gtkTheme = light ? "adw-gtk3" : "adw-gtk3-dark";
+        const cmd = `gsettings set org.gnome.desktop.interface color-scheme 'prefer-${mode}' && gsettings set org.gnome.desktop.interface gtk-theme '${gtkTheme}' && dconf write /org/gnome/desktop/interface/color-scheme "'prefer-${mode}'" && dconf write /org/gnome/desktop/interface/gtk-theme "'${gtkTheme}'"`;
+        portalThemeSyncProc.command = ["bash", "-c", cmd];
+        portalThemeSyncProc.running = true;
+    }
+
     Connections {
         target: GlobalConfig.appearance.transparency
         function onLayersChanged() { root.requestReloadHyprRules() }
@@ -436,7 +448,10 @@ Singleton {
 
     Connections {
         target: root
-        function onLightChanged() { root.requestReloadHyprRules() }
+        function onLightChanged() {
+            root.requestReloadHyprRules();
+            root.syncSystemPortalTheme();
+        }
     }
 
     Connections {
@@ -446,6 +461,7 @@ Singleton {
 
     Component.onCompleted: {
         root.requestReloadHyprRules();
+        root.syncSystemPortalTheme();
         useFallbackPalette();
     }
 

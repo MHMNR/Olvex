@@ -164,7 +164,7 @@ precheck_and_resolve_dependencies() {
         swappy libqalculate bash mpv ydotool grim slurp
         python-pillow python-pip python3 gpu-screen-recorder fprintd foot kitty
         util-linux pciutils fzf firefox
-        thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin
+        thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin adw-gtk-theme xdg-desktop-portal-gtk
         tumbler ffmpegthumbnailer gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb polkit-gnome wtype
     )
 

@@ -17,8 +17,18 @@
     background: {{ $surface }};
 }
 
+.thunar menubar,
+.thunar menubar > menuitem,
+.thunar toolbar,
+.thunar headerbar,
+.thunar .titlebar,
+.thunar .menubar {
+    background-color: {{ $surface }};
+    color: {{ $onSurface }};
+}
+
 .thunar .titlebar {
-    background: inherit;
+    background: {{ $surface }};
 }
 
 .thunar .titlebutton.close {
