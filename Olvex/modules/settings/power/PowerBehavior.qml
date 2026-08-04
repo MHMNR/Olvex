@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Olvex.Config
 import qs.components
 import qs.components.controls
+import qs.services
 
 ColumnLayout {
     id: root

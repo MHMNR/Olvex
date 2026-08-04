@@ -16,6 +16,38 @@ ColumnLayout {
     // Taskbar accent = m3primary (pink/rose in default dark palette)
     readonly property color accent: Colours.palette.m3primary
 
+    // Inline component at root level — required by QML spec
+    component StatusChip : StyledRect {
+        id: chip
+        required property string labelText
+        required property bool isChecked
+        signal toggled()
+
+        implicitWidth: lbl.implicitWidth + Tokens.padding.large * 2
+        implicitHeight: 36
+        radius: height / 2
+        color: isChecked ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.palette.m3onSurface, 0.08)
+
+        Behavior on color { CAnim {} }
+
+        StyledText {
+            id: lbl
+            anchors.centerIn: parent
+            text: chip.labelText
+            color: chip.isChecked ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+            font.weight: chip.isChecked ? Font.Medium : Font.Normal
+            textPointSize: Tokens.font.size.small
+
+            Behavior on color { CAnim {} }
+        }
+
+        StateLayer {
+            radius: parent.radius
+            color: Colours.palette.m3onPrimaryContainer
+            onClicked: chip.toggled()
+        }
+    }
+
     Section {
         Layout.fillWidth: true
         title: qsTr("Popouts")
@@ -73,52 +105,20 @@ ColumnLayout {
         icon: "info"
         accentColor: root.accent
 
-        // Header row for "Visible indicators"
+        // Header-only row — chips are full-width below, outside controlHolder
         SettingRow {
             title: qsTr("Visible indicators")
             description: qsTr("Select which system icons to display")
             descriptionColor: Qt.alpha(root.accent, 0.65)
             divider: false
-            // No control — chips are full-width below
         }
 
-        // Full-width chip flow — NOT inside controlHolder
+        // Full-width chip flow
         Flow {
             width: parent.width
             spacing: Tokens.spacing.small
             topPadding: Tokens.spacing.small
             bottomPadding: Tokens.spacing.small
-
-            component StatusChip : StyledRect {
-                id: chip
-                required property string labelText
-                required property bool isChecked
-                signal toggled()
-
-                implicitWidth: lbl.implicitWidth + Tokens.padding.large * 2
-                implicitHeight: 36
-                radius: height / 2
-                color: isChecked ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.palette.m3onSurface, 0.08)
-
-                Behavior on color { CAnim {} }
-
-                StyledText {
-                    id: lbl
-                    anchors.centerIn: parent
-                    text: chip.labelText
-                    color: chip.isChecked ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-                    font.weight: chip.isChecked ? Font.Medium : Font.Normal
-                    textPointSize: Tokens.font.size.small
-
-                    Behavior on color { CAnim {} }
-                }
-
-                StateLayer {
-                    radius: parent.radius
-                    color: Colours.palette.m3onPrimaryContainer
-                    onClicked: chip.toggled()
-                }
-            }
 
             StatusChip {
                 labelText: qsTr("Speakers")
