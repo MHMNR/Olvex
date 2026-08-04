@@ -5,15 +5,16 @@ import QtQuick.Layouts
 import Quickshell.Widgets
 import Olvex.Config
 import qs.components
-import qs.components.effects
+import qs.services
 
 RowLayout {
     id: root
 
     property Component leftContent: null
     property Component rightContent: null
-    property real leftWidthRatio: 0.4
-    property int leftMinimumWidth: 420
+    property real leftWidthRatio: 0.24
+    property int leftMinimumWidth: 220
+    property int leftMaximumWidth: 280
     property var leftLoaderProperties: ({})
     property var rightLoaderProperties: ({})
     property alias leftLoader: leftLoader
@@ -26,27 +27,24 @@ RowLayout {
 
         Layout.preferredWidth: Math.floor(parent.width * root.leftWidthRatio)
         Layout.minimumWidth: root.leftMinimumWidth
+        Layout.maximumWidth: root.leftMaximumWidth
         Layout.fillHeight: true
 
-        StyledClippingRect {
-            id: leftClippingRect
-
+        Rectangle {
+            id: leftCard
             anchors.fill: parent
             anchors.margins: Tokens.padding.normal
-            anchors.leftMargin: 0
-            anchors.rightMargin: Tokens.padding.normal / 2
-
-            radius: leftBorder.innerRadius
-            color: "transparent"
+            anchors.leftMargin: Tokens.padding.normal
+            anchors.rightMargin: Tokens.padding.small
+            radius: Tokens.rounding.large
+            color: Colours.palette.m3surfaceContainerLow
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+            border.width: 1
 
             Loader {
                 id: leftLoader
-
                 anchors.fill: parent
-                anchors.margins: Tokens.padding.large + Tokens.padding.normal
-                anchors.leftMargin: Tokens.padding.large
-                anchors.rightMargin: Tokens.padding.large + Tokens.padding.normal / 2
-
+                anchors.margins: Tokens.padding.normal
                 asynchronous: true
                 sourceComponent: root.leftContent
 
@@ -57,13 +55,6 @@ RowLayout {
                 }
             }
         }
-
-        InnerBorder {
-            id: leftBorder
-
-            leftThickness: 0
-            rightThickness: Tokens.padding.normal / 2
-        }
     }
 
     Item {
@@ -72,23 +63,21 @@ RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        StyledClippingRect {
-            id: rightClippingRect
-
+        Rectangle {
+            id: rightCard
             anchors.fill: parent
             anchors.margins: Tokens.padding.normal
-            anchors.leftMargin: 0
-            anchors.rightMargin: Tokens.padding.normal / 2
-
-            radius: rightBorder.innerRadius
-            color: "transparent"
+            anchors.leftMargin: Tokens.padding.small
+            anchors.rightMargin: Tokens.padding.normal
+            radius: Tokens.rounding.large
+            color: Colours.palette.m3surfaceContainerLow
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+            border.width: 1
 
             Loader {
                 id: rightLoader
-
                 anchors.fill: parent
-                anchors.margins: Tokens.padding.large * 2
-
+                anchors.margins: Tokens.padding.normal
                 asynchronous: true
                 sourceComponent: root.rightContent
 
@@ -98,12 +87,6 @@ RowLayout {
                     }
                 }
             }
-        }
-
-        InnerBorder {
-            id: rightBorder
-
-            leftThickness: Tokens.padding.normal / 2
         }
     }
 }

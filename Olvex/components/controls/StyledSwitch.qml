@@ -118,12 +118,12 @@ Switch {
 
             MaterialIcon {
                 anchors.centerIn: parent
-                text: root.checked ? "check" : "close"
-                visible: thumb.width >= Math.max(12, root.thumbOff * 0.7)
-                color: root.checked ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer
+                text: "check"
+                visible: root.checked && thumb.width >= Math.max(16, root.thumbOn * 0.8)
+                color: Colours.palette.m3primary
                 fill: 1
-                iconPointSize: Math.max(8, thumb.width * 0.42)
-                opacity: root.enabled ? 1 : 0.38
+                iconPointSize: Math.max(10, thumb.width * 0.5)
+                opacity: root.enabled ? 0.9 : 0.38
 
                 Behavior on color {
                     CAnim {}

@@ -45,14 +45,14 @@ ColumnLayout {
         Quickshell.execDetached(["powerprofilesctl", "set", profiles[index]]);
     }
 
-    // Live Battery Status Hero Header Card
+    // Live Battery Status Hero Card (Matches Screenshot)
     StyledRect {
         id: heroCard
         Layout.fillWidth: true
-        implicitHeight: 116
+        implicitHeight: 96
         radius: Tokens.rounding.large
-        color: Qt.alpha(Colours.palette.m3primary, 0.12)
-        border.color: Qt.alpha(Colours.palette.m3primary, 0.4)
+        color: Colours.tPalette.m3surfaceContainerHigh
+        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
         border.width: 1
 
         RowLayout {
@@ -60,87 +60,41 @@ ColumnLayout {
             anchors.margins: Tokens.padding.large
             spacing: Tokens.spacing.large
 
-            // Left Battery Avatar Circle
-            StyledRect {
-                Layout.preferredWidth: 56
-                Layout.preferredHeight: 56
-                radius: Tokens.rounding.full
-                color: Colours.palette.m3primary
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: root.isCharging ? "bolt" : (root.battPercent <= 20 ? "battery_saver" : "battery_full")
-                    color: Colours.palette.m3onPrimary
-                    iconPointSize: 28
-                }
+            // Left Battery Icon
+            MaterialIcon {
+                text: root.isCharging ? "bolt" : (root.battPercent <= 20 ? "battery_saver" : "battery_full")
+                color: Colours.palette.m3onSurfaceVariant
+                iconPointSize: 24
+                Layout.leftMargin: Tokens.padding.small
             }
 
-            // Middle Info Column with Progress Bar
+            // Middle Info Column
             ColumnLayout {
-                spacing: 6
+                spacing: 4
                 Layout.fillWidth: true
 
                 StyledText {
                     text: root.hasBattery ? (root.battPercent + "% — " + (root.isCharging ? qsTr("Charging") : qsTr("On Battery"))) : qsTr("Desktop PC — AC Power")
                     font.weight: Font.Bold
-                    textPointSize: Tokens.font.size.large
+                    textPointSize: Tokens.font.size.normal
                     color: Colours.palette.m3onSurface
                 }
 
                 StyledText {
                     text: root.hasBattery ? (root.isCharging ? qsTr("Connected to external power supply") : qsTr("Running on internal battery power")) : qsTr("No battery system detected")
-                    font.weight: Font.Medium
+                    font.weight: Font.Normal
                     textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
-
-                // Battery Level Indicator Bar
-                StyledRect {
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 340
-                    Layout.preferredHeight: 8
-                    radius: 4
-                    color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-
-                    StyledRect {
-                        width: parent.width * (Math.min(100, Math.max(0, root.battPercent)) / 100)
-                        height: parent.height
-                        radius: parent.radius
-                        color: Colours.palette.m3primary
-
-                        Behavior on width {
-                            SpringAnimation { spring: 3.5; damping: 0.74 }
-                        }
-                    }
-                }
             }
 
-            // Right Status Badge Pill
-            StyledRect {
-                Layout.preferredWidth: 120
-                Layout.preferredHeight: 36
-                radius: Tokens.rounding.full
-                color: Qt.alpha(Colours.palette.m3primary, 0.15)
-                border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
-                border.width: 1
-
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: 6
-
-                    MaterialIcon {
-                        text: root.isCharging ? "power" : "battery_saver"
-                        color: Colours.palette.m3primary
-                        iconPointSize: 16
-                    }
-
-                    StyledText {
-                        text: root.isCharging ? qsTr("AC Adapter") : qsTr("Discharging")
-                        font.weight: Font.SemiBold
-                        textPointSize: Tokens.font.size.small
-                        color: Colours.palette.m3primary
-                    }
-                }
+            // Right Status Text Pill (Matches Screenshot)
+            StyledText {
+                text: root.isCharging ? qsTr("AC Adapter") : qsTr("Discharging")
+                font.weight: Font.Normal
+                textPointSize: Tokens.font.size.small
+                color: Colours.palette.m3onSurfaceVariant
+                Layout.rightMargin: Tokens.padding.small
             }
         }
     }
@@ -153,7 +107,7 @@ ColumnLayout {
         icon: "bolt"
 
         SettingRow {
-            title: qsTr("Performance profile")
+            title: qsTr("Energy profile")
             description: qsTr("Balance system performance and battery endurance")
             divider: true
             

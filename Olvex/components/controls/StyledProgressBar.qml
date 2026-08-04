@@ -1,4 +1,3 @@
-pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Templates
@@ -67,7 +66,7 @@ ProgressBar {
     LinearIndicatorManager {
         id: manager
 
-        gap: root.Tokens.spacing.extraSmall
+        gap: Tokens.spacing.extraSmall
 
         Anim on progress {
             running: root.indeterminateAnimState !== StyledProgressBar.Stopped

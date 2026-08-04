@@ -1,11 +1,12 @@
-
 import ".."
 import "../components"
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.components.controls
+import qs.services
 
 Item {
     id: root
@@ -14,23 +15,24 @@ Item {
     signal sectionSelected(string section)
 
     readonly property var sections: [
-        { id: "hero", label: qsTr("About Olvex"), icon: "info" },
-        { id: "system", label: qsTr("System Info"), icon: "monitor_heart" },
-        { id: "resources", label: qsTr("Resources"), icon: "link" }
+        { id: "hero", label: qsTr("Overview"), icon: "deployed_code" },
+        { id: "system", label: qsTr("System Specs"), icon: "memory" },
+        { id: "resources", label: qsTr("Links & Docs"), icon: "link" }
     ]
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Tokens.padding.normal
-        spacing: Tokens.spacing.small
+        anchors.margins: Tokens.padding.small
+        spacing: Tokens.spacing.extraSmall
 
         StyledText {
-            text: qsTr("About Settings")
-            font.pointSize: Tokens.font.size.large
-            font.weight: 700
-            font.letterSpacing: -0.25
+            text: qsTr("About Olvex")
+            font.weight: Font.DemiBold
+            color: Colours.palette.m3onSurface
+            textPointSize: Tokens.font.size.normal
             Layout.fillWidth: true
-            Layout.bottomMargin: Tokens.padding.normal
+            Layout.leftMargin: Tokens.padding.small
+            Layout.bottomMargin: Tokens.padding.extraSmall
         }
 
         Repeater {
@@ -39,58 +41,58 @@ Item {
             delegate: Item {
                 id: delegateRoot
                 Layout.fillWidth: true
-                implicitHeight: 48
-                
+                implicitHeight: 40
+
                 required property var modelData
-                
+
                 readonly property bool isActive: root.activeSection === delegateRoot.modelData.id
 
                 scale: stateLayer.pressed ? 0.96 : 1.0
-                Behavior on scale { SpringAnimation { spring: 5.0; damping: 0.65 } }
+                Behavior on scale { SpringAnimation { spring: 4.2; damping: 0.70 } }
 
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: parent.height * 0.6
-                    width: 4
-                    radius: width / 2
-                    color: Colours.palette.m3tertiary
-                    opacity: delegateRoot.isActive ? 1.0 : 0.0
-                    
-                    Behavior on opacity { CAnim { duration: Tokens.anim.durations.normal } }
-                    Behavior on height { SpringAnimation { spring: 5.0; damping: 0.7 } }
+                StyledRect {
+                    anchors.fill: parent
+                    radius: height / 2
+                    color: delegateRoot.isActive ? Colours.palette.m3primaryContainer : (stateLayer.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent")
+
+                    Behavior on color { CAnim {} }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: Tokens.padding.normal + 8
+                    anchors.leftMargin: Tokens.padding.normal
                     anchors.rightMargin: Tokens.padding.normal
                     spacing: Tokens.spacing.normal
 
                     MaterialIcon {
                         text: delegateRoot.modelData.icon
-                        color: delegateRoot.isActive ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
-                        Behavior on color { CAnim { duration: Tokens.anim.durations.normal } }
+                        color: delegateRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                        iconPointSize: Tokens.font.size.normal
+                        Behavior on color { CAnim {} }
                     }
 
                     StyledText {
                         text: delegateRoot.modelData.label
-                        color: delegateRoot.isActive ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                        font.weight: delegateRoot.isActive ? 600 : 400
+                        color: delegateRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                        font.weight: delegateRoot.isActive ? Font.Medium : Font.Normal
+                        textPointSize: Tokens.font.size.normal
                         Layout.fillWidth: true
-                        Behavior on color { CAnim { duration: Tokens.anim.durations.normal } }
+                        Behavior on color { CAnim {} }
                     }
                 }
 
                 StateLayer {
                     id: stateLayer
-                    radius: Tokens.rounding.normal
-                    color: delegateRoot.isActive ? Colours.palette.m3tertiaryContainer : Colours.palette.m3onSurfaceVariant
+                    anchors.fill: parent
+                    radius: parent.height / 2
+                    color: Colours.palette.m3onPrimaryContainer
                     onClicked: root.sectionSelected(delegateRoot.modelData.id)
                 }
             }
         }
 
-        Item { Layout.fillHeight: true }
+        Item {
+            Layout.fillHeight: true
+        }
     }
 }

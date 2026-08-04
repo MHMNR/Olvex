@@ -1,4 +1,3 @@
-pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
@@ -21,15 +20,25 @@ TextField {
     topPadding: 8
     bottomPadding: 8
 
+    onAccepted: {
+        root.focus = false;
+    }
+
     background: StyledRect {
+        id: bgRect
         implicitHeight: 36
         implicitWidth: 120
         radius: Tokens.rounding.normal
-        color: Colours.palette.m3surfaceVariant
+        color: root.activeFocus 
+            ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+            : (root.hovered ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1) : Colours.palette.m3surfaceContainerHigh)
         
-        border.color: root.activeFocus ? Colours.palette.m3primary : "transparent"
-        border.width: root.activeFocus ? 2 : 0
+        border.color: root.activeFocus 
+            ? Colours.palette.m3primary 
+            : (root.hovered ? Qt.alpha(Colours.palette.m3outline, 0.7) : Qt.alpha(Colours.palette.m3outlineVariant, 0.6))
+        border.width: root.activeFocus ? 2 : 1
         
+        Behavior on color { CAnim {} }
         Behavior on border.color { CAnim {} }
     }
 

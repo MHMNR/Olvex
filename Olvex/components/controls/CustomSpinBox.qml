@@ -1,7 +1,6 @@
-pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.services
@@ -9,7 +8,7 @@ import qs.services
 RowLayout {
     id: root
 
-    property real value
+    property real value: 0
     property real max: Infinity
     property real min: -Infinity
     property real step: 1
@@ -20,7 +19,7 @@ RowLayout {
 
     signal valueModified(value: real)
 
-    spacing: Tokens.spacing.small
+    spacing: Tokens.spacing.extraSmall
 
     onValueChanged: {
         if (!root.isEditing) {
@@ -28,11 +27,67 @@ RowLayout {
         }
     }
 
+    function increment(): void {
+        let newValue = Math.min(root.max, root.value + root.step);
+        const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
+        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
+        root.value = newValue;
+        root.displayText = newValue.toString();
+        root.valueModified(newValue);
+    }
+
+    function decrement(): void {
+        let newValue = Math.max(root.min, root.value - root.step);
+        const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
+        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
+        root.value = newValue;
+        root.displayText = newValue.toString();
+        root.valueModified(newValue);
+    }
+
+    // Minus Button (-)
+    Item {
+        implicitWidth: 28
+        implicitHeight: 28
+
+        scale: downState.pressed ? 0.92 : (downState.containsMouse ? 1.08 : 1.0)
+        Behavior on scale { SpringAnimation { spring: 4.2; damping: 0.70 } }
+
+        MaterialIcon {
+            id: downIcon
+            anchors.centerIn: parent
+            text: "remove"
+            iconPointSize: Tokens.font.size.small
+            color: Colours.palette.m3onSurfaceVariant
+        }
+
+        StateLayer {
+            id: downState
+            radius: parent.height / 2
+            color: Colours.palette.m3onSurface
+            onClicked: root.decrement()
+            onPressedChanged: {
+                if (pressed) {
+                    timer.tickCount = 0;
+                    timer.start();
+                } else {
+                    timer.stop();
+                }
+            }
+        }
+    }
+
+    // Value Display / Input Capsule
     StyledTextField {
         id: textField
 
         inputMethodHints: Qt.ImhFormattedNumbersOnly
         text: root.isEditing ? text : root.displayText
+        font.family: "Monospace"
+        font.weight: Font.Medium
+        horizontalAlignment: TextInput.AlignHCenter
+        verticalAlignment: TextInput.AlignVCenter
+
         validator: DoubleValidator {
             bottom: root.min
             top: root.max
@@ -57,6 +112,7 @@ RowLayout {
                 text = root.displayText;
             }
             root.isEditing = false;
+            root.focus = false;
         }
         onEditingFinished: {
             if (text !== root.displayText) {
@@ -73,86 +129,49 @@ RowLayout {
             root.isEditing = false;
         }
 
-        padding: Tokens.padding.small
-        leftPadding: Tokens.padding.normal
-        rightPadding: Tokens.padding.normal
+        padding: 0
+        leftPadding: Tokens.padding.extraSmall
+        rightPadding: Tokens.padding.extraSmall
 
         background: StyledRect {
-            implicitWidth: 100
+            implicitWidth: 42
+            implicitHeight: 28
             radius: Tokens.rounding.small
             color: Colours.tPalette.m3surfaceContainerHigh
+            border.color: textField.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+            border.width: textField.activeFocus ? 2 : 1
         }
     }
 
-    function increment(): void {
-        let newValue = Math.min(root.max, root.value + root.step);
-        const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
-        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
-        root.value = newValue;
-        root.displayText = newValue.toString();
-        root.valueModified(newValue);
-    }
+    // Plus Button (+)
+    Item {
+        implicitWidth: 28
+        implicitHeight: 28
 
-    function decrement(): void {
-        let newValue = Math.max(root.min, root.value - root.step);
-        const decimals = root.step < 1 ? Math.max(1, Math.ceil(-Math.log10(root.step))) : 0;
-        newValue = Math.round(newValue * Math.pow(10, decimals)) / Math.pow(10, decimals);
-        root.value = newValue;
-        root.displayText = newValue.toString();
-        root.valueModified(newValue);
-    }
-
-    StyledRect {
-        radius: Tokens.rounding.small
-        color: Colours.palette.m3primary
-
-        implicitWidth: implicitHeight
-        implicitHeight: upIcon.implicitHeight + Tokens.padding.small * 2
-
-        StateLayer {
-            id: upState
-
-            color: Colours.palette.m3onPrimary
-
-            onPressAndHold: timer.start()
-            onReleased: timer.stop()
-
-            onClicked: root.increment()
-        }
+        scale: upState.pressed ? 0.92 : (upState.containsMouse ? 1.08 : 1.0)
+        Behavior on scale { SpringAnimation { spring: 4.2; damping: 0.70 } }
 
         MaterialIcon {
             id: upIcon
-
             anchors.centerIn: parent
-            text: "keyboard_arrow_up"
-            color: Colours.palette.m3onPrimary
+            text: "add"
+            iconPointSize: Tokens.font.size.small
+            color: Colours.palette.m3onSurfaceVariant
         }
-    }
-
-    StyledRect {
-        radius: Tokens.rounding.small
-        color: Colours.palette.m3primary
-
-        implicitWidth: implicitHeight
-        implicitHeight: downIcon.implicitHeight + Tokens.padding.small * 2
 
         StateLayer {
-            id: downState
-
-            onClicked: root.decrement()
-
-            color: Colours.palette.m3onPrimary
-
-            onPressAndHold: timer.start()
-            onReleased: timer.stop()
-        }
-
-        MaterialIcon {
-            id: downIcon
-
-            anchors.centerIn: parent
-            text: "keyboard_arrow_down"
-            color: Colours.palette.m3onPrimary
+            id: upState
+            radius: parent.height / 2
+            color: Colours.palette.m3onSurface
+            onClicked: root.increment()
+            onPressedChanged: {
+                if (pressed) {
+                    timer.tickCount = 0;
+                    timer.start();
+                } else {
+                    timer.stop();
+                }
+            }
         }
     }
 
@@ -161,12 +180,17 @@ RowLayout {
 
         interval: 100
         repeat: true
-        triggeredOnStart: true
+        triggeredOnStart: false
+        property int tickCount: 0
         onTriggered: {
-            if (upState.pressed)
-                root.increment();
-            else if (downState.pressed)
-                root.decrement();
+            if (tickCount > 3) {
+                if (upState.pressed)
+                    root.increment();
+                else if (downState.pressed)
+                    root.decrement();
+            } else {
+                tickCount++;
+            }
         }
     }
 }

@@ -65,8 +65,8 @@ StyledRect {
     }
     color: type === ButtonBase.Text ? "transparent" : disabled ? disabledColour : internalChecked ? activeColour : inactiveColour
 
-    required implicitWidth
-    required implicitHeight
+    implicitWidth: 0
+    implicitHeight: 0
 
     StateLayer {
         id: stateLayer

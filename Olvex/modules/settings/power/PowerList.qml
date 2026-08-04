@@ -23,7 +23,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Tokens.padding.small
-        spacing: Tokens.spacing.small
+        spacing: Tokens.spacing.extraSmall
 
         StyledText {
             text: qsTr("Power & Battery")
@@ -32,7 +32,7 @@ Item {
             textPointSize: Tokens.font.size.normal
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
-            Layout.bottomMargin: Tokens.padding.small
+            Layout.bottomMargin: Tokens.padding.extraSmall
         }
 
         Repeater {
@@ -46,7 +46,7 @@ Item {
                 readonly property bool isActive: root.activeSection === delegateRoot.modelData.id
 
                 Layout.fillWidth: true
-                implicitHeight: 44
+                implicitHeight: 40
 
                 scale: stateLayer.pressed ? 0.96 : 1.0
                 Behavior on scale {
@@ -56,7 +56,7 @@ Item {
                 StyledRect {
                     anchors.fill: parent
                     radius: height / 2
-                    color: delegateRoot.isActive ? Colours.palette.m3primary : (stateLayer.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent")
+                    color: delegateRoot.isActive ? Colours.palette.m3primaryContainer : (stateLayer.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent")
 
                     Behavior on color {
                         CAnim {}
@@ -65,13 +65,13 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: Tokens.padding.large
-                    anchors.rightMargin: Tokens.padding.large
+                    anchors.leftMargin: Tokens.padding.normal
+                    anchors.rightMargin: Tokens.padding.normal
                     spacing: Tokens.spacing.normal
 
                     MaterialIcon {
                         text: delegateRoot.modelData.icon
-                        color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                        color: delegateRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
                         iconPointSize: Tokens.font.size.normal
 
                         Behavior on color {
@@ -81,7 +81,7 @@ Item {
 
                     StyledText {
                         text: delegateRoot.modelData.label
-                        color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                        color: delegateRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
                         font.weight: delegateRoot.isActive ? Font.Medium : Font.Normal
                         textPointSize: Tokens.font.size.normal
                         Layout.fillWidth: true
@@ -102,6 +102,8 @@ Item {
             }
         }
 
-        Item { Layout.fillHeight: true }
+        Item {
+            Layout.fillHeight: true
+        }
     }
 }
