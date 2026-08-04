@@ -24,19 +24,20 @@ CollapsibleSection {
             model: M3Variants.list
 
             delegate: StyledRect {
+                id: delegateRoot
                 required property var modelData
 
                 Layout.fillWidth: true
 
-                color: Qt.alpha(Colours.tPalette.m3surfaceContainer, modelData.variant === Schemes.currentVariant ? Colours.tPalette.m3surfaceContainer.a : 0)
+                color: Qt.alpha(Colours.tPalette.m3surfaceContainer, delegateRoot.modelData.variant === Schemes.currentVariant ? Colours.tPalette.m3surfaceContainer.a : 0)
                 radius: Tokens.rounding.normal
-                border.width: modelData.variant === Schemes.currentVariant ? 1 : 0
+                border.width: delegateRoot.modelData.variant === Schemes.currentVariant ? 1 : 0
                 border.color: Colours.palette.m3primary
                 implicitHeight: variantRow.implicitHeight + Tokens.padding.normal * 2
 
                 StateLayer {
                     onClicked: {
-                        const variant = modelData.variant;
+                        const variant = delegateRoot.modelData.variant;
                         Schemes.setVariant(variant);
                     }
                 }
@@ -61,19 +62,19 @@ CollapsibleSection {
                     spacing: Tokens.spacing.normal
 
                     MaterialIcon {
-                        text: modelData.icon
+                        text: delegateRoot.modelData.icon
                         font.pointSize: Tokens.font.size.large
-                        fill: modelData.variant === Schemes.currentVariant ? 1 : 0
+                        fill: delegateRoot.modelData.variant === Schemes.currentVariant ? 1 : 0
                     }
 
                     StyledText {
                         Layout.fillWidth: true
-                        text: modelData.name
-                        font.weight: modelData.variant === Schemes.currentVariant ? 400 : 400
+                        text: delegateRoot.modelData.name
+                        font.weight: delegateRoot.modelData.variant === Schemes.currentVariant ? 400 : 400
                     }
 
                     MaterialIcon {
-                        visible: modelData.variant === Schemes.currentVariant
+                        visible: delegateRoot.modelData.variant === Schemes.currentVariant
                         text: "check"
                         color: Colours.palette.m3primary
                         font.pointSize: Tokens.font.size.large

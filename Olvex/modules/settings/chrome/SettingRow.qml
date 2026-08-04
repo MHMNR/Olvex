@@ -54,8 +54,8 @@ Item {
             text: root.title
             wrapMode: Text.WordWrap
             maximumLineCount: 2
-            font.weight: Font.Normal
-            font.letterSpacing: 0.1
+            font.weight: 700
+            font.letterSpacing: 0.0
             lineHeight: 1.25
             lineHeightMode: Text.ProportionalHeight
             color: Colours.palette.m3onSurface
@@ -101,15 +101,12 @@ Item {
         color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
     }
 
-    // Force Arrow over title/icon/padding so leaked hand cursors cannot stick
-    // to non-control areas of the option row / card.
     MouseArea {
         id: arrowShield
 
         anchors.fill: parent
         anchors.rightMargin: controlHolder.width + Tokens.spacing.small
         z: 1
-        // When clickable, the StateLayer below handles this region instead
         visible: !root.clickable
         enabled: !root.clickable
         hoverEnabled: true
@@ -117,7 +114,6 @@ Item {
         cursorShape: Qt.ArrowCursor
     }
 
-    // Full-row press only when explicitly clickable (list-style rows)
     Loader {
         anchors.fill: parent
         anchors.rightMargin: controlHolder.width + Tokens.spacing.small

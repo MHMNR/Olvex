@@ -21,7 +21,8 @@ Item {
 
     default property alias content: contentCol.data
 
-    // Hosted pane (when hostMode). Assign via hostedItem or reparent child with anchors.
+    // Hosted pane (when hostMode). Assign via hostComponent.
+    property Component hostComponent: null
     property alias host: hostContainer
 
     // Solid page fill — parent morph is also opaque; double-paint blocks any bleed
@@ -164,5 +165,10 @@ Item {
         anchors.right: parent.right
         anchors.margins: Tokens.padding.normal
         anchors.topMargin: 0
+
+        Loader {
+            anchors.fill: parent
+            sourceComponent: root.hostComponent
+        }
     }
 }

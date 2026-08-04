@@ -24,11 +24,12 @@ CollapsibleSection {
             model: Schemes.list
 
             delegate: StyledRect {
+                id: delegateRoot
                 required property var modelData
 
                 Layout.fillWidth: true
 
-                readonly property string schemeKey: `${modelData.name} ${modelData.flavour}`
+                readonly property string schemeKey: `${delegateRoot.modelData.name} ${delegateRoot.modelData.flavour}`
                 readonly property bool isCurrent: schemeKey === Schemes.currentScheme
 
                 color: Qt.alpha(Colours.tPalette.m3surfaceContainer, isCurrent ? Colours.tPalette.m3surfaceContainer.a : 0)
@@ -39,8 +40,8 @@ CollapsibleSection {
 
                 StateLayer {
                     onClicked: {
-                        const name = modelData.name;
-                        const flavour = modelData.flavour;
+                        const name = delegateRoot.modelData.name;
+                        const flavour = delegateRoot.modelData.flavour;
                         Schemes.setScheme(name, flavour);
                     }
                 }
@@ -70,7 +71,7 @@ CollapsibleSection {
                         border.width: 1
                         border.color: isCurrent ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outline, 0.5)
 
-                        color: `#${modelData.colours?.surface}`
+                        color: `#${delegateRoot.modelData.colours?.surface}`
                         radius: Tokens.rounding.full
                         implicitWidth: iconPlaceholder.implicitWidth
                         implicitHeight: iconPlaceholder.implicitWidth
@@ -97,29 +98,29 @@ CollapsibleSection {
                                 anchors.right: parent.right
 
                                 implicitWidth: preview.implicitWidth
-                                color: `#${modelData.colours?.primary}`
+                                color: `#${delegateRoot.modelData.colours?.primary}`
                                 radius: Tokens.rounding.full
                             }
                         }
                     }
 
-                    Column {
+                    ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 0
 
                         StyledText {
-                            text: modelData.flavour ?? ""
-                            font.pointSize: Tokens.font.size.normal
+                            Layout.fillWidth: true
+                            text: delegateRoot.modelData.flavour ?? ""
+                            font.weight: isCurrent ? 500 : 400
                         }
 
                         StyledText {
-                            text: modelData.name ?? ""
+                            Layout.fillWidth: true
+                            text: delegateRoot.modelData.name ?? ""
                             font.pointSize: Tokens.font.size.small
                             color: Colours.palette.m3outline
 
                             elide: Text.ElideRight
-                            anchors.left: parent.left
-                            anchors.right: parent.right
                         }
                     }
 

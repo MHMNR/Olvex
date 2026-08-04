@@ -9,10 +9,10 @@ QtObject {
     // Bento category registry. Paths relative to modules/controlcenter/
     // accentRole: key on Colours.palette
     // Grid: 6 cols. Dual look heroes with asymmetric widths (true bento).
-    //   r0–1: Appearance w2h2 | Wallpaper w4h2  (look: compact palette + wide visual)
+    //   r0–1: Appearance w6h2
     //   r2:   Network | Sound | Taskbar
     //   r3:   Notifs  | Panels | Power
-    //   r4:   Security| System | About
+    //   r4:   System  | About
     readonly property var categories: [
         {
             id: "appearance",
@@ -24,23 +24,9 @@ QtObject {
             kind: "appearance",
             c: 0,
             r: 0,
-            w: 2,
+            w: 6,
             h: 2,
             component: "appearance/AppearancePage.qml"
-        },
-        {
-            id: "wallpaper",
-            label: "wallpaper",
-            icon: "wallpaper",
-            title: "Wallpaper",
-            sub: "Wallpaper & desktop",
-            accentRole: "m3secondary",
-            kind: "wallpaper",
-            c: 2,
-            r: 0,
-            w: 4,
-            h: 2,
-            component: "wallpaper/WallpaperPage.qml"
         },
         {
             id: "network",
@@ -58,11 +44,11 @@ QtObject {
         },
         {
             id: "sound",
-            label: "audio",
+            label: "sound",
             icon: "volume_up",
             title: "Sound",
-            sub: "Output & input",
-            accentRole: "m3primary",
+            sub: "Audio and inputs",
+            accentRole: "m3secondary",
             kind: "sound",
             c: 2,
             r: 2,
@@ -71,28 +57,27 @@ QtObject {
             component: "sound/SoundPage.qml"
         },
         {
-            id: "bar",
+            id: "taskbar",
             label: "taskbar",
-            icon: "space_dashboard",
+            icon: "dock",
             title: "Taskbar",
-            sub: "Widgets & status",
+            sub: "Bottom dock & items",
             accentRole: "m3primary",
-            kind: "bar",
+            kind: "taskbar",
             c: 4,
             r: 2,
             w: 2,
             h: 1,
-            component: "bar/BarPage.qml"
+            component: "taskbar/TaskbarPage.qml"
         },
         {
-            id: "notifications",
-            label: "notifications",
+            id: "notifs",
+            label: "notifs",
             icon: "notifications",
             title: "Notifications",
-            sub: "Alerts & toasts",
-            // Match other tiles — error red wash made the card look foreign
+            sub: "Do not disturb",
             accentRole: "m3primary",
-            kind: "notifications",
+            kind: "notifs",
             c: 0,
             r: 3,
             w: 2,
@@ -102,10 +87,10 @@ QtObject {
         {
             id: "panels",
             label: "panels",
-            icon: "widgets",
+            icon: "dashboard_customize",
             title: "Panels",
-            sub: "Launcher & dashboard",
-            accentRole: "m3tertiary",
+            sub: "Layout & behavior",
+            accentRole: "m3secondary",
             kind: "panels",
             c: 2,
             r: 3,
@@ -128,20 +113,6 @@ QtObject {
             component: "power/PowerPage.qml"
         },
         {
-            id: "lock",
-            label: "lock",
-            icon: "lock",
-            title: "Security",
-            sub: "Lock & fingerprint",
-            accentRole: "m3secondary",
-            kind: "lock",
-            c: 0,
-            r: 4,
-            w: 2,
-            h: 1,
-            component: "lock/LockPage.qml"
-        },
-        {
             id: "system",
             label: "system",
             icon: "tune",
@@ -149,9 +120,9 @@ QtObject {
             sub: "Apps, clock & media",
             accentRole: "m3primary",
             kind: "system",
-            c: 2,
+            c: 0,
             r: 4,
-            w: 2,
+            w: 3,
             h: 1,
             component: "system/SystemPage.qml"
         },
@@ -163,9 +134,9 @@ QtObject {
             sub: "Version, system info and links",
             accentRole: "m3primary",
             kind: "about",
-            c: 4,
+            c: 3,
             r: 4,
-            w: 2,
+            w: 3,
             h: 1,
             component: "about/AboutPage.qml"
         }

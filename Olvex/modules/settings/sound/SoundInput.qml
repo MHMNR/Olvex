@@ -1,0 +1,85 @@
+
+import ".."
+import "../chrome"
+import QtQuick
+import QtQuick.Layouts
+import Olvex.Config
+import qs.components
+import qs.components.controls
+import qs.services
+
+Item {
+    id: root
+    
+    property var session
+    
+    opacity: 0
+    y: 10
+    Component.onCompleted: cascadeIn.start()
+    
+    ParallelAnimation {
+        id: cascadeIn
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.long; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.long; easing.type: Easing.OutCubic }
+    }
+
+    implicitHeight: col.implicitHeight + Tokens.padding.large * 2
+    
+    ColumnLayout {
+        id: col
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.leftMargin: Tokens.padding.large
+        anchors.rightMargin: Tokens.padding.large
+        anchors.topMargin: Tokens.padding.large
+        spacing: Tokens.spacing.large
+
+        SettingRow {
+            Layout.fillWidth: true
+            title: qsTr("Microphone")
+            description: qsTr("Master input level and mute")
+            icon: "mic"
+            divider: true
+            
+            Row {
+                spacing: Tokens.spacing.normal
+                StyledSwitch {
+                    anchors.verticalCenter: parent.verticalCenter
+                    checked: !Audio.sourceMuted
+                    onToggled: {
+                        if (Audio.source?.audio)
+                            Audio.source.audio.muted = !checked;
+                    }
+                }
+                StyledSlider {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 200
+                    from: 0
+                    to: Math.max(1, GlobalConfig.services.maxVolume || 1)
+                    value: Audio.sourceVolume
+                    onMoved: Audio.setSourceVolume(value)
+                }
+            }
+        }
+
+        Column {
+            Layout.fillWidth: true
+            spacing: 0
+
+            Repeater {
+                model: Audio.sources
+
+                delegate: DeviceRow {
+                    required property var modelData
+
+                    name: modelData.description || modelData.name || qsTr("Input")
+                    icon: "mic"
+                    active: Audio.source && Audio.source.id === modelData.id
+                    status: active ? qsTr("Active") : qsTr("Available")
+                    onClicked: Audio.setAudioSource(modelData)
+                }
+            }
+        }
+    }
+}

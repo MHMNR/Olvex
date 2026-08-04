@@ -46,9 +46,10 @@ CollapsibleSection {
                 }
 
                 delegate: StyledRect {
+                    id: sansDelegate
                     required property string modelData
                     required property int index
-                    readonly property bool isCurrent: modelData === rootPane.fontFamilySans
+                    readonly property bool isCurrent: sansDelegate.modelData === rootPane.fontFamilySans
 
                     width: ListView.view.width
                     color: Qt.alpha(Colours.tPalette.m3surfaceContainer, isCurrent ? Colours.tPalette.m3surfaceContainer.a : 0)
@@ -59,7 +60,7 @@ CollapsibleSection {
 
                     StateLayer {
                         onClicked: {
-                            rootPane.fontFamilySans = modelData;
+                            rootPane.fontFamilySans = sansDelegate.modelData;
                             rootPane.saveConfig();
                         }
                     }
@@ -75,7 +76,7 @@ CollapsibleSection {
                         spacing: Tokens.spacing.normal
 
                         StyledText {
-                            text: modelData
+                            text: sansDelegate.modelData
                             font.pointSize: Tokens.font.size.normal
                         }
 
@@ -127,9 +128,10 @@ CollapsibleSection {
                 }
 
                 delegate: StyledRect {
+                    id: monoDelegate
                     required property string modelData
                     required property int index
-                    readonly property bool isCurrent: modelData === rootPane.fontFamilyMono
+                    readonly property bool isCurrent: monoDelegate.modelData === rootPane.fontFamilyMono
 
                     width: ListView.view.width
                     color: Qt.alpha(Colours.tPalette.m3surfaceContainer, isCurrent ? Colours.tPalette.m3surfaceContainer.a : 0)
@@ -140,7 +142,7 @@ CollapsibleSection {
 
                     StateLayer {
                         onClicked: {
-                            rootPane.fontFamilyMono = modelData;
+                            rootPane.fontFamilyMono = monoDelegate.modelData;
                             rootPane.saveConfig();
                         }
                     }
@@ -156,7 +158,7 @@ CollapsibleSection {
                         spacing: Tokens.spacing.normal
 
                         StyledText {
-                            text: modelData
+                            text: monoDelegate.modelData
                             font.pointSize: Tokens.font.size.normal
                         }
 
@@ -210,9 +212,10 @@ CollapsibleSection {
                 }
 
                 delegate: StyledRect {
+                    id: materialDelegate
                     required property string modelData
                     required property int index
-                    readonly property bool isCurrent: modelData === rootPane.fontFamilyMaterial
+                    readonly property bool isCurrent: materialDelegate.modelData === rootPane.fontFamilyMaterial
 
                     width: ListView.view.width
                     color: Qt.alpha(Colours.tPalette.m3surfaceContainer, isCurrent ? Colours.tPalette.m3surfaceContainer.a : 0)
@@ -223,7 +226,7 @@ CollapsibleSection {
 
                     StateLayer {
                         onClicked: {
-                            rootPane.fontFamilyMaterial = modelData;
+                            rootPane.fontFamilyMaterial = materialDelegate.modelData;
                             rootPane.saveConfig();
                         }
                     }
@@ -239,7 +242,7 @@ CollapsibleSection {
                         spacing: Tokens.spacing.normal
 
                         StyledText {
-                            text: modelData
+                            text: materialDelegate.modelData
                             font.pointSize: Tokens.font.size.normal
                         }
 
