@@ -1,13 +1,15 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.controls
-import qs.components.effects
 import qs.services
 
 ColumnLayout {
@@ -25,7 +27,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Ethernet devices")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 400
     }
 
@@ -58,7 +60,7 @@ ColumnLayout {
             StyledText {
                 text: qsTr("%1").arg(Nmcli.ethernetDevices.length)
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -69,7 +71,7 @@ ColumnLayout {
             StyledText {
                 text: qsTr("%1").arg(Nmcli.ethernetDevices.filter(d => d.connected).length)
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
         }
     }

@@ -1,5 +1,9 @@
 pragma ComponentBehavior: Bound
 
+import "../../components"
+import "../../components/controls"
+import "../../components/containers"
+import ".."
 import "bluetooth"
 import "network"
 import "audio"
@@ -8,6 +12,11 @@ import "taskbar"
 import "notifications"
 import "launcher"
 import "dashboard"
+import "sound"
+import "panels"
+import "power"
+import "system"
+import "about"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Widgets

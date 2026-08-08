@@ -1,19 +1,21 @@
 
 import ".."
 import "../chrome"
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 import qs.utils
 
 Item {
     id: root
     
-    property var session
+    property Session session
     
     property string selectedSsid: ""
     property bool showAddNetwork: false
@@ -138,12 +140,12 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.long; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.long; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
     }
 
     // We must define implicitHeight based on children because Loader uses it
-    implicitHeight: col.implicitHeight + Tokens.padding.large * 2
+    implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
     
     ColumnLayout {
         id: col

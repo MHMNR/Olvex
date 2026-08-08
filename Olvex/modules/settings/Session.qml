@@ -1,3 +1,6 @@
+import "../../components"
+import "../../components/controls"
+import "../../components/containers"
 import "./state"
 import QtQuick
 import qs.modules.settings

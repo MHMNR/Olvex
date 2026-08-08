@@ -1,15 +1,17 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import "."
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
-import qs.components.effects
 import qs.services
 import qs.utils
 
@@ -149,13 +151,13 @@ Item {
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
                 text: "lock"
-                font.pointSize: Tokens.font.size.extraLarge * 2
+                iconPointSize: Tokens.font.size.extraLarge * 2
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Enter password")
-                font.pointSize: Tokens.font.size.large
+                textPointSize: Tokens.font.size.large
                 font.weight: 400
             }
 
@@ -163,7 +165,7 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 text: root.network ? qsTr("Network: %1").arg(root.network.ssid) : ""
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -182,7 +184,7 @@ Item {
                     return "";
                 }
                 color: connectButton.hasError ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
                 font.weight: 400
                 wrapMode: Text.WordWrap
                 Layout.maximumWidth: parent.width - Tokens.padding.large * 2
@@ -233,18 +235,15 @@ Item {
                     }
                 }
 
-                Connections {
-                    function onShowPasswordDialogChanged(): void {
-                        if (root.session.network.showPasswordDialog) {
-                            Qt.callLater(() => {
-                                passwordContainer.forceActiveFocus();
-                                passwordContainer.passwordBuffer = "";
-                                connectButton.hasError = false;
-                            });
-                        }
+                property bool _isShown: root.session.network.showPasswordDialog
+                on_IsShownChanged: {
+                    if (_isShown) {
+                        Qt.callLater(() => {
+                            passwordContainer.forceActiveFocus();
+                            passwordContainer.passwordBuffer = "";
+                            connectButton.hasError = false;
+                        });
                     }
-
-                    target: root.session.network
                 }
 
                 Connections {
@@ -302,7 +301,7 @@ Item {
                     anchors.centerIn: parent
                     text: qsTr("Password")
                     color: Colours.palette.m3outline
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.family: Tokens.font.family.mono
                     opacity: passwordContainer.passwordBuffer ? 0 : 1
 

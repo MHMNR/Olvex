@@ -1,9 +1,15 @@
 pragma ComponentBehavior: Bound
 
+
+import ".."
+import "."
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Shapes
 import Olvex.Config
-import qs.components
 import qs.services
 import qs.utils
 

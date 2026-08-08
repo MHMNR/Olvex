@@ -1,14 +1,16 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Bluetooth
 import Olvex.Config
-import qs.components
-import qs.components.controls
-import qs.components.effects
 import qs.services
 
 ColumnLayout {
@@ -26,7 +28,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Adapter status")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 400
     }
 
@@ -87,7 +89,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Adapter properties")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 400
     }
 
@@ -325,7 +327,7 @@ ColumnLayout {
 
                         text: qsTr("Rename adapter (currently does not work)")
                         color: Colours.palette.m3outline
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                     }
 
                     StyledTextField {
@@ -444,7 +446,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.spacing.large
         text: qsTr("Adapter information")
-        font.pointSize: Tokens.font.size.larger
+        textPointSize: Tokens.font.size.larger
         font.weight: 400
     }
 
@@ -477,7 +479,7 @@ ColumnLayout {
             StyledText {
                 text: Bluetooth.defaultAdapter ? BluetoothAdapterState.toString(Bluetooth.defaultAdapter.state) : qsTr("Unknown")
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -488,7 +490,7 @@ ColumnLayout {
             StyledText {
                 text: Bluetooth.defaultAdapter?.dbusPath ?? ""
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
 
             StyledText {
@@ -499,7 +501,7 @@ ColumnLayout {
             StyledText {
                 text: Bluetooth.defaultAdapter?.adapterId ?? ""
                 color: Colours.palette.m3outline
-                font.pointSize: Tokens.font.size.small
+                textPointSize: Tokens.font.size.small
             }
         }
     }

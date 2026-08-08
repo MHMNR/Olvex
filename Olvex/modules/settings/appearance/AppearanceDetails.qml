@@ -1,12 +1,12 @@
-pragma ComponentBehavior: Bound
-
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.containers
 
 Item {
     id: root
@@ -22,7 +22,8 @@ Item {
 
         Loader {
             id: detailsLoader
-            anchors.top: parent.top
+            onLoaded: if (item) height = Qt.binding(() => item ? (item["implicitHeight"] || 0) : 0);
+                        anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.padding.large

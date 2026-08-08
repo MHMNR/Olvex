@@ -1,22 +1,24 @@
 import ".."
 import "../chrome"
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 
 ColumnLayout {
     id: root
 
-    property var session
+    property Session session
     spacing: Tokens.spacing.large
 
-    // Taskbar accent = m3primary (pink/rose in default dark palette)
+    // Taskbar accent = m3primary (pink/rose)
     readonly property color accent: Colours.palette.m3primary
 
-    // Inline component at root level — required by QML spec
+    // Inline component MUST be at root level (QML spec)
     component StatusChip : StyledRect {
         id: chip
         required property string labelText
@@ -24,9 +26,9 @@ ColumnLayout {
         signal toggled()
 
         implicitWidth: lbl.implicitWidth + Tokens.padding.large * 2
-        implicitHeight: 36
+        implicitHeight: 34
         radius: height / 2
-        color: isChecked ? Colours.palette.m3primaryContainer : Qt.alpha(Colours.palette.m3onSurface, 0.08)
+        color: isChecked ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHighest
 
         Behavior on color { CAnim {} }
 
@@ -89,11 +91,7 @@ ColumnLayout {
             descriptionColor: Qt.alpha(root.accent, 0.65)
             divider: false
             StyledSwitch {
-                checked: Config.bar.popouts.statusIcons ?? true
-                onToggled: {
-                    GlobalConfig.bar.popouts.statusIcons = checked;
-                    GlobalConfig.save();
-                }
+                checked: true
             }
         }
     }
@@ -105,60 +103,57 @@ ColumnLayout {
         icon: "info"
         accentColor: root.accent
 
-        // Header-only row — chips are full-width below, outside controlHolder
+        // Chips are in the control slot (right side) — matches SS3 design
         SettingRow {
             title: qsTr("Visible indicators")
             description: qsTr("Select which system icons to display")
             descriptionColor: Qt.alpha(root.accent, 0.65)
             divider: false
-        }
 
-        // Full-width chip flow
-        Flow {
-            width: parent.width
-            spacing: Tokens.spacing.small
-            topPadding: Tokens.spacing.small
-            bottomPadding: Tokens.spacing.small
+            Flow {
+                width: 300
+                spacing: Tokens.spacing.small
 
-            StatusChip {
-                labelText: qsTr("Speakers")
-                isChecked: Config.bar.status.showAudio
-                onToggled: { GlobalConfig.bar.status.showAudio = !Config.bar.status.showAudio; GlobalConfig.save(); }
-            }
-            StatusChip {
-                labelText: qsTr("Microphone")
-                isChecked: Config.bar.status.showMicrophone
-                onToggled: { GlobalConfig.bar.status.showMicrophone = !Config.bar.status.showMicrophone; GlobalConfig.save(); }
-            }
-            StatusChip {
-                labelText: qsTr("Keyboard")
-                isChecked: Config.bar.status.showKbLayout
-                onToggled: { GlobalConfig.bar.status.showKbLayout = !Config.bar.status.showKbLayout; GlobalConfig.save(); }
-            }
-            StatusChip {
-                labelText: qsTr("Network")
-                isChecked: Config.bar.status.showNetwork
-                onToggled: { GlobalConfig.bar.status.showNetwork = !Config.bar.status.showNetwork; GlobalConfig.save(); }
-            }
-            StatusChip {
-                labelText: qsTr("Wifi")
-                isChecked: Config.bar.status.showWifi
-                onToggled: { GlobalConfig.bar.status.showWifi = !Config.bar.status.showWifi; GlobalConfig.save(); }
-            }
-            StatusChip {
-                labelText: qsTr("Bluetooth")
-                isChecked: Config.bar.status.showBluetooth
-                onToggled: { GlobalConfig.bar.status.showBluetooth = !Config.bar.status.showBluetooth; GlobalConfig.save(); }
-            }
-            StatusChip {
-                labelText: qsTr("Battery")
-                isChecked: Config.bar.status.showBattery
-                onToggled: { GlobalConfig.bar.status.showBattery = !Config.bar.status.showBattery; GlobalConfig.save(); }
-            }
-            StatusChip {
-                labelText: qsTr("Capslock")
-                isChecked: Config.bar.status.showLockStatus
-                onToggled: { GlobalConfig.bar.status.showLockStatus = !Config.bar.status.showLockStatus; GlobalConfig.save(); }
+                StatusChip {
+                    labelText: qsTr("Speakers")
+                    isChecked: Config.bar.status.showAudio
+                    onToggled: { GlobalConfig.bar.status.showAudio = !Config.bar.status.showAudio; GlobalConfig.save(); }
+                }
+                StatusChip {
+                    labelText: qsTr("Microphone")
+                    isChecked: Config.bar.status.showMicrophone
+                    onToggled: { GlobalConfig.bar.status.showMicrophone = !Config.bar.status.showMicrophone; GlobalConfig.save(); }
+                }
+                StatusChip {
+                    labelText: qsTr("Keyboard")
+                    isChecked: Config.bar.status.showKbLayout
+                    onToggled: { GlobalConfig.bar.status.showKbLayout = !Config.bar.status.showKbLayout; GlobalConfig.save(); }
+                }
+                StatusChip {
+                    labelText: qsTr("Network")
+                    isChecked: Config.bar.status.showNetwork
+                    onToggled: { GlobalConfig.bar.status.showNetwork = !Config.bar.status.showNetwork; GlobalConfig.save(); }
+                }
+                StatusChip {
+                    labelText: qsTr("Wifi")
+                    isChecked: Config.bar.status.showWifi
+                    onToggled: { GlobalConfig.bar.status.showWifi = !Config.bar.status.showWifi; GlobalConfig.save(); }
+                }
+                StatusChip {
+                    labelText: qsTr("Bluetooth")
+                    isChecked: Config.bar.status.showBluetooth
+                    onToggled: { GlobalConfig.bar.status.showBluetooth = !Config.bar.status.showBluetooth; GlobalConfig.save(); }
+                }
+                StatusChip {
+                    labelText: qsTr("Battery")
+                    isChecked: Config.bar.status.showBattery
+                    onToggled: { GlobalConfig.bar.status.showBattery = !Config.bar.status.showBattery; GlobalConfig.save(); }
+                }
+                StatusChip {
+                    labelText: qsTr("Capslock")
+                    isChecked: Config.bar.status.showLockStatus
+                    onToggled: { GlobalConfig.bar.status.showLockStatus = !Config.bar.status.showLockStatus; GlobalConfig.save(); }
+                }
             }
         }
     }

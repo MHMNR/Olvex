@@ -1,10 +1,12 @@
 import ".."
+import "../chrome"
+import "."
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.controls
-import qs.components.effects
 import qs.services
 
 StyledRect {
@@ -35,7 +37,7 @@ StyledRect {
         StyledText {
             visible: root.title !== ""
             text: root.title
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
         }
 
         GridLayout {

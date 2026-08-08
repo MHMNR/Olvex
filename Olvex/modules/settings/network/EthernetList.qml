@@ -1,13 +1,14 @@
 pragma ComponentBehavior: Bound
 
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
 import qs.services
 
 DeviceList {
@@ -27,7 +28,7 @@ DeviceList {
 
             StyledText {
                 text: qsTr("Settings")
-                font.pointSize: Tokens.font.size.large
+                textPointSize: Tokens.font.size.large
                 font.weight: 400
             }
 
@@ -101,7 +102,7 @@ DeviceList {
 
                         anchors.centerIn: parent
                         text: "cable"
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                         fill: modelData.connected ? 1 : 0
                         color: modelData.connected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
 
@@ -130,7 +131,7 @@ DeviceList {
                             Layout.fillWidth: true
                             text: modelData.connected ? qsTr("Connected") : qsTr("Disconnected")
                             color: modelData.connected ? Colours.palette.m3primary : Colours.palette.m3outline
-                            font.pointSize: Tokens.font.size.small
+                            textPointSize: Tokens.font.size.small
                             font.weight: modelData.connected ? 400 : 400
                             elide: Text.ElideRight
                         }

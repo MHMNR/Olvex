@@ -1,4 +1,3 @@
-pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
@@ -117,7 +116,7 @@ StyledRect {
 
     Behavior on x {
         Anim {
-            easing: root.Tokens.anim.emphasizedDecel
+            easing: Tokens.anim.emphasizedDecel
         }
     }
 

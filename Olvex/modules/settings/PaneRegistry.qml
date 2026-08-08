@@ -1,5 +1,8 @@
 pragma Singleton
 
+import "../../components"
+import "../../components/controls"
+import "../../components/containers"
 import QtQuick
 import qs.services
 

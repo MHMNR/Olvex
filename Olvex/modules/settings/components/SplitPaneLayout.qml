@@ -1,10 +1,16 @@
 pragma ComponentBehavior: Bound
 
+
+import ".."
+import "../chrome"
+import "."
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Widgets
 import Olvex.Config
-import qs.components
 import qs.services
 
 RowLayout {
@@ -38,8 +44,7 @@ RowLayout {
             anchors.rightMargin: Tokens.padding.small
             radius: Tokens.rounding.large
             color: Colours.palette.m3surfaceContainerLow
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
-            border.width: 1
+
 
             Loader {
                 id: leftLoader
@@ -70,9 +75,8 @@ RowLayout {
             anchors.leftMargin: Tokens.padding.small
             anchors.rightMargin: Tokens.padding.normal
             radius: Tokens.rounding.large
-            color: Colours.palette.m3surfaceContainerLow
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
-            border.width: 1
+            color: Colours.palette.m3surfaceContainerHigh
+
 
             Loader {
                 id: rightLoader

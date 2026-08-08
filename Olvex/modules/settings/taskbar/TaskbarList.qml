@@ -1,11 +1,14 @@
+pragma ComponentBehavior: Bound
+
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
-import M3Shapes
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 
 Item {
@@ -34,7 +37,7 @@ Item {
             textPointSize: Tokens.font.size.normal
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
-            Layout.bottomMargin: Tokens.padding.extraSmall
+            Layout.bottomMargin: Tokens.padding.smaller
         }
 
         Repeater {
@@ -49,8 +52,13 @@ Item {
 
                 readonly property bool isActive: root.activeSection === delegateRoot.modelData.id
 
-                scale: stateLayer.pressed ? 0.96 : 1.0
-                Behavior on scale { SpringAnimation { spring: 4.2; damping: 0.70 } }
+                scale: stateLayer.pressed ? 0.96 : (stateLayer.containsMouse ? 1.02 : 1.0)
+                Behavior on scale { 
+                    SpringAnimation { 
+                        spring: stateLayer.pressed ? 5.0 : 4.2 
+                        damping: stateLayer.pressed ? 0.65 : 0.70 
+                    } 
+                }
 
                 StyledRect {
                     anchors.fill: parent

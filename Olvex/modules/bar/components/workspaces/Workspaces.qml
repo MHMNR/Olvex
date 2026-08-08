@@ -1,4 +1,3 @@
-pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Effects
@@ -45,11 +44,11 @@ StyledClippingRect {
     // mid-animation and snaps back collapsed.
     readonly property int expandedContentHeight: {
         let h = 0;
-        for (let i = 0; i < workspaces.count; i++) {
-            const item = workspaces.itemAt(i);
+        for (let i = 0; i < wsRepeater.count; i++) {
+            const item = wsRepeater.itemAt(i);
             h += item ? item.detailHeight : 0;
         }
-        return h + Math.max(0, workspaces.count - 1) * layout.spacing;
+        return h + Math.max(0, wsRepeater.count - 1) * layout.spacing;
     }
 
     property real blur: onSpecial ? 1 : 0
@@ -106,7 +105,7 @@ StyledClippingRect {
             spacing: Math.floor(Tokens.spacing.small / 2)
 
             Repeater {
-                id: workspaces
+                id: wsRepeater
 
                 model: Config.bar.workspaces.shown
 
@@ -126,7 +125,7 @@ StyledClippingRect {
 
             sourceComponent: ActiveIndicator {
                 activeWsId: root.activeWsId
-                workspaces: workspaces
+                workspaces: wsRepeater
                 mask: layout
                 fullscreen: root.fullscreen
             }

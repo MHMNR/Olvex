@@ -1,13 +1,13 @@
-pragma ComponentBehavior: Bound
 
 import ".."
+import "../chrome"
+import "."
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
-import qs.components.effects
 
 Item {
     id: root

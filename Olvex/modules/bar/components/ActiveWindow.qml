@@ -1,4 +1,3 @@
-pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
@@ -635,8 +634,8 @@ StyledRect {
                     anchors.horizontalCenter: icon.horizontalCenter
                     anchors.top: icon.bottom
                     anchors.topMargin: Tokens.spacing.small
-                    textPointSize: root.Tokens.font.size.smaller
-                    font.family: root.Tokens.font.family.mono
+                    textPointSize: Tokens.font.size.smaller
+                    font.family: Tokens.font.family.mono
                     color: root.colour
                     width: implicitHeight
                     height: implicitWidth
@@ -655,8 +654,8 @@ StyledRect {
                     TextMetrics {
                         id: metrics
                         text: root.windowTitle
-                        font.pointSize: root.Tokens.font.size.smaller
-                        font.family: root.Tokens.font.family.mono
+                        font.pointSize: Tokens.font.size.smaller
+                        font.family: Tokens.font.family.mono
                         elide: Qt.ElideRight
                         elideWidth: root.titleSlotHeight
                         onTextChanged: windowTitleText.text = elidedText

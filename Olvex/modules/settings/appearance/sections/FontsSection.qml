@@ -1,13 +1,15 @@
 pragma ComponentBehavior: Bound
 
-import ".."
+
+import "../.."
+import "../../chrome"
 import "../../components"
+import "../../../../components"
+import "../../../../components/controls"
+import "../../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
 import qs.services
 
 CollapsibleSection {
@@ -77,7 +79,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: sansDelegate.modelData
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -91,7 +93,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.large
+                                iconPointSize: Tokens.font.size.large
                             }
                         }
                     }
@@ -159,7 +161,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: monoDelegate.modelData
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -173,7 +175,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.large
+                                iconPointSize: Tokens.font.size.large
                             }
                         }
                     }
@@ -243,7 +245,7 @@ CollapsibleSection {
 
                         StyledText {
                             text: materialDelegate.modelData
-                            font.pointSize: Tokens.font.size.normal
+                            textPointSize: Tokens.font.size.normal
                         }
 
                         Item {
@@ -257,7 +259,7 @@ CollapsibleSection {
                             sourceComponent: MaterialIcon {
                                 text: "check"
                                 color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.large
+                                iconPointSize: Tokens.font.size.large
                             }
                         }
                     }

@@ -1,14 +1,16 @@
 pragma ComponentBehavior: Bound
 
-import ".."
-import "../../../launcher/services"
+
+import "../.."
+import "../../chrome"
+import "../../components"
+import "../../../../components"
+import "../../../../components/controls"
+import "../../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
 import qs.services
 
 CollapsibleSection {
@@ -63,7 +65,7 @@ CollapsibleSection {
 
                     MaterialIcon {
                         text: delegateRoot.modelData.icon
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                         fill: delegateRoot.modelData.variant === Schemes.currentVariant ? 1 : 0
                     }
 
@@ -77,7 +79,7 @@ CollapsibleSection {
                         visible: delegateRoot.modelData.variant === Schemes.currentVariant
                         text: "check"
                         color: Colours.palette.m3primary
-                        font.pointSize: Tokens.font.size.large
+                        iconPointSize: Tokens.font.size.large
                     }
                 }
             }

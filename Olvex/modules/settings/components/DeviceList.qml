@@ -1,13 +1,16 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
+import "."
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
 import qs.services
 
 ColumnLayout {
@@ -47,7 +50,7 @@ ColumnLayout {
         StyledText {
             visible: root.title !== ""
             text: root.title
-            font.pointSize: Tokens.font.size.large
+            textPointSize: Tokens.font.size.large
             font.weight: 400
         }
 

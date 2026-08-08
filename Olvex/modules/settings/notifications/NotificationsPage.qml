@@ -1,15 +1,20 @@
+pragma ComponentBehavior: Bound
+
+import ".."
+import "../chrome"
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
 import qs.services
-import "../chrome"
-import "../components"
 
 Item {
     id: root
 
-    property var session
+    property Session session
     signal back
     property string activeSection: "behavior"
 

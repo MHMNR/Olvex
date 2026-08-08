@@ -1,17 +1,18 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import "."
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
-import qs.components.effects
 import qs.services
 import qs.utils
 
@@ -51,7 +52,7 @@ Item {
 
                         StyledText {
                             text: qsTr("Network")
-                            font.pointSize: Tokens.font.size.large
+                            textPointSize: Tokens.font.size.large
                             font.weight: 400
                         }
 

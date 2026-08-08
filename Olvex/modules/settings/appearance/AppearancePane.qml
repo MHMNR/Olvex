@@ -1,21 +1,19 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import "./sections"
-import "../../launcher/services"
-import "../../olvex/settings/components" as OlvexComponents
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
 import Olvex.Config
 import Olvex.Models
-import qs.components
-import qs.components.containers
-import qs.components.controls
-import qs.components.effects
-import qs.components.images
 import qs.services
 import qs.utils
 
@@ -152,7 +150,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.bottomMargin: Tokens.spacing.small
                     text: qsTr("Wallpaper")
-                    font.pointSize: Tokens.font.size.extraLarge
+                    textPointSize: Tokens.font.size.extraLarge
                     font.weight: 400
                 }
 
@@ -241,7 +239,7 @@ Item {
 
                         StyledText {
                             text: qsTr("Appearance")
-                            font.pointSize: Tokens.font.size.large
+                            textPointSize: Tokens.font.size.large
                             font.weight: 400
                         }
 

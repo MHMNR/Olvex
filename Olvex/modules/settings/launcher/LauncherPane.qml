@@ -1,19 +1,18 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
 import "../components"
-import "../../launcher/services"
-import "../../../utils/scripts/fuzzysort.js" as Fuzzy
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
 import Olvex
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
-import qs.components.effects
 import qs.services
 import qs.utils
 
@@ -156,7 +155,7 @@ Item {
 
                     StyledText {
                         text: qsTr("Launcher")
-                        font.pointSize: Tokens.font.size.large
+                        textPointSize: Tokens.font.size.large
                         font.weight: 400
                     }
 
@@ -188,7 +187,7 @@ Item {
                 StyledText {
                     Layout.topMargin: Tokens.spacing.large
                     text: qsTr("Applications (%1)").arg(root.searchText ? root.filteredApps.length : allAppsDb.apps.length)
-                    font.pointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.normal
                     font.weight: 400
                 }
 
@@ -354,7 +353,7 @@ Item {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: modelData.name || modelData.entry?.name || qsTr("Unknown")
-                                    font.pointSize: Tokens.font.size.normal
+                                    textPointSize: Tokens.font.size.normal
                                 }
 
                                 Loader {
@@ -564,7 +563,7 @@ Item {
 
                         Layout.alignment: Qt.AlignHCenter
                         text: displayedApp ? (displayedApp.name || displayedApp.entry?.name || qsTr("Application Details")) : ""
-                        font.pointSize: Tokens.font.size.large
+                        textPointSize: Tokens.font.size.large
                         font.bold: true
                     }
                 }

@@ -1,19 +1,21 @@
 import ".."
 import "../chrome"
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.UPower
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 
 ColumnLayout {
     id: root
 
-    property var session
+    property Session session
     spacing: Tokens.spacing.large
     implicitHeight: heroCard.implicitHeight + modeSection.implicitHeight + protectionSection.implicitHeight + (spacing * 2)
 
@@ -132,11 +134,7 @@ ColumnLayout {
             descriptionColor: Qt.alpha(Colours.palette.m3secondary, 0.65)
             divider: false
             StyledSwitch {
-                checked: GlobalConfig.general.batterySaverAuto ?? true
-                onToggled: {
-                    GlobalConfig.general.batterySaverAuto = checked;
-                    GlobalConfig.save();
-                }
+                checked: true
             }
         }
     }
@@ -170,11 +168,7 @@ ColumnLayout {
             description: qsTr("Display notification toast when battery drops to 20%")
             divider: true
             StyledSwitch {
-                checked: GlobalConfig.general.battery.lowWarningEnabled ?? true
-                onToggled: {
-                    GlobalConfig.general.battery.lowWarningEnabled = checked;
-                    GlobalConfig.save();
-                }
+                checked: true
             }
         }
 

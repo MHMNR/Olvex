@@ -1,13 +1,16 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
 import "../chrome"
+import "../components"
+import "../../../components"
 import "../../olvex/settings/components" as OlvexWp
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 import qs.utils
 
@@ -307,7 +310,6 @@ ColumnLayout {
             ButtonBase {
                 implicitHeight: 36
                 color: Colours.palette.m3surfaceContainerHigh
-                hoverColor: Colours.layer(Colours.palette.m3onSurface, 0.08)
                 radius: Tokens.rounding.normal
                 
                 RowLayout {

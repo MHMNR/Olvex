@@ -1,15 +1,17 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import "."
 import QtQuick
 import Quickshell.Bluetooth
 import Quickshell.Widgets
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
 
 SplitPaneWithDetails {
     id: root

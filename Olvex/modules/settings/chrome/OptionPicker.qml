@@ -1,13 +1,17 @@
 pragma ComponentBehavior: Bound
 
+
+import ".."
+import "."
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
+import "../../../components/effects"
 import QtQuick
 import QtQuick.Window
 import Quickshell
 import Olvex.Config
-import qs.components
-import qs.components.controls
-import qs.components.containers
-import qs.components.effects
 import qs.services
 
 // Lightweight string dropdown — ListView menu (no Instantiator×N MenuItems).

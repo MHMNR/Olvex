@@ -1,5 +1,8 @@
 pragma Singleton
 
+import "../../components"
+import "../../components/controls"
+import "../../components/containers"
 import QtQuick
 import Quickshell
 import qs.components
@@ -41,8 +44,8 @@ Singleton {
 
             minimumSize.width: 900
             minimumSize.height: 620
-            maximumSize.width: Math.max(cc.implicitWidth * 1.25, 1200)
-            maximumSize.height: Math.max(cc.implicitHeight * 1.15, 800)
+            maximumSize.width: Math.max(cc.implicitWidth * 1.25, 1600)
+            maximumSize.height: Math.max(cc.implicitHeight * 1.15, 1200)
 
             title: {
                 const id = cc.currentId || cc.active || "";

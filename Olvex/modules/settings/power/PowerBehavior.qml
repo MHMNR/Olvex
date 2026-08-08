@@ -1,16 +1,18 @@
 import ".."
 import "../chrome"
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 
 ColumnLayout {
     id: root
 
-    property var session
+    property Session session
     spacing: Tokens.spacing.large
     implicitHeight: hardwareSection.implicitHeight + spacing
 
@@ -36,14 +38,7 @@ ColumnLayout {
             OptionPicker {
                 id: lidPicker
                 model: [qsTr("Suspend"), qsTr("Lock screen"), qsTr("Turn off screen"), qsTr("Do nothing")]
-                currentIndex: {
-                    const act = GlobalConfig.general.lidAction || "Suspend";
-                    return root.idxOf(lidPicker.model, act);
-                }
-                onSelected: i => {
-                    GlobalConfig.general.lidAction = lidPicker.model[i];
-                    GlobalConfig.save();
-                }
+                currentIndex: 0
             }
         }
 
@@ -54,14 +49,7 @@ ColumnLayout {
             OptionPicker {
                 id: pwrBtnPicker
                 model: [qsTr("Show power menu"), qsTr("Suspend"), qsTr("Shutdown"), qsTr("Do nothing")]
-                currentIndex: {
-                    const act = GlobalConfig.general.powerButtonAction || "Show power menu";
-                    return root.idxOf(pwrBtnPicker.model, act);
-                }
-                onSelected: i => {
-                    GlobalConfig.general.powerButtonAction = pwrBtnPicker.model[i];
-                    GlobalConfig.save();
-                }
+                currentIndex: 0
             }
         }
     }

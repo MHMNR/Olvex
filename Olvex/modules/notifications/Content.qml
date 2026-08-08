@@ -185,8 +185,8 @@ Item {
                 property: "x"
                 // Use Content Item's notifWidth — never Tokens.sizes on Anim/NumberAnimation
                 to: (notif.x >= 0 ? root.notifWidth : -root.notifWidth) * 2
-                duration: root.Tokens.anim.durations.normal
-                easing: root.Tokens.anim.emphasized
+                duration: Tokens.anim.durations.normal
+                easing: Tokens.anim.emphasized
             }
             PropertyAction {
                 target: wrapper
@@ -218,7 +218,7 @@ Item {
 
     // Duration/easing from this Item's Tokens (has screen), not on the animation object
     component Anim: NumberAnimation {
-        duration: root.Tokens.anim.durations.expressiveDefaultSpatial
-        easing: root.Tokens.anim.expressiveDefaultSpatial
+        duration: Tokens.anim.durations.expressiveDefaultSpatial
+        easing: Tokens.anim.expressiveDefaultSpatial
     }
 }

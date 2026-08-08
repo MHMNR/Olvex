@@ -1,4 +1,3 @@
-pragma ComponentBehavior: Bound
 
 import "./kblayout"
 import QtQuick
@@ -23,12 +22,7 @@ Item {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
 
-        Popout {
-            name: "activewindow"
-            sourceComponent: ActiveWindow {
-                popouts: root.popouts
-            }
-        }
+
 
         Popout {
             id: networkPopout

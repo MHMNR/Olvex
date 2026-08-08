@@ -57,23 +57,15 @@ Searcher {
 
     readonly property var imageEntries: {
         const fs = catalogLoader.item;
-        if (!fs || !catalogReady || !fs.entries)
+        if (!fs || !catalogReady)
             return [];
-        
-        let results = [];
-        for (let i = 0; i < fs.entries.length; i++) {
-            let entry = fs.entries[i];
-            if (!isPathInLiveDir(entry.path)) {
-                results.push({
-                    path: entry.path,
-                    name: entry.name,
-                    relativePath: entry.relativePath,
-                    suffix: entry.suffix,
-                    isVideo: false
-                });
-            }
-        }
-        return results;
+        return fs.entries.filter(entry => !isPathInLiveDir(entry.path)).map(entry => ({
+            path: entry.path,
+            name: entry.name,
+            relativePath: entry.relativePath,
+            suffix: entry.suffix,
+            isVideo: false
+        }));
     }
     readonly property var staticEntries: imageEntries
     // Inject thumbnailPath so grids/previews can bind without manual map lookup.

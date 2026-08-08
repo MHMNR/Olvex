@@ -1,5 +1,9 @@
 pragma ComponentBehavior: Bound
 
+import "../../components"
+import "../../components/controls"
+import "../../components/containers"
+import ".."
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -25,13 +29,13 @@ Item {
     readonly property Session session: Session {
         id: session
         rootItem: root
-    }
+        }
 
     signal close
 
     // Floating: roomy bento. Bar popout: token-sized shell host.
-    implicitWidth: root.floating ? Math.max(960, screen.height * Tokens.sizes.controlCenter.heightMult * Tokens.sizes.controlCenter.ratio) : screen.height * Tokens.sizes.controlCenter.heightMult * Tokens.sizes.controlCenter.ratio
-    implicitHeight: root.floating ? Math.max(660, screen.height * Tokens.sizes.controlCenter.heightMult) : screen.height * Tokens.sizes.controlCenter.heightMult
+    implicitWidth: root.floating ? 1040 : screen.height * Tokens.sizes.controlCenter.heightMult * Tokens.sizes.controlCenter.ratio
+    implicitHeight: root.floating ? (76 + (5 * 126 + 4 * Tokens.spacing.large) + Tokens.padding.large * 3) : screen.height * Tokens.sizes.controlCenter.heightMult
 
     // ── surface: opaque palette (not tPalette glass) ───────────────────
     // Floating settings must be fully readable; glass + transparent win
@@ -523,6 +527,12 @@ Item {
                 visible: session.pageId !== ""
                 z: 10
                 layer.enabled: false
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    // Swallows all clicks/scrolls so they don't hit the bento grid underneath
+                }
 
                 Loader {
                     id: pageLoader

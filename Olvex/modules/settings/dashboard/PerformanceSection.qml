@@ -1,11 +1,13 @@
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Services.UPower
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 
 SectionContainer {
@@ -22,7 +24,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("Performance Resources")
-        font.pointSize: Tokens.font.size.normal
+        textPointSize: Tokens.font.size.normal
     }
 
     ConnectedButtonGroup {

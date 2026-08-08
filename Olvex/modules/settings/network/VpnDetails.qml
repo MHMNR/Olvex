@@ -1,15 +1,13 @@
-pragma ComponentBehavior: Bound
-
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.containers
-import qs.components.controls
-import qs.components.effects
 import qs.services
 import qs.utils
 
@@ -163,7 +161,7 @@ DeviceDetails {
                         Layout.topMargin: Tokens.spacing.normal
                         visible: root.providerEnabled && VPN.status.state === "needs-auth" && VPN.status.authUrl === ""
                         text: qsTr("Click 'Connect' to generate authentication URL")
-                        font.pointSize: Tokens.font.size.small
+                        textPointSize: Tokens.font.size.small
                         color: Colours.palette.m3onSurfaceVariant
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
@@ -320,7 +318,7 @@ DeviceDetails {
 
             StyledText {
                 text: qsTr("Edit VPN Provider")
-                font.pointSize: Tokens.font.size.large
+                textPointSize: Tokens.font.size.large
                 font.weight: 400
             }
 
@@ -330,7 +328,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Display Name")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -367,7 +365,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Interface (e.g., wg0, torguard)")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -405,7 +403,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Connect Command")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 
@@ -443,7 +441,7 @@ DeviceDetails {
 
                 StyledText {
                     text: qsTr("Disconnect Command")
-                    font.pointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
 

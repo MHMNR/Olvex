@@ -1,8 +1,14 @@
 pragma ComponentBehavior: Bound
 
+
+import ".."
+import "."
+import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import Olvex.Config
-import qs.components
 import qs.services
 
 // Premium M3 bento tile — icon top-left, labels bottom-left, preview right.

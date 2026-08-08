@@ -1,13 +1,15 @@
 pragma ComponentBehavior: Bound
 
+
 import ".."
+import "../chrome"
+import "."
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import Olvex.Config
 import Olvex.Models
-import qs.components
-import qs.components.controls
-import qs.components.effects
-import qs.components.images
 import qs.services
 
 GridView {
@@ -170,7 +172,7 @@ GridView {
                 visible: isCurrent
                 text: "check_circle"
                 color: Colours.palette.m3primary
-                font.pointSize: Tokens.font.size.large
+                iconPointSize: Tokens.font.size.large
             }
         }
 
@@ -185,7 +187,7 @@ GridView {
             anchors.bottomMargin: Tokens.padding.normal
 
             text: modelData.name
-            font.pointSize: Tokens.font.size.smaller
+            textPointSize: Tokens.font.size.smaller
             font.weight: 400
             color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurface
             elide: Text.ElideMiddle

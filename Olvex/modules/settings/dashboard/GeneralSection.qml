@@ -1,10 +1,12 @@
 import ".."
+import "../chrome"
 import "../components"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 
 SectionContainer {
@@ -17,7 +19,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("General Settings")
-        font.pointSize: Tokens.font.size.normal
+        textPointSize: Tokens.font.size.normal
     }
 
     SwitchRow {
@@ -96,7 +98,7 @@ SectionContainer {
 
     StyledText {
         text: qsTr("Card Sizes")
-        font.pointSize: Tokens.font.size.normal
+        textPointSize: Tokens.font.size.normal
     }
 
     SliderInput {

@@ -1,10 +1,12 @@
 import ".."
-import "../components"
+import "../chrome"
+import "."
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
-import qs.components
-import qs.components.controls
 import qs.services
 
 ColumnLayout {
@@ -26,7 +28,7 @@ ColumnLayout {
         StyledText {
             visible: root.label !== ""
             text: root.label
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
             color: root.readonly ? Colours.palette.m3outline : Colours.palette.m3onSurface
         }
 
@@ -38,12 +40,12 @@ ColumnLayout {
             visible: root.readonly
             text: "lock"
             color: Colours.palette.m3outline
-            font.pointSize: Tokens.font.size.small
+            iconPointSize: Tokens.font.size.small
         }
 
         StyledText {
             text: Math.round(root.value) + (root.suffix !== "" ? " " + root.suffix : "")
-            font.pointSize: Tokens.font.size.normal
+            textPointSize: Tokens.font.size.normal
             color: root.readonly ? Colours.palette.m3outline : Colours.palette.m3onSurface
         }
     }
