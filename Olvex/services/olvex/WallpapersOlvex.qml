@@ -250,12 +250,19 @@ Searcher {
         if (!payload)
             return false;
 
+        let isDynamic = true;
+        try {
+            const parsed = JSON.parse(payload);
+            if (parsed.name && parsed.name !== "dynamic")
+                isDynamic = false;
+        } catch(e) {}
+
         const committed = root.normalizeSourcePath(root._committedColourSource);
         const normalizedSource = root.normalizeSourcePath(sourcePath);
-        if (committed && committed !== normalizedSource)
+        if (isDynamic && committed && committed !== normalizedSource)
             return false;
 
-        if (!committed)
+        if (!committed && isDynamic)
             root.persistColourSource(normalizedSource);
 
         root._lastRefreshPath = normalizedSource;
@@ -310,8 +317,9 @@ Searcher {
         const escaped = path.replace(/'/g, "'\\''");
         const smartFlags = smartArg.join(" ");
         const schemeFlags = schemeModeArg.join(" ");
+        const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot").replace(/'/g, "'\\''");
         Quickshell.execDetached(["bash", "-lc",
-            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' ${smartFlags} ${schemeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}'; fi`]);
+            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' --variant '${variant}' ${smartFlags} ${schemeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}'; fi`]);
     }
 
     function persistSchemePayload(payload: string): void {
@@ -331,43 +339,18 @@ Searcher {
         return filtered.length > 0 ? filtered : raw;
     }
 
-    function schemeSetPrefix(): string {
-        // Never force config schemeVariant here — that is what nuked forced-dark.
-        // Smart path: wallpaper extract owns variant (tonalspot/etc from image).
-        // Non-smart: pin config variant so --no-smart extract matches the picker.
-        if (modeArg.length === 0 && smartArg.length === 0)
-            return "";
-        let setCmd = "olvex scheme set";
-        if (modeArg.length > 0)
-            setCmd += ` ${modeArg.join(" ")}`;
-        if (smartArg.length > 0) {
-            const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot").replace(/'/g, "'\\''");
-            setCmd += ` -v '${variant}'`;
-        }
-        return setCmd + " >/dev/null 2>&1 || true; sleep 0.05; ";
-    }
-
-    function wallPaletteCommand(cleanPath: string, isPreview: bool): list<string> {
-        const escaped = cleanPath.replace(/'/g, "'\\''");
-        const smartFlags = smartArg.join(" ");
-        const schemeFlags = schemeModeArg.join(" ");
-        // --scheme-mode locks light/dark; smart still picks variant from wallpaper
-        const wallCmd = `olvex wallpaper -p '${escaped}' ${smartFlags} ${schemeFlags} | ${root._jsonPipe}`;
-        const prefix = isPreview ? "" : root.schemeSetPrefix();
-        if (prefix.length > 0)
-            return ["bash", "-lc", prefix + wallCmd];
+    function wallPaletteCommand(path: string, isPreview: bool): list<string> {
+        const escaped = path.replace(/'/g, "'\\''");
+        const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot").replace(/'/g, "'\\''");
+        const wallCmd = `olvex wallpaper --print '${escaped}' --variant '${variant}' ${smartArg.join(" ")} ${schemeModeArg.join(" ")} | ${root._jsonPipe}`;
         return ["bash", "-lc", wallCmd];
     }
 
     // Same dynamic M3 pipeline as wallpaper picker — mode lock + smart variant, then scheme JSON.
     function dynamicPaletteCommand(cleanPath: string): list<string> {
         const escaped = cleanPath.replace(/'/g, "'\\''");
-        const smartFlags = smartArg.join(" ");
-        const schemeFlags = schemeModeArg.join(" ");
-        const wallCmd = `olvex wallpaper -p '${escaped}' ${smartFlags} ${schemeFlags} | ${root._jsonPipe}`;
-        const prefix = root.schemeSetPrefix();
-        if (prefix.length > 0)
-            return ["bash", "-lc", prefix + wallCmd];
+        const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot").replace(/'/g, "'\\''");
+        const wallCmd = `olvex wallpaper -p '${escaped}' --variant '${variant}' ${smartArg.join(" ")} ${schemeModeArg.join(" ")} | ${root._jsonPipe}`;
         return ["bash", "-lc", wallCmd];
     }
 
@@ -398,6 +381,10 @@ Searcher {
     function requestAccentRefresh(path: string, isPreview: bool): void {
         if (!path)
             return;
+
+        if (Colours.schemeName !== "dynamic") {
+            return;
+        }
 
         const sourcePath = colourSourcePath(path);
         const forceRefresh = root._forceNextAccentRefresh;

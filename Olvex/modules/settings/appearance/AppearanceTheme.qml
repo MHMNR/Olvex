@@ -27,8 +27,10 @@ ColumnLayout {
         { name: "gruvbox", flavour: "medium", label: qsTr("Gruvbox"), modes: ["light", "dark", "auto"] },
         { name: "rosepine", flavour: "main", label: qsTr("Rosé Pine"), modes: ["dark"] },
         { name: "nord", flavour: "medium", label: qsTr("Nord"), modes: ["dark"] },
-        { name: "dracula", flavour: "medium", label: qsTr("Dracula"), modes: ["dark"] },
-        { name: "solarized", flavour: "medium", label: qsTr("Solarized"), modes: ["dark"] }
+        { name: "dracula", flavour: "medium", label: qsTr("Dracula"), modes: ["light", "dark", "auto"] },
+        { name: "solarized", flavour: "medium", label: qsTr("Solarized"), modes: ["dark"] },
+        { name: "monokai", flavour: "default", label: qsTr("Monokai"), modes: ["light", "dark", "auto"] },
+        { name: "oxocarbon", flavour: "default", label: qsTr("Oxocarbon"), modes: ["light", "dark", "auto"] }
     ]
     
     readonly property var currentScheme: {
@@ -134,7 +136,7 @@ ColumnLayout {
             divider: false
             OptionPicker {
                 id: variantPicker
-                model: ["tonalspot", "vibrant", "expressive", "fidelity", "content", "neutral", "monochrome"]
+                model: ["tonalspot", "vibrant", "expressive", "fidelity", "fruitsalad", "content", "neutral", "monochrome"]
                 currentIndex: {
                     const v = (GlobalConfig.appearance.schemeVariant || "tonalspot").toLowerCase();
                     return root.idxOf(variantPicker.model, v);

@@ -131,6 +131,13 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
         default=None,
         help="force light/dark palette mode (overrides smart mode pick; keeps smart variant)",
     )
+    wallpaper_parser.add_argument(
+        "-v",
+        "--variant",
+        dest="scheme_variant",
+        default=None,
+        help="force a specific variant (overrides smart mode variant pick)",
+    )
 
     # Create parser for resizer opts
     resizer_parser = command_parser.add_parser("resizer", help="window resizer daemon")

@@ -119,8 +119,8 @@ Slider {
                     anchors.verticalCenter: parent.verticalCenter
                     radius: 3
 
-                    color: isActive ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest
-                    opacity: isActive ? 1.0 : 0.75
+                    color: isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                    opacity: isActive ? 1.0 : 0.15
                     scale: isActive ? 1.0 : 0.85
 
                     Behavior on color { ColorAnimation { duration: 60 } }

@@ -54,7 +54,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: Tokens.padding.normal
         radius: Tokens.rounding.full
-        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+        color: Qt.alpha(Colours.palette.m3onSurface, 0.15)
         opacity: root.readonly ? 0.5 : 1.0
 
         StyledRect {

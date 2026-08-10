@@ -82,7 +82,7 @@ Item {
 
         anchors.fill: parent
         radius: height / 2
-        color: Colours.palette.m3secondaryContainer
+        color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
 
         // Sliding primary pill
         StyledRect {
