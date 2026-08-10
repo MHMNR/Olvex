@@ -71,20 +71,24 @@ Item {
     Layout.minimumHeight: height
     Layout.alignment: Qt.AlignHCenter
 
-    MaterialShape {
+    StyledRect {
         id: controlShape
         anchors.centerIn: parent
-        implicitSize: control.shapeSize
-        // Backup pill's play button morphed circle (paused) → rounded square
-        // (playing) via Rectangle.radius, no rotation. Reproduced here as a
-        // static shape swap — Square/Circle are both static presets, so this
-        // costs nothing continuous (unlike the old Cookie12Sided spin driver).
-        shape: control.spinning ? MaterialShape.Cookie12Sided : (control.emphasized ? (control.isPauseIcon ? MaterialShape.Square : MaterialShape.Circle) : (control.clickMorphActive ? control.clickMorphShape : (control.secondaryMix > 0.02 ? control.secondaryShape : MaterialShape.Pill)))
+        implicitWidth: control.shapeSize
+        implicitHeight: control.shapeSize
+        width: control.shapeSize
+        height: control.shapeSize
+        radius: (control.emphasized && control.isPauseIcon) ? Tokens.rounding.small : height / 2
         color: control.containerTone
-        strokeColor: control.strokeColor
-        strokeWidth: control.secondaryMix
-        animationDuration: Tokens.anim.durations.expressiveFastSpatial
-        animationEasing: Tokens.anim.expressiveFastSpatial
+        border.color: control.strokeColor
+        border.width: control.secondaryMix
+
+        Behavior on radius {
+            NumberAnimation {
+                duration: Tokens.anim.durations.expressiveFastSpatial
+                easing.type: Easing.OutCubic
+            }
+        }
         layer.enabled: control.secondaryShadowOpacity > 0.001
         layer.effect: MultiEffect {
             shadowEnabled: true
@@ -100,13 +104,13 @@ Item {
                 easing: Tokens.anim.expressiveFastEffects
             }
         }
-        Behavior on strokeColor {
+        Behavior on border.color {
             ColorAnimation {
                 duration: Tokens.anim.durations.expressiveFastEffects
                 easing: Tokens.anim.expressiveFastEffects
             }
         }
-        Behavior on strokeWidth {
+        Behavior on border.width {
             NumberAnimation {
                 duration: Tokens.anim.durations.expressiveFastEffects
                 easing: Tokens.anim.expressiveFastEffects

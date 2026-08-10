@@ -312,8 +312,8 @@ StyledRect {
                     Layout.fillWidth: true
                     implicitHeight: (110 - customPillsColumn.spacing) / 2
                     color: Colours.tileFill
-                    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
-                    border.width: 1
+                    border.color: "transparent"
+                    border.width: 0
                     radius: Tokens.rounding.full
 
                     // === Kinetic bloom animation (same as QuickToggleTile) ===
@@ -428,8 +428,8 @@ StyledRect {
                     Layout.fillWidth: true
                     implicitHeight: (110 - customPillsColumn.spacing) / 2
                     color: Colours.tileFill
-                    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
-                    border.width: 1
+                    border.color: "transparent"
+                    border.width: 0
                     radius: Tokens.rounding.full
                     clip: true
 

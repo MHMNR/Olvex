@@ -102,7 +102,7 @@ Item {
                     z: 0
 
                     Behavior on x {
-                        SpringAnimation { spring: 4.6; damping: 0.74; mass: 1.0; epsilon: 0.005 }
+                        Anim { type: Anim.FastSpatial }
                     }
                 }
 

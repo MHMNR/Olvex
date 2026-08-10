@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 
-
 import ".."
 import "../chrome"
 import "../components"
@@ -13,126 +12,135 @@ import QtQuick.Layouts
 import Olvex.Config
 import qs.services
 
-ColumnLayout {
+Item {
     id: root
 
-    required property Session session
+    property Session session
 
-    spacing: Tokens.spacing.normal
+    opacity: 0
+    y: 10
+    Component.onCompleted: cascadeIn.start()
 
-    SettingsHeader {
-        icon: "router"
-        title: qsTr("Network Settings")
+    ParallelAnimation {
+        id: cascadeIn
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
     }
 
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("Ethernet")
-        description: qsTr("Ethernet device information")
-    }
+    implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
 
-    SectionContainer {
-        contentSpacing: Tokens.spacing.small / 2
+    ColumnLayout {
+        id: col
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.leftMargin: Tokens.padding.large
+        anchors.rightMargin: Tokens.padding.large
+        anchors.topMargin: Tokens.padding.large
+        spacing: Tokens.spacing.large
 
-        PropertyRow {
-            label: qsTr("Total devices")
-            value: qsTr("%1").arg(Nmcli.ethernetDevices.length)
-        }
-
-        PropertyRow {
-            showTopMargin: true
-            label: qsTr("Connected devices")
-            value: qsTr("%1").arg(Nmcli.ethernetDevices.filter(d => d.connected).length)
-        }
-    }
-
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("Wireless")
-        description: qsTr("WiFi network settings")
-    }
-
-    SectionContainer {
-        ToggleRow {
-            label: qsTr("WiFi enabled")
-            checked: Nmcli.wifiEnabled
-            toggle.onToggled: {
-                Nmcli.enableWifi(checked);
-            }
-        }
-    }
-
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("VPN")
-        description: qsTr("VPN provider settings")
-        visible: GlobalConfig.qspanel.vpn.enabled || GlobalConfig.qspanel.vpn.provider.length > 0
-    }
-
-    SectionContainer {
-        visible: GlobalConfig.qspanel.vpn.enabled || GlobalConfig.qspanel.vpn.provider.length > 0
-
-        ToggleRow {
-            label: qsTr("VPN enabled")
-            checked: GlobalConfig.qspanel.vpn.enabled
-            toggle.onToggled: {
-                GlobalConfig.qspanel.vpn.enabled = checked;
-            }
-        }
-
-        PropertyRow {
-            showTopMargin: true
-            label: qsTr("Providers")
-            value: qsTr("%1").arg(GlobalConfig.qspanel.vpn.provider.length)
-        }
-
-        TextButton {
+        SettingRow {
             Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.normal
-            Layout.minimumHeight: Tokens.font.size.normal + Tokens.padding.normal * 2
-            text: qsTr("⚙ Manage VPN Providers")
-            inactiveColour: Colours.palette.m3secondaryContainer
-            inactiveOnColour: Colours.palette.m3onSecondaryContainer
+            title: qsTr("Ethernet")
+            description: qsTr("Wired connection information")
+            icon: "cable"
+            divider: true
 
-            onClicked: {
-                vpnSettingsDialog.open();
+            Column {
+                spacing: Tokens.spacing.extraSmall
+                anchors.verticalCenter: parent.verticalCenter
+                StyledText {
+                    text: qsTr("Total: %1").arg(Nmcli.ethernetDevices.length)
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.small
+                }
+                StyledText {
+                    text: qsTr("Connected: %1").arg(Nmcli.ethernetDevices.filter(d => d.connected).length)
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.small
+                }
             }
         }
-    }
 
-    SectionHeader {
-        Layout.topMargin: Tokens.spacing.large
-        title: qsTr("Current connection")
-        description: qsTr("Active network connection information")
-    }
+        SettingRow {
+            Layout.fillWidth: true
+            title: qsTr("Wi-Fi")
+            description: qsTr("Enable or disable wireless networking")
+            icon: "wifi"
+            divider: true
 
-    SectionContainer {
-        contentSpacing: Tokens.spacing.small / 2
-
-        PropertyRow {
-            label: qsTr("Network")
-            value: Nmcli.active ? Nmcli.active.ssid : (Nmcli.activeEthernet ? Nmcli.activeEthernet.interface : qsTr("Not connected"))
+            StyledSwitch {
+                anchors.verticalCenter: parent.verticalCenter
+                checked: Nmcli.wifiEnabled
+                onToggled: {
+                    Nmcli.enableWifi(checked);
+                }
+            }
         }
 
-        PropertyRow {
-            showTopMargin: true
-            visible: Nmcli.active !== null
-            label: qsTr("Signal strength")
-            value: Nmcli.active ? qsTr("%1%").arg(Nmcli.active.strength) : qsTr("N/A")
+        Column {
+            Layout.fillWidth: true
+            spacing: 0
+            visible: GlobalConfig.qspanel.vpn.enabled || GlobalConfig.qspanel.vpn.provider.length > 0
+
+            SettingRow {
+                title: qsTr("VPN")
+                description: qsTr("Virtual private network connection")
+                icon: "vpn_key"
+                divider: true
+
+                StyledSwitch {
+                    anchors.verticalCenter: parent.verticalCenter
+                    checked: GlobalConfig.qspanel.vpn.enabled
+                    onToggled: {
+                        GlobalConfig.qspanel.vpn.enabled = checked;
+                    }
+                }
+            }
+
+            SettingRow {
+                title: qsTr("VPN Providers")
+                description: qsTr("%1 providers configured").arg(GlobalConfig.qspanel.vpn.provider.length)
+                divider: true
+
+                TextButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Manage")
+                    inactiveColour: Colours.palette.m3secondaryContainer
+                    inactiveOnColour: Colours.palette.m3onSecondaryContainer
+                    onClicked: vpnSettingsDialog.open()
+                }
+            }
         }
 
-        PropertyRow {
-            showTopMargin: true
-            visible: Nmcli.active !== null
-            label: qsTr("Security")
-            value: Nmcli.active ? (Nmcli.active.isSecure ? qsTr("Secured") : qsTr("Open")) : qsTr("N/A")
-        }
+        SettingRow {
+            Layout.fillWidth: true
+            title: qsTr("Current Connection")
+            description: Nmcli.active ? Nmcli.active.ssid : (Nmcli.activeEthernet ? Nmcli.activeEthernet.interface : qsTr("Not connected"))
+            icon: "info"
+            divider: false
 
-        PropertyRow {
-            showTopMargin: true
-            visible: Nmcli.active !== null
-            label: qsTr("Frequency")
-            value: Nmcli.active ? qsTr("%1 MHz").arg(Nmcli.active.frequency) : qsTr("N/A")
+            Column {
+                spacing: Tokens.spacing.extraSmall
+                anchors.verticalCenter: parent.verticalCenter
+                visible: Nmcli.active !== null
+
+                StyledText {
+                    text: qsTr("Strength: %1%").arg(Nmcli.active ? Nmcli.active.strength : 0)
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.small
+                }
+                StyledText {
+                    text: qsTr("Security: %1").arg(Nmcli.active ? (Nmcli.active.isSecure ? qsTr("Secured") : qsTr("Open")) : "")
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.small
+                }
+                StyledText {
+                    text: qsTr("Freq: %1 MHz").arg(Nmcli.active ? Nmcli.active.frequency : 0)
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.small
+                }
+            }
         }
     }
 

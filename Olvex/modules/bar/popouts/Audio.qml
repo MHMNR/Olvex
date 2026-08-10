@@ -98,6 +98,7 @@ Item {
                 onMoved: Audio.setVolume(value)
 
                 Behavior on value {
+                    enabled: !pressed
                     Anim {}
                 }
             }

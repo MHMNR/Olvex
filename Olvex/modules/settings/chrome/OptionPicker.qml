@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 
-
 import ".."
 import "."
 import "../components"
@@ -13,460 +12,405 @@ import QtQuick.Window
 import Quickshell
 import Olvex.Config
 import qs.services
+import qs.utils
 
-// Lightweight string dropdown — ListView menu (no Instantiator×N MenuItems).
-// Popup is parented to the same Window as the control (FloatingWindow-safe).
 Item {
     id: root
 
     property var model: []
     property int currentIndex: 0
-    // Settings rows: open below by default (was true → flew to wrong place)
     property bool menuOnTop: false
     property real menuMaxHeight: 320
     property bool expanded: false
-    // Hover target for sliding menu highlight (same as qs.components.controls.Menu)
-    property Item hoveredItem: null
 
     signal selected(int index)
 
     readonly property int count: model ? model.length : 0
-    readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+    readonly property real rowHeight: 36
+    readonly property bool animating: morphState !== "closed"
+    property string morphState: "closed" // "closed", "open"
 
-    implicitWidth: Math.max(face.implicitWidth, 120)
+    implicitWidth: face.implicitWidth
     implicitHeight: face.implicitHeight
 
-    // Pretty display for stored values (tonalspot → Tonal Spot). Raw model
-    // entries stay unchanged for config / Schemes APIs.
+    // ── Safe overlay retrieval ──
+    readonly property Item overlayParent: {
+        const win = QsWindow.window;
+        if (win) {
+            if (win.interactionWrapper) return win.interactionWrapper;
+            return win.contentItem ?? null;
+        }
+        // Fallback if not inside a QsWindow (e.g. standard Qt Window)
+        let p = root;
+        while (p && p.parent) p = p.parent;
+        return p;
+    }
+
     function displayName(v): string {
-        if (v === undefined || v === null || v === "")
-            return qsTr("Default");
+        if (v === undefined || v === null || v === "") return qsTr("Default");
         const s = String(v);
         const known = {
-            "tonalspot": "Tonal Spot",
-            "vibrant": "Vibrant",
-            "expressive": "Expressive",
-            "fidelity": "Fidelity",
-            "content": "Content",
-            "neutral": "Neutral",
-            "monochrome": "Monochrome",
-            "auto": "Auto",
-            "amd": "AMD",
-            "nvidia": "NVIDIA",
-            "intel": "Intel",
-            "mpv": "mpv",
-            "firefox": "Firefox",
-            "vlc": "VLC",
-            "spotify": "Spotify",
-            "fade": "Fade",
-            "wipe": "Wipe",
-            "disc": "Disc",
-            "stripes": "Stripes",
-            "iris": "Iris",
-            "iris bloom": "Iris Bloom",
-            "pixelate": "Pixelate",
-            "portal": "Portal",
-            "random": "Random",
-            "none": "None",
-            "card": "Card",
-            "minimal": "Minimal",
-            "light": "Light",
-            "dark": "Dark"
+            "tonalspot": "Tonal Spot", "vibrant": "Vibrant",
+            "expressive": "Expressive", "fidelity": "Fidelity",
+            "content": "Content", "neutral": "Neutral",
+            "monochrome": "Monochrome", "auto": "Auto",
+            "amd": "AMD", "nvidia": "NVIDIA", "intel": "Intel",
+            "mpv": "mpv", "firefox": "Firefox", "vlc": "VLC",
+            "spotify": "Spotify", "fade": "Fade", "wipe": "Wipe",
+            "disc": "Disc", "stripes": "Stripes", "iris": "Iris",
+            "iris bloom": "Iris Bloom", "pixelate": "Pixelate",
+            "portal": "Portal", "random": "Random", "none": "None",
+            "card": "Card", "minimal": "Minimal", "light": "Light", "dark": "Dark"
         };
         const low = s.toLowerCase();
-        if (known[low] !== undefined)
-            return known[low];
-        // Font families / mixed case — keep as-is
-        if (s !== low && s !== s.toUpperCase())
-            return s;
-        // Single token all-lower: capitalize first letter
+        if (known[low] !== undefined) return known[low];
+        if (s !== low && s !== s.toUpperCase()) return s;
         if (s.indexOf(" ") < 0 && s.indexOf("-") < 0)
             return s.charAt(0).toUpperCase() + s.slice(1);
-        // Words / kebab: Title Case each part
         return s.split(/[\s_-]+/).map(w => w.length ? (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : w).join(" ");
     }
 
     function labelOf(i: int): string {
-        if (!model || i < 0 || i >= model.length)
-            return qsTr("Select…");
+        if (!model || i < 0 || i >= model.length) return qsTr("Select\u2026");
         return root.displayName(model[i]);
     }
 
-    function closeMenu(): void {
-        root.expanded = false;
-    }
-
     function pick(i: int): void {
-        if (i < 0 || i >= root.count)
-            return;
-        if (root.currentIndex !== i)
-            root.currentIndex = i;
+        if (i < 0 || i >= root.count) return;
+        if (root.currentIndex !== i) root.currentIndex = i;
         root.selected(i);
         root.expanded = false;
+        root.morphState = "closed";
+        closeGrace.restart();
     }
 
-    function repositionPanel(): void {
-        if (!root.expanded || !scrim.visible || !face.width)
-            return;
-        const host = scrim;
-        // Map face corners into scrim (same window contentItem)
-        const topLeft = face.mapToItem(host, 0, 0);
-        const below = face.mapToItem(host, 0, face.height);
-        const pw = panel.width;
-        const ph = panel.height;
-        // Align panel's right edge with face's right edge
-        let px = topLeft.x + face.width - pw;
-        let py = root.menuOnTop ? (topLeft.y - ph - Tokens.spacing.small) : (below.y + Tokens.spacing.small);
-        // Keep on-screen
-        const margin = 8;
-        if (px < margin)
-            px = margin;
-        if (px + pw > host.width - margin)
-            px = Math.max(margin, host.width - pw - margin);
-        // Flip vertical if would overflow
-        if (!root.menuOnTop && py + ph > host.height - margin)
-            py = topLeft.y - ph - Tokens.spacing.small;
-        if (root.menuOnTop && py < margin)
-            py = below.y + Tokens.spacing.small;
-        if (py < margin)
-            py = margin;
-        if (py + ph > host.height - margin)
-            py = Math.max(margin, host.height - ph - margin);
-        panel.x = px;
-        panel.y = py;
-    }
-
-    onExpandedChanged: {
-        if (expanded) {
-            // After layout / height known
-            Qt.callLater(repositionPanel);
-            Qt.callLater(() => {
-                if (list.count > 0 && root.currentIndex >= 0)
-                    list.positionViewAtIndex(root.currentIndex, ListView.Contain);
-                repositionPanel();
-                // Wheel focus on menu ListView, not page Flickable
-                list.forceActiveFocus();
-            });
-        } else {
-            root.hoveredItem = null;
-        }
-    }
-
-    // Scroll the menu list; never let wheel reach Settings page underneath
     function scrollMenu(pixelDeltaY: real, angleDeltaY: real): void {
-        if (!list || list.contentHeight <= list.height)
-            return;
+        if (!list || list.contentHeight <= list.height) return;
         const step = pixelDeltaY !== 0 ? pixelDeltaY : (angleDeltaY / 8) * 3;
         const maxY = Math.max(0, list.contentHeight - list.height);
         list.contentY = Math.max(0, Math.min(maxY, list.contentY - step));
     }
 
-    // ── Face: soft chromatic pill [label · expand_more] ──
-    // Use primaryContainer in dark (secondaryContainer is often muddy grey on glass).
+    // Tracker to ensure we know EXACTLY where the button is in the overlay
+    TransformWatcher {
+        id: watcher
+        a: root.overlayParent
+        b: root
+    }
+
+    // Geometric calculations based on the watcher
+    readonly property point mappedPos: {
+        watcher.transform; // Trigger reactivity
+        if (!root.overlayParent || !face) return Qt.point(0, 0);
+        return face.mapToItem(root.overlayParent, 0, 0);
+    }
+    readonly property real currentX: mappedPos.x
+    readonly property real currentY: mappedPos.y
+    readonly property real startW: root.implicitWidth
+    readonly property real startH: 36
+    
+    readonly property real targetW: Math.max(startW, 220)
+    readonly property real targetH: Math.min(root.menuMaxHeight, Math.max((root.count * root.rowHeight) + Tokens.padding.small * 2, 48))
+
+    readonly property real targetX: {
+        const rawX = currentX + startW - targetW;
+        const maxOverlayW = root.overlayParent ? root.overlayParent.width : 1920;
+        return Math.max(8, Math.min(rawX, maxOverlayW - targetW - 8));
+    }
+
+    readonly property real targetY: {
+        const belowY = currentY + startH + Tokens.spacing.small;
+        const aboveY = currentY - targetH - Tokens.spacing.small;
+        const maxOverlayH = root.overlayParent ? root.overlayParent.height : 1080;
+        return root.menuOnTop 
+            ? (aboveY < 8 ? belowY : aboveY)
+            : ((belowY + targetH > maxOverlayH - 8) ? aboveY : belowY);
+    }
+
+    // ── Static Button (Placeholder) ──
     StyledRect {
         id: face
-
-        readonly property color colour: Colours.light
-            ? Colours.palette.m3secondaryContainer
-            : Colours.palette.m3primaryContainer
-        readonly property color textColour: Colours.light
-            ? Colours.palette.m3onSecondaryContainer
-            : Colours.palette.m3onPrimaryContainer
-
+        anchors.fill: parent
         implicitWidth: Math.max(faceRow.implicitWidth + Tokens.padding.normal * 2 + 4, 100)
         implicitHeight: 36
         radius: height / 2
-        // Opaque solid fill — no glass wash
-        color: Qt.rgba(colour.r, colour.g, colour.b, 1)
-        border.width: 0
+        color: Colours.palette.m3primary
+        opacity: (root.expanded || closeGrace.running) ? 0 : 1
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 0 } } // Instant cut, morph takes over
 
         StateLayer {
             radius: parent.radius
-            color: face.textColour
-            onClicked: root.expanded = !root.expanded
+            color: Colours.palette.m3onPrimary
+            onClicked: {
+                root.expanded = true;
+                root.morphState = "open";
+                
+                // Align scroll position
+                const maxContentY = Math.max(0, (root.count * root.rowHeight) - (root.targetH - Tokens.padding.small * 2));
+                const idealContentY = (root.currentIndex * root.rowHeight) - (root.targetH / 2) + (root.rowHeight / 2);
+                if (list && list.count > 0) list.contentY = Math.max(0, Math.min(maxContentY, idealContentY));
+            }
         }
 
         Row {
             id: faceRow
-
             anchors.centerIn: parent
             spacing: Tokens.spacing.small
 
-            StyledText {
-                id: label
+            Item {
+                width: Math.min(faceText.implicitWidth, 160)
+                height: faceText.implicitHeight
+                clip: true
 
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.labelOf(root.currentIndex)
-                color: face.textColour
-                textPointSize: Tokens.font.size.small
-                font.weight: Font.Medium
-                elide: Text.ElideRight
-                width: Math.min(implicitWidth, 160)
+                StyledText {
+                    id: faceText
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.labelOf(root.currentIndex)
+                    color: Colours.palette.m3onPrimary
+                    textPointSize: Tokens.font.size.small
+                    font.weight: Font.Medium
+                    
+                    SequentialAnimation on x {
+                        loops: Animation.Infinite
+                        running: faceText.implicitWidth > parent.width && !root.expanded
+                        PauseAnimation { duration: 1500 }
+                        NumberAnimation {
+                            from: 0
+                            to: parent.width - faceText.implicitWidth
+                            duration: Math.max(0, faceText.implicitWidth - parent.width) * 30
+                        }
+                        PauseAnimation { duration: 1500 }
+                        NumberAnimation {
+                            to: 0
+                            duration: 400
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+                }
             }
-
             MaterialIcon {
-                id: chevron
-
                 anchors.verticalCenter: parent.verticalCenter
                 text: "expand_more"
-                color: face.textColour
-                rotation: root.expanded ? 180 : 0
+                color: Colours.palette.m3onPrimary
                 iconPointSize: Tokens.font.size.normal
                 opacity: 0.85
-
-                Behavior on rotation {
-                    Anim {}
-                }
             }
         }
     }
 
-    // ── Scrim + panel on the SAME window as this control (FloatingWindow) ──
+    // ── Overlay Elements ──
     MouseArea {
-        id: scrim
-
-        // Qt Window attached property — correct for FloatingWindow settings shell
-        // (QsWindow.window / ContentWindow was resolving to the wrong host → top-right ghost)
-        parent: {
-            const w = root.Window.window;
-            return w ? w.contentItem : null;
+        id: dismissArea
+        parent: root.overlayParent
+        anchors.fill: parent
+        visible: root.expanded
+        onClicked: {
+            root.expanded = false;
+            root.morphState = "closed";
+            closeGrace.restart();
         }
-        anchors.fill: parent ?? undefined
-        enabled: root.expanded && parent !== null
-        visible: enabled
-        z: 10000
-        // Capture hover so wheel targets this layer, not the page Flickable
-        hoverEnabled: true
-        preventStealing: true
-        onClicked: root.closeMenu()
+        onWheel: event => event.accepted = true
+    }
 
-        // CRITICAL: MouseArea does not block wheel by default — events fall
-        // through to SettingsPage Flickable. Accept all wheel while open;
-        // when over the panel, drive the ListView ourselves.
-        // Accept + consume every wheel while menu is open so Settings Flickable
-        // never scrolls underneath. Always drive the menu list.
-        onWheel: event => {
-            event.accepted = true;
-            const dy = event.pixelDelta && event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 8 * 4;
-            root.scrollMenu(dy, event.angleDelta.y);
+    // True M3 Expressive Shared Element Morph
+    Rectangle {
+        id: morphContainer
+        parent: root.overlayParent
+        visible: root.expanded || closeGrace.running
+        z: 9999
+        clip: true
+
+        Timer {
+            id: closeGrace
+            interval: 500 // Keeps container alive while physics settle
         }
 
-        Connections {
-            target: root.Window.window
-            function onWidthChanged(): void {
-                root.repositionPanel();
+        // M3 Physics Bounds
+        x: root.morphState === "open" ? root.targetX : root.currentX
+        y: root.morphState === "open" ? root.targetY : root.currentY
+        width: root.morphState === "open" ? root.targetW : root.startW
+        height: root.morphState === "open" ? root.targetH : root.startH
+        radius: root.morphState === "open" ? Tokens.rounding.normal : (root.startH / 2)
+
+        Behavior on x { Anim { type: Anim.DefaultSpatial } }
+        Behavior on y { Anim { type: Anim.DefaultSpatial } }
+        Behavior on width { Anim { type: Anim.DefaultSpatial } }
+        Behavior on height { Anim { type: Anim.DefaultSpatial } }
+        Behavior on radius { Anim { type: Anim.DefaultSpatial } }
+
+        // Background Crossfade
+        color: root.morphState === "open" ? Colours.palette.m3surfaceContainerLow : Colours.palette.m3primary
+        Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+        
+        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+        border.width: root.morphState === "open" ? 1 : 0
+        Behavior on border.width { NumberAnimation { duration: 250 } }
+
+        // ── Traveling Active Item ──
+        Rectangle {
+            id: travelingPill
+            
+            // In closed state, fills the button. In open state, positions at the active row.
+            x: root.morphState === "open" ? Tokens.padding.small : 0
+            y: root.morphState === "open" ? (Tokens.padding.small + root.currentIndex * root.rowHeight - list.contentY) : 0
+            width: root.morphState === "open" ? (root.targetW - Tokens.padding.small * 2) : root.startW
+            height: root.startH
+            radius: root.morphState === "open" ? Tokens.rounding.small : (root.startH / 2)
+            
+            color: root.morphState === "open" ? Colours.palette.m3primary : "transparent"
+            Behavior on color { ColorAnimation { duration: 250 } }
+
+            Behavior on x { Anim { type: Anim.DefaultSpatial } }
+            Behavior on y { Anim { type: Anim.DefaultSpatial } }
+            Behavior on width { Anim { type: Anim.DefaultSpatial } }
+            // Height is constant, no behavior needed
+            Behavior on radius { Anim { type: Anim.DefaultSpatial } }
+
+            // Absolute positioning for flawless M3 Shared Element text glide
+            readonly property real textStartW: travelingText.width
+            readonly property real iconStartW: travelingIcon.width
+            readonly property real totalStartW: textStartW + Tokens.spacing.small + iconStartW
+            readonly property real contentStartX: (root.startW - totalStartW) / 2
+
+            StyledText {
+                id: travelingText
+                x: root.morphState === "open" ? Tokens.padding.normal : parent.contentStartX
+                y: (parent.height - implicitHeight) / 2
+                text: root.labelOf(root.currentIndex)
+                color: Colours.palette.m3onPrimary
+                textPointSize: Tokens.font.size.small
+                font.weight: root.morphState === "open" ? Font.DemiBold : Font.Medium
+                elide: Text.ElideRight
+                width: Math.min(implicitWidth, 160)
+                
+                Behavior on x { Anim { type: Anim.DefaultSpatial } }
             }
-            function onHeightChanged(): void {
-                root.repositionPanel();
+
+            MaterialIcon {
+                id: travelingIcon
+                x: root.morphState === "open" ? root.targetW : (parent.contentStartX + travelingText.width + Tokens.spacing.small)
+                y: (parent.height - implicitHeight) / 2
+                text: "expand_more"
+                color: Colours.palette.m3onPrimary
+                iconPointSize: Tokens.font.size.normal
+                opacity: root.morphState === "open" ? 0 : 0.85
+                
+                Behavior on x { Anim { type: Anim.DefaultSpatial } }
+                Behavior on opacity { NumberAnimation { duration: 150 } }
             }
         }
 
-        TransformWatcher {
-            id: watcher
+        // ── List Items (Fade in/out) ──
+        Item {
+            anchors.fill: parent
+            anchors.margins: Tokens.padding.small
+            z: 3
+            opacity: root.morphState === "open" ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
-            a: scrim
-            b: face
-        }
-
-        readonly property var _watch: watcher.transform
-        on_WatchChanged: root.repositionPanel()
-
-        Elevation {
-            id: panel
-
-            readonly property real m: Tokens.padding.small
-
-            width: Math.max(face.width, 220)
-            height: Math.min(root.menuMaxHeight, Math.max(list.contentHeight + m * 2, 48))
-            radius: Tokens.rounding.normal
-            level: 2
-
-            // Menu-style open: fade + scale from attach edge
-            opacity: root.expanded ? 1 : 0
-            visible: opacity > 0.01
-            transformOrigin: Item.Top
-            // Origin at top when opening below, bottom when opening above
-            transform: Scale {
-                id: panelScale
-                yScale: root.expanded ? 1 : 0.12
-                origin.x: panel.width / 2
-                origin.y: root.menuOnTop ? panel.height : 0
-
-                Behavior on yScale {
-                    enabled: true
-                    NumberAnimation {
-                        duration: Tokens.anim.durations.expressiveDefaultSpatial
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: root.m3Emphasized
-                    }
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: event => {
+                    event.accepted = true;
+                    const dy = event.pixelDelta && event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 8 * 4;
+                    root.scrollMenu(dy, event.angleDelta.y);
                 }
             }
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Tokens.anim.durations.expressiveFastEffects
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: root.m3Emphasized
-                }
-            }
-
-            StyledRect {
-                id: panelSurface
-
+            StyledListView {
+                id: list
                 anchors.fill: parent
-                radius: parent.radius
-                color: Colours.palette.m3surfaceContainerLow
                 clip: true
+                model: root.model
+                spacing: 0
+                boundsBehavior: Flickable.StopAtBounds
+                focus: root.expanded
+                keyNavigationEnabled: true
+                highlightFollowsCurrentItem: false
+                currentIndex: root.currentIndex
+                
+                property int hoveredIndex: -1
 
-                WheelHandler {
-                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                    onWheel: event => {
-                        event.accepted = true;
-                        const dy = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 8 * 4;
-                        root.scrollMenu(dy, event.angleDelta.y);
-                    }
-                }
-
-                // Sliding hover marker — same as Panels.qml contextMenuHoverHighlight
-                StyledRect {
-                    id: hoverHighlight
-
-                    readonly property Item target: {
-                        if (!root.expanded)
-                            return null;
-                        if (root.hoveredItem)
-                            return root.hoveredItem;
-                        return list.itemAtIndex(root.currentIndex);
-                    }
-                    readonly property real _scroll: list.contentY
-
-                    z: 0
-                    visible: target !== null
-                    opacity: visible ? 0.08 : 0
-                    color: Colours.palette.m3onSurface
+                // Floating M3 hover highlight pill
+                Rectangle {
+                    parent: list.contentItem
+                    z: -1
+                    width: list.width
+                    height: root.rowHeight
+                    y: list.hoveredIndex * root.rowHeight
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
                     radius: Tokens.rounding.small
-                    x: {
-                        const _ = _scroll;
-                        return target ? target.mapToItem(panelSurface, 0, 0).x : 0;
-                    }
-                    y: {
-                        const _ = _scroll;
-                        return target ? target.mapToItem(panelSurface, 0, 0).y : 0;
-                    }
-                    width: target ? target.width : 0
-                    height: target ? target.height : 0
-
-                    Behavior on x {
-                        enabled: hoverHighlight.opacity > 0
-                        SpringAnimation {
-                            spring: 7.0
-                            damping: 0.8
-                            mass: 1.0
-                            epsilon: 0.005
-                        }
-                    }
-                    Behavior on y {
-                        enabled: hoverHighlight.opacity > 0
-                        SpringAnimation {
-                            spring: 7.0
-                            damping: 0.8
-                            mass: 1.0
-                            epsilon: 0.005
-                        }
-                    }
-                    Behavior on width {
-                        enabled: hoverHighlight.opacity > 0
-                        SpringAnimation {
-                            spring: 7.0
-                            damping: 0.8
-                            mass: 1.0
-                            epsilon: 0.005
-                        }
-                    }
-                    Behavior on height {
-                        enabled: hoverHighlight.opacity > 0
-                        SpringAnimation {
-                            spring: 7.0
-                            damping: 0.8
-                            mass: 1.0
-                            epsilon: 0.005
-                        }
-                    }
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 150
-                        }
-                    }
+                    opacity: list.hoveredIndex >= 0 && list.hoveredIndex !== root.currentIndex ? 1 : 0
+                    visible: opacity > 0
+                    
+                    Behavior on y { Anim { type: Anim.DefaultSpatial } }
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
                 }
+                delegate: Item {
+                    id: row
+                    required property var modelData
+                    required property int index
+                    readonly property bool active: index === root.currentIndex
+                    readonly property string label: root.displayName(modelData)
+                    readonly property bool previewAsFont: {
+                        const s = (modelData === undefined || modelData === null) ? "" : String(modelData);
+                        return s.length > 0 && s === row.label;
+                    }
 
-                StyledListView {
-                    id: list
+                    width: list.width
+                    implicitHeight: root.rowHeight
+                    height: implicitHeight
 
-                    anchors.fill: parent
-                    anchors.margins: panel.m
-                    z: 1
-                    clip: true
-                    model: root.model
-                    spacing: 0
-                    boundsBehavior: Flickable.StopAtBounds
-                    focus: root.expanded
-                    keyNavigationEnabled: true
-                    highlightFollowsCurrentItem: false
-                    currentIndex: root.currentIndex
-                    onContentHeightChanged: root.repositionPanel()
-
-                    delegate: Item {
-                        id: row
-
-                        required property var modelData
-                        required property int index
-                        readonly property bool active: index === root.currentIndex
-                        readonly property string raw: (modelData === undefined || modelData === null) ? "" : String(modelData)
-                        readonly property string label: root.displayName(modelData)
-                        readonly property bool previewAsFont: row.raw.length > 0 && row.raw === row.label
-
-                        width: list.width
-                        implicitHeight: rowText.implicitHeight + Tokens.padding.normal * 2
-                        height: implicitHeight
+                    Item {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: Tokens.padding.normal
+                        anchors.rightMargin: Tokens.padding.normal
+                        height: rowText.implicitHeight
+                        clip: true
 
                         StyledText {
                             id: rowText
-
-                            anchors.left: parent.left
-                            anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: Tokens.padding.normal
-                            anchors.rightMargin: Tokens.padding.normal
-                            z: 1
                             text: row.label
-                            elide: Text.ElideRight
+                            opacity: row.active ? 0 : 1 // Active label is drawn by travelingPill
                             color: Colours.palette.m3onSurface
-                            font.family: row.previewAsFont ? row.raw : (Tokens?.font?.family?.sans ?? "sans-serif")
-                            font.weight: row.active ? Font.Medium : Font.Normal
+                            font.family: row.previewAsFont ? String(row.modelData) : (Tokens?.font?.family?.sans ?? "sans-serif")
                             textPointSize: Tokens.font.size.smaller
-                        }
-
-                        StateLayer {
-                            anchors.fill: parent
-                            radius: Tokens.rounding.small
-                            color: Colours.palette.m3onSurface
-                            hoverEnabled: false
-                            onClicked: root.pick(row.index)
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.NoButton
-                            onEntered: {
-                                if (root.expanded)
-                                    root.hoveredItem = row;
-                            }
-                            onExited: {
-                                if (root.hoveredItem === row)
-                                    root.hoveredItem = null;
+                            
+                            SequentialAnimation on x {
+                                loops: Animation.Infinite
+                                running: rowText.implicitWidth > parent.width && root.expanded && opacity > 0
+                                PauseAnimation { duration: 1500 }
+                                NumberAnimation {
+                                    from: 0
+                                    to: parent.width - rowText.implicitWidth
+                                    duration: Math.max(0, rowText.implicitWidth - parent.width) * 30
+                                }
+                                PauseAnimation { duration: 1500 }
+                                NumberAnimation {
+                                    to: 0
+                                    duration: 400
+                                    easing.type: Easing.InOutQuad
+                                }
                             }
                         }
+                    }
+
+                    MouseArea {
+                        id: itemHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onContainsMouseChanged: {
+                            if (containsMouse) list.hoveredIndex = row.index;
+                            else if (list.hoveredIndex === row.index) list.hoveredIndex = -1;
+                        }
+                        onPositionChanged: {
+                            if (list.hoveredIndex !== row.index) list.hoveredIndex = row.index;
+                        }
+                        onClicked: root.pick(row.index)
                     }
                 }
             }

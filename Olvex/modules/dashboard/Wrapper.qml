@@ -37,8 +37,17 @@ Item {
     readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 480
     readonly property bool shouldBeActive: visibilities.dashboard && Config.dashboard.enabled
     readonly property bool dashboardActive: root.shouldBeActive || closeGrace.running
+    property bool contentPrewarmed: false
     property real offsetScale: shouldBeActive ? 0 : 1
     property bool hovered: false
+
+    Timer {
+        id: prewarmTimer
+        interval: 1800
+        running: true
+        repeat: false
+        onTriggered: root.contentPrewarmed = true
+    }
 
     Connections {
         target: visibilities
@@ -89,7 +98,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
-        active: true
+        active: root.shouldBeActive || closeGrace.running || root.contentPrewarmed
 
         sourceComponent: Content {
             dashboardActive: root.dashboardActive

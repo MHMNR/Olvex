@@ -43,7 +43,7 @@ RowLayout {
             anchors.leftMargin: Tokens.padding.normal
             anchors.rightMargin: Tokens.padding.small
             radius: Tokens.rounding.large
-            color: Colours.palette.m3surfaceContainerLow
+            color: Colours.palette.m3surfaceContainerHigh
 
 
             Loader {

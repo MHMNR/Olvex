@@ -234,9 +234,9 @@ StyledWindow {
     Item {
         anchors.fill: parent
         opacity: Colours.transparencyEnabled ? Colours.transparencyBase : 1
-        layer.enabled: true
+        layer.enabled: root.effectLayerActive
         layer.effect: MultiEffect {
-            shadowEnabled: true
+            shadowEnabled: root.shadowOpacity > 0.01
             blurMax: 15
             shadowColor: Qt.alpha(Colours.palette.m3shadow, Math.max(0, root.shadowOpacity))
         }

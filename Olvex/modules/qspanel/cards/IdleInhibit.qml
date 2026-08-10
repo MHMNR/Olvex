@@ -13,8 +13,8 @@ StyledRect {
 
     radius: Tokens.rounding.normal
     color: Colours.tileSurface
-    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
-    border.width: 1
+    border.color: "transparent"
+    border.width: 0
     clip: true
 
     RowLayout {

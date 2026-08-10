@@ -16,6 +16,7 @@ Item {
 
     property Session session
     property string activeSection: "behavior"
+    signal back
 
     SettingsPage {
         anchors.fill: parent
@@ -24,6 +25,7 @@ Item {
         icon: "dock"
         accent: Colours.palette.m3primary
         hostMode: true
+        onBack: root.back()
 
         hostComponent: Component {
             SplitPaneWithDetails {

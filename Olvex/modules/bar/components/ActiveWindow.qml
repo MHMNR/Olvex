@@ -498,7 +498,7 @@ StyledRect {
                                 }
                             }
                             antialiasing: true
-                            layer.enabled: true
+                            layer.enabled: root.playerActive && opacity > 0.01
                             layer.effect: MultiEffect {
                                 blurEnabled: true
                                 blur: 1.0

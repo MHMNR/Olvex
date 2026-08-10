@@ -165,16 +165,18 @@ Window {
             Behavior on x {
                 enabled: !win.reducedMotion
                 NumberAnimation {
-                    duration: tok.motion.spatialDefaultMs
-                    easing.type: Easing.OutCubic
+                    duration: 350
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: [0.42, 1.67, 0.21, 0.90]
                 }
             }
 
             Behavior on width {
                 enabled: !win.reducedMotion
                 NumberAnimation {
-                    duration: tok.motion.effectsExpressive.fast
-                    easing.type: Easing.OutCubic
+                    duration: 350
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: [0.42, 1.67, 0.21, 0.90]
                 }
             }
         }

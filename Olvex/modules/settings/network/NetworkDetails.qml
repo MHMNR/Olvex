@@ -32,6 +32,7 @@ Item {
                 switch(root.activeSection) {
                     case "wifi": return "NetworkWifi.qml";
                     case "bluetooth": return "NetworkBluetooth.qml";
+                    case "details": return "EthernetDetails.qml";
                     default: return "NetworkWifi.qml";
                 }
             }

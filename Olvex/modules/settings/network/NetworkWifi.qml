@@ -182,13 +182,17 @@ Item {
                     implicitWidth: 36
                     implicitHeight: 36
 
-                    CircularIndicator {
+                    LoadingIndicator {
                         anchors.centerIn: parent
-                        implicitSize: 24
-                        running: wifiScanCtl.scanning
+                        implicitSize: 32
+                        color: Colours.palette.m3primary
+                        animated: wifiScanCtl.scanning
                         opacity: wifiScanCtl.scanning ? 1 : 0
+                        scale: wifiScanCtl.scanning ? 1 : 0.72
+                        visible: opacity > 0.01
 
                         Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        Behavior on scale { Anim { type: Anim.DefaultSpatial } }
                     }
 
                     IconButton {
@@ -223,20 +227,29 @@ Item {
                 height: 96
                 visible: root.networkList.length === 0
 
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (Nmcli.wifiEnabled) Nmcli.rescanWifi();
+                    }
+                }
+
                 Column {
                     anchors.centerIn: parent
                     spacing: Tokens.spacing.normal
 
-                    CircularIndicator {
+                    LoadingIndicator {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        implicitSize: 32
-                        running: Nmcli.scanning
+                        implicitSize: 36
+                        color: Colours.palette.m3primary
+                        animated: Nmcli.scanning
                         opacity: Nmcli.scanning ? 1 : 0.45
                     }
 
                     StyledText {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: Nmcli.scanning ? qsTr("Scanning for networks…") : qsTr("No networks found · tap refresh")
+                        text: Nmcli.scanning ? qsTr("Scanning for networks…") : qsTr("No networks found · tap to scan")
                         color: Colours.palette.m3onSurfaceVariant
                         font.weight: Font.Normal
                         textPointSize: Tokens.font.size.normal

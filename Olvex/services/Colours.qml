@@ -34,7 +34,7 @@ Singleton {
 
     // ── Transparency ────────────────────────────────
     readonly property bool transparencyEnabled: Tokens.transparency.enabled
-    readonly property real transparencyBase: Math.max(0, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
+    readonly property real transparencyBase: Math.max(0.35, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
     readonly property real transparencyLayers: Tokens.transparency.layers
 
     // ── Wallpaper luminance ─────────────────────────
@@ -129,6 +129,8 @@ Singleton {
         const layer = surfaceLayer(layerLevel);
 
         if (!transparencyEnabled) {
+            if (c !== bootPalette.m3surface && c !== bootPalette.m3background && c !== bootPalette.m3surfaceDim && c !== bootPalette.m3surfaceBright)
+                return Qt.rgba(c.r, c.g, c.b, 1.0);
             if (light && layer > 0)
                 return opaqueLightContainer(layerLevel);
             if (layer === 0)
@@ -170,39 +172,29 @@ Singleton {
 
     readonly property color tileSurface: light
         ? applyTileAlpha(_tileSurfaceRgb, 2)
-        : Qt.alpha(palette.m3onSurface, 0.05)
+        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.05) : layer(palette.m3surfaceContainerLow, 1))
     readonly property color tileFill: light
         ? applyTileAlpha(_tileFillRgb, 3)
-        : Qt.alpha(palette.m3onSurface, 0.08)
+        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.08) : layer(palette.m3surfaceContainer, 2))
     readonly property color tileFillHover: light
         ? applyTileAlpha(_tileFillHoverRgb, 4)
-        : Qt.alpha(palette.m3onSurface, 0.12)
+        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.12) : layer(palette.m3surfaceContainerHigh, 3))
     readonly property color tileFillSubtle: light
         ? applyTileAlpha(_tileFillSubtleRgb, 1)
-        : Qt.alpha(palette.m3onSurface, 0.04)
+        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.04) : layer(palette.m3surfaceContainerLowest, 1))
     readonly property color tileFillTonal: light
         ? applyTileAlpha(_tileFillTonalRgb, 3)
         : layer(palette.m3surfaceContainerHigh, 1)
     readonly property color tileFillElevated: light
         ? applyTileAlpha(_tileFillElevatedRgb, 4)
         : layer(palette.m3surfaceContainerHighest, 2)
-    readonly property color tileStroke: light
-        ? Qt.alpha(palette.m3outline, 0.32)
-        : Qt.alpha(palette.m3onSurface, 0.1)
-    readonly property color tileStrokeSubtle: light
-        ? Qt.alpha(palette.m3outlineVariant, 0.5)
-        : Qt.alpha(palette.m3outlineVariant, 0.18)
-    readonly property color tileInnerLine: light
-        ? Qt.alpha(palette.m3outlineVariant, 0.3)
-        : Qt.rgba(1.0, 1.0, 1.0, 0.04)
+    readonly property color tileStroke: "transparent"
+    readonly property color tileStrokeSubtle: "transparent"
+    readonly property color tileInnerLine: "transparent"
     readonly property color tileGlass: tileFill
     readonly property color tileGlassStrong: tileSurface
-    readonly property color tileShine: light
-        ? Qt.alpha(palette.m3outlineVariant, 0.45)
-        : Qt.rgba(1.0, 1.0, 1.0, 0.15)
-    readonly property color tileShineSoft: light
-        ? Qt.alpha(palette.m3outlineVariant, 0.28)
-        : Qt.rgba(1.0, 1.0, 1.0, 0.05)
+    readonly property color tileShine: "transparent"
+    readonly property color tileShineSoft: "transparent"
     readonly property color notifTileFill: tileSurface
     readonly property color tileHoverAccent: light
         ? palette.m3primaryContainer

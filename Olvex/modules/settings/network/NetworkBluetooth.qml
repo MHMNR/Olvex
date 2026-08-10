@@ -147,26 +147,36 @@ Item {
                 height: 96
                 visible: root.btDevices.length === 0
 
-                Column {
-                    anchors.centerIn: parent
-                    spacing: Tokens.spacing.normal
-
-                    LoadingIndicator {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        implicitSize: 36
-                        color: Colours.palette.m3primary
-                        animated: Bluetooth.defaultAdapter?.discovering ?? false
-                        opacity: (Bluetooth.defaultAdapter?.discovering ?? false) ? 1 : 0.45
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            const a = Bluetooth.defaultAdapter;
+                            if (!a || !root.btEnabled) return;
+                            a.discovering = true;
+                        }
                     }
 
-                    StyledText {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: (Bluetooth.defaultAdapter?.discovering ?? false) ? qsTr("Scanning for devices…") : qsTr("No devices yet · tap refresh")
-                        color: Colours.palette.m3onSurfaceVariant
-                        font.weight: Font.Normal
-                        textPointSize: Tokens.font.size.normal
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: Tokens.spacing.normal
+
+                        LoadingIndicator {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            implicitSize: 36
+                            color: Colours.palette.m3primary
+                            animated: Bluetooth.defaultAdapter?.discovering ?? false
+                            opacity: (Bluetooth.defaultAdapter?.discovering ?? false) ? 1 : 0.45
+                        }
+
+                        StyledText {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: (Bluetooth.defaultAdapter?.discovering ?? false) ? qsTr("Scanning for devices…") : qsTr("No devices yet · tap to scan")
+                            color: Colours.palette.m3onSurfaceVariant
+                            font.weight: Font.Normal
+                            textPointSize: Tokens.font.size.normal
+                        }
                     }
-                }
             }
 
             Repeater {

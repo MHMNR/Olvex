@@ -97,8 +97,6 @@ GridView {
             color: Colours.tPalette.m3surfaceContainer
             radius: itemRadius
             antialiasing: true
-            layer.enabled: true
-            layer.smooth: true
 
             // Prefer plain Image for live thumbs (jpg on disk) — more reliable than
             // CachingImage when path flips from "" → thumb after ffmpeg.

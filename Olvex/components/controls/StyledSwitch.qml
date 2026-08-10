@@ -63,10 +63,22 @@ Switch {
         }
 
         Behavior on color {
-            CAnim {}
+            ColorAnimation { duration: 120; easing.type: Easing.OutCubic }
         }
 
-        // Sliding thumb (same spring feel as clipboard focus / filter pill)
+        // Hover / press wash (ClipboardStandalone pattern: fades out when active/checked)
+        StyledRect {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Colours.palette.m3onSurface
+            opacity: !root.enabled ? 0 : root.pressed ? 0.1 : (root.hovered && !root.checked) ? 0.08 : 0
+
+            Behavior on opacity {
+                NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+            }
+        }
+
+        // Sliding thumb
         StyledRect {
             id: thumb
 
@@ -89,31 +101,16 @@ Switch {
             }
 
             Behavior on x {
-                SpringAnimation {
-                    spring: 4.6
-                    damping: 0.74
-                    mass: 1.0
-                    epsilon: 0.005
-                }
+                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
             }
             Behavior on width {
-                SpringAnimation {
-                    spring: 5.0
-                    damping: 0.78
-                    mass: 1.0
-                    epsilon: 0.005
-                }
+                NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
             }
             Behavior on height {
-                SpringAnimation {
-                    spring: 5.0
-                    damping: 0.78
-                    mass: 1.0
-                    epsilon: 0.005
-                }
+                NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
             }
             Behavior on color {
-                CAnim {}
+                ColorAnimation { duration: 120; easing.type: Easing.OutCubic }
             }
 
             MaterialIcon {
@@ -126,24 +123,12 @@ Switch {
                 opacity: root.enabled ? 0.9 : 0.38
 
                 Behavior on color {
-                    CAnim {}
+                    ColorAnimation { duration: 120; easing.type: Easing.OutCubic }
                 }
             }
         }
 
-        // Hover / press wash
-        StyledRect {
-            anchors.fill: parent
-            radius: parent.radius
-            color: root.checked ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-            opacity: !root.enabled ? 0 : root.pressed ? 0.1 : root.hovered ? 0.06 : 0
 
-            Behavior on opacity {
-                Anim {
-                    type: Anim.FastEffects
-                }
-            }
-        }
 
         HoverHandler {
             enabled: root.enabled

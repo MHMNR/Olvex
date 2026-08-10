@@ -67,8 +67,6 @@ GridView {
             color: Colours.tPalette.m3surfaceContainer
             radius: itemRadius
             antialiasing: true
-            layer.enabled: true
-            layer.smooth: true
 
             // Resolve live → jpg thumb (video paths cannot paint as Image)
             readonly property string resolvedPath: {

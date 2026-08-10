@@ -12,6 +12,8 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import Olvex.Config
 import qs.services
+import qs.components.filedialog
+import qs.utils
 
 ColumnLayout {
     id: root
@@ -24,6 +26,21 @@ ColumnLayout {
             if (list[i] === val) return i;
         }
         return 0;
+    }
+
+    readonly property FileDialog fontPicker: FileDialog {
+        title: qsTr("Select Font File")
+        filterLabel: qsTr("Font Files (*.ttf, *.otf)")
+        filters: ["*.ttf", "*.otf"]
+        initialCwd: ["Home"]
+
+        onAccepted: path => {
+            const fontDir = `${Paths.home}/.local/share/fonts`;
+            Quickshell.execDetached(["mkdir", "-p", fontDir]);
+            Quickshell.execDetached(["cp", path, fontDir]);
+            Quickshell.execDetached(["fc-cache", "-f"]);
+            Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Font Installed"), qsTr("Copied %1 to ~/.local/share/fonts").arg(path)]);
+        }
     }
 
     Section {
@@ -94,31 +111,11 @@ ColumnLayout {
             title: qsTr("Add Custom Font")
             description: qsTr("Install a new font file to the system")
             divider: false
-            ButtonBase {
-                implicitHeight: 36
-                color: Colours.palette.m3surfaceContainerHigh
-                radius: Tokens.rounding.normal
-                
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: Tokens.spacing.small
-                    MaterialIcon {
-                        text: "add"
-                        color: Colours.palette.m3onSurface
-                        iconPointSize: Tokens.font.size.large
-                    }
-                    StyledText {
-                        text: qsTr("Install Font")
-                        color: Colours.palette.m3onSurface
-                    }
-                }
-                
-                onClicked: {
-                    // Placeholder for font installation logic.
-                    // Usually you'd open a FileDialog and copy to ~/.local/share/fonts
-                    // and run fc-cache -f
-                    console.log("Add Custom Font clicked");
-                }
+            IconTextButton {
+                icon: "add"
+                text: qsTr("Install Font")
+                type: IconTextButton.Filled
+                onClicked: root.fontPicker.open()
             }
         }
     }

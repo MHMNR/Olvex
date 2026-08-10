@@ -170,7 +170,7 @@ DeviceList {
                     StyledRect {
                         anchors.fill: parent
                         radius: parent.radius
-                        color: Qt.alpha(device.connected ? Colours.palette.m3onPrimaryContainer : (device.modelData && device.modelData.bonded) ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface, stateLayer.pressed ? 0.1 : stateLayer.containsMouse ? 0.08 : 0)
+                        color: Qt.alpha(device.connected ? Colours.palette.m3onPrimaryContainer : (device.modelData && device.modelData.bonded) ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface, segMa.pressed ? 0.1 : stateLayer.containsMouse ? 0.08 : 0)
                     }
 
                     MaterialIcon {
@@ -188,7 +188,22 @@ DeviceList {
                     }
                 }
 
-                ColumnLayout {
+                
+    StyledRect {
+        id: highlightRect
+        x: colLayout.x + Tokens.padding.small
+        width: colLayout.width - (Tokens.padding.small * 2)
+        height: 40
+        radius: height / 2
+        color: Colours.palette.m3primary
+        
+        Behavior on y {
+            Anim { type: Anim.FastSpatial }
+        }
+    }
+
+    ColumnLayout {
+        id: colLayout
                     Layout.fillWidth: true
 
                     spacing: 0

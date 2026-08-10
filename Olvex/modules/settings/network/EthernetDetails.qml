@@ -1,27 +1,33 @@
-import ".."
-import "../chrome"
-import "../components"
-import "../../../components"
-import "../../../components/controls"
-import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
 import qs.services
+import ".."
+import "../chrome"
+import "../../../components"
+import "../../../components/controls"
+import "../../../components/containers"
 
-DeviceDetails {
+Item {
     id: root
 
-    required property Session session
-    readonly property var ethernetDevice: root.session.ethernet.active
+    property Session session
+    readonly property var ethernetDevice: root.session?.ethernet?.active
 
-    device: ethernetDevice
+    property bool isManual: false
+    property string staticIpAddress: "192.168.1.100"
+    property string staticSubnet: "255.255.255.0"
+    property string staticGateway: "192.168.1.1"
+    property string primaryDns: "8.8.8.8"
+    property string secondaryDns: "8.8.4.4"
 
-    Component.onCompleted: {
-        if (ethernetDevice && ethernetDevice.interface) {
-            Nmcli.getEthernetDeviceDetails(ethernetDevice.interface, () => {});
-        }
-    }
+    signal autoConnectChanged(bool enabled)
+    signal ipAssignmentModeChanged(string mode)
+    signal staticIpConfigChanged(var config)
+    signal copyMacToClipboard()
+
+    implicitWidth: layout.implicitWidth
+    implicitHeight: layout.implicitHeight
 
     onEthernetDeviceChanged: {
         if (ethernetDevice && ethernetDevice.interface) {
@@ -31,86 +37,292 @@ DeviceDetails {
         }
     }
 
-    headerComponent: Component {
-        ConnectionHeader {
-            icon: "cable"
-            title: root.ethernetDevice?.interface ?? qsTr("Unknown")
+    ParallelAnimation {
+        id: animateEntry
+        NumberAnimation {
+            target: root
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: Tokens.anim.durations.slow
+            easing.type: Easing.OutCubic
         }
     }
 
-    sections: [
-        Component {
-            ColumnLayout {
-                spacing: Tokens.spacing.normal
+    onSessionChanged: {
+        if (root.session && !root.session.ethernet.active && Nmcli.ethernetDevices.length > 0) {
+            root.session.ethernet.active = Nmcli.ethernetDevices[0];
+        }
+        if (ethernetDevice && ethernetDevice.interface) {
+            Nmcli.getEthernetDeviceDetails(ethernetDevice.interface, () => {});
+        }
+        animateEntry.restart();
+    }
 
-                SectionHeader {
-                    title: qsTr("Connection status")
-                    description: qsTr("Connection settings for this device")
+    ColumnLayout {
+        id: layout
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        spacing: 24
+
+        // Connection State
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            StyledText {
+                text: qsTr("Connection Status")
+                font.family: "Satoshi"
+                font.pixelSize: 14
+                font.weight: 600
+                color: Colours.palette.m3primary
+                Layout.leftMargin: 8
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: root.ethernetDevice?.interface ?? qsTr("Unknown Interface")
+                description: {
+                    if (root.ethernetDevice?.connected) {
+                        return root.ethernetDevice?.connection || qsTr("Connected - 1000 Mbps, Full Duplex");
+                    }
+                    return qsTr("Disconnected");
                 }
-
-                SectionContainer {
-                    ToggleRow {
-                        label: qsTr("Connected")
-                        checked: root.ethernetDevice?.connected ?? false
-                        toggle.onToggled: {
-                            if (checked) {
-                                Nmcli.connectEthernet(root.ethernetDevice?.connection || "", root.ethernetDevice?.interface || "", () => {});
-                            } else {
-                                if (root.ethernetDevice?.connection) {
-                                    Nmcli.disconnectEthernet(root.ethernetDevice.connection, () => {});
-                                }
+                icon: "cable"
+                StyledSwitch {
+                    checked: root.ethernetDevice?.connected ?? false
+                    onToggled: {
+                        if (checked) {
+                            Nmcli.connectEthernet(root.ethernetDevice?.connection || "", root.ethernetDevice?.interface || "", () => {});
+                        } else {
+                            if (root.ethernetDevice?.connection) {
+                                Nmcli.disconnectEthernet(root.ethernetDevice.connection, () => {});
                             }
                         }
                     }
                 }
             }
-        },
-        Component {
-            ColumnLayout {
-                spacing: Tokens.spacing.normal
+        }
 
-                SectionHeader {
-                    title: qsTr("Device properties")
-                    description: qsTr("Additional information")
-                }
+        // IP Configuration
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
 
-                SectionContainer {
-                    contentSpacing: Tokens.spacing.small / 2
+            StyledText {
+                text: qsTr("IP Configuration")
+                font.family: "Satoshi"
+                font.pixelSize: 14
+                font.weight: 600
+                color: Colours.palette.m3primary
+                Layout.leftMargin: 8
+            }
 
-                    PropertyRow {
-                        label: qsTr("Interface")
-                        value: root.ethernetDevice?.interface ?? qsTr("Unknown")
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("IP Assignment")
+                description: root.isManual ? qsTr("Manual (Static)") : qsTr("DHCP (Automatic)")
+                icon: "dns"
+                divider: root.isManual
+                RowLayout {
+                    spacing: 8
+                    
+                    TextButton {
+                        text: qsTr("DHCP")
+                        toggle: true
+                        checked: !root.isManual
+                        activeColour: Colours.palette.m3primaryContainer
+                        activeOnColour: Colours.palette.m3onPrimaryContainer
+                        inactiveColour: "transparent"
+                        onClicked: {
+                            root.isManual = false;
+                            root.ipAssignmentModeChanged("DHCP");
+                        }
                     }
-
-                    PropertyRow {
-                        showTopMargin: true
-                        label: qsTr("Connection")
-                        value: root.ethernetDevice?.connection || qsTr("Not connected")
-                    }
-
-                    PropertyRow {
-                        showTopMargin: true
-                        label: qsTr("State")
-                        value: root.ethernetDevice?.state ?? qsTr("Unknown")
+                    TextButton {
+                        text: qsTr("Manual")
+                        toggle: true
+                        checked: root.isManual
+                        activeColour: Colours.palette.m3primaryContainer
+                        activeOnColour: Colours.palette.m3onPrimaryContainer
+                        inactiveColour: "transparent"
+                        onClicked: {
+                            root.isManual = true;
+                            root.ipAssignmentModeChanged("Manual");
+                        }
                     }
                 }
             }
-        },
-        Component {
-            ColumnLayout {
-                spacing: Tokens.spacing.normal
 
-                SectionHeader {
-                    title: qsTr("Connection information")
-                    description: qsTr("Network connection details")
+            // Manual Config Fields
+            Item {
+                Layout.fillWidth: true
+                implicitHeight: root.isManual ? manualFieldsLayout.implicitHeight : 0
+                clip: true
+                
+                Behavior on implicitHeight {
+                    NumberAnimation {
+                        // Emphasized Curve approximation (0.2, 0, 0, 1) over 400ms
+                        duration: 400
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: [0.2, 0, 0, 1]
+                    }
                 }
 
-                SectionContainer {
-                    ConnectionInfoSection {
-                        deviceDetails: Nmcli.ethernetDeviceDetails
+                ColumnLayout {
+                    id: manualFieldsLayout
+                    width: parent.width
+                    spacing: 12
+                    
+                    Item { Layout.preferredHeight: 4 } // Spacer
+
+                    GridLayout {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 16
+                        Layout.rightMargin: 16
+                        columns: 2
+                        rowSpacing: 12
+                        columnSpacing: 16
+                        
+                        StyledText {
+                            text: qsTr("IP Address")
+                            font.family: "Satoshi"
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            text: root.staticIpAddress
+                            font.family: "JetBrains Mono"
+                            onTextChanged: root.staticIpAddress = text
+                        }
+                        
+                        StyledText {
+                            text: qsTr("Subnet Mask")
+                            font.family: "Satoshi"
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            text: root.staticSubnet
+                            font.family: "JetBrains Mono"
+                            onTextChanged: root.staticSubnet = text
+                        }
+                        
+                        StyledText {
+                            text: qsTr("Gateway")
+                            font.family: "Satoshi"
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            text: root.staticGateway
+                            font.family: "JetBrains Mono"
+                            onTextChanged: root.staticGateway = text
+                        }
+                        
+                        StyledText {
+                            text: qsTr("Primary DNS")
+                            font.family: "Satoshi"
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            text: root.primaryDns
+                            font.family: "JetBrains Mono"
+                            onTextChanged: root.primaryDns = text
+                        }
+                        
+                        StyledText {
+                            text: qsTr("Secondary DNS")
+                            font.family: "Satoshi"
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            text: root.secondaryDns
+                            font.family: "JetBrains Mono"
+                            onTextChanged: root.secondaryDns = text
+                        }
+                    }
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignRight
+                        Layout.rightMargin: 16
+                        
+                        ButtonBase {
+                            implicitHeight: 36
+                            implicitWidth: 100
+                            
+                            StyledRect {
+                                anchors.fill: parent
+                                radius: Tokens.rounding.full
+                                color: parent.pressed ? Colours.palette.m3primary : (parent.hovered ? Colours.layer(Colours.palette.m3primaryContainer, 1) : Colours.palette.m3primaryContainer)
+                                
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: qsTr("Save Config")
+                                    font.family: "Satoshi"
+                                    font.weight: 600
+                                    color: Colours.palette.m3onPrimaryContainer
+                                }
+                                
+                                scale: parent.pressed ? 0.96 : (parent.hovered ? 1.02 : 1.0)
+                                Behavior on scale {
+                                    NumberAnimation { duration: 150; easing.type: Easing.OutBack }
+                                }
+                            }
+                            
+                            onClicked: {
+                                root.staticIpConfigChanged({
+                                    ip: root.staticIpAddress,
+                                    subnet: root.staticSubnet,
+                                    gateway: root.staticGateway,
+                                    dns1: root.primaryDns,
+                                    dns2: root.secondaryDns
+                                });
+                            }
+                        }
                     }
                 }
             }
         }
-    ]
+
+        // Hardware Section
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            StyledText {
+                text: qsTr("Hardware Information")
+                font.family: "Satoshi"
+                font.pixelSize: 14
+                font.weight: 600
+                color: Colours.palette.m3primary
+                Layout.leftMargin: 8
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("MAC Address")
+                description: Nmcli.ethernetDeviceDetails?.hwAddress || "00:00:00:00:00:00"
+                icon: "memory"
+                divider: false
+                
+                IconButton {
+                    icon: "content_copy"
+                    
+                    scale: pressed ? 0.96 : (hovered ? 1.02 : 1.0)
+                    Behavior on scale {
+                        NumberAnimation { duration: 150; easing.type: Easing.OutBack }
+                    }
+                    
+                    onClicked: {
+                        root.copyMacToClipboard();
+                    }
+                }
+            }
+        }
+    }
 }

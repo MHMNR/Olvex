@@ -40,8 +40,8 @@ ColumnLayout {
             title: qsTr("Base opacity")
             description: qsTr("Opacity of panel backgrounds")
             StyledSlider {
-                width: 220
-                from: 0.3
+                width: 280
+                from: 0
                 to: 1
                 value: GlobalConfig.appearance.transparency.base
                 onMoved: {
@@ -56,8 +56,8 @@ ColumnLayout {
             description: qsTr("Opacity of raised surfaces and cards")
             divider: false
             StyledSlider {
-                width: 220
-                from: 0.1
+                width: 280
+                from: 0
                 to: 1
                 value: GlobalConfig.appearance.transparency.layers
                 onMoved: {

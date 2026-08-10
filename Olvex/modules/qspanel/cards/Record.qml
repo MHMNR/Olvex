@@ -354,7 +354,7 @@ StyledRect {
                             radius: 14
                             color: Colours.palette.m3primary
                             
-                            Behavior on x { Anim { type: Anim.DefaultSpatial } }
+                            Behavior on x { Anim { type: Anim.FastSpatial } }
                         }
 
                         RowLayout {

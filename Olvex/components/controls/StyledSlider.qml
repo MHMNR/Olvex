@@ -10,7 +10,7 @@ Slider {
     id: root
 
     // ── Value readout (side number for precision) ──
-    property bool showValue: true
+    property bool showValue: true // Show numeral value display for Nothing OS style
     // -1 = auto. 0+ = fixed decimal places (ignored when percent mode).
     property int valueDecimals: -1
     property string valueSuffix: ""
@@ -50,13 +50,13 @@ Slider {
 
     // Control chrome scales with type
     readonly property real baseH: Math.max(24, Math.round((Tokens.font?.size?.normal ?? 13) * 1.9))
-    readonly property real trackThickness: Math.max(4, Math.round(baseH / 5.5))
-    readonly property real handleW: Math.max(4, Math.round(baseH / 5))
-    readonly property real handleH: baseH
+    readonly property real trackThickness: 16
+    readonly property int segmentsCount: 20
+    
     readonly property real valueGap: Tokens.spacing.small
     readonly property real valueColW: showValue ? Math.max(valueLabel.implicitWidth, 40) : 0
 
-    implicitWidth: 200 + (showValue ? valueColW + valueGap : 0)
+    implicitWidth: 260 + (showValue ? valueColW + valueGap : 0)
     implicitHeight: baseH
     padding: 0
     leftPadding: 0
@@ -65,6 +65,7 @@ Slider {
     bottomPadding: 0
     live: true
     hoverEnabled: true
+    snapMode: Slider.SnapOnRelease // Ensure buttery smooth dragging without step-size chunking
 
     Layout.preferredHeight: baseH
     Layout.minimumHeight: baseH
@@ -91,7 +92,7 @@ Slider {
     background: Item {
         x: root.leftPadding
         y: root.topPadding + (root.availableHeight - height) / 2
-        implicitWidth: 200
+        implicitWidth: 260
         implicitHeight: root.baseH
         width: root.availableWidth
         height: root.availableHeight > 0 ? root.availableHeight : root.baseH
@@ -101,35 +102,37 @@ Slider {
             cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         }
 
-        StyledRect {
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: root.trackThickness
-            radius: height / 2
-            color: Colours.palette.m3surfaceContainerHighest
-        }
+        // Nothing OS Segmented Matrix
+        Row {
+            anchors.fill: parent
+            spacing: 4
 
-        StyledRect {
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            width: Math.max(height, root.visualPosition * parent.width)
-            height: root.trackThickness
-            radius: height / 2
-            color: Colours.palette.m3primary
+            Repeater {
+                model: root.segmentsCount
+
+                Rectangle {
+                    readonly property real segRatio: index / (root.segmentsCount - 1)
+                    readonly property bool isActive: segRatio <= root.visualPosition
+
+                    width: (parent.width - (root.segmentsCount - 1) * 4) / root.segmentsCount
+                    height: root.trackThickness
+                    anchors.verticalCenter: parent.verticalCenter
+                    radius: 3
+
+                    color: isActive ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest
+                    opacity: isActive ? 1.0 : 0.75
+                    scale: isActive ? 1.0 : 0.85
+
+                    Behavior on color { ColorAnimation { duration: 60 } }
+                }
+            }
         }
     }
 
-    handle: StyledRect {
-        x: root.leftPadding + root.visualPosition * (root.availableWidth - width)
-        y: root.topPadding + (root.availableHeight - height) / 2
-        width: root.handleW
-        height: Math.min(root.handleH, root.availableHeight > 0 ? root.availableHeight : root.handleH)
-        implicitWidth: root.handleW
-        implicitHeight: root.handleH
-        radius: width / 2
-        color: Colours.palette.m3primary
-        border.width: 2
-        border.color: Colours.palette.m3surface
+    handle: Item {
+        width: 0
+        height: 0
+        x: root.leftPadding + root.visualPosition * root.availableWidth
+        y: root.topPadding + root.availableHeight / 2
     }
 }

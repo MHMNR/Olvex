@@ -79,10 +79,13 @@ ColumnLayout {
                 id: variantPicker
                 model: ["tonalspot", "vibrant", "expressive", "fidelity", "content", "neutral", "monochrome"]
                 currentIndex: {
-                    const v = (Schemes.currentVariant || "tonalspot").toLowerCase();
+                    const v = (GlobalConfig.appearance.schemeVariant || "tonalspot").toLowerCase();
                     return root.idxOf(variantPicker.model, v);
                 }
-                onSelected: i => Schemes.setVariant(variantPicker.model[i])
+                onSelected: i => {
+                    GlobalConfig.appearance.schemeVariant = variantPicker.model[i];
+                    GlobalConfig.save();
+                }
             }
         }
     }

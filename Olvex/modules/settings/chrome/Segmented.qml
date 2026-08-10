@@ -94,20 +94,10 @@ Item {
             z: 0
 
             Behavior on x {
-                SpringAnimation {
-                    spring: 4.6
-                    damping: 0.74
-                    mass: 1.0
-                    epsilon: 0.005
-                }
+                Anim { type: Anim.FastSpatial }
             }
             Behavior on width {
-                SpringAnimation {
-                    spring: 5.0
-                    damping: 0.78
-                    mass: 1.0
-                    epsilon: 0.005
-                }
+                Anim { type: Anim.FastSpatial }
             }
         }
 
@@ -165,11 +155,22 @@ Item {
                             }
                         }
                     }
-
-                    StateLayer {
+                    StyledRect {
                         anchors.fill: parent
                         radius: height / 2
-                        color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                        color: Colours.palette.m3onSurface
+                        opacity: segMa.pressed ? 0.1 : (segMa.containsMouse && !cell.active ? 0.08 : 0)
+
+                        Behavior on opacity {
+                            Anim { type: Anim.FastEffects }
+                        }
+                    }
+
+                    MouseArea {
+                        id: segMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (root.currentIndex !== cell.index)
                                 root.selected(cell.index);

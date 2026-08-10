@@ -28,7 +28,22 @@ Item {
         { id: "lockscreen", label: qsTr("Lockscreen"), icon: "lock" }
     ]
 
+    
+    StyledRect {
+        id: highlightRect
+        x: colLayout.x + Tokens.padding.small
+        width: colLayout.width - (Tokens.padding.small * 2)
+        height: 40
+        radius: height / 2
+        color: Colours.palette.m3primary
+        
+        Behavior on y {
+            Anim { type: Anim.FastSpatial }
+        }
+    }
+
     ColumnLayout {
+        id: colLayout
         anchors.fill: parent
         anchors.margins: Tokens.padding.small
         spacing: Tokens.spacing.extraSmall
@@ -55,50 +70,55 @@ Item {
 
                 readonly property bool isActive: root.activeSection === delegateRoot.modelData.id
 
-                scale: stateLayer.pressed ? 0.96 : (stateLayer.containsMouse ? 1.02 : 1.0)
-                Behavior on scale { 
-                    SpringAnimation { 
-                        spring: stateLayer.pressed ? 5.0 : 4.2 
-                        damping: stateLayer.pressed ? 0.65 : 0.70 
-                    } 
+                onIsActiveChanged: {
+                    if (isActive) {
+                        highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
+                    }
                 }
-
-                StyledRect {
-                    anchors.fill: parent
-                    radius: height / 2
-                    color: delegateRoot.isActive ? Colours.palette.m3primaryContainer : (stateLayer.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent")
-
-                    Behavior on color { CAnim {} }
+                Component.onCompleted: {
+                    if (isActive) {
+                        highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
+                    }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: Tokens.padding.normal
-                    anchors.rightMargin: Tokens.padding.normal
+                    anchors.leftMargin: Tokens.padding.large
+                    anchors.rightMargin: Tokens.padding.large
                     spacing: Tokens.spacing.normal
 
                     MaterialIcon {
                         text: delegateRoot.modelData.icon
-                        color: delegateRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                        color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                         iconPointSize: Tokens.font.size.normal
                         Behavior on color { CAnim {} }
                     }
 
                     StyledText {
                         text: delegateRoot.modelData.label
-                        color: delegateRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                        color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                         font.weight: delegateRoot.isActive ? Font.Medium : Font.Normal
                         textPointSize: Tokens.font.size.normal
                         Layout.fillWidth: true
                         Behavior on color { CAnim {} }
                     }
                 }
-
-                StateLayer {
-                    id: stateLayer
+                StyledRect {
                     anchors.fill: parent
-                    radius: parent.height / 2
-                    color: Colours.palette.m3onPrimaryContainer
+                    radius: height / 2
+                    color: Colours.palette.m3onSurface
+                    opacity: segMa.pressed ? 0.1 : (segMa.containsMouse && !delegateRoot.isActive ? 0.08 : 0)
+
+                    Behavior on opacity {
+                        Anim { type: Anim.FastEffects }
+                    }
+                }
+
+                MouseArea {
+                    id: segMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: root.sectionSelected(delegateRoot.modelData.id)
                 }
             }

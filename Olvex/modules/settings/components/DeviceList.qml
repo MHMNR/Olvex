@@ -13,7 +13,22 @@ import Quickshell
 import Olvex.Config
 import qs.services
 
-ColumnLayout {
+
+    StyledRect {
+        id: highlightRect
+        x: colLayout.x + Tokens.padding.small
+        width: colLayout.width - (Tokens.padding.small * 2)
+        height: 40
+        radius: height / 2
+        color: Colours.palette.m3primary
+        
+        Behavior on y {
+            Anim { type: Anim.FastSpatial }
+        }
+    }
+
+    ColumnLayout {
+        id: colLayout
     id: root
 
     property Session session: null

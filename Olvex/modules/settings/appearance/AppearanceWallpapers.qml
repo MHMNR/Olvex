@@ -13,6 +13,7 @@ import QtQuick.Layouts
 import Olvex.Config
 import qs.services
 import qs.utils
+import qs.components.filedialog
 
 ColumnLayout {
     id: root
@@ -297,6 +298,27 @@ ColumnLayout {
         }
     }
     
+    readonly property FileDialog wallpaperDirPicker: FileDialog {
+        title: qsTr("Select Wallpaper Directory")
+        filterLabel: qsTr("Folders")
+        filters: ["*"]
+        initialCwd: ["Home", "Pictures", "Wallpapers"]
+        resetCwdOnOpen: true
+
+        onAccepted: path => {
+            let dirPath = path;
+            if (dirPath.includes(".")) {
+                const parts = dirPath.split("/");
+                parts.pop();
+                dirPath = parts.join("/");
+            }
+            GlobalConfig.paths.wallpaperDir = dirPath;
+            GlobalConfig.save();
+            Wallpapers.ensureCatalog();
+            Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Wallpaper directory updated"), qsTr("Set to %1").arg(dirPath)]);
+        }
+    }
+
     Section {
         Layout.fillWidth: true
         title: qsTr("Wallpaper Source")
@@ -307,28 +329,11 @@ ColumnLayout {
             title: qsTr("Default Directory")
             description: GlobalConfig.paths.wallpaperDir || qsTr("~/Pictures/Wallpapers")
             divider: false
-            ButtonBase {
-                implicitHeight: 36
-                color: Colours.palette.m3surfaceContainerHigh
-                radius: Tokens.rounding.normal
-                
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: Tokens.spacing.small
-                    MaterialIcon {
-                        text: "edit"
-                        color: Colours.palette.m3onSurface
-                        iconPointSize: Tokens.font.size.large
-                    }
-                    StyledText {
-                        text: qsTr("Change")
-                        color: Colours.palette.m3onSurface
-                    }
-                }
-                
-                onClicked: {
-                    console.log("Change wallpaper dir clicked");
-                }
+            IconTextButton {
+                icon: "edit"
+                text: qsTr("Change")
+                type: IconTextButton.Filled
+                onClicked: root.wallpaperDirPicker.open()
             }
         }
     }
