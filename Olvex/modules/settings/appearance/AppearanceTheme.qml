@@ -19,6 +19,29 @@ ColumnLayout {
     spacing: Tokens.spacing.large
     opacity: 0.0
     transform: Translate { y: 20; id: yTrans }
+    
+    readonly property var schemeModel: [
+        { name: "dynamic", flavour: "default", label: qsTr("Dynamic"), modes: ["light", "dark", "auto"] },
+        { name: "catppuccin", flavour: "mocha", label: qsTr("Catppuccin Mocha"), modes: ["dark"] },
+        { name: "catppuccin", flavour: "frappe", label: qsTr("Catppuccin Frappe"), modes: ["dark"] },
+        { name: "gruvbox", flavour: "medium", label: qsTr("Gruvbox"), modes: ["light", "dark", "auto"] },
+        { name: "rosepine", flavour: "main", label: qsTr("Rosé Pine"), modes: ["dark"] },
+        { name: "nord", flavour: "medium", label: qsTr("Nord"), modes: ["dark"] },
+        { name: "dracula", flavour: "medium", label: qsTr("Dracula"), modes: ["dark"] },
+        { name: "solarized", flavour: "medium", label: qsTr("Solarized"), modes: ["dark"] }
+    ]
+    
+    readonly property var currentScheme: {
+        const n = Colours.schemeName.toLowerCase();
+        const f = Colours.schemeFlavour.toLowerCase();
+        for (let i = 0; i < schemeModel.length; i++) {
+            if (schemeModel[i].name === n && schemeModel[i].flavour === f) return schemeModel[i];
+        }
+        for (let i = 0; i < schemeModel.length; i++) {
+            if (schemeModel[i].name === n) return schemeModel[i];
+        }
+        return schemeModel[0];
+    }
 
     Component.onCompleted: {
         revealAnim.start()
@@ -56,10 +79,11 @@ ColumnLayout {
             divider: true
 
             Segmented {
+                property var supportedModes: root.currentScheme ? root.currentScheme.modes : ["light", "dark", "auto"]
                 model: [
-                    { label: qsTr("Light"), icon: "light_mode" },
-                    { label: qsTr("Dark"), icon: "dark_mode" },
-                    { label: qsTr("Auto"), icon: "brightness_auto" }
+                    { label: qsTr("Light"), icon: "light_mode", disabled: !supportedModes.includes("light") },
+                    { label: qsTr("Dark"), icon: "dark_mode", disabled: !supportedModes.includes("dark") },
+                    { label: qsTr("Auto"), icon: "brightness_auto", disabled: !supportedModes.includes("auto") }
                 ]
                 currentIndex: root.modeIndex()
                 onSelected: i => {
@@ -70,9 +94,42 @@ ColumnLayout {
                 }
             }
         }
+
+        SettingRow {
+            title: qsTr("Scheme")
+            description: qsTr("Source of the color palette")
+            divider: true
+            OptionPicker {
+                id: schemePicker
+                model: root.schemeModel
+                currentIndex: {
+                    const n = Colours.schemeName.toLowerCase();
+                    const f = Colours.schemeFlavour.toLowerCase();
+                    for (let i = 0; i < model.length; i++) {
+                        if (model[i].name === n && model[i].flavour === f) return i;
+                    }
+                    for (let i = 0; i < model.length; i++) {
+                        if (model[i].name === n) return i;
+                    }
+                    return 0; // Default to Dynamic
+                }
+                onSelected: i => {
+                    const m = model[i];
+                    Colours.setSchemeName(m.name, m.flavour);
+                    
+                    if (m.modes && !m.modes.includes(GlobalConfig.appearance.themeMode)) {
+                        const next = m.modes.includes("dark") ? "dark" : (m.modes[0] || "dark");
+                        GlobalConfig.appearance.themeMode = next;
+                        GlobalConfig.save();
+                        Colours.setMode(next);
+                    }
+                }
+            }
+        }
         
         SettingRow {
-            title: qsTr("Scheme variant")
+            title: qsTr("Variant")
+            visible: Colours.schemeName.toLowerCase() === "dynamic"
             description: qsTr("Algorithm that maps the seed into a full palette")
             divider: false
             OptionPicker {

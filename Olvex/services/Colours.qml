@@ -20,6 +20,10 @@ Singleton {
 
     property string bootSchemeMode: "dark"
     readonly property string schemeMode: bootSchemeMode
+    property string bootSchemeName: "dynamic"
+    readonly property string schemeName: bootSchemeName
+    property string bootSchemeFlavour: "default"
+    readonly property string schemeFlavour: bootSchemeFlavour
     readonly property bool configLight: {
         const mode = GlobalConfig.appearance.themeMode;
         if (mode === "light") return true;
@@ -292,7 +296,9 @@ Singleton {
                 console.log("[Colours] bootPalette applyScheme failed");
             else {
                 bootSchemeMode = scheme.mode ?? "dark";
-                console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary}`);
+                bootSchemeName = scheme.name ?? "dynamic";
+                bootSchemeFlavour = scheme.flavour ?? "default";
+                console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary} (scheme: ${bootSchemeName} ${bootSchemeFlavour})`);
             }
         }
     }
@@ -329,14 +335,20 @@ Singleton {
         //   auto  → smart mode+variant from wallpaper
         //   light/dark → --scheme-mode + smart variant (same quality as auto-dark)
         // Do NOT scheme-set -v here — that forced expressive and nuked dark.
-        root.refreshThemePalette();
+        if (root.schemeName === "dynamic") {
+            root.refreshThemePalette();
+        } else {
+            let resolvedMode = mode;
+            if (resolvedMode === "auto") resolvedMode = "dark"; // Default to dark for static schemes on auto
+            schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-m", resolvedMode];
+            schemeSetProc.running = true;
+        }
     }
 
     Process {
         id: schemeSetProc
         onExited: {
-            // Variant / primary-color commits: re-extract so UI matches scheme state
-            root.refreshThemePalette();
+            // Variant changes are automatically handled by scheme.json FileView
         }
     }
 
@@ -400,8 +412,15 @@ Singleton {
     Connections {
         target: GlobalConfig.appearance
         function onThemeModeChanged() {
-            root.refreshThemePalette();
-            themeSchemePoll.kick();
+            if (root.schemeName === "dynamic") {
+                root.refreshThemePalette();
+                themeSchemePoll.kick();
+            } else {
+                let resolvedMode = GlobalConfig.appearance.themeMode;
+                if (resolvedMode === "auto") resolvedMode = "dark";
+                schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-m", resolvedMode];
+                schemeSetProc.running = true;
+            }
         }
         function onSchemeVariantChanged() {
             schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-v", GlobalConfig.appearance.schemeVariant];
@@ -411,6 +430,13 @@ Singleton {
             schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-c", GlobalConfig.appearance.primaryColor];
             schemeSetProc.running = true;
         }
+    }
+    
+    function setSchemeName(name, flavour = "") {
+        let cmd = ["olvex", "scheme", "set", "--notify", "-n", name];
+        if (flavour) cmd.push("-f", flavour);
+        schemeSetProc.command = cmd;
+        schemeSetProc.running = true;
     }
 
     Connections {

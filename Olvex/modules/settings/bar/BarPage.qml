@@ -166,17 +166,7 @@ Item {
                     }
                 }
             }
-            SettingRow {
-                title: qsTr("Occupied background")
-                description: qsTr("Backdrop behind workspaces that have windows")
-                StyledSwitch {
-                    checked: Config.bar.workspaces.occupiedBg
-                    onToggled: {
-                        GlobalConfig.bar.workspaces.occupiedBg = checked;
-                        GlobalConfig.save();
-                    }
-                }
-            }
+
             SettingRow {
                 title: qsTr("Show window icons")
                 description: qsTr("Display app icons for windows on each workspace")
@@ -233,8 +223,8 @@ Item {
                 }
             }
             SettingRow {
-                title: qsTr("Inverted colors")
-                description: qsTr("Swap foreground and background colors")
+                title: qsTr("Inverted text alignment")
+                description: qsTr("Invert the active window text alignment direction")
                 StyledSwitch {
                     checked: Config.bar.activeWindow.inverted
                     onToggled: {

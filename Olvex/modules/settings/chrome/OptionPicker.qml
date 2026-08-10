@@ -48,6 +48,7 @@ Item {
 
     function displayName(v): string {
         if (v === undefined || v === null || v === "") return qsTr("Default");
+        if (v.label !== undefined) return v.label;
         const s = String(v);
         const known = {
             "tonalspot": "Tonal Spot", "vibrant": "Vibrant",

@@ -54,7 +54,7 @@ StyledClippingRect {
     property real blur: onSpecial ? 1 : 0
 
     implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
+    implicitHeight: layout.implicitHeight + Tokens.padding.small * 2
 
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
@@ -65,12 +65,14 @@ StyledClippingRect {
         }
     }
 
+
+
     MouseArea {
         id: hoverArea
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width
-        height: Math.max(parent.height, root.expandedContentHeight + Tokens.padding.normal * 2)
+        height: Math.max(parent.height, root.expandedContentHeight + Tokens.padding.small * 2)
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
         propagateComposedEvents: true
@@ -102,7 +104,7 @@ StyledClippingRect {
             id: layout
 
             anchors.centerIn: parent
-            spacing: Math.floor(Tokens.spacing.small / 2)
+            spacing: Tokens.spacing.small
 
             Repeater {
                 id: wsRepeater

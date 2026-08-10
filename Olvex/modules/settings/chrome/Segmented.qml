@@ -38,6 +38,12 @@ Item {
             return "";
         return entry?.icon ?? "";
     }
+    
+    function isDisabled(entry): bool {
+        if (typeof entry === "string")
+            return false;
+        return !!entry?.disabled;
+    }
 
     readonly property bool hasIcons: {
         if (!model || model.length === 0)
@@ -112,17 +118,18 @@ Item {
 
                 delegate: Item {
                     id: cell
-
                     required property var modelData
                     required property int index
 
                     readonly property bool active: root.currentIndex === index
                     readonly property string label: root.labelOf(modelData)
                     readonly property string icon: root.iconOf(modelData)
+                    readonly property bool isDisabled: root.isDisabled(modelData)
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumWidth: root.resolvedSegmentWidth - root.inset
+                    opacity: isDisabled ? 0.35 : 1.0
 
                     Row {
                         anchors.centerIn: parent
@@ -169,9 +176,10 @@ Item {
                     MouseArea {
                         id: segMa
                         anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: !cell.isDisabled
+                        cursorShape: cell.isDisabled ? Qt.ForbiddenCursor : Qt.PointingHandCursor
                         onClicked: {
+                            if (cell.isDisabled) return;
                             if (root.currentIndex !== cell.index)
                                 root.selected(cell.index);
                         }

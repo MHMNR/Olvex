@@ -22,30 +22,45 @@ ColumnLayout {
     component StatusChip : StyledRect {
         id: chip
         required property string labelText
+        required property string iconText
         required property bool isChecked
         signal toggled()
 
-        implicitWidth: lbl.implicitWidth + Tokens.padding.large * 2
+        implicitWidth: content.implicitWidth + Tokens.padding.large * 2
         implicitHeight: 34
         radius: height / 2
-        color: isChecked ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHighest
+        color: isChecked ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest
 
         Behavior on color { CAnim {} }
 
-        StyledText {
-            id: lbl
+        Row {
+            id: content
             anchors.centerIn: parent
-            text: chip.labelText
-            color: chip.isChecked ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-            font.weight: chip.isChecked ? Font.Medium : Font.Normal
-            textPointSize: Tokens.font.size.small
+            spacing: Tokens.spacing.extraSmall
 
-            Behavior on color { CAnim {} }
+            MaterialIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                text: chip.iconText
+                iconPointSize: Tokens.font.size.normal
+                color: chip.isChecked ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                
+                Behavior on color { CAnim {} }
+            }
+
+            StyledText {
+                anchors.verticalCenter: parent.verticalCenter
+                text: chip.labelText
+                color: chip.isChecked ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                font.weight: chip.isChecked ? Font.Medium : Font.Normal
+                textPointSize: Tokens.font.size.small
+
+                Behavior on color { CAnim {} }
+            }
         }
 
         StateLayer {
             radius: parent.radius
-            color: Colours.palette.m3onPrimaryContainer
+            color: chip.isChecked ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
             onClicked: chip.toggled()
         }
     }
@@ -105,52 +120,61 @@ ColumnLayout {
 
         // Chips are in the control slot (right side) — matches SS3 design
         SettingRow {
+            id: indicatorRow
             title: qsTr("Visible indicators")
             description: qsTr("Select which system icons to display")
             descriptionColor: Qt.alpha(root.accent, 0.65)
             divider: false
 
             Flow {
-                width: 300
+                width: Math.max(200, indicatorRow.width * 0.60) // Takes up 60% of row width dynamically
                 spacing: Tokens.spacing.small
 
                 StatusChip {
                     labelText: qsTr("Speakers")
+                    iconText: "volume_up"
                     isChecked: Config.bar.status.showAudio
                     onToggled: { GlobalConfig.bar.status.showAudio = !Config.bar.status.showAudio; GlobalConfig.save(); }
                 }
                 StatusChip {
                     labelText: qsTr("Microphone")
+                    iconText: "mic"
                     isChecked: Config.bar.status.showMicrophone
                     onToggled: { GlobalConfig.bar.status.showMicrophone = !Config.bar.status.showMicrophone; GlobalConfig.save(); }
                 }
                 StatusChip {
                     labelText: qsTr("Keyboard")
+                    iconText: "keyboard"
                     isChecked: Config.bar.status.showKbLayout
                     onToggled: { GlobalConfig.bar.status.showKbLayout = !Config.bar.status.showKbLayout; GlobalConfig.save(); }
                 }
                 StatusChip {
                     labelText: qsTr("Network")
+                    iconText: "lan"
                     isChecked: Config.bar.status.showNetwork
                     onToggled: { GlobalConfig.bar.status.showNetwork = !Config.bar.status.showNetwork; GlobalConfig.save(); }
                 }
                 StatusChip {
                     labelText: qsTr("Wifi")
+                    iconText: "wifi"
                     isChecked: Config.bar.status.showWifi
                     onToggled: { GlobalConfig.bar.status.showWifi = !Config.bar.status.showWifi; GlobalConfig.save(); }
                 }
                 StatusChip {
                     labelText: qsTr("Bluetooth")
+                    iconText: "bluetooth"
                     isChecked: Config.bar.status.showBluetooth
                     onToggled: { GlobalConfig.bar.status.showBluetooth = !Config.bar.status.showBluetooth; GlobalConfig.save(); }
                 }
                 StatusChip {
                     labelText: qsTr("Battery")
+                    iconText: "battery_charging_full"
                     isChecked: Config.bar.status.showBattery
                     onToggled: { GlobalConfig.bar.status.showBattery = !Config.bar.status.showBattery; GlobalConfig.save(); }
                 }
                 StatusChip {
                     labelText: qsTr("Capslock")
+                    iconText: "keyboard_capslock"
                     isChecked: Config.bar.status.showLockStatus
                     onToggled: { GlobalConfig.bar.status.showLockStatus = !Config.bar.status.showLockStatus; GlobalConfig.save(); }
                 }

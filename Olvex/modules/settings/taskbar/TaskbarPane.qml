@@ -400,39 +400,7 @@ Item {
                                 }
                             }
 
-                            StyledRect {
-                                Layout.fillWidth: true
-                                implicitHeight: workspacesOccupiedBgRow.implicitHeight + Tokens.padding.large * 2
-                                radius: Tokens.rounding.normal
-                                color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
 
-                                Behavior on implicitHeight {
-                                    Anim {}
-                                }
-
-                                RowLayout {
-                                    id: workspacesOccupiedBgRow
-
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.margins: Tokens.padding.large
-                                    spacing: Tokens.spacing.normal
-
-                                    StyledText {
-                                        Layout.fillWidth: true
-                                        text: qsTr("Occupied background")
-                                    }
-
-                                    StyledSwitch {
-                                        checked: root.workspacesOccupiedBg
-                                        onToggled: {
-                                            root.workspacesOccupiedBg = checked;
-                                            root.saveConfig();
-                                        }
-                                    }
-                                }
-                            }
 
                             StyledRect {
                                 Layout.fillWidth: true

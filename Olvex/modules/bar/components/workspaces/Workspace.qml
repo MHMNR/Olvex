@@ -31,14 +31,16 @@ Item {
     // Always reflects the "if fully expanded" height, regardless of current
     // showDetail state — Workspaces.qml sums these for the hover hit-region,
     // which must not lag behind the (springy, animated) visual size.
-    readonly property int detailHeight: labelHeight + (hasWindows ? (windows.item?.implicitHeight ?? 0) + Tokens.padding.small : 0)
+    readonly property int detailHeight: (isCurrent || hasWindows) ? (labelHeight + (hasWindows ? (windows.item?.implicitHeight ?? 0) + Tokens.padding.small : 0)) : Math.max(detailCol.implicitHeight, collapsedHeight)
     readonly property int collapsedHeight: isOccupied ? dotDiameter : ringDiameter
 
     // Unanimated prop for others (ActiveIndicator) to use as reference
-    readonly property int size: showDetail ? detailHeight : collapsedHeight
+    readonly property int size: (showDetail && (isCurrent || hasWindows)) ? detailHeight : collapsedHeight
 
     Layout.alignment: Qt.AlignHCenter
     Layout.preferredHeight: size
+    Layout.topMargin: index === 0 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (Layout.preferredHeight / 2) - Tokens.padding.small) : 0
+    Layout.bottomMargin: index === Config.bar.workspaces.shown - 1 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (Layout.preferredHeight / 2) - Tokens.padding.small) : 0
     implicitWidth: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
 
     Behavior on Layout.preferredHeight {
@@ -49,8 +51,7 @@ Item {
 
     // ── Collapsed: occupied dot or empty ring ───────────────────────
     Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
+        anchors.centerIn: parent
         width: root.collapsedHeight
         height: width
         radius: width / 2
@@ -83,8 +84,7 @@ Item {
     ColumnLayout {
         id: detailCol
 
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
+        anchors.centerIn: parent
         spacing: 0
 
         opacity: root.showDetail ? 1 : 0
@@ -107,7 +107,6 @@ Item {
             id: labelText
 
             Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-            Layout.preferredHeight: root.labelHeight
 
             animate: true
             text: {
@@ -134,7 +133,6 @@ Item {
             asynchronous: true
 
             Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: -Tokens.sizes.bar.innerWidth / 10
 
             // Stays loaded whenever occupied (not gated on showDetail) so its
             // height is always known for detailHeight above — visibility is
