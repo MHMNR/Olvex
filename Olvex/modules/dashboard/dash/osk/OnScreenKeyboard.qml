@@ -326,14 +326,12 @@ Item {
         opacity: 1 // ALWAYS opaque to prevent fade-in jump
         color: "transparent"
         
-        // Morphs from the gear icon and expands downwards, overlaying the keys. Height is capped so it doesn't clip off-screen.
         // Morphs from the gear icon and expands downwards
-        // Morphs from the gear icon and expands downwards
-        x: oskHeader.x + headerLeftRow.x + settingsBtn.x + oskLayoutContainer.x
-        y: oskHeader.y + headerLeftRow.y + settingsBtn.y + oskLayoutContainer.y
+        x: Math.round(oskHeader.x + headerLeftRow.x + settingsBtn.x + oskLayoutContainer.x)
+        y: Math.round(oskHeader.y + headerLeftRow.y + settingsBtn.y + oskLayoutContainer.y)
         
         width: root.showingSettings ? 340 : 32
-        height: root.showingSettings ? Math.min(settingsPanel.maxImplicitHeight, oskLayoutContainer.height - (headerLeftRow.y + settingsBtn.y)) : 32
+        height: Math.round(root.showingSettings ? Math.min(settingsPanel.maxImplicitHeight, oskLayoutContainer.height - (headerLeftRow.y + settingsBtn.y)) : 32)
         radius: root.showingSettings ? 24 : 8
         clip: true
         

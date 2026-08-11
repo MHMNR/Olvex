@@ -103,7 +103,7 @@ Item {
             border.width: textField.activeFocus ? 2 : 0
 
             Behavior on border.color { CAnim {} }
-            Behavior on Layout.preferredWidth { CAnim { duration: Tokens.anim.durations.short } }
+            Behavior on Layout.preferredWidth { Anim {} }
 
             StyledTextField {
                 id: textField

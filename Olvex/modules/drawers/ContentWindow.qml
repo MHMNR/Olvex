@@ -56,8 +56,8 @@ StyledWindow {
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : safeBorder.thickness
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
-    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible)
     readonly property bool shellMotionActive: shellMotionGrace.running
+    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (shellMotionActive || morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible)
 
     property real bottomBorderHeight: {
         if (hasFullscreen)

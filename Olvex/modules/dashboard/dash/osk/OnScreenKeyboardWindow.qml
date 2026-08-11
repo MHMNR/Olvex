@@ -63,8 +63,8 @@ PanelWindow {
     WlrLayershell.layer: isDocked && visibilities.osk ? WlrLayer.Top : WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     
-    property real floatingX: (screen.width - (osk ? osk.implicitWidth : 800)) / 2
-    property real floatingY: screen.height - (osk ? osk.implicitHeight : 350) - 40
+    property real floatingX: Math.round((screen.width - (osk ? osk.implicitWidth : 800)) / 2)
+    property real floatingY: Math.round(screen.height - (osk ? osk.implicitHeight : 350) - 40)
     property real startX: 0
     property real startY: 0
     
@@ -85,14 +85,14 @@ PanelWindow {
         layer.enabled: osk.showingSettings
         layer.smooth: true
         
-        readonly property real offScreenY: screen.height + 160
-        readonly property real dockedY: screen.height - implicitHeight - 3
+        readonly property real offScreenY: Math.round(screen.height + 160)
+        readonly property real dockedY: Math.round(screen.height - implicitHeight - 3)
         readonly property real dockedX: 3
         
-        x: dockedX + (floatingX - dockedX) * (1.0 - dockProgress)
+        x: Math.round(dockedX + (floatingX - dockedX) * (1.0 - dockProgress))
         
         readonly property real currentActiveY: dockedY + (floatingY - dockedY) * (1.0 - dockProgress)
-        y: offScreenY + (currentActiveY - offScreenY) * root.entranceProgress
+        y: Math.round(offScreenY + (currentActiveY - offScreenY) * root.entranceProgress)
         
         width: implicitWidth + (parent.width - 6 - implicitWidth) * dockProgress
         

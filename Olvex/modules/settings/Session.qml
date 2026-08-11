@@ -30,7 +30,7 @@ QtObject {
     readonly property LauncherState launcher: LauncherState {}
     readonly property VpnState vpn: VpnState {}
 
-    // Alias used by older ControlCenter / NavRail: session.root
+    // Alias used by SettingsWindow / NavRail: session.root
     readonly property var root: rootItem
 
     property bool _syncingActive: false

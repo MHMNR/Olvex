@@ -1,5 +1,5 @@
 import ".."
-import "../chrome"
+import "../ui"
 import "../components"
 import "../../../components"
 import "../../../components/controls"
@@ -72,19 +72,7 @@ ColumnLayout {
         icon: "ads_click"
         accentColor: root.accent
 
-        SettingRow {
-            title: qsTr("Active window popout")
-            description: qsTr("Expand active window title menu on click")
-            descriptionColor: Qt.alpha(root.accent, 0.65)
-            divider: true
-            StyledSwitch {
-                checked: Config.bar.popouts.activeWindow ?? false
-                onToggled: {
-                    GlobalConfig.bar.popouts.activeWindow = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
+
 
         SettingRow {
             title: qsTr("Tray popout")

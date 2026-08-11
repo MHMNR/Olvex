@@ -330,6 +330,10 @@ Item {
                 keyNavigationEnabled: true
                 highlightFollowsCurrentItem: false
                 currentIndex: root.currentIndex
+
+                StyledScrollBar.vertical: StyledScrollBar {
+                    flickable: list
+                }
                 
                 property int hoveredIndex: -1
 

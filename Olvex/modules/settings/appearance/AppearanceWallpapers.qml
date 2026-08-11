@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 
 import ".."
-import "../chrome"
+import "../ui"
 import "../components"
 import "../../../components"
 import "../../olvex/settings/components" as OlvexWp

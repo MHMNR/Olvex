@@ -12,7 +12,7 @@ Singleton {
     id: root
 
     function create(parent: Item, props: var): void {
-        controlCenter.createObject(parent ?? dummy, props);
+        settingsWindow.createObject(parent ?? dummy, props);
     }
 
     QtObject {
@@ -20,7 +20,7 @@ Singleton {
     }
 
     Component {
-        id: controlCenter
+        id: settingsWindow
 
         FloatingWindow {
             id: win
@@ -29,9 +29,8 @@ Singleton {
             property alias navExpanded: cc.navExpanded
             property alias currentId: cc.currentId
 
-            // Transparent only for rounded-corner chrome; CC root paints solid m3surface.
-            // Do not use a translucent window color — that was desktop bleed / white glass.
-            color: "transparent"
+            // Solid opaque surface matching theme mode; Hyprland natively clips window corners.
+            color: Colours.palette.m3surface
 
             onVisibleChanged: {
                 if (!visible)
@@ -55,7 +54,7 @@ Singleton {
                 return qsTr("Olvex Settings - %1").arg(name);
             }
 
-            ControlCenter {
+            SettingsWindow {
                 id: cc
 
                 anchors.fill: parent

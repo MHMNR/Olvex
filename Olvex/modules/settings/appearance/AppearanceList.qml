@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 
 import ".."
-import "../chrome"
+import "../ui"
 import "../components"
 import "../../../components"
 import "../../../components/controls"
@@ -47,16 +47,6 @@ Item {
         anchors.fill: parent
         anchors.margins: Tokens.padding.small
         spacing: Tokens.spacing.extraSmall
-
-        StyledText {
-            text: qsTr("Appearance")
-            font.weight: Font.DemiBold
-            color: Colours.palette.m3onSurface
-            textPointSize: Tokens.font.size.normal
-            Layout.fillWidth: true
-            Layout.leftMargin: Tokens.padding.small
-            Layout.bottomMargin: Tokens.padding.smaller
-        }
 
         Repeater {
             model: root.sections

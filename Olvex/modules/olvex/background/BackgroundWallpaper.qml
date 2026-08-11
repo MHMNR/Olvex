@@ -316,7 +316,7 @@ Item {
     Image {
         id: primaryImage
         anchors.fill: parent
-        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && !root.effectActive && root.showingPrimary && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
+        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && (root.showingPrimary || root.effectActive) && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
         asynchronous: true
@@ -332,7 +332,7 @@ Item {
         id: secondaryImage
 
         anchors.fill: parent
-        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && !root.effectActive && !root.showingPrimary && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
+        visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && (!root.showingPrimary || root.effectActive) && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
         asynchronous: true

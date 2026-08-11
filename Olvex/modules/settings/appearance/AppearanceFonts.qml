@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 
 import ".."
-import "../chrome"
+import "../ui"
 import "../components"
 import "../../../components"
 import "../../../components/controls"
@@ -14,11 +14,16 @@ import Olvex.Config
 import qs.services
 import qs.components.filedialog
 import qs.utils
+import Quickshell
+import Quickshell.Io
 
 ColumnLayout {
     id: root
     
     property Session session
+    property var allFonts: Qt.fontFamilies()
+    property string installPath: ""
+    property string pendingFontName: ""
     spacing: Tokens.spacing.large
 
     function idxOf(list, val) {
@@ -28,6 +33,38 @@ ColumnLayout {
         return 0;
     }
 
+    Process {
+        id: installProc
+        command: ["bash", "-c", `mkdir -p ~/.local/share/fonts && cp '${root.installPath}' ~/.local/share/fonts/ && fc-cache -f`]
+        onExited: {
+            Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Font Installed"), qsTr("Successfully installed %1").arg(root.pendingFontName)]);
+            fontListProc.running = true;
+        }
+    }
+
+    Process {
+        id: fontListProc
+        command: ["bash", "-c", "fc-list : family | awk -F, '{print $1}' | sort | uniq"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim() !== "") {
+                    let fonts = text.trim().split("\n");
+                    let all = Array.from(Qt.fontFamilies());
+                    for (let i = 0; i < fonts.length; i++) {
+                        let f = fonts[i].trim();
+                        if (f && !all.includes(f)) all.push(f);
+                    }
+                    all.sort((a, b) => a.localeCompare(b));
+                    root.allFonts = all;
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        fontListProc.running = true;
+    }
+
     readonly property FileDialog fontPicker: FileDialog {
         title: qsTr("Select Font File")
         filterLabel: qsTr("Font Files (*.ttf, *.otf)")
@@ -35,11 +72,17 @@ ColumnLayout {
         initialCwd: ["Home"]
 
         onAccepted: path => {
-            const fontDir = `${Paths.home}/.local/share/fonts`;
-            Quickshell.execDetached(["mkdir", "-p", fontDir]);
-            Quickshell.execDetached(["cp", path, fontDir]);
-            Quickshell.execDetached(["fc-cache", "-f"]);
-            Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Font Installed"), qsTr("Copied %1 to ~/.local/share/fonts").arg(path)]);
+            let urlPath = path;
+            if (urlPath.startsWith("file://")) {
+                urlPath = urlPath.substring(7);
+            }
+            root.installPath = urlPath;
+            let srcName = urlPath.split('/').pop().replace(/\.(ttf|otf)$/i, "");
+            root.pendingFontName = srcName;
+            Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Installing Font"), qsTr("Copying %1...").arg(srcName)]);
+            
+            installProc.running = false;
+            installProc.running = true;
         }
     }
 
@@ -55,7 +98,7 @@ ColumnLayout {
             OptionPicker {
                 id: sansPicker
                 menuMaxHeight: 360
-                model: Qt.fontFamilies()
+                model: root.allFonts
                 currentIndex: {
                     const cur = GlobalConfig.appearance.font.family.sans || "Rubik";
                     return root.idxOf(sansPicker.model, cur);
@@ -74,7 +117,7 @@ ColumnLayout {
                 id: monoPicker
                 menuMaxHeight: 360
                 model: {
-                    const all = Qt.fontFamilies();
+                    const all = root.allFonts;
                     const mono = all.filter(f => /mono|code|consolas|jetbrains|fira|iosevka|hack|source code|cascadia|caskaydia|nerd|sf mono|ubuntu mono|dejavu sans mono|droid sans mono|liberation mono|comic mono|maple|victor|inconsolata|anonymous|courier|menlo|monaco/i.test(f));
                     return mono.length > 0 ? mono : all;
                 }
@@ -95,7 +138,7 @@ ColumnLayout {
             OptionPicker {
                 id: clockPicker
                 menuMaxHeight: 360
-                model: Qt.fontFamilies()
+                model: root.allFonts
                 currentIndex: {
                     const cur = GlobalConfig.appearance.font.family.clock || "Rubik";
                     return root.idxOf(clockPicker.model, cur);

@@ -319,7 +319,7 @@ Searcher {
         const schemeFlags = schemeModeArg.join(" ");
         const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot").replace(/'/g, "'\\''");
         Quickshell.execDetached(["bash", "-lc",
-            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' --variant '${variant}' ${smartFlags} ${schemeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}'; fi`]);
+            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' --variant '${variant}' ${smartFlags} ${schemeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}' --transition-type fade --transition-step 20 --transition-fps 60; fi`]);
     }
 
     function persistSchemePayload(payload: string): void {
@@ -450,7 +450,7 @@ Searcher {
         const smartFlags = smartArg.join(" ");
         const schemeFlags = schemeModeArg.join(" ");
         return ["bash", "-lc",
-            `if command -v swww >/dev/null 2>&1; then swww img --outputs '${mon}' '${img}'; fi; ` +
+            `if command -v swww >/dev/null 2>&1; then swww img --outputs '${mon}' '${img}' --transition-type fade --transition-step 20 --transition-fps 60; fi; ` +
             `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${img}' ${smartFlags} ${schemeFlags}; fi`];
     }
 

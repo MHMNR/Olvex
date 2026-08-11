@@ -17,7 +17,7 @@ FocusScope {
 
     readonly property alias content: content
     readonly property alias winfo: winfo
-    readonly property alias controlCenter: controlCenter
+    readonly property alias settingsWindow: settingsWindow
 
     readonly property real nonAnimWidth: children.find(c => c.shouldBeActive)?.implicitWidth ?? content.implicitWidth
     readonly property real nonAnimHeight: children.find(c => c.shouldBeActive)?.implicitHeight ?? content.implicitHeight
@@ -127,12 +127,12 @@ FocusScope {
     }
 
     Comp {
-        id: controlCenter
+        id: settingsWindow
 
         shouldBeActive: root.detachedMode === "any"
         anchors.centerIn: parent
 
-        sourceComponent: ControlCenter {
+        sourceComponent: SettingsWindow {
             screen: root.screen
             active: root.queuedMode
             onClose: root.close()

@@ -1,6 +1,6 @@
 
 import ".."
-import "../chrome"
+import "../ui"
 import "../components"
 import "../../../components"
 import "../../../components/controls"

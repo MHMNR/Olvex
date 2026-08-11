@@ -14,6 +14,8 @@ Singleton {
     id: root
 
     // ── Palette ─────────────────────────────────────
+    property bool themeTransitioning: false
+
     M3ExpressivePalette {
         id: bootPalette
     }
@@ -292,6 +294,7 @@ Singleton {
         }
         console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"}, ${Object.keys(scheme.colours ?? {}).length} scheme keys → ${Object.keys(Mapper.PALETTE_PROPS).length} QML tokens)`);
         if (!isPreview) {
+            root.themeTransitioning = true;
             if (!bootPalette.applyScheme(scheme))
                 console.log("[Colours] bootPalette applyScheme failed");
             else {
@@ -300,6 +303,7 @@ Singleton {
                 bootSchemeFlavour = scheme.flavour ?? "default";
                 console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary} (scheme: ${bootSchemeName} ${bootSchemeFlavour})`);
             }
+            Qt.callLater(() => { root.themeTransitioning = false; });
         }
     }
 

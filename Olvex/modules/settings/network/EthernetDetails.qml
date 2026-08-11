@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import Olvex.Config
 import qs.services
 import ".."
-import "../chrome"
+import "../ui"
 import "../../../components"
 import "../../../components/controls"
 import "../../../components/containers"

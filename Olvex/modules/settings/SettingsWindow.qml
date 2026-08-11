@@ -6,13 +6,14 @@ import "../../components/containers"
 import ".."
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import Quickshell
 import Olvex.Config
 import qs.components
 import qs.components.controls
 import qs.services
 import qs.modules.settings
-import "chrome" as Chrome
+import "ui" as Chrome
 
 Item {
     id: root
@@ -29,22 +30,19 @@ Item {
     readonly property Session session: Session {
         id: session
         rootItem: root
-        }
+    }
 
     signal close
 
-    // Floating: roomy bento. Bar popout: token-sized shell host.
-    implicitWidth: root.floating ? 1040 : screen.height * Tokens.sizes.controlCenter.heightMult * Tokens.sizes.controlCenter.ratio
-    implicitHeight: root.floating ? (76 + (5 * 126 + 4 * Tokens.spacing.large) + Tokens.padding.large * 3) : screen.height * Tokens.sizes.controlCenter.heightMult
+    // Floating default size: spacious bento (1160x880)
+    implicitWidth: root.floating ? 1160 : screen.height * Tokens.sizes.settings.heightMult * Tokens.sizes.settings.ratio
+    implicitHeight: root.floating ? 880 : screen.height * Tokens.sizes.settings.heightMult
 
     // ── surface: opaque palette (not tPalette glass) ───────────────────
-    // Floating settings must be fully readable; glass + transparent win
-    // let desktop bleed through the whole page ("white overlay" bug).
     StyledRect {
         anchors.fill: parent
-        radius: root.floating ? root.rounding : 0
+        radius: 0
         color: Colours.palette.m3surface
-        clip: true
 
         // ── top bar ─────────────────────────────────────────────────────
         Item {

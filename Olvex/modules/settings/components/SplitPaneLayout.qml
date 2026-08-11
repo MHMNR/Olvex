@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 
 
 import ".."
-import "../chrome"
+import "../ui"
 import "."
 import "../../../components"
 import "../../../components/controls"

@@ -98,7 +98,7 @@ def get_smart_opts(wall: Path, cache: Path) -> dict:
     return opts
 
 
-def get_colours_for_wall(wall: Path | str, no_smart: bool, force_mode: str | None = None) -> dict:
+def get_colours_for_wall(wall: Path | str, no_smart: bool, force_mode: str | None = None, force_variant: str | None = None) -> dict:
     """Extract M3 palette for a wallpaper.
 
     force_mode: \"light\" | \"dark\" — lock scheme mode (UI themeMode light/dark).
@@ -125,6 +125,9 @@ def get_colours_for_wall(wall: Path | str, no_smart: bool, force_mode: str | Non
         variant = smart_opts["variant"]
         if force_mode not in ("light", "dark"):
             mode = smart_opts["mode"]
+
+    if force_variant is not None:
+        variant = force_variant
 
     scheme = Scheme(
         {
@@ -163,7 +166,7 @@ def convert_gif(wall: Path) -> Path:
     return output_path
 
 
-def set_wallpaper(wall: Path, no_smart: bool, force_mode: str | None = None) -> None:
+def set_wallpaper(wall: Path, no_smart: bool, force_mode: str | None = None, force_variant: str | None = None) -> None:
     # Make path absolute
     wall = Path(wall).resolve()
 
@@ -197,6 +200,9 @@ def set_wallpaper(wall: Path, no_smart: bool, force_mode: str | None = None) -> 
         scheme.variant = smart_opts["variant"]
     elif force_mode in ("light", "dark"):
         scheme.mode = force_mode
+
+    if force_variant is not None:
+        scheme.variant = force_variant
 
     # Update colours
     scheme.update_colours()

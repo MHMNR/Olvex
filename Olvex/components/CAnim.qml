@@ -1,7 +1,8 @@
 import QtQuick
 import Olvex.Config
+import qs.services
 
 ColorAnimation {
-    duration: Tokens.anim.durations.normal
+    duration: Colours.themeTransitioning ? 0 : Tokens.anim.durations.normal
     easing: Tokens.anim.standard
 }
