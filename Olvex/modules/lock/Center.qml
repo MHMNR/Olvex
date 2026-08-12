@@ -285,7 +285,7 @@ ColumnLayout {
                     color: Colours.layer(Colours.current.m3primaryContainer, 1)
 
                     Anim on rotation {
-                        running: root.lock.pam.isVerifying
+                        running: true
                         from: 360
                         to: 0
                         duration: 20000
@@ -308,7 +308,7 @@ ColumnLayout {
                         color: "white"
 
                         Anim on rotation {
-                            running: root.lock.pam.isVerifying
+                            running: true
                             from: 360
                             to: 0
                             duration: 20000

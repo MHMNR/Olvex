@@ -103,7 +103,6 @@ Scope {
 
             if (res === PamResult.Success) {
                 root.lock.unlock();
-                LockState.locked = false;
                 return;
             }
 

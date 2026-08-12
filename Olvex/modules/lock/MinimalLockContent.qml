@@ -1409,7 +1409,7 @@ Item {
 
                         Timer {
                             interval: 16
-                            running: root.pam.isVerifying
+                            running: true
                             repeat: true
                             onTriggered: avatarHost.spin = (avatarHost.spin - avatarHost.spinStep + 360) % 360
                         }
