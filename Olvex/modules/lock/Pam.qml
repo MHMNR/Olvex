@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
 import Olvex.Config
+import qs.services
 
 Scope {
     id: root
@@ -16,26 +17,30 @@ Scope {
     property string state
     property string fprintState
     property string buffer
-    property bool isSubmitting: false
+    property bool isVerifying: false
 
     signal flashMsg
 
     function submit(): void {
-        if (isSubmitting || state === "max")
+        if (isVerifying || state === "max" || !buffer)
             return;
 
-        if (!buffer)
-            return;
+        isVerifying = true;
+        if (fprint.active)
+            fprint.abort();
 
-        isSubmitting = true;
-        fprint.abort();
-        passwd.abort();
         passwdTimeoutTimer.restart();
-        passwd.start();
+
+        if (passwd.responseRequired) {
+            passwd.respond(root.buffer);
+            root.buffer = "";
+        } else {
+            passwd.start();
+        }
     }
 
     function handleKey(event: KeyEvent): void {
-        if (isSubmitting || state === "max")
+        if (isVerifying || state === "max")
             return;
 
         if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
@@ -57,8 +62,8 @@ Scope {
         interval: 5000
         repeat: false
         onTriggered: {
-            if (isSubmitting) {
-                isSubmitting = false;
+            if (isVerifying) {
+                isVerifying = false;
                 passwd.abort();
                 root.state = "fail";
                 root.buffer = "";
@@ -86,17 +91,21 @@ Scope {
             if (!responseRequired)
                 return;
 
-            if (root.isSubmitting) {
+            if (root.isVerifying && root.buffer) {
                 respond(root.buffer);
                 root.buffer = "";
             }
         }
 
         onCompleted: res => {
-            root.isSubmitting = false;
+            root.isVerifying = false;
             passwdTimeoutTimer.stop();
-            if (res === PamResult.Success)
-                return root.lock.unlock();
+
+            if (res === PamResult.Success) {
+                root.lock.unlock();
+                LockState.locked = false;
+                return;
+            }
 
             passwd.abort();
 
@@ -131,7 +140,7 @@ Scope {
             start();
         }
 
-        config: "fprint"
+        config: available && GlobalConfig.lock.enableFprint ? "fprint" : ""
         configDirectory: Quickshell.shellDir + "/assets/pam.d"
 
         onCompleted: res => {

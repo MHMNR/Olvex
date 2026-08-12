@@ -106,13 +106,13 @@ WlSessionLockSurface {
 
         ScriptAction { script: backdropFadeOut.start() }
 
-        // Wait for all staggered card exits to finish (5×70ms stagger + 650ms exit)
-        PauseAnimation { duration: 1050 }
+        PauseAnimation { duration: root.effectiveStyle === "minimal" ? 250 : 400 }
 
-        PropertyAction {
-            target: root.lock
-            property: "locked"
-            value: false
+        ScriptAction {
+            script: {
+                LockState.locked = false;
+                root.lock.locked = false;
+            }
         }
     }
 

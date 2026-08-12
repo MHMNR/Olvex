@@ -39,7 +39,7 @@ Item {
         anchors.centerIn: parent
 
         text: {
-            if (root.pam.isSubmitting)
+            if (root.pam.isVerifying)
                 return qsTr("Verifying...");
             if (root.pam.state === "max")
                 return qsTr("You have reached the maximum number of tries");
@@ -47,7 +47,7 @@ Item {
         }
 
         animate: true
-        color: root.pam.isSubmitting ? Colours.palette.m3secondary : Colours.palette.m3outline
+        color: root.pam.isVerifying ? Colours.palette.m3secondary : Colours.palette.m3outline
         textPointSize: Tokens.font.size.normal
         font.family: Tokens.font.family.mono
 

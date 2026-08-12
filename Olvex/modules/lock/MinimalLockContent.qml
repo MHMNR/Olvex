@@ -1409,7 +1409,7 @@ Item {
 
                         Timer {
                             interval: 16
-                            running: true
+                            running: root.pam.isVerifying
                             repeat: true
                             onTriggered: avatarHost.spin = (avatarHost.spin - avatarHost.spinStep + 360) % 360
                         }
@@ -1593,13 +1593,13 @@ Item {
                                         ? Colours.palette.m3error
                                         : Colours.palette.m3onSurfaceVariant
                                     iconPointSize: Tokens.font.size.normal
-                                    opacity: root.pam.isSubmitting ? 0 : 1
+                                    opacity: root.pam.isVerifying ? 0 : 1
                                     Behavior on opacity { Anim {} }
                                 }
 
                                 CircularIndicator {
                                     anchors.fill: parent
-                                    running: root.pam.isSubmitting
+                                    running: root.pam.isVerifying
                                 }
                             }
 

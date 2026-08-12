@@ -285,7 +285,7 @@ ColumnLayout {
                     color: Colours.layer(Colours.current.m3primaryContainer, 1)
 
                     Anim on rotation {
-                        running: true
+                        running: root.lock.pam.isVerifying
                         from: 360
                         to: 0
                         duration: 20000
@@ -308,7 +308,7 @@ ColumnLayout {
                         color: "white"
 
                         Anim on rotation {
-                            running: true
+                            running: root.lock.pam.isVerifying
                             from: 360
                             to: 0
                             duration: 20000
@@ -392,13 +392,13 @@ ColumnLayout {
                                 return "lock";
                             }
                             color: root.lock.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                            opacity: root.lock.pam.isSubmitting ? 0 : 1
+                            opacity: root.lock.pam.isVerifying ? 0 : 1
                             Behavior on opacity { Anim {} }
                         }
 
                         CircularIndicator {
                             anchors.fill: parent
-                            running: root.lock.pam.isSubmitting
+                            running: root.lock.pam.isVerifying
                         }
                     }
 
