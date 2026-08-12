@@ -24,18 +24,14 @@ Scope {
         if (isSubmitting || state === "max")
             return;
 
+        if (!buffer)
+            return;
+
         isSubmitting = true;
         fprint.abort();
+        passwd.abort();
         passwdTimeoutTimer.restart();
-
-        if (!passwd.active) {
-            passwd.start();
-        }
-
-        if (passwd.responseRequired) {
-            passwd.respond(root.buffer);
-            root.buffer = "";
-        }
+        passwd.start();
     }
 
     function handleKey(event: KeyEvent): void {
@@ -101,6 +97,8 @@ Scope {
             passwdTimeoutTimer.stop();
             if (res === PamResult.Success)
                 return root.lock.unlock();
+
+            passwd.abort();
 
             if (res === PamResult.Error)
                 root.state = "error";
