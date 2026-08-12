@@ -16,15 +16,34 @@ Scope {
     property string state
     property string fprintState
     property string buffer
+    property bool isSubmitting: false
 
     signal flashMsg
 
+    function submit(): void {
+        if (isSubmitting || state === "max")
+            return;
+
+        isSubmitting = true;
+        fprint.abort();
+        passwdTimeoutTimer.restart();
+
+        if (!passwd.active) {
+            passwd.start();
+        }
+
+        if (passwd.responseRequired) {
+            passwd.respond(root.buffer);
+            root.buffer = "";
+        }
+    }
+
     function handleKey(event: KeyEvent): void {
-        if (passwd.active || state === "max")
+        if (isSubmitting || state === "max")
             return;
 
         if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-            passwd.start();
+            submit();
         } else if (event.key === Qt.Key_Backspace) {
             if (event.modifiers & Qt.ControlModifier) {
                 buffer = "";
@@ -34,6 +53,23 @@ Scope {
         } else if (" abcdefghijklmnopqrstuvwxyz1234567890`~!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?".includes(event.text.toLowerCase())) {
             // No illegal characters (you are insane if you use unicode in your password)
             buffer += event.text;
+        }
+    }
+
+    Timer {
+        id: passwdTimeoutTimer
+        interval: 5000
+        repeat: false
+        onTriggered: {
+            if (isSubmitting) {
+                isSubmitting = false;
+                passwd.abort();
+                root.state = "fail";
+                root.buffer = "";
+                root.flashMsg();
+                stateReset.restart();
+                fprint.checkAvail();
+            }
         }
     }
 
@@ -54,11 +90,15 @@ Scope {
             if (!responseRequired)
                 return;
 
-            respond(root.buffer);
-            root.buffer = "";
+            if (root.isSubmitting) {
+                respond(root.buffer);
+                root.buffer = "";
+            }
         }
 
         onCompleted: res => {
+            root.isSubmitting = false;
+            passwdTimeoutTimer.stop();
             if (res === PamResult.Success)
                 return root.lock.unlock();
 
@@ -71,6 +111,7 @@ Scope {
 
             root.flashMsg();
             stateReset.restart();
+            fprint.checkAvail();
         }
     }
 

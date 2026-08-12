@@ -1276,6 +1276,16 @@ Item {
                 anchors.leftMargin: 0
                 spacing: 24
 
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: Colours.palette.m3shadow
+                    shadowOpacity: 0.5
+                    shadowBlur: 0.6
+                    shadowHorizontalOffset: 0
+                    shadowVerticalOffset: 2
+                }
+
                 // Hour + Minutes column + AM/PM
                 Row {
                     spacing: 0
@@ -1283,7 +1293,7 @@ Item {
                     // Big hour
                     StyledText {
                         text: Time.hourStr
-                        color: Colours.current.m3onSurface
+                        color: Colours.palette.m3onSurface
                         textPointSize: Math.min(180, parent.parent.parent.parent.height * 0.22)
                         font.weight: Font.Bold
                         font.family: Tokens.font.family.clock
@@ -1478,7 +1488,7 @@ Item {
                         StyledText {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: root.userName
-                            color: "white"
+                            color: Colours.palette.m3onSurface
                             textPointSize: Tokens.font.size.extraLarge
                             font.weight: Font.DemiBold
                         }
@@ -1510,7 +1520,7 @@ Item {
                                 return defaultMsg;
                             }
 
-                            color: isError ? Colours.current.m3error : Qt.rgba(1, 1, 1, 0.55)
+                            color: isError ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
                             textPointSize: Tokens.font.size.normal - 1
                             horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
@@ -1526,10 +1536,10 @@ Item {
                         width: parent.width
                         height: pwdLayout.implicitHeight + 20
                         radius: height / 2
-                        color: Qt.rgba(1, 1, 1, 0.07)
+                        color: Qt.alpha(Colours.palette.m3onSurface, 0.06)
                         border.color: root.activeFocus
-                            ? Colours.current.m3primary
-                            : Colours.current.m3outlineVariant
+                            ? Colours.palette.m3primary
+                            : Qt.alpha(Colours.palette.m3outline, 0.3)
                         border.width: root.activeFocus ? 2 : 1
 
                         scale: 1.0
@@ -1580,16 +1590,16 @@ Item {
                                         return "lock";
                                     }
                                     color: root.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries
-                                        ? Colours.current.m3error
-                                        : Qt.rgba(1, 1, 1, 0.45)
+                                        ? Colours.palette.m3error
+                                        : Colours.palette.m3onSurfaceVariant
                                     iconPointSize: Tokens.font.size.normal
-                                    opacity: root.pam.passwd.active ? 0 : 1
+                                    opacity: root.pam.isSubmitting ? 0 : 1
                                     Behavior on opacity { Anim {} }
                                 }
 
                                 CircularIndicator {
                                     anchors.fill: parent
-                                    running: root.pam.passwd.active
+                                    running: root.pam.isSubmitting
                                 }
                             }
 
@@ -1605,25 +1615,25 @@ Item {
                                 implicitHeight: 38
                                 radius: 19
                                 color: root.pam.buffer
-                                    ? Colours.current.m3primary
-                                    : Qt.rgba(1, 1, 1, 0.10)
+                                    ? Colours.palette.m3primary
+                                    : Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
                                 Behavior on color { ColorAnimation { duration: 200 } }
 
                                 StateLayer {
                                     radius: parent.radius
                                     color: root.pam.buffer
-                                        ? Colours.current.m3onPrimary
-                                        : Colours.current.m3onSurface
-                                    onClicked: root.pam.passwd.start()
+                                        ? Colours.palette.m3onPrimary
+                                        : Colours.palette.m3onSurface
+                                    onClicked: root.pam.submit()
                                 }
 
                                 MaterialIcon {
                                     anchors.centerIn: parent
                                     text: "arrow_forward"
                                     color: root.pam.buffer
-                                        ? Colours.current.m3onPrimary
-                                        : Qt.rgba(1, 1, 1, 0.55)
+                                        ? Colours.palette.m3onPrimary
+                                        : Colours.palette.m3onSurfaceVariant
                                     iconPointSize: Tokens.font.size.normal
                                     font.weight: Font.Medium
                                 }
@@ -1773,7 +1783,7 @@ Item {
             id: btnBg
             anchors.fill: parent
             radius: height / 2
-            color: hov.hovered ? Colours.current.m3primary : Qt.rgba(1, 1, 1, 0.08)
+            color: hov.hovered ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.08)
             border.color: hov.hovered ? Qt.alpha("white", 0.2) : "transparent"
             border.width: 1
 
@@ -1792,7 +1802,7 @@ Item {
             MaterialIcon {
                 anchors.verticalCenter: parent.verticalCenter
                 text: parent.parent.icon
-                color: hov.hovered ? Colours.current.m3onPrimary : Colours.current.m3primary
+                color: hov.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3primary
                 iconPointSize: 20
                 animate: true
 
@@ -1815,7 +1825,7 @@ Item {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     text: parent.parent.parent.label
-                    color: hov.hovered ? Colours.current.m3onPrimary : "white"
+                    color: hov.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                     textPointSize: 10
                     font.weight: hov.hovered ? Font.Bold : Font.DemiBold
                     font.letterSpacing: 1.0

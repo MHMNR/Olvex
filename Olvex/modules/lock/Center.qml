@@ -391,14 +391,14 @@ ColumnLayout {
                                     return "fingerprint";
                                 return "lock";
                             }
-                            color: root.lock.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries ? Colours.current.m3error : Qt.rgba(1, 1, 1, 0.45)
-                            opacity: root.lock.pam.passwd.active ? 0 : 1
+                            color: root.lock.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                            opacity: root.lock.pam.isSubmitting ? 0 : 1
                             Behavior on opacity { Anim {} }
                         }
 
                         CircularIndicator {
                             anchors.fill: parent
-                            running: root.lock.pam.passwd.active
+                            running: root.lock.pam.isSubmitting
                         }
                     }
 
@@ -410,19 +410,19 @@ ColumnLayout {
                     StyledRect {
                         implicitWidth: implicitHeight
                         implicitHeight: enterIcon.implicitHeight + Tokens.padding.small * 2
-                        color: root.lock.pam.buffer ? Colours.current.m3primary : Qt.rgba(1, 1, 1, 0.10)
+                        color: root.lock.pam.buffer ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.08)
                         radius: Tokens.rounding.full
 
                         StateLayer {
-                            color: root.lock.pam.buffer ? Colours.current.m3onPrimary : Colours.current.m3onSurface
-                            onClicked: root.lock.pam.passwd.start()
+                            color: root.lock.pam.buffer ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                            onClicked: root.lock.pam.submit()
                         }
 
                         MaterialIcon {
                             id: enterIcon
                             anchors.centerIn: parent
                             text: "arrow_forward"
-                            color: root.lock.pam.buffer ? Colours.current.m3onPrimary : Qt.rgba(1, 1, 1, 0.55)
+                            color: root.lock.pam.buffer ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                             font.weight: 500
                         }
                     }

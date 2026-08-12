@@ -39,15 +39,15 @@ Item {
         anchors.centerIn: parent
 
         text: {
-            if (root.pam.passwd.active)
-                return qsTr("Loading...");
+            if (root.pam.isSubmitting)
+                return qsTr("Verifying...");
             if (root.pam.state === "max")
                 return qsTr("You have reached the maximum number of tries");
             return qsTr("Enter your password");
         }
 
         animate: true
-        color: root.pam.passwd.active ? Colours.palette.m3secondary : Colours.palette.m3outline
+        color: root.pam.isSubmitting ? Colours.palette.m3secondary : Colours.palette.m3outline
         textPointSize: Tokens.font.size.normal
         font.family: Tokens.font.family.mono
 
