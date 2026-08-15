@@ -289,7 +289,7 @@ Item {
                             }
 
                             StyledText {
-                                text: SysInfo.kernel || "Linux 6.9.4-zen1"
+                                text: SysInfo.kernel || "Linux"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 textPointSize: Tokens.font.size.normal
@@ -413,7 +413,7 @@ Item {
                             }
 
                             StyledText {
-                                text: (SysInfo.wm || "Hyprland") + " / Wayland"
+                                text: (SysInfo.wm || "Hyprland") + " · Wayland"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 textPointSize: Tokens.font.size.normal

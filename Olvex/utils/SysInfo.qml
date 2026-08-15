@@ -15,11 +15,22 @@ Singleton {
     property list<string> osIdLike
     property string osLogo: ""
     property bool isDefaultLogo: true
+    property string kernel: ""
 
     property string uptime
     readonly property string user: Quickshell.env("USER")
     readonly property string wm: Quickshell.env("XDG_CURRENT_DESKTOP") || Quickshell.env("XDG_SESSION_DESKTOP")
     readonly property string shell: Quickshell.env("SHELL").split("/").pop()
+
+    FileView {
+        id: fileKernel
+        path: "/proc/version"
+        onLoaded: {
+            // "Linux version 6.9.4-zen1-1-zen (linux-zen@archlinux) ..."
+            const match = text().match(/Linux version (\S+)/);
+            if (match) root.kernel = match[1];
+        }
+    }
 
     FileView {
         id: osRelease

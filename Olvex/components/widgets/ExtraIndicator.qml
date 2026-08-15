@@ -18,11 +18,13 @@ StyledRect {
 
     opacity: extra > 0 ? 1 : 0
     scale: extra > 0 ? 1 : 0.5
+    visible: opacity > 0
 
     Elevation {
         anchors.fill: parent
         radius: parent.radius
         opacity: parent.opacity
+        visible: parent.visible
         z: -1
         level: 2
     }
