@@ -32,7 +32,7 @@ StyledRect {
     required property var bar
     required property Brightness.Monitor monitor
     readonly property var mediaMorph: root.bar?.mediaMorph ?? Players.mediaMorphForScreen(root.bar?.screen?.name ?? "")
-    property color colour: Colours.palette.m3primary
+    property color colour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3primary
 
     readonly property bool hasMusicPlayer: !!Players.active
     readonly property bool isMusicPlaying: Players.active && Players.activeIsPlaying

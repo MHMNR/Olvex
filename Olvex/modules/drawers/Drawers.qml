@@ -21,7 +21,6 @@ Variants {
 
         ContentWindow {
             id: content
-
             screen: scope.modelData
         }
 

@@ -202,7 +202,7 @@ StyledRect {
                             font.bold: true
                             color: root.disabled ? root.disabledOnColour
                                  : root.checked ? Colours.palette.m3onSurface
-                                 : root.inactiveOnColour
+                                 : (Colours.light ? Colours.palette.m3onSurface : root.inactiveOnColour)
                         }
 
                         // Duplicate text for seamless loop
@@ -238,8 +238,8 @@ StyledRect {
                 text: root.stateText
                 textPointSize: Tokens.font.size.small - 1
                 color: root.disabled ? root.disabledOnColour
-                     : root.inactiveOnColour
-                opacity: 0.7
+                     : (Colours.light ? Colours.palette.m3onSurfaceVariant : root.inactiveOnColour)
+                opacity: Colours.light ? 1.0 : 0.7
             }
         }
     }

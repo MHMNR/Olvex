@@ -46,7 +46,7 @@ Item {
             text: root.notifCount > 0
                 ? (root.notifCount === 1 ? qsTr("1 notification") : qsTr("%1 notifications").arg(root.notifCount))
                 : qsTr("Notifications")
-            color: Colours.palette.m3onSurfaceVariant
+            color: Colours.palette.m3onSurface
             textPointSize: Tokens.font.size.small
             font.weight: Font.Medium
             font.letterSpacing: 0.15
@@ -86,9 +86,8 @@ Item {
                 MaterialIcon {
                     anchors.centerIn: parent
                     text: "delete_sweep"
-                    color: Colours.palette.m3onSurfaceVariant
+                    color: Colours.palette.m3onSurface
                     iconPointSize: Tokens.font.size.normal
-                    fill: 0
                 }
             }
 
@@ -106,17 +105,23 @@ Item {
         }
     }
 
-    StyledClippingRect {
+    Item {
         id: clipRect
 
+        anchors.top: title.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: title.bottom
         anchors.bottom: parent.bottom
         anchors.topMargin: Tokens.spacing.small
 
-        radius: Tokens.rounding.normal
-        color: "transparent"
+        implicitHeight: notifCount > 0 ? notifList.implicitHeight : emptyState.implicitHeight
+        clip: true
+
+        Behavior on implicitHeight {
+            Anim {
+                type: Anim.StandardExtraLarge
+            }
+        }
 
         Loader {
             id: emptyState
@@ -133,12 +138,12 @@ Item {
                     implicitWidth: 48
                     implicitHeight: 48
                     radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.45)
+                    color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, Colours.light ? 0.8 : 0.45)
 
                     MaterialIcon {
                         anchors.centerIn: parent
                         text: "notifications_off"
-                        color: Colours.palette.m3outline
+                        color: Colours.palette.m3onSurfaceVariant
                         iconPointSize: Tokens.font.size.large
                     }
                 }
@@ -147,18 +152,18 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: qsTr("All clear")
-                    color: Colours.palette.m3onSurfaceVariant
+                    color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.normal
-                    font.weight: Font.Medium
+                    font.weight: Font.DemiBold
                 }
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: qsTr("New alerts land here")
-                    color: Colours.palette.m3outline
+                    color: Colours.palette.m3onSurfaceVariant
                     textPointSize: Tokens.font.size.small
-                    opacity: 0.9
+                    opacity: 1.0
                 }
             }
 

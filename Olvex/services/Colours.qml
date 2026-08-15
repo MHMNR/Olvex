@@ -131,12 +131,27 @@ Singleton {
             a);
     }
 
+    function isSurfaceColor(c) {
+        return c === bootPalette.m3surface
+            || c === bootPalette.m3background
+            || c === bootPalette.m3surfaceDim
+            || c === bootPalette.m3surfaceBright
+            || c === bootPalette.m3surfaceContainerLowest
+            || c === bootPalette.m3surfaceContainerLow
+            || c === bootPalette.m3surfaceContainer
+            || c === bootPalette.m3surfaceContainerHigh
+            || c === bootPalette.m3surfaceContainerHighest
+            || c === bootPalette.m3surfaceVariant
+            || c === bootPalette.m3inverseSurface;
+    }
+
     function applyLayer(c, layerLevel) {
+        if (!isSurfaceColor(c))
+            return c;
+
         const layer = surfaceLayer(layerLevel);
 
         if (!transparencyEnabled) {
-            if (c !== bootPalette.m3surface && c !== bootPalette.m3background && c !== bootPalette.m3surfaceDim && c !== bootPalette.m3surfaceBright)
-                return Qt.rgba(c.r, c.g, c.b, 1.0);
             if (light && layer > 0)
                 return opaqueLightContainer(layerLevel);
             if (layer === 0)

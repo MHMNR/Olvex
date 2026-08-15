@@ -8,7 +8,7 @@ StyledRect {
     id: root
 
     readonly property color accentColour: Colours.palette.m3primary
-    readonly property color mutedColour: Colours.palette.m3onSurfaceVariant
+    readonly property color mutedColour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
 
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2

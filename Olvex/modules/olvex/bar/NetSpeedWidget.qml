@@ -8,7 +8,7 @@ import qs.services
 StyledRect {
     id: root
 
-    readonly property color colour: Colours.palette.m3onSurfaceVariant
+    readonly property color colour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
     readonly property int padding: showBackground ? Tokens.padding.normal : Tokens.padding.small
 
     // All config values are read manually (not bound) to avoid stale reads

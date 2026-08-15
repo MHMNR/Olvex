@@ -331,7 +331,7 @@ StyledRect {
                         text: "FPS"
                         textPointSize: Tokens.font.size.small
                         font.weight: Font.DemiBold
-                        color: Colours.palette.m3onSurfaceVariant
+                        color: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
                     }
 
                     StyledRect {
@@ -373,7 +373,7 @@ StyledRect {
                                     StyledText {
                                         anchors.centerIn: parent
                                         text: modelData
-                                        color: modelData === root.props.recordingFps ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                                        color: modelData === root.props.recordingFps ? Colours.palette.m3onPrimary : (Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant)
                                         textPointSize: Tokens.font.size.small - 1
                                         
                                         Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
