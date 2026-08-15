@@ -234,7 +234,7 @@ StyledWindow {
     Item {
         anchors.fill: parent
         opacity: Colours.transparencyEnabled ? Colours.transparencyBase : 1
-        layer.enabled: root.effectLayerActive
+        layer.enabled: true
         layer.effect: MultiEffect {
             shadowEnabled: true
             blurMax: 15
