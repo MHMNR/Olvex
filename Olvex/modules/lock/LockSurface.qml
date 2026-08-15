@@ -168,7 +168,7 @@ WlSessionLockSurface {
                     // In minimal style statusBar is invisible, so this infinite blink
                     // would otherwise keep the animation driver awake for nothing.
                     SequentialAnimation on opacity {
-                        running: statusBar.visible; loops: Animation.Infinite
+                        running: root.lock.locked && statusBar.visible; loops: Animation.Infinite
                         NumberAnimation { to: 0.3; duration: 800 }
                         NumberAnimation { to: 1.0; duration: 800 }
                     }

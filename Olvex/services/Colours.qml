@@ -455,7 +455,18 @@ Singleton {
         id: portalThemeSyncProc
     }
 
+    Timer {
+        id: portalThemeDebounceTimer
+        interval: 300
+        repeat: false
+        onTriggered: root._doSyncSystemPortalTheme()
+    }
+
     function syncSystemPortalTheme() {
+        portalThemeDebounceTimer.restart();
+    }
+
+    function _doSyncSystemPortalTheme() {
         const mode = light ? "light" : "dark";
         const gtkTheme = light ? "adw-gtk3" : "adw-gtk3-dark";
         const cmd = `gsettings set org.gnome.desktop.interface color-scheme 'prefer-${mode}' && gsettings set org.gnome.desktop.interface gtk-theme '${gtkTheme}' && dconf write /org/gnome/desktop/interface/color-scheme "'prefer-${mode}'" && dconf write /org/gnome/desktop/interface/gtk-theme "'${gtkTheme}'"`;

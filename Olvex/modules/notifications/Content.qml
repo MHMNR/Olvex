@@ -102,16 +102,10 @@ Item {
                 anchors.top: parent.top
                 extra: {
                     const count = list.count;
-                    if (count === 0)
+                    if (count === 0 || list.contentHeight <= list.height || list.contentY <= 10)
                         return 0;
-                    const scrollY = list.contentY;
-                    let height = 0;
-                    for (let i = 0; i < count; i++) {
-                        height += ((list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0) + Tokens.spacing.smaller;
-                        if (height - Tokens.spacing.smaller >= scrollY)
-                            return i;
-                    }
-                    return count;
+                    const avgItemHeight = list.contentHeight / count;
+                    return Math.max(0, Math.min(count, Math.floor(list.contentY / Math.max(1, avgItemHeight))));
                 }
             }
 
@@ -119,16 +113,13 @@ Item {
                 anchors.bottom: parent.bottom
                 extra: {
                     const count = list.count;
-                    if (count === 0)
+                    if (count === 0 || list.contentHeight <= list.height)
                         return 0;
-                    const scrollY = list.contentHeight - (list.contentY + list.height);
-                    let height = 0;
-                    for (let i = count - 1; i >= 0; i--) {
-                        height += ((list.itemAtIndex(i) as NotifWrapper)?.nonAnimHeight ?? 0) + Tokens.spacing.smaller;
-                        if (height - Tokens.spacing.smaller >= scrollY)
-                            return count - i - 1;
-                    }
-                    return 0;
+                    const remaining = list.contentHeight - (list.contentY + list.height);
+                    if (remaining <= 10)
+                        return 0;
+                    const avgItemHeight = list.contentHeight / count;
+                    return Math.max(0, Math.min(count, Math.floor(remaining / Math.max(1, avgItemHeight))));
                 }
             }
         }

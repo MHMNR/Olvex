@@ -140,7 +140,7 @@ Singleton {
         syncLegacyGpu();
     }
 
-    readonly property string nvidiaGpuScanSh: "nvidia-smi --query-gpu=index,name,utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{print \"nvidia|\" $1 \"|\" $2 \"|\" $3 \"|\" $4}'"
+    readonly property string nvidiaGpuScanSh: "for dev in /sys/bus/pci/devices/*; do [ -f \"$dev/driver/module/drivers/pci:nvidia\" ] 2>/dev/null || [ -d \"$dev/driver\" ] && grep -q 10de \"$dev/vendor\" 2>/dev/null || continue; if [ -f \"$dev/power/runtime_status\" ] && [ \"$(cat \"$dev/power/runtime_status\" 2>/dev/null)\" = \"suspended\" ]; then echo \"nvidia|0|NVIDIA GeForce GTX 1650|0|0\"; break; else nvidia-smi --query-gpu=index,name,utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{print \"nvidia|\" $1 \"|\" $2 \"|\" $3 \"|\" $4}'; break; fi; done"
 
     readonly property string drmGpuScanSh: "for dev in /sys/class/drm/card*/device; do [ -f \"$dev/gpu_busy_percent\" ] || continue; card=\"${dev%/device}\"; idx=\"${card##*card}\"; perc=$(cat \"$dev/gpu_busy_percent\" 2>/dev/null || echo 0); temp=0; for h in \"$dev\"/hwmon/hwmon*/temp*_input; do [ -f \"$h\" ] || continue; t=$(cat \"$h\" 2>/dev/null); [ -n \"$t\" ] && temp=$((t/1000)) && break; done; echo \"drm|$idx|GPU|$perc|$temp\"; done"
 
@@ -244,8 +244,9 @@ Singleton {
     Timer {
         id: fastResourceTimer
 
+        readonly property int baseInterval: GlobalConfig.dashboard.resourceUpdateInterval
         running: root.refCount > 0
-        interval: 500
+        interval: Math.max(1000, baseInterval)
         repeat: true
         triggeredOnStart: true
         onTriggered: root.refreshFast()
@@ -416,7 +417,7 @@ Singleton {
         id: gpuTypeCheck
 
         running: !GlobalConfig.services.gpuType
-        command: ["sh", "-c", "if command -v nvidia-smi &>/dev/null && nvidia-smi -L &>/dev/null; then echo NVIDIA; elif ls /sys/class/drm/card*/device/gpu_busy_percent 2>/dev/null | grep -q .; then echo GENERIC; else echo NONE; fi"]
+        command: ["sh", "-c", "if command -v nvidia-smi &>/dev/null && ls /sys/class/drm/card*/device/gpu_busy_percent 2>/dev/null | grep -q .; then echo HYBRID; elif command -v nvidia-smi &>/dev/null; then echo NVIDIA; elif ls /sys/class/drm/card*/device/gpu_busy_percent 2>/dev/null | grep -q .; then echo GENERIC; else echo NONE; fi"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const detected = text.trim();

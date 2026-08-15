@@ -14,7 +14,7 @@ import "../../../utils/os_jokes.js" as OsJokes
 Item {
     id: root
 
-    property bool dashboardVisible: true
+    property bool dashboardVisible: false
     readonly property bool waveActive: root.dashboardVisible && root.visible && width > 0 && height > 0
 
     property var osQuotes: OsJokes.jokes
@@ -45,8 +45,16 @@ Item {
 
     onDashboardVisibleChanged: {
         if (dashboardVisible) {
+            Time.secondsRefCount++;
             pickRandomQuote();
+        } else {
+            Time.secondsRefCount = Math.max(0, Time.secondsRefCount - 1);
         }
+    }
+
+    Component.onDestruction: {
+        if (dashboardVisible)
+            Time.secondsRefCount = Math.max(0, Time.secondsRefCount - 1);
     }
 
     Timer {
@@ -95,7 +103,7 @@ Item {
         anchors.fill: parent
         opacity: 0.82
         z: 0
-        visible: gpuWave.status !== ShaderEffect.Ready
+        visible: gpuWave.status !== ShaderEffect.Ready && root.waveActive
 
         onPaint: {
             var ctx = getContext("2d");

@@ -158,7 +158,7 @@ Singleton {
         readonly property int updateInterval: GlobalConfig.dashboard?.resourceUpdateInterval ?? 1000
         readonly property int netSpeedInterval: GlobalConfig.bar?.netSpeed?.refreshInterval ?? 1000
 
-        interval: Math.max(250, Math.min(updateInterval, netSpeedInterval))
+        interval: Math.max(500, Math.min(updateInterval, netSpeedInterval))
         running: root.refCount > 0
         repeat: true
         triggeredOnStart: true

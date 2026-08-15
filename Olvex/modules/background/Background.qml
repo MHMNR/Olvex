@@ -21,7 +21,7 @@ Variants {
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
         color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
-        surfaceFormat.opaque: false
+        surfaceFormat.opaque: contentItem.Config.background.wallpaperEnabled
 
         anchors.top: true
         anchors.bottom: true

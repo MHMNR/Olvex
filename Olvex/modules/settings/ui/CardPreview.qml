@@ -338,7 +338,7 @@ Item {
 
             SequentialAnimation on breath {
                 loops: Animation.Infinite
-                running: true
+                running: root.visible
                 NumberAnimation {
                     from: 0
                     to: 1

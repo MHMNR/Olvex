@@ -739,7 +739,7 @@ Item {
                             }
 
                             Anim on waveProgress {
-                                running: waveIndicator.amplitudeMultiplier > 0
+                                running: waveIndicator.amplitudeMultiplier > 0 && LockState.locked
                                 from: 0
                                 to: 1
                                 duration: 1400

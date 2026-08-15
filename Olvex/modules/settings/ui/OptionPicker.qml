@@ -174,7 +174,7 @@ Item {
                     
                     SequentialAnimation on x {
                         loops: Animation.Infinite
-                        running: faceText.implicitWidth > parent.width && !root.expanded
+                        running: root.visible && faceText.implicitWidth > parent.width && !root.expanded
                         PauseAnimation { duration: 1500 }
                         NumberAnimation {
                             from: 0

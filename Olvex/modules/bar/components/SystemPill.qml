@@ -207,7 +207,7 @@ StyledRect {
                         iconPointSize: Math.max(10, root.iconSize - 2)
 
                         SequentialAnimation on opacity {
-                            running: btDev.modelData?.state !== BluetoothDeviceState.Connected
+                            running: (btDev.modelData?.state === BluetoothDeviceState.Connecting || btDev.modelData?.state === BluetoothDeviceState.Disconnecting) && root.visible
                             alwaysRunToEnd: true
                             loops: Animation.Infinite
                             Anim {

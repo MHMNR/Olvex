@@ -128,7 +128,7 @@ Item {
                             }
 
                             SequentialAnimation {
-                                running: true
+                                running: root.visible
                                 loops: Animation.Infinite
                                 NumberAnimation { target: logoContainer; property: "breath"; from: -1; to: 1; duration: 2500; easing.type: Easing.InOutSine }
                                 NumberAnimation { target: logoContainer; property: "breath"; from: 1; to: -1; duration: 2500; easing.type: Easing.InOutSine }

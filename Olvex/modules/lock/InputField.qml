@@ -163,7 +163,7 @@ Item {
 
         SequentialAnimation on opacity {
             loops: Animation.Infinite
-            running: true
+            running: LockState.locked && root.visible
             NumberAnimation { to: 1.0; duration: 80 }
             PauseAnimation   { duration: 520 }
             NumberAnimation { to: 0.0; duration: 80 }

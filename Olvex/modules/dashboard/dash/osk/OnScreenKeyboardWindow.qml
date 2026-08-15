@@ -12,7 +12,7 @@ PanelWindow {
     readonly property bool isDocked: visibilities.isOskDocked
     readonly property bool isDragging: osk && osk.isDragging
     
-    visible: true
+    visible: visibilities.osk || entranceProgress > 0.001
     screen: oskScreen
     color: "transparent"
     

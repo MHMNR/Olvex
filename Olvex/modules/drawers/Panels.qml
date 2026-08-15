@@ -233,7 +233,7 @@ Item {
     Timer {
         id: geometrySyncLoop
         interval: root.geometryPollInterval
-        running: bottomPanelMode === "smarthide"
+        running: bottomPanelMode === "smarthide" && root.bottomPanelEnabled && !LockState.locked
         repeat: true
         onTriggered: {
             CpuProfile.bump("geometrySyncLoop");

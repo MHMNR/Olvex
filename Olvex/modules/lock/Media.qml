@@ -421,7 +421,7 @@ Item {
                         // hidden-behind-lock case to guard against, unlike the
                         // desktop overlay which stays resident in the drawers
                         // window), so amplitude alone is the right gate here.
-                        running: waveIndicator.amplitudeMultiplier > 0
+                        running: waveIndicator.amplitudeMultiplier > 0 && LockState.locked
                         from: 0
                         to: 1
                         duration: 1400

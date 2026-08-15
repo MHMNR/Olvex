@@ -61,6 +61,7 @@ Scope {
         screen: root.screen
         name: "border-exclusion"
         exclusiveZone: contentItem?.Config?.border?.thickness ?? 0
+        visible: exclusiveZone > 0
         mask: Region {}
         implicitWidth: 1
         implicitHeight: 1

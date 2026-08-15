@@ -47,6 +47,8 @@ Item {
                 source: ShaderEffectSource {
                     sourceItem: root.wallpaper
                     sourceRect: Qt.rect(root.absX, root.absY, root.width, root.height)
+                    live: false
+                    recursive: false
                 }
                 maskSource: backgroundPlate
                 maskEnabled: true

@@ -21,9 +21,11 @@ Singleton {
         return Qt.formatDateTime(clock.date, fmt);
     }
 
+    property int secondsRefCount: 0
+
     SystemClock {
         id: clock
 
-        precision: SystemClock.Seconds
+        precision: root.secondsRefCount > 0 ? SystemClock.Seconds : SystemClock.Minutes
     }
 }
