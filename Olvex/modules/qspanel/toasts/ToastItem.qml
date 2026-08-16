@@ -12,17 +12,35 @@ StyledRect {
 
     required property Toast modelData
 
-    // ── M3 Content Design (Redundancy filtering) ──────
+    // ── M3 Content Design & Unified Typography ──────
     readonly property string cleanTitle: String(modelData.title ?? "").trim()
     readonly property string rawMessage: String(modelData.message ?? "").trim()
-    readonly property bool isRedundantMessage: {
-        if (!rawMessage.length) return true;
-        const t = cleanTitle.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const m = rawMessage.toLowerCase().replace(/[^a-z0-9]/g, "");
-        return t === m || (t.length > 3 && m.startsWith(t)) || (m.length > 3 && t.startsWith(m));
+
+    readonly property string displayText: {
+        if (!rawMessage.length)
+            return cleanTitle;
+        if (!cleanTitle.length)
+            return rawMessage;
+
+        const tLower = cleanTitle.toLowerCase();
+        const mLower = rawMessage.toLowerCase();
+
+        if (tLower === mLower)
+            return rawMessage;
+
+        if (tLower.includes("connected") && !mLower.includes("connected"))
+            return rawMessage + " " + qsTr("connected");
+        if ((tLower.includes("disconnected") || tLower.includes("removed")) && !mLower.includes("disconnected") && !mLower.includes("removed"))
+            return rawMessage + " " + (tLower.includes("removed") ? qsTr("removed") : qsTr("disconnected"));
+
+        if (tLower.includes("audio output") || tLower.includes("audio input"))
+            return rawMessage;
+
+        if (mLower.startsWith(tLower) || tLower.startsWith(mLower))
+            return rawMessage.length >= cleanTitle.length ? rawMessage : cleanTitle;
+
+        return rawMessage;
     }
-    readonly property string cleanMessage: isRedundantMessage ? "" : rawMessage
-    readonly property bool hasMessage: cleanMessage.length > 0
 
     // ── M3 Status Roles ──────────────────────────────
     readonly property bool isSuccess: modelData.type === Toast.Success
@@ -30,8 +48,8 @@ StyledRect {
     readonly property bool isError: modelData.type === Toast.Error
     readonly property bool isInfo: !isSuccess && !isWarning && !isError
 
-    // ── Android 17 Theme-Adaptive Translucent Blur Surface ───
-    readonly property real toastAlpha: Colours.transparencyEnabled ? Colours.transparencyBase : 0.82
+    // ── M3 Theme-Adaptive Translucent Surface ───
+    readonly property real toastAlpha: Colours.transparencyEnabled ? Colours.transparencyBase : 0.84
 
     readonly property color containerColor: {
         if (isSuccess)
@@ -62,7 +80,7 @@ StyledRect {
             return Colours.palette.m3tertiary;
         if (isError)
             return Colours.palette.m3error;
-        return Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.18 : 0.24);
+        return Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.16 : 0.22);
     }
 
     readonly property color iconGlyphColor: {
@@ -83,12 +101,12 @@ StyledRect {
     }
 
     anchors.horizontalCenter: parent.horizontalCenter
-    implicitWidth: Math.min(460, Math.max(160, (iconBadge.implicitWidth + textColumn.implicitWidth + closeBtn.implicitWidth + 36)))
-    implicitHeight: hasMessage ? 52 : 44
+    implicitWidth: Math.min(480, Math.max(160, (iconBadge.implicitWidth + primaryText.implicitWidth + closeBtn.implicitWidth + 36)))
+    implicitHeight: 42
     width: implicitWidth
     height: implicitHeight
 
-    // Android 17 Capsule Pill Shape
+    // M3 Stadium Capsule Shape
     radius: height / 2
 
     Behavior on radius {
@@ -96,11 +114,10 @@ StyledRect {
     }
 
     color: root.containerColor
-
     border.width: 0
     border.color: "transparent"
 
-    // Android 17 Pill State Layer
+    // M3 Pill State Layer
     StateLayer {
         id: stateLayer
         anchors.fill: parent
@@ -113,7 +130,7 @@ StyledRect {
         id: contentLayout
 
         anchors.fill: parent
-        anchors.leftMargin: 10
+        anchors.leftMargin: 8
         anchors.rightMargin: 8
         anchors.topMargin: 4
         anchors.bottomMargin: 4
@@ -140,43 +157,20 @@ StyledRect {
             }
         }
 
-        // Text Stack (Title & Supporting Text - Center Aligned)
-        ColumnLayout {
-            id: textColumn
+        // Single Unified M3 Message Text
+        StyledText {
+            id: primaryText
 
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
-            spacing: 0
-
-            StyledText {
-                id: titleText
-
-                Layout.fillWidth: true
-                text: root.cleanTitle
-                color: root.contentOnColor
-                textPointSize: Tokens.font.size.normal
-                font.weight: Font.DemiBold
-                horizontalAlignment: Text.AlignHCenter
-                Layout.alignment: Qt.AlignHCenter
-                elide: Text.ElideRight
-                renderType: Text.QtRendering
-            }
-
-            StyledText {
-                id: messageText
-
-                visible: root.hasMessage
-                Layout.fillWidth: true
-                textFormat: Text.StyledText
-                text: root.cleanMessage
-                color: root.contentOnColor
-                opacity: 0.80
-                textPointSize: Tokens.font.size.small
-                horizontalAlignment: Text.AlignHCenter
-                Layout.alignment: Qt.AlignHCenter
-                elide: Text.ElideRight
-                renderType: Text.QtRendering
-            }
+            text: root.displayText
+            color: root.contentOnColor
+            textPointSize: Tokens.font.size.normal
+            font.weight: Font.Medium
+            font.letterSpacing: 0.15
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            renderType: Text.QtRendering
         }
 
         // Compact Dismiss Button (24x24 dp)

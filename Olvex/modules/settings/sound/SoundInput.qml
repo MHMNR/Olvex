@@ -25,7 +25,8 @@ Item {
                 if (sourceName.endsWith(".monitor"))
                     continue;
 
-                const isDefaultSource = Audio.source ? (Audio.source.name === sourceName || sourceName.includes(Audio.source.name) || Audio.source.name.includes(sourceName)) : false;
+                const sourceNode = Audio.sources.find(n => n && (n.name === sourceName || (n.name && sourceName && (n.name.includes(sourceName) || sourceName.includes(n.name)))));
+                const isDefaultSource = Audio.source ? (Audio.source === sourceNode || Audio.source.name === sourceName || (Audio.source.name && sourceName && (Audio.source.name.includes(sourceName) || sourceName.includes(Audio.source.name)))) : false;
                 const activePort = s.active_port || "";
                 const ports = s.ports || [];
 
@@ -56,7 +57,8 @@ Item {
                             active: isActive,
                             sourceName: sourceName,
                             portName: portName,
-                            available: p.availability !== "not available"
+                            node: sourceNode,
+                            available: true
                         });
                     }
                 } else {
@@ -77,6 +79,7 @@ Item {
                         active: isDefaultSource,
                         sourceName: sourceName,
                         portName: "",
+                        node: sourceNode,
                         available: true
                     });
                 }
