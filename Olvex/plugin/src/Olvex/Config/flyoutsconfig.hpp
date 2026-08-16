@@ -10,6 +10,7 @@ class FlyoutsConfig : public ConfigObject {
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(int, hideDelay, 2000)
+    CONFIG_PROPERTY(bool, enableVolume, true)
     CONFIG_PROPERTY(bool, enableBrightness, true)
     CONFIG_PROPERTY(bool, enableMicrophone, false)
 

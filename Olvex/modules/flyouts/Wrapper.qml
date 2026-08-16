@@ -52,22 +52,26 @@ Item {
 
     Connections {
         function onMutedChanged(): void {
-            root.show();
+            if (root.Config.flyouts.enableVolume ?? true)
+                root.show();
             root.muted = Audio.muted;
         }
 
         function onVolumeChanged(): void {
-            root.show();
+            if (root.Config.flyouts.enableVolume ?? true)
+                root.show();
             root.volume = Audio.volume;
         }
 
         function onSourceMutedChanged(): void {
-            root.show();
+            if (root.Config.flyouts.enableMicrophone ?? false)
+                root.show();
             root.sourceMuted = Audio.sourceMuted;
         }
 
         function onSourceVolumeChanged(): void {
-            root.show();
+            if (root.Config.flyouts.enableMicrophone ?? false)
+                root.show();
             root.sourceVolume = Audio.sourceVolume;
         }
 
@@ -76,7 +80,8 @@ Item {
 
     Connections {
         function onBrightnessChanged(): void {
-            root.show();
+            if (root.Config.flyouts.enableBrightness ?? true)
+                root.show();
             root.brightness = root.monitor?.brightness ?? 0;
         }
 

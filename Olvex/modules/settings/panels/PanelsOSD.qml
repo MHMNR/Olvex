@@ -48,6 +48,19 @@ Item {
                 }
             }
         }
+
+        SettingRow {
+            title: qsTr("Volume flyout")
+            description: qsTr("Show popup for volume changes")
+            divider: true
+            StyledSwitch {
+                checked: Config.flyouts.enableVolume ?? true
+                onToggled: {
+                    GlobalConfig.flyouts.enableVolume = checked;
+                    GlobalConfig.save();
+                }
+            }
+        }
         
         SettingRow {
             title: qsTr("Brightness flyout")

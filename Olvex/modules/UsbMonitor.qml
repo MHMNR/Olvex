@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
 import Olvex
+import Olvex.Config
 import Olvex.Services
 import qs.utils
 import qs.services
@@ -18,11 +19,13 @@ Item {
         target: UsbWatcher
 
         function onDeviceConnected(title, message, icon): void {
-            Toaster.toast(title, message, icon, Toast.Info);
+            if (GlobalConfig.qspanel.toasts.usbDevices ?? true)
+                Toaster.toast(title, message, icon, Toast.Info);
         }
 
         function onDeviceDisconnected(title, message, icon): void {
-            Toaster.toast(title, message, icon, Toast.Info);
+            if (GlobalConfig.qspanel.toasts.usbDevices ?? true)
+                Toaster.toast(title, message, icon, Toast.Info);
         }
     }
 
@@ -84,8 +87,10 @@ Item {
                     currentMap[id] = d.name || qsTr("Bluetooth Device");
                     if (!root._connectedBtDevices.hasOwnProperty(id)) {
                         // New connection!
-                        const icon = root.getBtIcon(d);
-                        Toaster.toast(qsTr("Bluetooth connected"), d.name || qsTr("Bluetooth Device"), icon, Toast.Info);
+                        if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true) {
+                            const icon = root.getBtIcon(d);
+                            Toaster.toast(qsTr("Bluetooth connected"), d.name || qsTr("Bluetooth Device"), icon, Toast.Info);
+                        }
                     }
                 }
             }
@@ -93,8 +98,10 @@ Item {
             for (const id in root._connectedBtDevices) {
                 if (!currentMap.hasOwnProperty(id)) {
                     // Disconnected!
-                    const name = root._connectedBtDevices[id];
-                    Toaster.toast(qsTr("Bluetooth disconnected"), name, "bluetooth_disabled", Toast.Info);
+                    if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true) {
+                        const name = root._connectedBtDevices[id];
+                        Toaster.toast(qsTr("Bluetooth disconnected"), name, "bluetooth_disabled", Toast.Info);
+                    }
                 }
             }
 
@@ -120,14 +127,17 @@ Item {
                     if (modelData.connected) {
                         if (!root._connectedBtDevices.hasOwnProperty(id)) {
                             root._connectedBtDevices[id] = modelData.name || qsTr("Bluetooth Device");
-                            const icon = root.getBtIcon(modelData);
-                            Toaster.toast(qsTr("Bluetooth connected"), modelData.name || qsTr("Bluetooth Device"), icon, Toast.Info);
+                            if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true) {
+                                const icon = root.getBtIcon(modelData);
+                                Toaster.toast(qsTr("Bluetooth connected"), modelData.name || qsTr("Bluetooth Device"), icon, Toast.Info);
+                            }
                         }
                     } else {
                         if (root._connectedBtDevices.hasOwnProperty(id)) {
                             const name = root._connectedBtDevices[id];
                             delete root._connectedBtDevices[id];
-                            Toaster.toast(qsTr("Bluetooth disconnected"), name, "bluetooth_disabled", Toast.Info);
+                            if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true)
+                                Toaster.toast(qsTr("Bluetooth disconnected"), name, "bluetooth_disabled", Toast.Info);
                         }
                     }
                 }

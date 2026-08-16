@@ -600,11 +600,6 @@ Item {
             id: playBtn
             z: 10
             emphasized: true
-            // No spin: a running RotationAnimator (loops: Infinite) pins the window
-            // to the monitor's 144Hz refresh the whole time music plays — the perf
-            // drop. Static circle matches the old backup card.
-            spinning: false
-            animateSpin: false
             iconName: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
             onClicked: Players.togglePlaying()
         }

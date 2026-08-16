@@ -593,8 +593,6 @@ StyledRect {
                 MorphControlButton {
                     id: playPillBtn
                     emphasized: true
-                    spinning: false
-                    animateSpin: false
                     iconName: root.isMusicPlaying ? "pause" : "play_arrow"
                     iconSize: Tokens.font.size.larger
                     onClicked: Players.togglePlaying()

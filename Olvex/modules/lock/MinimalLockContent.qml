@@ -618,10 +618,6 @@ Item {
                     Behavior on x { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
                     Behavior on y { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
                     emphasized: true
-                    // No spin — infinite RotationAnimator pins the lock window to
-                    // 144Hz while playing (iGPU lag). Static circle, like backup.
-                    spinning: false
-                    animateSpin: false
                     iconName: musicPill.isPlaying ? "pause" : "play_arrow"
                     iconSize: Tokens.font.size.larger
                     onClicked: Players.togglePlaying()

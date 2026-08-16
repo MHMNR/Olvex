@@ -32,7 +32,6 @@ Item {
                 switch(root.activeSection) {
                     case "behavior": return "NotificationsBehavior.qml";
                     case "toasts": return "NotificationsToasts.qml";
-                    case "events": return "NotificationsEvents.qml";
                     default: return "NotificationsBehavior.qml";
                 }
             }

@@ -57,7 +57,7 @@ Item {
         // We use explicit sizes since WallpaperList uses anchors.fill (doesn't propagate implicitHeight)
         readonly property int carouselHeight: Tokens.sizes.launcher.wallpaperHeight
         readonly property int tabsHeight:     40  // approx TextButton row height
-        implicitHeight: tabsHeight + carouselHeight + searchWrapper.implicitHeight + root.padding * 3
+        implicitHeight: tabsHeight + carouselHeight + searchWrapper.implicitHeight + root.padding * 4
 
         anchors.left:   parent.left
         anchors.right:  parent.right
@@ -70,6 +70,7 @@ Item {
             active: root.shouldBeActive || teardownGrace.running
 
             anchors.top:    parent.top
+            anchors.topMargin: root.padding
             anchors.left:   parent.left
             anchors.right:  parent.right
             anchors.bottom: searchWrapper.top

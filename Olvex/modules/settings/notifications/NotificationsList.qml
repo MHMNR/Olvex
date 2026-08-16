@@ -19,8 +19,7 @@ Item {
 
     readonly property var sections: [
         { id: "behavior", label: qsTr("DND & General"), icon: "notifications" },
-        { id: "toasts", label: qsTr("Toast Position"), icon: "margin" },
-        { id: "events", label: qsTr("App Alerts"), icon: "tune" }
+        { id: "toasts", label: qsTr("Toasts"), icon: "campaign" }
     ]
 
     

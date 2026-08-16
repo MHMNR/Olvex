@@ -300,10 +300,6 @@ Item {
 
                     MorphControlButton {
                         emphasized: true
-                        // No spin — infinite RotationAnimator pins the lock window to
-                        // 144Hz while playing (iGPU lag). Static circle, like backup.
-                        spinning: false
-                        animateSpin: false
                         iconName: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
                         width: 40
                         height: 40

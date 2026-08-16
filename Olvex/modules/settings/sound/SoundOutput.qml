@@ -37,8 +37,7 @@ Item {
         if (sinks.length > 0) {
             for (const s of sinks) {
                 const sinkName = s.name || "";
-                const sinkNode = Audio.sinks.find(n => n && (n.name === sinkName || (n.name && sinkName && (n.name.includes(sinkName) || sinkName.includes(n.name)))));
-                const isDefaultSink = Audio.sink ? (Audio.sink === sinkNode || Audio.sink.name === sinkName || (Audio.sink.name && sinkName && (Audio.sink.name.includes(sinkName) || sinkName.includes(Audio.sink.name)))) : false;
+                const isDefaultSink = Audio.sink ? (Audio.sink.name === sinkName || sinkName.includes(Audio.sink.name) || Audio.sink.name.includes(sinkName)) : false;
                 const activePort = s.active_port || "";
                 const ports = s.ports || [];
 
@@ -75,8 +74,7 @@ Item {
                             active: isActive,
                             sinkName: sinkName,
                             portName: portName,
-                            node: sinkNode,
-                            available: true
+                            available: p.availability !== "not available"
                         });
                     }
                 } else {
@@ -99,7 +97,6 @@ Item {
                         active: isDefaultSink,
                         sinkName: sinkName,
                         portName: "",
-                        node: sinkNode,
                         available: true
                     });
                 }

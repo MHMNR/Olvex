@@ -142,6 +142,7 @@ Item {
     readonly property var md3EmphasizedDecelerate: [0.05, 0.7, 0.1, 1.0, 1, 1]
     readonly property int expandDur: 500
     readonly property int collapseDur: 400
+    readonly property int dur: Tokens?.anim?.durations?.normal ?? 250
     readonly property int expandedHeight: Math.min(root.height - 80, Math.max(150, contentLoader.implicitHeight + 120))
 
     MouseArea {
@@ -472,8 +473,8 @@ Item {
                 }
                 border.color: Colours.palette.m3outline
 
-                Behavior on color { ColorAnimation { duration: dur; easing.type: Easing.OutExpo } }
-                Behavior on border.width { NumberAnimation { duration: dur; easing.type: Easing.OutExpo } }
+                Behavior on color { ColorAnimation { duration: root.dur; easing.type: Easing.OutExpo } }
+                Behavior on border.width { NumberAnimation { duration: root.dur; easing.type: Easing.OutExpo } }
             }
 
             MaterialIcon {

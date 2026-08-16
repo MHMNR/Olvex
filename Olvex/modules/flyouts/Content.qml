@@ -30,25 +30,29 @@ Item {
         spacing: Tokens.spacing.normal
 
         // Speaker volume
-        CustomMouseArea {
-            function onWheel(event: WheelEvent) {
-                if (event.angleDelta.y > 0)
-                    Audio.incrementVolume();
-                else if (event.angleDelta.y < 0)
-                    Audio.decrementVolume();
-            }
+        WrappedLoader {
+            shouldBeActive: Config.flyouts.enableVolume ?? true
 
-            implicitWidth: Tokens.sizes.flyouts.sliderWidth
-            implicitHeight: Tokens.sizes.flyouts.sliderHeight
+            sourceComponent: CustomMouseArea {
+                function onWheel(event: WheelEvent) {
+                    if (event.angleDelta.y > 0)
+                        Audio.incrementVolume();
+                    else if (event.angleDelta.y < 0)
+                        Audio.decrementVolume();
+                }
 
-            FilledSlider {
-                anchors.fill: parent
+                implicitWidth: Tokens.sizes.flyouts.sliderWidth
+                implicitHeight: Tokens.sizes.flyouts.sliderHeight
 
-                icon: Icons.getVolumeIcon(value, root.muted)
-                value: root.volume
-                to: GlobalConfig.services.maxVolume
-                onMoved: Audio.setVolume(value)
-                screenCapture: root.screenCapture
+                FilledSlider {
+                    anchors.fill: parent
+
+                    icon: Icons.getVolumeIcon(value, root.muted)
+                    value: root.volume
+                    to: GlobalConfig.services.maxVolume
+                    onMoved: Audio.setVolume(value)
+                    screenCapture: root.screenCapture
+                }
             }
         }
 

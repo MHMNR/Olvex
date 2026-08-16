@@ -36,29 +36,10 @@ Singleton {
     }
 
     function setVolume(newVolume: real): void {
-        const clamped = Math.max(0, Math.min(GlobalConfig.services.maxVolume || 1.5, newVolume));
         if (sink?.ready && sink?.audio) {
             sink.audio.muted = false;
-            sink.audio.volume = clamped;
+            sink.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
         }
-        const pct = Math.round(clamped * 100);
-        let target = "@DEFAULT_SINK@";
-        if (sink?.name)
-            target = sink.name;
-        setSinkProc.command = ["sh", "-c", `pactl set-sink-volume "${target}" ${pct}% ; pactl set-sink-mute "${target}" 0`];
-        setSinkProc.running = true;
-    }
-
-    function setSinkVolume(sinkName: string, newVolume: real): void {
-        const clamped = Math.max(0, Math.min(GlobalConfig.services.maxVolume || 1.5, newVolume));
-        const targetNode = sinks.find(s => s && (s.name === sinkName || (s.name && sinkName && (s.name.includes(sinkName) || sinkName.includes(s.name)))));
-        if (targetNode?.audio) {
-            targetNode.audio.muted = false;
-            targetNode.audio.volume = clamped;
-        }
-        const pct = Math.round(clamped * 100);
-        setSinkProc.command = ["sh", "-c", `pactl set-sink-volume "${sinkName}" ${pct}% ; pactl set-sink-mute "${sinkName}" 0`];
-        setSinkProc.running = true;
     }
 
     function incrementVolume(amount: real): void {
@@ -70,17 +51,10 @@ Singleton {
     }
 
     function setSourceVolume(newVolume: real): void {
-        const clamped = Math.max(0, Math.min(GlobalConfig.services.maxVolume || 1.5, newVolume));
         if (source?.ready && source?.audio) {
             source.audio.muted = false;
-            source.audio.volume = clamped;
+            source.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
         }
-        const pct = Math.round(clamped * 100);
-        let target = "@DEFAULT_SOURCE@";
-        if (source?.name)
-            target = source.name;
-        setSourceProc.command = ["sh", "-c", `pactl set-source-volume "${target}" ${pct}% ; pactl set-source-mute "${target}" 0`];
-        setSourceProc.running = true;
     }
 
     function incrementSourceVolume(amount: real): void {
@@ -92,25 +66,11 @@ Singleton {
     }
 
     function setAudioSink(newSink: PwNode): void {
-        if (!newSink) return;
         Pipewire.preferredDefaultAudioSink = newSink;
-        if (newSink.name) {
-            let cmd = `pactl set-default-sink "${newSink.name}" ; for input in $(pactl list short sink-inputs 2>/dev/null | cut -f1); do pactl move-sink-input "$input" "${newSink.name}" 2>/dev/null; done`;
-            setSinkProc.command = ["sh", "-c", cmd];
-            setSinkProc.running = true;
-            refreshTimer.restart();
-        }
     }
 
     function setAudioSource(newSource: PwNode): void {
-        if (!newSource) return;
         Pipewire.preferredDefaultAudioSource = newSource;
-        if (newSource.name) {
-            let cmd = `pactl set-default-source "${newSource.name}" ; for output in $(pactl list short source-outputs 2>/dev/null | cut -f1); do pactl move-source-output "$output" "${newSource.name}" 2>/dev/null; done`;
-            setSourceProc.command = ["sh", "-c", cmd];
-            setSourceProc.running = true;
-            refreshTimer.restart();
-        }
     }
 
     function cycleNextAudioOutput(): void {
@@ -160,12 +120,14 @@ Singleton {
         const prevLower = previousSinkName.toLowerCase();
         const prevIsHeadphones = prevLower.includes("headphone") || prevLower.includes("headset") || prevLower.includes("earphone") || prevLower.includes("buds") || prevLower.includes("airpod");
 
-        if (previousSinkName && previousSinkName !== newSinkName && GlobalConfig.qspanel.toasts.audioOutputChanged) {
+        if (previousSinkName && previousSinkName !== newSinkName) {
             if (isHeadphones && !prevIsHeadphones) {
-                Toaster.toast(qsTr("Headphones connected"), newSinkName, "headphones", Toast.Info);
+                if (GlobalConfig.qspanel.toasts.headphones ?? true)
+                    Toaster.toast(qsTr("Headphones connected"), newSinkName, "headphones", Toast.Info);
             } else if (!isHeadphones && prevIsHeadphones) {
-                Toaster.toast(qsTr("Headphones disconnected"), qsTr("Switched to %1").arg(newSinkName), "headphones", Toast.Info);
-            } else {
+                if (GlobalConfig.qspanel.toasts.headphones ?? true)
+                    Toaster.toast(qsTr("Headphones disconnected"), qsTr("Switched to %1").arg(newSinkName), "headphones", Toast.Info);
+            } else if (GlobalConfig.qspanel.toasts.audioOutputChanged ?? true) {
                 let icon = "volume_up";
                 if (lower.includes("hdmi") || lower.includes("tv"))
                     icon = "tv";
@@ -241,28 +203,18 @@ Singleton {
     }
 
     function setAudioOutputPort(sinkName: string, portName: string): void {
-        const targetNode = sinks.find(s => s && (s.name === sinkName || (s.name && sinkName && (s.name.includes(sinkName) || sinkName.includes(s.name)))));
-        if (targetNode) {
-            Pipewire.preferredDefaultAudioSink = targetNode;
-        }
         let cmd = `pactl set-default-sink "${sinkName}"`;
         if (portName)
-            cmd += ` ; pactl set-sink-port "${sinkName}" "${portName}"`;
-        cmd += ` ; for input in $(pactl list short sink-inputs 2>/dev/null | cut -f1); do pactl move-sink-input "$input" "${sinkName}" 2>/dev/null; done`;
+            cmd += ` && pactl set-sink-port "${sinkName}" "${portName}"`;
         setSinkProc.command = ["sh", "-c", cmd];
         setSinkProc.running = true;
         refreshTimer.restart();
     }
 
     function setAudioInputPort(sourceName: string, portName: string): void {
-        const targetNode = sources.find(s => s && (s.name === sourceName || (s.name && sourceName && (s.name.includes(sourceName) || sourceName.includes(s.name)))));
-        if (targetNode) {
-            Pipewire.preferredDefaultAudioSource = targetNode;
-        }
         let cmd = `pactl set-default-source "${sourceName}"`;
         if (portName)
-            cmd += ` ; pactl set-source-port "${sourceName}" "${portName}"`;
-        cmd += ` ; for output in $(pactl list short source-outputs 2>/dev/null | cut -f1); do pactl move-source-output "$output" "${sourceName}" 2>/dev/null; done`;
+            cmd += ` && pactl set-source-port "${sourceName}" "${portName}"`;
         setSourceProc.command = ["sh", "-c", cmd];
         setSourceProc.running = true;
         refreshTimer.restart();

@@ -18,8 +18,6 @@ Item {
     required property string iconName
     property bool emphasized: false
     property bool expandedTone: false
-    property bool spinning: false
-    property bool animateSpin: false
     property bool balancedSkipIcon: false
     property bool elevated: false
     property bool cookieMorphOnClick: false
@@ -52,7 +50,7 @@ Item {
     readonly property real pauseBarRadius: Math.min(Tokens.rounding.extraSmall, pauseBarWidth / 2)
     readonly property real shapeSize: Math.max(1, Math.min(width, height) - control.innerPad)
     readonly property real secondaryMix: Math.max(0, Math.min(1, secondaryProgress))
-    readonly property real visualScale: clickScale * (stateLayer.containsMouse ? 1.05 : 1.0)
+    readonly property real visualScale: clickScale
     readonly property real innerPad: control.emphasized ? 0 : 4
     readonly property color activeIconColor: control.emphasized ? Players.musicPlayIconColor : Qt.alpha(Players.musicOnSurfaceColor, stateLayer.containsMouse ? 0.98 : 0.78 + 0.12 * control.secondaryMix)
     readonly property color disabledIconColor: Qt.alpha(Players.musicOnSurfaceColor, 0.25)
@@ -76,11 +74,10 @@ Item {
         id: controlShape
         anchors.centerIn: parent
         implicitSize: control.shapeSize
-        // Backup pill's play button morphed circle (paused) → rounded square
-        // (playing) via Rectangle.radius, no rotation. Reproduced here as a
-        // static shape swap — Square/Circle are both static presets, so this
-        // costs nothing continuous (unlike the old Cookie12Sided spin driver).
-        shape: control.spinning ? MaterialShape.Cookie12Sided : (control.emphasized ? (control.isPauseIcon ? MaterialShape.Square : MaterialShape.Circle) : (control.clickMorphActive ? control.clickMorphShape : (control.secondaryMix > 0.02 ? control.secondaryShape : MaterialShape.Pill)))
+        antialiasing: true
+        smooth: true
+        shapeRotation: control.emphasized ? 90 : 0
+        shape: control.emphasized ? (control.isPauseIcon ? MaterialShape.Bun : MaterialShape.Arrow) : (control.clickMorphActive ? control.clickMorphShape : (control.secondaryMix > 0.02 ? control.secondaryShape : MaterialShape.Pill))
         color: control.containerTone
         strokeColor: control.strokeColor
         strokeWidth: control.emphasized ? control.secondaryMix : 0
@@ -115,32 +112,10 @@ Item {
         }
     }
 
-    RotationAnimator {
-        target: controlShape
-        to: 360
-        duration: 8000
-        loops: Animation.Infinite
-        running: control.animateSpin && control.spinning && control.visible && control.opacity > 0
-        easing.type: Easing.Linear
-        onRunningChanged: {
-            if (!running)
-                controlShape.rotation = 0;
-        }
-    }
-
-    Behavior on scale {
-        SpringAnimation {
-            spring: 5.2
-            damping: 0.62
-            mass: 1.0
-            epsilon: 0.004
-        }
-    }
-
     MaterialIcon {
         id: controlIcon
         anchors.centerIn: parent
-        visible: !control.isSkipIcon && !control.isPauseIcon
+        visible: !control.isSkipIcon
         text: control.iconName
         color: Players.active ? control.activeIconColor : control.disabledIconColor
         iconPointSize: control.iconSize
@@ -158,47 +133,6 @@ Item {
         transform: Scale {
             origin.x: controlIcon.width / 2
             origin.y: controlIcon.height / 2
-            xScale: control.iconScaleX
-            yScale: control.iconScaleY
-        }
-    }
-
-    Item {
-        id: pauseIcon
-        anchors.centerIn: parent
-        visible: control.isPauseIcon
-        width: control.pauseBarWidth * 2 + control.pauseBarGap
-        height: control.pauseBarHeight
-
-        readonly property color glyphColor: Players.active ? control.activeIconColor : control.disabledIconColor
-
-        Row {
-            anchors.centerIn: parent
-            spacing: control.pauseBarGap
-
-            Repeater {
-                model: 2
-
-                Rectangle {
-                    width: control.pauseBarWidth
-                    height: control.pauseBarHeight
-                    radius: control.pauseBarRadius
-                    color: pauseIcon.glyphColor
-                    antialiasing: true
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastEffects
-                        }
-                    }
-                }
-            }
-        }
-
-        transform: Scale {
-            origin.x: pauseIcon.width / 2
-            origin.y: pauseIcon.height / 2
             xScale: control.iconScaleX
             yScale: control.iconScaleY
         }
@@ -341,24 +275,31 @@ Item {
         Transition {
             from: "pressed"
             to: "idle"
-            ParallelAnimation {
-                // X: rubbery overshoot — low damping = elastic wobble
-                SpringAnimation {
-                    target: control
-                    property: "iconScaleX"
-                    to: 1.0
-                    spring: 4.5
-                    damping: 0.22
-                    epsilon: 0.005
+            SequentialAnimation {
+                ParallelAnimation {
+                    // X: rubbery overshoot — low damping = elastic wobble
+                    SpringAnimation {
+                        target: control
+                        property: "iconScaleX"
+                        to: 1.0
+                        spring: 4.5
+                        damping: 0.22
+                        epsilon: 0.001
+                    }
+                    // Y: snappier settle — higher damping prevents vertical flap
+                    SpringAnimation {
+                        target: control
+                        property: "iconScaleY"
+                        to: 1.0
+                        spring: 5.0
+                        damping: 0.38
+                        epsilon: 0.001
+                    }
                 }
-                // Y: snappier settle — higher damping prevents vertical flap
-                SpringAnimation {
+                PropertyAction {
                     target: control
-                    property: "iconScaleY"
-                    to: 1.0
-                    spring: 5.0
-                    damping: 0.38
-                    epsilon: 0.005
+                    properties: "iconScaleX,iconScaleY"
+                    value: 1.0
                 }
             }
         }
@@ -382,7 +323,12 @@ Item {
             spring: 5.6
             damping: 0.58
             mass: 1.0
-            epsilon: 0.004
+            epsilon: 0.001
+        }
+        PropertyAction {
+            target: control
+            property: "clickScale"
+            value: 1.0
         }
     }
 
