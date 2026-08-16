@@ -1,4 +1,3 @@
-
 import QtQuick
 import Quickshell
 import Olvex
@@ -9,7 +8,7 @@ import qs.services
 Item {
     id: root
 
-    readonly property int spacing: Tokens.spacing.small
+    readonly property int spacing: 8
     property bool flag
 
     function shouldShowToast(toast: Toast): bool {
@@ -22,16 +21,19 @@ Item {
         return false;
     }
 
-    implicitWidth: Tokens.sizes.qspanel.toastWidth - Tokens.padding.normal * 2
+    implicitWidth: 380
     implicitHeight: {
         let h = -spacing;
         for (let i = 0; i < repeater.count; i++) {
             const item = repeater.itemAt(i) as ToastWrapper;
-            if (!item.modelData.closed && !item.previewHidden)
+            if (item && !item.modelData.closed && !item.previewHidden)
                 h += item.implicitHeight + spacing;
         }
-        return h;
+        return Math.max(0, h);
     }
+    width: implicitWidth
+    height: implicitHeight
+    visible: implicitHeight > 0
 
     Repeater {
         id: repeater
@@ -58,7 +60,7 @@ Item {
         ToastWrapper {}
     }
 
-    component ToastWrapper: MouseArea {
+    component ToastWrapper: Item {
         id: toast
 
         required property int index
@@ -72,13 +74,20 @@ Item {
             return index >= Config.qspanel.maxToasts + extraHidden;
         }
 
-        onPreviewHiddenChanged: {
-            if (initAnim.running && previewHidden)
-                initAnim.stop();
+        // Animated entrance/exit properties
+        property real offsetY: 16
+        property real toastOpacity: 0
+        property real toastScale: 0.94
+
+        opacity: toastOpacity
+        scale: toastScale
+        transform: Translate {
+            y: toast.offsetY
         }
 
-        opacity: modelData.closed || previewHidden ? 0 : 1
-        scale: modelData.closed || previewHidden ? 0.7 : 1
+        // Hardware texture smoothing during motion to prevent text jitter
+        layer.enabled: enterAnim.running || exitAnim.running
+        layer.smooth: true
 
         anchors.bottomMargin: {
             root.flag; // Force update
@@ -91,62 +100,93 @@ Item {
             return y;
         }
 
-        anchors.left: parent.left
-        anchors.right: parent.right
         anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: toastInner.implicitWidth
         implicitHeight: toastInner.implicitHeight
+        height: implicitHeight
 
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-        onClicked: modelData.close()
+        Component.onCompleted: {
+            modelData.lock(this);
+            enterAnim.start();
+        }
 
-        Component.onCompleted: modelData.lock(this)
+        // M3 Emphasized Decelerate Spline: [0.05, 0.7, 0.1, 1.0]
+        readonly property var m3Decel: [0.05, 0.7, 0.1, 1.0, 1, 1]
 
-        Anim {
-            id: initAnim
+        ParallelAnimation {
+            id: enterAnim
 
-            Component.onCompleted: running = !toast.previewHidden
+            NumberAnimation {
+                target: toast
+                property: "toastOpacity"
+                from: 0
+                to: 1
+                duration: 320
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: toast.m3Decel
+            }
 
-            target: toast
-            properties: "opacity,scale"
-            from: 0
-            to: 1
-            type: Anim.DefaultSpatial
+            NumberAnimation {
+                target: toast
+                property: "offsetY"
+                from: 16
+                to: 0
+                duration: 340
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: toast.m3Decel
+            }
+
+            NumberAnimation {
+                target: toast
+                property: "toastScale"
+                from: 0.94
+                to: 1.0
+                duration: 340
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: toast.m3Decel
+            }
         }
 
         ParallelAnimation {
+            id: exitAnim
             running: toast.modelData.closed
             onStarted: toast.anchors.bottomMargin = toast.anchors.bottomMargin
             onFinished: toast.modelData.unlock(toast)
 
-            Anim {
+            NumberAnimation {
                 target: toast
-                property: "opacity"
+                property: "toastOpacity"
                 to: 0
+                duration: 180
+                easing.type: Easing.OutCubic
             }
-            Anim {
+
+            NumberAnimation {
                 target: toast
-                property: "scale"
-                to: 0.7
+                property: "toastScale"
+                to: 0.92
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+
+            NumberAnimation {
+                target: toast
+                property: "offsetY"
+                to: 10
+                duration: 180
+                easing.type: Easing.OutCubic
             }
         }
 
         ToastItem {
             id: toastInner
-
             modelData: toast.modelData
-        }
-
-        Behavior on opacity {
-            Anim {}
-        }
-
-        Behavior on scale {
-            Anim {}
         }
 
         Behavior on anchors.bottomMargin {
             Anim {
-                type: Anim.DefaultSpatial
+                type: Anim.Emphasized
             }
         }
     }

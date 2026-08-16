@@ -1405,13 +1405,13 @@ Item {
                         // identical, while relaxing the per-frame deadline enough for
                         // the visualizer to stay within budget on a 144Hz iGPU.
                         property real spin: 0
-                        readonly property real spinStep: 360 * 16 / 20000  // ≈0.288°/16ms
 
-                        Timer {
-                            interval: 16
-                            running: true
-                            repeat: true
-                            onTriggered: avatarHost.spin = (avatarHost.spin - avatarHost.spinStep + 360) % 360
+                        NumberAnimation on spin {
+                            from: 360
+                            to: 0
+                            duration: 20000
+                            loops: Animation.Infinite
+                            running: root.visible
                         }
 
                         // Spinning 12-sided ring

@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Olvex
 import Olvex.Config
 import Olvex.Models
 import qs.services
@@ -327,11 +328,12 @@ Searcher {
         if (!normalized.length)
             return;
         const schemePath = `${Paths.state}/scheme.json`;
-        const stateDir = Paths.state.replace(/'/g, "'\\''");
-        const quoted = normalized.replace(/'/g, "'\\''");
-        schemePersistProc.command = ["bash", "-lc",
-            `mkdir -p '${stateDir}' && python3 -c 'import json,sys; json.dump(json.loads(sys.argv[1]), open("${schemePath.replace(/'/g, "'\\''")}", "w"), indent=2)' '${quoted}'`];
-        schemePersistProc.running = true;
+        try {
+            const parsed = JSON.parse(normalized);
+            CUtils.writeTextFile(schemePath, JSON.stringify(parsed, null, 2));
+        } catch (e) {
+            CUtils.writeTextFile(schemePath, normalized);
+        }
     }
 
     function normalizePalettePayload(raw: string): string {

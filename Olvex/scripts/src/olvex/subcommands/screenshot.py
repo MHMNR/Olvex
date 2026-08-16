@@ -5,7 +5,6 @@ from datetime import datetime
 from olvex.utils import hypr
 from olvex.utils.notify import notify
 from olvex.utils.paths import screenshots_cache_dir, screenshots_dir
-from olvex.utils.qs_shell import qs_run
 
 
 class Command:
@@ -22,10 +21,8 @@ class Command:
 
     def region(self) -> None:
         if self.args.region == "slurp":
-            qs_run(
-                ["ipc", "call", "picker", "openFreeze" if self.args.freeze else "open"],
-                check=False,
-            )
+            action = "openFreeze" if self.args.freeze else "open"
+            subprocess.run(["qs", "ipc", "call", "picker", action], check=False)
         else:
             sc_data = subprocess.check_output(["grim", "-l", "0", "-g", self.args.region.strip(), "-"])
             swappy = subprocess.Popen(["swappy", "-f", "-"], stdin=subprocess.PIPE, start_new_session=True)

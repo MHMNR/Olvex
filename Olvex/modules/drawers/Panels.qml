@@ -232,32 +232,26 @@ Item {
     // Poll overlap for smarthide; fast when state may change, slow when stable.
     Timer {
         id: geometrySyncLoop
-        interval: root.geometryPollInterval
-        running: bottomPanelMode === "smarthide" && root.bottomPanelEnabled && !LockState.locked
+        interval: 350
+        property int ticksLeft: 0
+        running: ticksLeft > 0 && bottomPanelMode === "smarthide" && root.bottomPanelEnabled && !LockState.locked
         repeat: true
         onTriggered: {
-            CpuProfile.bump("geometrySyncLoop");
-            if (!root.visibilities.bottomPanel && !_geometryStableTicks && !hasWindowsOverlappingPanel) {
-                root._geometryStableTicks = 1;
-            }
-            const shouldRefreshToplevels = _geometryStableTicks < 2
-                || hasWindowsOverlappingPanel
-                || (root.visibilities.bottomPanel && (_geometryStableTicks % 3 === 0));
-            if (shouldRefreshToplevels) {
-                Hyprland.refreshToplevels();
-                CpuProfile.bump("hyprRefreshToplevels");
-            }
+            ticksLeft--;
+            Hyprland.refreshToplevels();
             const overlap = checkOverlap();
             if (overlap !== hasWindowsOverlappingPanel)
                 hasWindowsOverlappingPanel = overlap;
-            if (overlap === _lastOverlapState)
-                _geometryStableTicks++;
-            else {
-                _geometryStableTicks = 0;
-                _lastOverlapState = overlap;
-            }
-            const slow = _geometryStableTicks >= 8;
-            geometryPollInterval = slow ? (hasWindowsOverlappingPanel ? 1800 : 3000) : 1000;
+            _lastOverlapState = overlap;
+        }
+
+        function kick(ticks = 3): void {
+            ticksLeft = Math.max(ticksLeft, ticks);
+            restart();
+            const overlap = root.checkOverlap();
+            if (overlap !== root.hasWindowsOverlappingPanel)
+                root.hasWindowsOverlappingPanel = overlap;
+            root._lastOverlapState = overlap;
         }
     }
 
@@ -266,12 +260,7 @@ Item {
         function onToplevelUpdateCounterChanged(): void {
             if (root.bottomPanelMode !== "smarthide")
                 return;
-            root._geometryStableTicks = 0;
-            root.geometryPollInterval = 1000;
-            const overlap = root.checkOverlap();
-            if (overlap !== root.hasWindowsOverlappingPanel)
-                root.hasWindowsOverlappingPanel = overlap;
-            root._lastOverlapState = overlap;
+            geometrySyncLoop.kick(3);
         }
     }
 
@@ -493,11 +482,11 @@ Item {
     Toasts.Toasts {
         id: toasts
 
-        // Float above bottom panel / screen bottom (qspanel is full-height now)
+        // Float above bottom panel / screen bottom in bottom-center
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: (root.bottomPanelEnabled && root.bottomPanelVisible) ? bottomPanel.top : parent.bottom
-        anchors.right: parent.right
-        anchors.margins: Tokens.padding.normal
-        z: 15
+        anchors.bottomMargin: Tokens.padding.large + ((root.bottomPanelEnabled && root.bottomPanelVisible) ? 12 : 24)
+        z: 35
     }
 
     Item {

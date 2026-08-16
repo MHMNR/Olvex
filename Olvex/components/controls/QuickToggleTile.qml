@@ -104,8 +104,8 @@ StyledRect {
     implicitHeight: 110
     radius: 32
     color: Colours.tileFill
-    border.color: Colours.light ? Colours.tileStroke : Qt.alpha("#ff99cc", 0.12)
-    border.width: 1
+    border.color: "transparent"
+    border.width: 0
 
     Behavior on radius { Anim { type: Anim.FastSpatial } }
 
@@ -134,8 +134,8 @@ StyledRect {
             color: root.disabled ? root.disabledColour
                  : root.checked ? root.activeColour
                  : root.inactiveColour
-            border.width: Colours.light && !root.checked ? 1 : 0
-            border.color: Colours.tileStrokeSubtle
+            border.width: 0
+            border.color: "transparent"
 
             Behavior on Layout.preferredWidth { Anim { type: Anim.FastSpatial } }
             Behavior on Layout.preferredHeight { Anim { type: Anim.FastSpatial } }

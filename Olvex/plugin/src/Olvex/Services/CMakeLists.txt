@@ -7,8 +7,10 @@ qml_module(olvex-services
         audiocollector.hpp audiocollector.cpp
         audioprovider.hpp audioprovider.cpp
         cavaprovider.hpp cavaprovider.cpp
+        usbwatcher.hpp usbwatcher.cpp
     LIBRARIES
         PkgConfig::Pipewire
         PkgConfig::Aubio
         PkgConfig::Cava
+        PkgConfig::Udev
 )

@@ -27,7 +27,7 @@ Variants {
         Loader {
             id: oskLoader
 
-            active: true
+            active: content.visibilities.osk
             asynchronous: true
 
             onItemChanged: {

@@ -12,16 +12,6 @@ Item {
     readonly property bool shouldBeActive: visibilities.notificationcenter && Config.notificationcenter.enabled
     property real offsetScale: shouldBeActive ? 0 : 1
 
-    property bool contentPrewarmed: false
-
-    Timer {
-        id: prewarmTimer
-        interval: 2000
-        running: true
-        repeat: false
-        onTriggered: root.contentPrewarmed = true
-    }
-
     visible: offsetScale < 1
     opacity: 1 - offsetScale
 
@@ -41,7 +31,7 @@ Item {
         anchors.bottomMargin: 0
 
         asynchronous: true
-        active: root.contentPrewarmed || root.shouldBeActive || root.visible
+        active: root.shouldBeActive || root.visible
 
         sourceComponent: Content {
             implicitWidth: Tokens.sizes.sidebar.width - Tokens.padding.large * 2

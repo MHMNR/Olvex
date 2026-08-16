@@ -61,7 +61,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 38
             radius: Tokens.rounding.small
-            color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+            color: Colours.tileFill
             border.width: 1
             border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
 
@@ -237,7 +237,7 @@ Item {
         }
 
         radius: root.insetPanelRadius
-        color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+        color: Colours.tileFill
         border.width: 1
         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
 

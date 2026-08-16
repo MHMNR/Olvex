@@ -1281,6 +1281,9 @@ int main(int argc, char **argv) {
     const QString appDir = QCoreApplication::applicationDirPath();
 
     const QStringList candidates = {
+        QDir::home().filePath(QStringLiteral(".local/Olvex/standalone/clipboard/") + qmlName),
+        QDir::home().filePath(QStringLiteral("Projects/QS-Config/Olvex/standalone/clipboard/") + qmlName),
+        QDir::home().filePath(QStringLiteral(".config/olvex/standalone/clipboard/") + qmlName),
         QDir(appDir).filePath(QStringLiteral("../../../standalone/clipboard/") + qmlName),
         QDir(appDir).filePath(QStringLiteral("../../etc/xdg/quickshell/olvex/standalone/clipboard/") + qmlName),
         QDir(appDir).filePath(QStringLiteral("../share/olvex/standalone/clipboard/") + qmlName),

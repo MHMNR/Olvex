@@ -80,6 +80,12 @@ Region {
         customWidth: (1 - root.panels.popoutsWrapper.offsetScale) > 0 ? (panel.width * (1 - root.panels.popoutsWrapper.offsetScale)) : 0
     }
 
+    R {
+        panel: root.panels.toasts
+        customWidth: root.panels.toasts.implicitHeight > 0 ? root.panels.toasts.width : 0
+        customHeight: root.panels.toasts.implicitHeight > 0 ? root.panels.toasts.height : 0
+    }
+
     component R: Region {
         required property Item panel
         property real customWidth: panel.width

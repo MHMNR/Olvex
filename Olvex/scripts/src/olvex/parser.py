@@ -2,15 +2,11 @@ import argparse
 import sys
 
 from olvex.subcommands import (
-    clipboard,
     emoji,
     install,
     record,
-    resizer,
     scheme,
     screenshot,
-    shell,
-    toggle,
     update,
     wallpaper,
 )
@@ -31,21 +27,6 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     command_parser = parser.add_subparsers(
         title="subcommands", description="valid subcommands", metavar="COMMAND", help="the subcommand to run"
     )
-
-    # Create parser for shell opts
-    shell_parser = command_parser.add_parser("shell", help="start or message the shell")
-    shell_parser.set_defaults(cls=shell.Command)
-    shell_parser.add_argument("message", nargs="*", help="a message to send to the shell")
-    shell_parser.add_argument("-d", "--daemon", action="store_true", help="start the shell detached")
-    shell_parser.add_argument("-s", "--show", action="store_true", help="print all shell IPC commands")
-    shell_parser.add_argument("-l", "--log", action="store_true", help="print the shell log")
-    shell_parser.add_argument("-k", "--kill", action="store_true", help="kill the shell")
-    shell_parser.add_argument("--log-rules", metavar="RULES", help="log rules to apply")
-
-    # Create parser for toggle opts
-    toggle_parser = command_parser.add_parser("toggle", help="toggle a special workspace")
-    toggle_parser.set_defaults(cls=toggle.Command)
-    toggle_parser.add_argument("workspace", help="the workspace to toggle")
 
     # Create parser for scheme opts
     scheme_parser = command_parser.add_parser("scheme", help="manage the colour scheme")
@@ -90,11 +71,6 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     record_parser.add_argument("-p", "--pause", action="store_true", help="pause/resume the recording")
     record_parser.add_argument("-c", "--clipboard", action="store_true", help="copy recording path to clipboard")
 
-    # Create parser for clipboard opts
-    clipboard_parser = command_parser.add_parser("clipboard", help="open clipboard history")
-    clipboard_parser.set_defaults(cls=clipboard.Command)
-    clipboard_parser.add_argument("-d", "--delete", action="store_true", help="delete from clipboard history")
-
     # Create parser for emoji-picker opts
     emoji_parser = command_parser.add_parser("emoji", help="emoji/glyph utilities")
     emoji_parser.set_defaults(cls=emoji.Command)
@@ -138,26 +114,6 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
         default=None,
         help="force a specific variant (overrides smart mode variant pick)",
     )
-
-    # Create parser for resizer opts
-    resizer_parser = command_parser.add_parser("resizer", help="window resizer daemon")
-    resizer_parser.set_defaults(cls=resizer.Command)
-    resizer_parser.add_argument("-d", "--daemon", action="store_true", help="start the resizer daemon")
-    resizer_parser.add_argument(
-        "pattern",
-        nargs="?",
-        help="pattern to match against windows ('active' for current window only, 'pip' for quick pip mode)",
-    )
-    resizer_parser.add_argument(
-        "match_type",
-        nargs="?",
-        metavar="match_type",
-        choices=["titleContains", "titleExact", "titleRegex", "initialTitle"],
-        help="type of pattern matching (titleContains,titleExact,titleRegex,initialTitle)",
-    )
-    resizer_parser.add_argument("width", nargs="?", help="width to resize to")
-    resizer_parser.add_argument("height", nargs="?", help="height to resize to")
-    resizer_parser.add_argument("actions", nargs="?", help="comma-separated actions to apply (float,center,pip)")
 
     # Create parser for install opts
     install_parser = command_parser.add_parser(

@@ -21,8 +21,8 @@ Item {
         anchors.fill: parent
         radius: pressed ? 11 : width / 2
         color: Colours.layer(Colours.palette.m3surfaceVariant, 0.5)
-        border.color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-        border.width: 1
+        border.color: "transparent"
+        border.width: 0
 
         // Premium shrink-on-click and bounce-on-hover interaction animations
         scale: hovered ? 1.08 : 1.0

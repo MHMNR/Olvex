@@ -16,12 +16,32 @@ StyledClippingRect {
     readonly property bool onSpecial: (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor)?.lastIpcObject.specialWorkspace?.name !== ""
     readonly property int activeWsId: GlobalConfig.bar.workspaces.perMonitorWorkspaces ? (Hypr.monitorFor(screen).activeWorkspace?.id ?? 1) : Hypr.activeWsId
 
-    readonly property var occupied: {
-        const occ = {};
-        for (const ws of Hypr.workspaces.values)
-            occ[ws.id] = ws.lastIpcObject.windows > 0;
-        return occ;
+    property var occupied: ({})
+
+    function updateOccupied(): void {
+        let changed = false;
+        const next = {};
+        const values = Hypr.workspaces.values || [];
+        for (let i = 0; i < values.length; i++) {
+            const ws = values[i];
+            const hasWin = (ws.lastIpcObject?.windows ?? 0) > 0;
+            next[ws.id] = hasWin;
+            if (root.occupied[ws.id] !== hasWin)
+                changed = true;
+        }
+        if (changed || Object.keys(next).length !== Object.keys(root.occupied).length) {
+            root.occupied = next;
+        }
     }
+
+    Connections {
+        target: Hypr.workspaces
+        function onValuesChanged(): void {
+            root.updateOccupied();
+        }
+    }
+
+    Component.onCompleted: root.updateOccupied()
     readonly property int groupOffset: Math.floor((activeWsId - 1) / Config.bar.workspaces.shown) * Config.bar.workspaces.shown
 
     // Debounced rather than a direct binding to hoverArea.containsMouse —

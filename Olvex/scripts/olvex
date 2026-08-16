@@ -199,6 +199,18 @@ elif [ "$1" = "clipboard" ]; then
 
     echo "Clipboard app not found. Build or install olvex-clipboard first." >&2
     exit 1
+elif [ "$1" = "resizer" ]; then
+    shift
+    if [ "${1:-}" = "pip" ]; then
+        _olvex_qs_run ipc call resizer pip
+    elif [ "${1:-}" = "-d" ] || [ "${1:-}" = "--daemon" ]; then
+        echo "Window resizer is built natively into Olvex shell (C++). No separate daemon required."
+    else
+        _olvex_backend resizer "$@"
+    fi
+elif [ "$1" = "toggle" ]; then
+    shift
+    _olvex_qs_run ipc call drawers toggle "$@"
 else
     _olvex_backend "$@"
 fi

@@ -177,8 +177,8 @@ Item {
         height: root.savedStartSize.height
         radius: 32
         color: Colours.tileGlass
-        border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
-        border.width: 1
+        border.color: "transparent"
+        border.width: 0
         clip: true
 
         Behavior on color { ColorAnimation { duration: 250 } }
@@ -208,7 +208,8 @@ Item {
                     height: root.expandedHeight
                     radius: Tokens.rounding.large
                     color: Colours.tileFill
-                    border.color: Colours.light ? Colours.tileStroke : Qt.alpha("#ff99cc", 0.2)
+                    border.color: "transparent"
+                    border.width: 0
                 }
                 PropertyChanges {
                     target: iconPill
@@ -254,7 +255,8 @@ Item {
                     height: root.savedStartSize.height
                     radius: 32
                     color: Colours.tileGlass
-                    border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha("#ff99cc", 0.12)
+                    border.color: "transparent"
+                    border.width: 0
                 }
                 PropertyChanges {
                     target: iconPill
@@ -818,8 +820,8 @@ Item {
         readonly property bool isActive: PowerProfiles.profile === profile
 
         color: isActive ? Colours.palette.m3primary : Colours.tileFill
-        border.width: isActive ? 0 : 1
-        border.color: Colours.tileStroke
+        border.width: 0
+        border.color: "transparent"
 
         RowLayout {
             anchors.fill: parent
@@ -929,8 +931,8 @@ Item {
         readonly property bool isActive: DisplayProjection.activeProjection === mode
 
         color: isActive ? Colours.palette.m3primary : Colours.tileFill
-        border.width: isActive ? 0 : 1
-        border.color: Colours.tileStroke
+        border.width: 0
+        border.color: "transparent"
 
         RowLayout {
             anchors.fill: parent

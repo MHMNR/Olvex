@@ -40,8 +40,11 @@ Singleton {
 
     // ── Transparency ────────────────────────────────
     readonly property bool transparencyEnabled: Tokens.transparency.enabled
-    readonly property real transparencyBase: Math.max(0.35, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
+    readonly property real transparencyBase: Math.max(0.01, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
     readonly property real transparencyLayers: Tokens.transparency.layers
+    onTransparencyEnabledChanged: root.requestReloadHyprRules()
+    onTransparencyBaseChanged: root.requestReloadHyprRules()
+    onTransparencyLayersChanged: root.requestReloadHyprRules()
 
     // ── Wallpaper luminance ─────────────────────────
     readonly property real wallLuminance: analyser.luminance
@@ -145,17 +148,27 @@ Singleton {
             || c === bootPalette.m3inverseSurface;
     }
 
+    function surfaceLevelOf(c, fallbackLevel) {
+        if (c === bootPalette.m3surfaceContainerLowest) return 0;
+        if (c === bootPalette.m3surfaceContainerLow) return 1;
+        if (c === bootPalette.m3surfaceContainer) return 2;
+        if (c === bootPalette.m3surfaceContainerHigh) return 3;
+        if (c === bootPalette.m3surfaceContainerHighest) return 4;
+        return fallbackLevel ?? 1;
+    }
+
     function applyLayer(c, layerLevel) {
         if (!isSurfaceColor(c))
             return c;
 
-        const layer = surfaceLayer(layerLevel);
+        const baseLevel = surfaceLevelOf(c, layerLevel ?? 1);
+        const layer = surfaceLayer(layerLevel !== undefined ? Math.max(layerLevel, baseLevel) : baseLevel);
 
         if (!transparencyEnabled) {
             if (light && layer > 0)
-                return opaqueLightContainer(layerLevel);
+                return opaqueLightContainer(layer);
             if (layer === 0)
-                return c;
+                return bootPalette.m3surface;
             if (layer === 1)
                 return bootPalette.m3surfaceContainerLow;
             if (layer === 2)
@@ -166,7 +179,7 @@ Singleton {
         }
 
         if (light && layer > 0)
-            return Qt.alpha(opaqueLightContainer(layerLevel), transparencyLayers);
+            return Qt.alpha(opaqueLightContainer(layer), transparencyLayers);
 
         return layer === 0
             ? Qt.alpha(c, transparencyBase)
@@ -183,32 +196,44 @@ Singleton {
         return Qt.hsla(c.hslHue, c.hslSaturation, 0.1, 1);
     }
 
+    function opaqueDarkTile(role) {
+        if (role === "surface")
+            return palette.m3surfaceContainer;
+        if (role === "fill")
+            return palette.m3surfaceVariant;
+        if (role === "hover")
+            return Qt.tint(palette.m3surfaceVariant, Qt.alpha(palette.m3primary, 0.12));
+        if (role === "tonal" || role === "elevated")
+            return Qt.tint(palette.m3surfaceVariant, Qt.alpha(palette.m3primary, 0.08));
+        return palette.m3surfaceContainerLow;
+    }
+
     // ── Tile colours (M3 elevation stack) ───────────
     readonly property color _tileSurfaceRgb: opaqueLightContainer(2)
-    readonly property color _tileFillRgb: opaqueLightContainer(3, _tileSurfaceRgb)
+    readonly property color _tileFillRgb: opaqueLightContainer(4, _tileSurfaceRgb)
     readonly property color _tileFillHoverRgb: opaqueLightContainer(4, _tileFillRgb)
     readonly property color _tileFillSubtleRgb: opaqueLightContainer(1)
-    readonly property color _tileFillTonalRgb: opaqueLightContainer(3, _tileSurfaceRgb)
+    readonly property color _tileFillTonalRgb: opaqueLightContainer(4, _tileSurfaceRgb)
     readonly property color _tileFillElevatedRgb: opaqueLightContainer(4, _tileFillRgb)
 
     readonly property color tileSurface: light
         ? applyTileAlpha(_tileSurfaceRgb, 2)
-        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.05) : layer(palette.m3surfaceContainerLow, 1))
+        : (transparencyEnabled ? applyLayer(palette.m3surfaceContainer, 2) : opaqueDarkTile("surface"))
     readonly property color tileFill: light
-        ? applyTileAlpha(_tileFillRgb, 3)
-        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.08) : layer(palette.m3surfaceContainer, 2))
+        ? applyTileAlpha(_tileFillRgb, 4)
+        : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerHighest, 4) : opaqueDarkTile("fill"))
     readonly property color tileFillHover: light
         ? applyTileAlpha(_tileFillHoverRgb, 4)
-        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.12) : layer(palette.m3surfaceContainerHigh, 3))
+        : (transparencyEnabled ? Qt.tint(applyLayer(palette.m3surfaceVariant, 4), Qt.alpha(palette.m3primary, 0.15)) : opaqueDarkTile("hover"))
     readonly property color tileFillSubtle: light
         ? applyTileAlpha(_tileFillSubtleRgb, 1)
-        : (transparencyEnabled ? Qt.alpha(palette.m3onSurface, 0.04) : layer(palette.m3surfaceContainerLowest, 1))
+        : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerLow, 1) : palette.m3surfaceContainerLow)
     readonly property color tileFillTonal: light
-        ? applyTileAlpha(_tileFillTonalRgb, 3)
-        : layer(palette.m3surfaceContainerHigh, 1)
+        ? applyTileAlpha(_tileFillTonalRgb, 4)
+        : (transparencyEnabled ? Qt.tint(applyLayer(palette.m3surfaceVariant, 4), Qt.alpha(palette.m3primary, 0.12)) : opaqueDarkTile("tonal"))
     readonly property color tileFillElevated: light
         ? applyTileAlpha(_tileFillElevatedRgb, 4)
-        : layer(palette.m3surfaceContainerHighest, 2)
+        : (transparencyEnabled ? Qt.tint(applyLayer(palette.m3surfaceVariant, 4), Qt.alpha(palette.m3primary, 0.12)) : opaqueDarkTile("elevated"))
     readonly property color tileStroke: "transparent"
     readonly property color tileStrokeSubtle: "transparent"
     readonly property color tileInnerLine: "transparent"
@@ -216,7 +241,7 @@ Singleton {
     readonly property color tileGlassStrong: tileSurface
     readonly property color tileShine: "transparent"
     readonly property color tileShineSoft: "transparent"
-    readonly property color notifTileFill: tileSurface
+    readonly property color notifTileFill: tileFill
     readonly property color tileHoverAccent: light
         ? palette.m3primaryContainer
         : Qt.alpha(palette.m3primaryContainer, 0.38)
@@ -400,9 +425,10 @@ Singleton {
         const str = "keyword layerrule %1 %2, match:namespace %3";
         const namespaces = ["olvex-drawers", "quickshell:osk"];
         const messages = [];
+        const ignoreAlpha = transparencyEnabled ? Math.max(0.005, transparencyBase * 0.7) : 1.0;
         namespaces.forEach(ns => {
             messages.push(str.arg("blur").arg(transparencyEnabled ? 1 : 0).arg(ns));
-            messages.push(str.arg("ignore_alpha").arg(transparencyBase - 0.03).arg(ns));
+            messages.push(str.arg("ignore_alpha").arg(ignoreAlpha.toFixed(3)).arg(ns));
         });
         Hypr.extras.batchMessage(messages);
     }
@@ -491,6 +517,15 @@ Singleton {
 
     Connections {
         target: GlobalConfig.appearance.transparency
+        function onEnabledChanged() { root.requestReloadHyprRules() }
+        function onBaseChanged() { root.requestReloadHyprRules() }
+        function onLayersChanged() { root.requestReloadHyprRules() }
+    }
+
+    Connections {
+        target: Tokens.transparency
+        function onEnabledChanged() { root.requestReloadHyprRules() }
+        function onBaseChanged() { root.requestReloadHyprRules() }
         function onLayersChanged() { root.requestReloadHyprRules() }
     }
 

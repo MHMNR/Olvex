@@ -147,4 +147,27 @@ bool CUtils::fileExists(const QString& path) const {
     return QFileInfo::exists(path);
 }
 
+bool CUtils::writeTextFile(const QString& path, const QString& content) const {
+    if (path.isEmpty()) return false;
+    QFileInfo fi(path);
+    QDir().mkpath(fi.absolutePath());
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        qCWarning(lcCUtils) << "writeTextFile: failed to open" << path << "for writing:" << file.errorString();
+        return false;
+    }
+    QTextStream out(&file);
+    out << content;
+    return true;
+}
+
+QString CUtils::readTextFile(const QString& path) const {
+    if (path.isEmpty()) return {};
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return {};
+    }
+    return QString::fromUtf8(file.readAll());
+}
+
 } // namespace olvex

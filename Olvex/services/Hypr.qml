@@ -129,9 +129,9 @@ Singleton {
             return;
 
         if (capsLock)
-            Toaster.toast(qsTr("Caps lock enabled"), qsTr("Caps lock is currently enabled"), "keyboard_capslock_badge");
+            Toaster.toast(qsTr("Caps lock on"), "", "keyboard_capslock_badge");
         else
-            Toaster.toast(qsTr("Caps lock disabled"), qsTr("Caps lock is currently disabled"), "keyboard_capslock");
+            Toaster.toast(qsTr("Caps lock off"), "", "keyboard_capslock");
     }
 
     onNumLockChanged: {
@@ -139,9 +139,9 @@ Singleton {
             return;
 
         if (numLock)
-            Toaster.toast(qsTr("Num lock enabled"), qsTr("Num lock is currently enabled"), "looks_one");
+            Toaster.toast(qsTr("Num lock on"), "", "looks_one");
         else
-            Toaster.toast(qsTr("Num lock disabled"), qsTr("Num lock is currently disabled"), "timer_1");
+            Toaster.toast(qsTr("Num lock off"), "", "timer_1");
     }
 
     onKbLayoutFullChanged: {

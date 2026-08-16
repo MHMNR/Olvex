@@ -38,7 +38,7 @@ Item {
                     MaterialIcon {
                         Layout.alignment: Qt.AlignHCenter
                         text: modelData.iconName
-                        color: isCurrent ? Colours.palette.m3primary : Qt.alpha("#ffffff", 0.6)
+                        color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                         iconPointSize: 22
                         fill: isCurrent ? 1 : 0
                         Behavior on color { ColorAnimation { duration: 200 } }
@@ -47,7 +47,7 @@ Item {
                     StyledText {
                         Layout.alignment: Qt.AlignHCenter
                         text: modelData.text
-                        color: isCurrent ? "#ffffff" : Qt.alpha("#ffffff", 0.4)
+                        color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                         textPointSize: 12
                         font.weight: isCurrent ? 600 : 400
                         Behavior on color { ColorAnimation { duration: 200 } }
@@ -81,6 +81,6 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 1
-        color: Qt.alpha("#ffffff", 0.1)
+        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
     }
 }

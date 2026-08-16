@@ -77,7 +77,7 @@ Item {
     }
 
     readonly property color accentColor: Colours.palette.m3primary
-    readonly property color fillBase: Colours.layer(Colours.palette.m3primaryContainer, 1)
+    readonly property color fillBase: Colours.light ? Colours.layer(Colours.palette.m3primaryContainer, 1) : Colours.palette.m3primary
 
     // ── Compiled Hardware GPU Shader Effect (clock_wave.frag.qsb) ──
     ShaderEffect {
@@ -89,8 +89,8 @@ Item {
         property real iTime: waveTimer.elapsed
         property real iFillProgress: waveTimer.fillProgress
         property color iPrimary: Colours.palette.m3primary
-        property color iPrimaryContainer: Colours.layer(Colours.palette.m3primaryContainer, 1)
-        property color iOnPrimaryContainer: Colours.palette.m3onPrimaryContainer
+        property color iPrimaryContainer: Colours.light ? Colours.layer(Colours.palette.m3primaryContainer, 1) : Colours.palette.m3primary
+        property color iOnPrimaryContainer: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onPrimary
         property real iWidth: Math.max(width, 1)
         property real iHeight: Math.max(height, 1)
 
@@ -150,7 +150,7 @@ Item {
                 }
             }
 
-            drawTrochoidalWave(String(Qt.alpha(root.fillBase, 0.92)), 14, 0.016, 0.0, 1.8, String(Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.88)));
+            drawTrochoidalWave(String(Qt.alpha(root.fillBase, 0.92)), 14, 0.016, 0.0, 1.8, String(Qt.alpha(Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onPrimary, 0.88)));
             drawTrochoidalWave(String(Qt.alpha(root.fillBase, 0.65)), 10, 0.022, 1.5, 1.5, null);
             drawTrochoidalWave(String(Qt.alpha(root.fillBase, 0.40)), 7,  0.032, 2.9, 1.3, null);
         }
@@ -213,7 +213,6 @@ Item {
                 font.weight: Font.Black
                 color: Colours.palette.m3onSurface
                 anchors.horizontalCenter: parent.horizontalCenter
-                rotation: 90
             }
 
             StyledText {
@@ -222,7 +221,6 @@ Item {
                 font.weight: Font.Black
                 color: Colours.palette.m3onSurface
                 anchors.horizontalCenter: parent.horizontalCenter
-                rotation: 90
             }
 
             // Animated M3 Capsule Separator
@@ -248,7 +246,6 @@ Item {
                 font.weight: Font.Black
                 color: Colours.palette.m3onSurface
                 anchors.horizontalCenter: parent.horizontalCenter
-                rotation: 90
             }
 
             StyledText {
@@ -257,7 +254,6 @@ Item {
                 font.weight: Font.Black
                 color: Colours.palette.m3onSurface
                 anchors.horizontalCenter: parent.horizontalCenter
-                rotation: 90
             }
         }
 

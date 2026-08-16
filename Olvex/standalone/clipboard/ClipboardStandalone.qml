@@ -589,8 +589,7 @@ Window {
                 implicitHeight: 18
                 radius: 5
                 color: tok.palette.stageHigh
-                border.width: 1
-                border.color: tok.palette.outlineVariant
+                border.width: 0
 
                 Text {
                     id: keyLbl
@@ -1684,8 +1683,7 @@ Window {
                             color: searchField.activeFocus
                                 ? tok.palette.primaryContainer
                                 : tok.palette.stageContent
-                            border.width: searchField.activeFocus ? 2 : 0
-                            border.color: tok.palette.primary
+                            border.width: 0
 
                             Behavior on boxHeight {
                                 enabled: !win.reducedMotion
@@ -1700,9 +1698,6 @@ Window {
                                 NumberAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutQuad }
                             }
                             Behavior on color {
-                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                            }
-                            Behavior on border.color {
                                 ColorAnimation { duration: tok.motion.effectsExpressive.fast }
                             }
 
@@ -2017,8 +2012,7 @@ Window {
                                     // Less stadium, more M3 container (was height/2)
                                     radius: tok.shape.md
                                     color: tok.palette.secondaryContainer
-                                    border.width: 1
-                                    border.color: tok.palette.outlineVariant
+                                    border.width: 0
                                 }
                             }
 
@@ -2218,8 +2212,7 @@ Window {
                     color: tok.palette.stageContent
                     radius: tok.shape.xl
                     clip: true
-                    border.width: 1
-                    border.color: tok.palette.outlineVariant
+                    border.width: 0
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -2692,8 +2685,7 @@ Window {
                                         radius: tok.shape.xl
                                         color: tok.palette.stageHigh
                                         clip: true
-                                        border.width: 1
-                                        border.color: tok.palette.outlineVariant
+                                        border.width: 0
                                         scale: stageImage.status === Image.Ready ? 1 : 0.96
                                         opacity: stageImage.status === Image.Ready ? 1 : 0.85
 
@@ -2708,9 +2700,6 @@ Window {
                                         Behavior on opacity {
                                             enabled: !win.reducedMotion
                                             NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                        }
-                                        Behavior on border.color {
-                                            ColorAnimation { duration: tok.motion.effectsExpressive.defaultMs }
                                         }
 
                                         Image {
@@ -2814,8 +2803,7 @@ Window {
                                     height: actionRow.height + pillPad * 2
                                     radius: height / 2
                                     color: tok.palette.stageHigh
-                                    border.width: 1
-                                    border.color: tok.palette.outlineVariant
+                                    border.width: 0
                                     opacity: clipListModel.count > 0 ? 1 : 0
                                     scale: clipListModel.count > 0 ? 1 : 0.92
                                     visible: opacity > 0

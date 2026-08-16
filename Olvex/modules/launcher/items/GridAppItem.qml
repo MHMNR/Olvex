@@ -41,14 +41,14 @@ Item {
         const raw = -scrollVelocity * factor;
         return Math.max(-26, Math.min(26, raw));
     }
-    readonly property int openYOffset: 120
-    property real tileYOffset: revealEpoch > 0 ? 0 : openYOffset
+    readonly property int openYOffset: 28
+    property real tileYOffset: 0
     readonly property int openStaggerMs: {
         const row = Math.floor(index / 5);
         const col = index % 5;
-        return Math.min(row, 3) * 34 + col * 10;
+        return Math.min(row, 3) * 24 + col * 8;
     }
-    readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+    readonly property var m3Emphasized: [0.05, 0.7, 0.1, 1.0, 1, 1]
     readonly property bool isCurrent: gridView.currentIndex === index
     readonly property bool isFavourite: modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, modelData.id)
 
@@ -59,23 +59,25 @@ Item {
     }
 
     onRevealEpochChanged: {
-        if (revealEpoch <= 0)
-            return ;
+        if (revealEpoch <= 0) {
+            tileYOffset = 0;
+            return;
+        }
 
         tileYOffset = openYOffset;
         openPop.restart();
     }
     onRevealPendingChanged: {
-        if (!revealPending)
+        if (!revealPending) {
+            tileYOffset = 0;
             return;
+        }
 
         openPop.stop();
         tileYOffset = openYOffset;
     }
     onModelDataChanged: {
-        if (revealEpoch > 0 && !revealPending && !openPop.running) {
-            tileYOffset = 0;
-        }
+        tileYOffset = 0;
     }
 
     SequentialAnimation {

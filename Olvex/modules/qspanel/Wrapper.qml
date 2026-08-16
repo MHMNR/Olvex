@@ -1,4 +1,3 @@
-
 import QtQuick
 import Quickshell
 import Olvex.Config
@@ -33,29 +32,24 @@ Item {
 
         reloadableId: "utilities"
     }
+
     readonly property bool shouldBeActive: visibilities.qspanel && Config.qspanel.enabled && !(visibilities.powermenu && Config.powermenu.enabled)
     readonly property bool contentReady: content.status === Loader.Ready
-    property bool openAnimationReady: false
-    property real offsetScale: shouldBeActive && openAnimationReady ? 0 : 1
+    property real offsetScale: shouldBeActive ? 0 : 1
     property real sidebarLerp
     readonly property bool needsKeyboard: (content.item as Content)?.needsKeyboard ?? false
-    property bool contentPrewarmed: false
 
     Timer {
-        id: prewarmTimer
-        interval: 1600
-        running: true
-        repeat: false
-        onTriggered: root.contentPrewarmed = true
+        id: closeGrace
+        interval: Math.max(Tokens.anim.durations.large, Tokens.anim.durations.expressiveDefaultSpatial) + 120
     }
 
-    readonly property bool contentActive: root.contentPrewarmed || root.shouldBeActive || root.visible
+    readonly property bool contentActive: root.shouldBeActive || closeGrace.running || root.visible
 
     // Peek: when hovered while closed and bottom panel is off, slide a strip in from the right
     property bool hovered: false
     readonly property bool bottomPanelOff: !(Config.bar.bottomPanel?.enabled ?? true)
     property real peekOffset: (hovered && !shouldBeActive && bottomPanelOff) ? 17 : 0
-
 
     Behavior on peekOffset {
         Anim {
@@ -137,16 +131,9 @@ Item {
         target: root.visibilities
         function onQspanelChanged() {
             if (root.visibilities.qspanel) {
-                root.openAnimationReady = false;
-                Qt.callLater(() => {
-                    if (root.contentReady)
-                        root.openAnimationReady = true;
-                });
+                closeGrace.stop();
             } else {
-                root.openAnimationReady = false;
-            }
-
-            if (!root.visibilities.qspanel) {
+                closeGrace.restart();
                 root.props.expansionActive = "";
                 root.props.recordingListExpanded = false;
             }

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Olvex
+import Olvex.Internal
 import Olvex.Config
 import qs.components.misc
 import qs.services
@@ -226,6 +227,16 @@ Scope {
         }
 
         target: "toaster"
+    }
+
+    IpcHandler {
+        target: "resizer"
+        function pip(): void {
+            WindowResizer.pipActiveWindow();
+        }
+        function pipWindow(address: string): void {
+            WindowResizer.pipWindow(address);
+        }
     }
 
     LoggingCategory {

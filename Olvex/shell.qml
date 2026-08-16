@@ -18,6 +18,7 @@ import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
 import "modules/olvex" as Olvex
+import Olvex.Internal
 import Quickshell
 import QtQuick
 import qs.utils
@@ -25,6 +26,7 @@ import qs.services
 
 ShellRoot {
     settings.watchFiles: true
+    readonly property bool _resizerInit: WindowResizer.active
     readonly property bool _cpuProfileInit: CpuProfile.enabled
     readonly property bool _accountFacesInit: AccountFaces.faces.length >= 0
     readonly property bool _hardwareButtonsInit: HardwareButtons.hasOwnProperty("objectName")
@@ -45,6 +47,7 @@ ShellRoot {
     ConfigToasts {}
     Shortcuts {}
     BatteryMonitor {}
+    UsbMonitor {}
     IdleMonitors {
         lock: lock
     }

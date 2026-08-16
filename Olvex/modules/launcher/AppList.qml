@@ -621,10 +621,11 @@ Item {
             }
 
             displaced: Transition {
+                enabled: root.search.text.length > 0
                 NumberAnimation {
                     properties: "x,y"
-                    duration: 220
-                    easing.type: Easing.OutBack
+                    duration: 180
+                    easing.type: Easing.OutQuad
                 }
             }
 

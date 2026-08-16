@@ -13,8 +13,7 @@ Item {
     required property var panels
 
     readonly property bool shouldBeActive: visibilities.launcher && Config.launcher.enabled
-    readonly property bool contentActive: root.contentPrewarmed || root.shouldBeActive || teardownGrace.running
-    property bool contentPrewarmed: false
+    readonly property bool contentActive: root.shouldBeActive || teardownGrace.running
 
     readonly property real maxHeight: {
         let max = screen.height - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
@@ -102,18 +101,6 @@ Item {
     Behavior on offsetScale {
         Anim {
             type: Anim.DefaultSpatial
-        }
-    }
-
-    Timer {
-        id: prewarmTimer
-
-        interval: 700
-        running: true
-        repeat: false
-        onTriggered: {
-            root.contentPrewarmed = true;
-            Apps.warmCatalog();
         }
     }
 

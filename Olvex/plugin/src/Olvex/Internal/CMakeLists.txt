@@ -13,6 +13,7 @@ qml_module(olvex-internal
         neonwavematerial.hpp neonwavematerial.cpp
         sparklineitem.hpp sparklineitem.cpp
         visualiserbars.hpp visualiserbars.cpp
+        windowresizer.hpp windowresizer.cpp
     LIBRARIES
         Qt::Gui
         Qt::Quick

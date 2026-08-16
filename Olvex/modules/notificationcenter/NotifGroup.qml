@@ -68,21 +68,10 @@ StyledRect {
     implicitHeight: nonAnimHeight
 
     clip: true
-    radius: Tokens.rounding.large
-    color: Colours.tileSurface
-    border.width: 1
-    border.color: Colours.tileStrokeSubtle
-
-    // Soft inner rim — single subtle pass, not heavy double frame
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: parent.radius - 1
-        color: "transparent"
-        border.width: 1
-        border.color: Colours.tileInnerLine
-        z: 0
-    }
+    radius: Tokens.rounding.normal
+    color: Colours.tileFill
+    border.width: 0
+    border.color: "transparent"
 
     Behavior on implicitHeight {
         Anim {
@@ -165,7 +154,7 @@ StyledRect {
                     color: root.urgencyAccent
                     radius: Tokens.rounding.full
                     border.width: 1.5
-                    border.color: Colours.tileSurface
+                    border.color: Colours.tileFill
 
                     ColouredIcon {
                         anchors.centerIn: parent
