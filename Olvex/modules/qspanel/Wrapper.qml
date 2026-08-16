@@ -113,8 +113,7 @@ Item {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
 
-        asynchronous: true
-        active: root.contentActive
+        active: true
 
         sourceComponent: Content {
             // Fill the loader so ColumnLayout can expand the notification tile

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
@@ -55,8 +56,8 @@ Item {
     readonly property real innerPad: control.emphasized ? 0 : 4
     readonly property color activeIconColor: control.emphasized ? Players.musicPlayIconColor : Qt.alpha(Players.musicOnSurfaceColor, stateLayer.containsMouse ? 0.98 : 0.78 + 0.12 * control.secondaryMix)
     readonly property color disabledIconColor: Qt.alpha(Players.musicOnSurfaceColor, 0.25)
-    readonly property color containerTone: control.emphasized ? Players.musicPlayButtonBg : Qt.alpha(Players.musicOnSurfaceColor, (stateLayer.pressed ? 0.20 : (stateLayer.containsMouse ? 0.16 : 0.085)) * control.secondaryMix)
-    readonly property color strokeColor: control.emphasized ? Qt.alpha(Players.musicPlayIconColor, stateLayer.pressed ? 0.30 : 0.16) : Qt.alpha(Players.musicOnSurfaceColor, (stateLayer.containsMouse ? 0.24 : 0.10) * control.secondaryMix)
+    readonly property color containerTone: control.emphasized ? Players.musicPlayButtonBg : Qt.alpha(Players.musicPlayButtonBg, (stateLayer.pressed ? 0.28 : (stateLayer.containsMouse ? 0.20 : 0.12)) * control.secondaryMix)
+    readonly property color strokeColor: control.emphasized ? Qt.alpha(Players.musicPlayIconColor, stateLayer.pressed ? 0.30 : 0.16) : "transparent"
     readonly property real secondaryShadowOpacity: control.elevated ? (stateLayer.containsMouse ? 0.18 : 0.11) * control.secondaryMix : 0
 
     width: 30
@@ -71,24 +72,20 @@ Item {
     Layout.minimumHeight: height
     Layout.alignment: Qt.AlignHCenter
 
-    StyledRect {
+    MaterialShape {
         id: controlShape
         anchors.centerIn: parent
-        implicitWidth: control.shapeSize
-        implicitHeight: control.shapeSize
-        width: control.shapeSize
-        height: control.shapeSize
-        radius: (control.emphasized && control.isPauseIcon) ? Tokens.rounding.small : height / 2
+        implicitSize: control.shapeSize
+        // Backup pill's play button morphed circle (paused) → rounded square
+        // (playing) via Rectangle.radius, no rotation. Reproduced here as a
+        // static shape swap — Square/Circle are both static presets, so this
+        // costs nothing continuous (unlike the old Cookie12Sided spin driver).
+        shape: control.spinning ? MaterialShape.Cookie12Sided : (control.emphasized ? (control.isPauseIcon ? MaterialShape.Square : MaterialShape.Circle) : (control.clickMorphActive ? control.clickMorphShape : (control.secondaryMix > 0.02 ? control.secondaryShape : MaterialShape.Pill)))
         color: control.containerTone
-        border.color: control.strokeColor
-        border.width: control.secondaryMix
-
-        Behavior on radius {
-            NumberAnimation {
-                duration: Tokens.anim.durations.expressiveFastSpatial
-                easing.type: Easing.OutCubic
-            }
-        }
+        strokeColor: control.strokeColor
+        strokeWidth: control.emphasized ? control.secondaryMix : 0
+        animationDuration: Tokens.anim.durations.expressiveFastSpatial
+        animationEasing: Tokens.anim.expressiveFastSpatial
         layer.enabled: control.secondaryShadowOpacity > 0.001
         layer.effect: MultiEffect {
             shadowEnabled: true
@@ -104,13 +101,13 @@ Item {
                 easing: Tokens.anim.expressiveFastEffects
             }
         }
-        Behavior on border.color {
+        Behavior on strokeColor {
             ColorAnimation {
                 duration: Tokens.anim.durations.expressiveFastEffects
                 easing: Tokens.anim.expressiveFastEffects
             }
         }
-        Behavior on border.width {
+        Behavior on strokeWidth {
             NumberAnimation {
                 duration: Tokens.anim.durations.expressiveFastEffects
                 easing: Tokens.anim.expressiveFastEffects

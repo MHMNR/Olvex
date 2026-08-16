@@ -1,22 +1,39 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Templates
+import QtQuick.Templates as T
+import QtQuick.Effects
 import Olvex.Config
 import qs.components
 import qs.services
 
-// Horizontal settings slider — token-scaled chrome + optional side value readout.
-Slider {
+// Material Design 3 (M3) Slider — Continuous & Discrete with Active/Inactive Track,
+// Vertical Bar Handle, Stop Indicators, 5px Track Gap, Hover Halo, Floating Value Pin,
+// and Keyboard / Scroll Wheel interaction.
+T.Slider {
     id: root
 
     // ── Value readout (side number for precision) ──
-    property bool showValue: true // Show numeral value display for Nothing OS style
-    // -1 = auto. 0+ = fixed decimal places (ignored when percent mode).
+    property bool showValue: true
+    property bool showValuePopup: true // Floating M3 value pin popup above thumb
     property int valueDecimals: -1
     property string valueSuffix: ""
-    // Force percent / decimal; auto when unset (null)
-    property var valueAsPercent: null
-    property var formatValue: null // function(real) → string
+    property var valueAsPercent: null // Force percent / decimal; auto when null
+    property var formatValue: null    // function(real) → string
+
+    // ── M3 Styling Tokens & Dimensions ──
+    property real trackHeight: 14
+    property real thumbWidth: 4
+    property real thumbHeight: 26
+    property real gap: 5
+    property real stopIndicatorSize: 4
+    property color activeTrackColor: root.enabled ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.38)
+    property color inactiveTrackColor: root.enabled ? Colours.palette.m3surfaceContainerHighest : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+    property color thumbColor: root.enabled ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.38)
+    property color popupBgColor: Colours.palette.m3inverseSurface
+    property color popupTextColor: Colours.palette.m3inverseOnSurface
+    property color haloColor: Colours.palette.m3primary
 
     readonly property bool _usePercent: {
         if (formatValue)
@@ -25,7 +42,6 @@ Slider {
             return true;
         if (valueAsPercent === false)
             return false;
-        // Auto: 0..≤2 ratio ranges (opacity, volume) → percent
         return from >= 0 && to > 0 && to <= 2 && (stepSize <= 0 || stepSize < 1);
     }
 
@@ -48,30 +64,53 @@ Slider {
         return Number(value).toFixed(dec) + valueSuffix;
     }
 
-    // Control chrome scales with type
-    readonly property real baseH: Math.max(24, Math.round((Tokens.font?.size?.normal ?? 13) * 1.9))
-    readonly property real trackThickness: 16
-    readonly property int segmentsCount: 20
-    
-    readonly property real valueGap: Tokens.spacing.small
-    readonly property real valueColW: showValue ? Math.max(valueLabel.implicitWidth, 40) : 0
+    readonly property real baseH: Math.max(32, Math.round((Tokens.font?.size?.normal ?? 13) * 2.2))
+    readonly property real valueGap: Tokens.spacing.normal
+    readonly property real valueColW: showValue ? Math.max(valueLabel.implicitWidth, 42) : 0
 
     implicitWidth: 260 + (showValue ? valueColW + valueGap : 0)
-    implicitHeight: baseH
+    implicitHeight: Math.max(baseH, thumbHeight + 8)
     padding: 0
-    leftPadding: 0
-    rightPadding: showValue ? valueColW + valueGap : 0
+    leftPadding: thumbWidth / 2 + gap
+    rightPadding: (showValue ? valueColW + valueGap : 0) + thumbWidth / 2 + gap
     topPadding: 0
     bottomPadding: 0
     live: true
     hoverEnabled: true
-    snapMode: Slider.SnapOnRelease // Ensure buttery smooth dragging without step-size chunking
+    snapMode: T.Slider.SnapOnRelease
+    focus: true
+    activeFocusOnTab: true
 
-    Layout.preferredHeight: baseH
-    Layout.minimumHeight: baseH
+    Layout.preferredHeight: implicitHeight
+    Layout.minimumHeight: implicitHeight
     Layout.fillHeight: false
 
-    // Side number — monospaced figures for stable width while dragging
+    // Keyboard support
+    Keys.onLeftPressed: event => {
+        const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 100;
+        root.value = Math.max(root.from, root.value - step);
+        event.accepted = true;
+    }
+    Keys.onRightPressed: event => {
+        const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 100;
+        root.value = Math.min(root.to, root.value + step);
+        event.accepted = true;
+    }
+
+    // Scroll wheel support
+    WheelHandler {
+        enabled: root.enabled
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 50;
+            if (event.angleDelta.y > 0)
+                root.value = Math.min(root.to, root.value + step);
+            else if (event.angleDelta.y < 0)
+                root.value = Math.max(root.from, root.value - step);
+        }
+    }
+
+    // Side number readout (optional)
     StyledText {
         id: valueLabel
 
@@ -81,58 +120,133 @@ Slider {
         text: root.valueText
         color: root.enabled ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurface, 0.38)
         font.family: Tokens.font.family.mono
-        font.weight: Font.Normal
+        font.weight: Font.Medium
         font.letterSpacing: 0.2
         textPointSize: Tokens.font.size.small
         horizontalAlignment: Text.AlignRight
-        // Reserve width so layout doesn't jump 9→10→100
-        width: Math.max(implicitWidth, 40)
+        width: Math.max(implicitWidth, 42)
     }
 
+    // ── Track Background ──
     background: Item {
         x: root.leftPadding
         y: root.topPadding + (root.availableHeight - height) / 2
-        implicitWidth: 260
-        implicitHeight: root.baseH
+        implicitWidth: 200
+        implicitHeight: root.trackHeight
         width: root.availableWidth
-        height: root.availableHeight > 0 ? root.availableHeight : root.baseH
+        height: root.trackHeight
 
         HoverHandler {
+            id: trackHover
             enabled: root.enabled
             cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         }
 
-        // Nothing OS Segmented Matrix
-        Row {
-            anchors.fill: parent
-            spacing: 4
+        // Inactive Track (from handle gap to right edge)
+        Rectangle {
+            id: inactiveTrack
+            anchors.verticalCenter: parent.verticalCenter
+            x: Math.min(parent.width, Math.max(0, root.visualPosition * parent.width + root.gap))
+            width: Math.max(0, parent.width - x)
+            height: parent.height
+            radius: height / 2
+            color: root.inactiveTrackColor
+            antialiasing: true
 
-            Repeater {
-                model: root.segmentsCount
+            Behavior on color {
+                ColorAnimation { duration: Tokens.anim.durations.expressiveFastEffects }
+            }
+        }
 
-                Rectangle {
-                    readonly property real segRatio: index / (root.segmentsCount - 1)
-                    readonly property bool isActive: segRatio <= root.visualPosition
+        // Active Track (from left edge up to handle gap)
+        Rectangle {
+            id: activeTrack
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.max(0, Math.min(parent.width, root.visualPosition * parent.width - root.gap))
+            height: parent.height
+            radius: height / 2
+            color: root.activeTrackColor
+            antialiasing: true
 
-                    width: (parent.width - (root.segmentsCount - 1) * 4) / root.segmentsCount
-                    height: root.trackThickness
-                    anchors.verticalCenter: parent.verticalCenter
-                    radius: 3
+            Behavior on color {
+                ColorAnimation { duration: Tokens.anim.durations.expressiveFastEffects }
+            }
+        }
 
-                    color: isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                    opacity: isActive ? 1.0 : 0.15
-                    scale: isActive ? 1.0 : 0.85
+        // Stop Indicator at track terminus (m3.material.io)
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: (parent.height - width) / 2
+            anchors.verticalCenter: parent.verticalCenter
+            width: root.stopIndicatorSize
+            height: root.stopIndicatorSize
+            radius: width / 2
+            color: Qt.alpha(Colours.palette.m3onSurface, root.enabled ? 0.38 : 0.12)
+            visible: (parent.width - (root.visualPosition * parent.width)) > root.gap * 2
+            antialiasing: true
+        }
 
-                    Behavior on color { ColorAnimation { duration: 60 } }
-                }
+        // Discrete Tick Marks (when stepSize is active and step count is reasonable)
+        readonly property int stepCount: (root.stepSize > 0 && root.to > root.from) ? Math.round((root.to - root.from) / root.stepSize) : 0
+        readonly property bool showTicks: stepCount > 1 && stepCount <= 30
+
+        Repeater {
+            model: parent.showTicks ? (parent.stepCount + 1) : 0
+
+            Rectangle {
+                required property int index
+
+                readonly property real tickPos: parent.stepCount > 0 ? (index / parent.stepCount) : 0
+                readonly property bool isPassed: tickPos <= root.visualPosition
+
+                x: Math.round(tickPos * parent.width - width / 2)
+                anchors.verticalCenter: parent.verticalCenter
+                width: root.stopIndicatorSize
+                height: root.stopIndicatorSize
+                radius: width / 2
+                color: isPassed ? Colours.palette.m3onPrimary : Colours.palette.m3outlineVariant
+                opacity: (tickPos === 0 || tickPos === 1) ? 0 : 0.7
+                antialiasing: true
             }
         }
     }
 
+    // ── Thumb Handle & Value Pin Popup ──
     handle: Item {
-        width: 0
-        height: 0
-        x: root.leftPadding + root.visualPosition * root.availableWidth
-        y: root.topPadding + root.availableHeight / 2
+        id: handleItem
+        x: root.leftPadding + root.visualPosition * root.availableWidth - width / 2
+        y: root.topPadding + (root.availableHeight - height) / 2
+        width: Math.max(24, root.thumbWidth + 12)
+        height: root.thumbHeight + 8
+
+        // M3 Vertical Bar Handle
+        Rectangle {
+            id: thumbVisual
+            anchors.centerIn: parent
+            width: root.pressed ? Math.max(2.5, root.thumbWidth * 0.75) : root.thumbWidth
+            height: root.pressed ? root.thumbHeight + 2 : root.thumbHeight
+            radius: width / 2
+            color: root.thumbColor
+            antialiasing: true
+
+            Behavior on width {
+                SpringAnimation {
+                    spring: 6.0
+                    damping: 0.60
+                    epsilon: 0.005
+                }
+            }
+            Behavior on height {
+                SpringAnimation {
+                    spring: 6.0
+                    damping: 0.60
+                    epsilon: 0.005
+                }
+            }
+            Behavior on color {
+                ColorAnimation { duration: Tokens.anim.durations.expressiveFastEffects }
+            }
+        }
     }
 }

@@ -22,7 +22,7 @@ MouseArea {
     // (e.g. MorphControlButton sets enabled: Players.active !== null)
     readonly property bool isActive: interactive && !disabled && enabled
 
-    property real stateOpacity: isActive && pressed ? 0.1 : (isActive && showHoverBackground && containsMouse) ? 0.08 : 0
+    property real stateOpacity: isActive && pressed ? 0.12 : (isActive && showHoverBackground && containsMouse) ? 0.08 : 0
 
     property real pressX: width / 2
     property real pressY: height / 2
@@ -61,7 +61,7 @@ MouseArea {
             return;
         fadeAnim.complete();
         circleRadius = 0;
-        circle.opacity = 0.1;
+        circle.opacity = 0.12;
         rippleAnim.restart();
         endRadiusAtPress = endRadius;
     }
@@ -100,8 +100,8 @@ MouseArea {
         target: root
         property: "circleRadius"
         to: root.endRadius
-        easing: Tokens.anim.standard
-        duration: Tokens.anim.durations.expressiveSlowEffects * 2
+        easing: Tokens.anim.emphasizedDecel
+        duration: Tokens.anim.durations.expressiveDefaultSpatial
     }
 
     Anim {

@@ -1,5 +1,6 @@
 #include "usbwatcher.hpp"
 #include <QRegularExpression>
+#include <fcntl.h>
 
 namespace olvex::services {
 
@@ -29,6 +30,43 @@ void UsbWatcher::setActive(bool active) {
     emit activeChanged();
 }
 
+void UsbWatcher::enumerateExistingDevices() {
+    if (!m_udev)
+        return;
+
+    struct udev_enumerate* enumerate = udev_enumerate_new(m_udev);
+    if (!enumerate)
+        return;
+
+    udev_enumerate_add_match_subsystem(enumerate, "usb");
+    udev_enumerate_add_match_property(enumerate, "DEVTYPE", "usb_device");
+    udev_enumerate_scan_devices(enumerate);
+
+    struct udev_list_entry* devices = udev_enumerate_get_list_entry(enumerate);
+    struct udev_list_entry* entry = nullptr;
+
+    udev_list_entry_foreach(entry, devices) {
+        const char* syspath = udev_list_entry_get_name(entry);
+        if (!syspath)
+            continue;
+
+        struct udev_device* dev = udev_device_new_from_syspath(m_udev, syspath);
+        if (!dev)
+            continue;
+
+        const char* devpath = udev_device_get_devpath(dev);
+        if (devpath) {
+            QString name = getDeviceName(dev);
+            if (!name.isEmpty()) {
+                m_cache.insert(QString::fromUtf8(devpath), name);
+            }
+        }
+        udev_device_unref(dev);
+    }
+
+    udev_enumerate_unref(enumerate);
+}
+
 void UsbWatcher::initUdev() {
     if (m_udev)
         return;
@@ -37,7 +75,9 @@ void UsbWatcher::initUdev() {
     if (!m_udev)
         return;
 
-    m_mon = udev_monitor_new_from_netlink(m_udev, "udev");
+    // Listen to direct "kernel" netlink to receive instant (<1ms) hardware connect events,
+    // bypassing systemd-udevd helper delays (blkid, disk partition probing) on USB storage drives.
+    m_mon = udev_monitor_new_from_netlink(m_udev, "kernel");
     if (!m_mon) {
         udev_unref(m_udev);
         m_udev = nullptr;
@@ -45,6 +85,7 @@ void UsbWatcher::initUdev() {
     }
 
     udev_monitor_filter_add_match_subsystem_devtype(m_mon, "usb", "usb_device");
+    udev_monitor_set_receive_buffer_size(m_mon, 1024 * 1024 * 4);
     if (udev_monitor_enable_receiving(m_mon) < 0) {
         cleanupUdev();
         return;
@@ -55,6 +96,13 @@ void UsbWatcher::initUdev() {
         cleanupUdev();
         return;
     }
+
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags >= 0) {
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    }
+
+    enumerateExistingDevices();
 
     m_notifier = new QSocketNotifier(fd, QSocketNotifier::Read, this);
     connect(m_notifier, &QSocketNotifier::activated, this, &UsbWatcher::onSocketActivated);
@@ -118,16 +166,23 @@ QString UsbWatcher::simplifyName(const QString& str) {
 }
 
 QString UsbWatcher::getDeviceName(struct udev_device* dev) {
-    const char* vendorId = udev_device_get_property_value(dev, "ID_VENDOR_ID");
+    if (!dev)
+        return {};
+
+    const char* vendorId = udev_device_get_sysattr_value(dev, "idVendor");
+    if (!vendorId)
+        vendorId = udev_device_get_property_value(dev, "ID_VENDOR_ID");
     if (vendorId && qstrcmp(vendorId, "1d6b") == 0) // Linux root hub
         return {};
 
-    const char* rawVendor = udev_device_get_property_value(dev, "ID_VENDOR_FROM_DATABASE");
+    const char* rawVendor = udev_device_get_sysattr_value(dev, "manufacturer");
+    if (!rawVendor) rawVendor = udev_device_get_property_value(dev, "ID_VENDOR_FROM_DATABASE");
     if (!rawVendor) rawVendor = udev_device_get_property_value(dev, "ID_VENDOR_ENC");
     if (!rawVendor) rawVendor = udev_device_get_property_value(dev, "ID_VENDOR");
     if (!rawVendor) rawVendor = udev_device_get_property_value(dev, "ID_USB_VENDOR");
 
-    const char* rawModel = udev_device_get_property_value(dev, "ID_MODEL_FROM_DATABASE");
+    const char* rawModel = udev_device_get_sysattr_value(dev, "product");
+    if (!rawModel) rawModel = udev_device_get_property_value(dev, "ID_MODEL_FROM_DATABASE");
     if (!rawModel) rawModel = udev_device_get_property_value(dev, "ID_MODEL_ENC");
     if (!rawModel) rawModel = udev_device_get_property_value(dev, "ID_MODEL");
     if (!rawModel) rawModel = udev_device_get_property_value(dev, "ID_USB_MODEL");
@@ -136,7 +191,8 @@ QString UsbWatcher::getDeviceName(struct udev_device* dev) {
     QString model = simplifyName(rawModel ? QString::fromUtf8(rawModel) : QString());
 
     if (vendor.contains(QStringLiteral("Linux"), Qt::CaseInsensitive) &&
-        model.contains(QStringLiteral("root hub"), Qt::CaseInsensitive)) {
+        (model.contains(QStringLiteral("root hub"), Qt::CaseInsensitive) ||
+         model.contains(QStringLiteral("host controller"), Qt::CaseInsensitive))) {
         return {};
     }
 
@@ -150,39 +206,49 @@ QString UsbWatcher::getDeviceName(struct udev_device* dev) {
     if (!vendor.isEmpty())
         return QStringLiteral("%1 Device").arg(vendor);
 
-    return QStringLiteral("USB Device");
+    return QStringLiteral("USB Drive");
 }
 
 void UsbWatcher::onSocketActivated() {
     if (!m_mon)
         return;
 
-    struct udev_device* dev = udev_monitor_receive_device(m_mon);
-    if (!dev)
-        return;
+    // Drain all available events from the socket buffer
+    while (m_mon) {
+        struct udev_device* dev = udev_monitor_receive_device(m_mon);
+        if (!dev)
+            break;
 
-    const char* action = udev_device_get_action(dev);
-    const char* devpath = udev_device_get_devpath(dev);
+        const char* action = udev_device_get_action(dev);
+        const char* devpath = udev_device_get_devpath(dev);
 
-    if (action && devpath) {
-        QString act = QString::fromUtf8(action);
-        QString path = QString::fromUtf8(devpath);
+        if (action && devpath) {
+            QString act = QString::fromUtf8(action);
+            QString path = QString::fromUtf8(devpath);
 
-        if (act == QLatin1String("add")) {
-            QString name = getDeviceName(dev);
-            if (!name.isEmpty()) {
-                m_cache.insert(path, name);
-                emit deviceConnected(QStringLiteral("USB device connected"), name, QStringLiteral("usb"));
-            }
-        } else if (act == QLatin1String("remove")) {
-            QString name = m_cache.take(path);
-            if (!name.isEmpty()) {
-                emit deviceDisconnected(QStringLiteral("USB device removed"), name, QStringLiteral("usb_off"));
+            if (act == QLatin1String("add") || act == QLatin1String("bind")) {
+                QString name = getDeviceName(dev);
+                if (!name.isEmpty()) {
+                    if (!m_cache.contains(path)) {
+                        m_cache.insert(path, name);
+                        emit deviceConnected(QStringLiteral("USB device connected"), name, QStringLiteral("usb"));
+                    } else if (m_cache.value(path) == QStringLiteral("USB Device") && name != QStringLiteral("USB Device")) {
+                        m_cache.insert(path, name);
+                    }
+                }
+            } else if (act == QLatin1String("remove")) {
+                QString name = m_cache.take(path);
+                if (name.isEmpty()) {
+                    name = getDeviceName(dev);
+                }
+                if (!name.isEmpty()) {
+                    emit deviceDisconnected(QStringLiteral("USB device removed"), name, QStringLiteral("usb_off"));
+                }
             }
         }
-    }
 
-    udev_device_unref(dev);
+        udev_device_unref(dev);
+    }
 }
 
 } // namespace olvex::services

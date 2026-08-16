@@ -8,7 +8,6 @@ import Olvex.Config
 import qs.services
 import qs.utils
 import "color"
-import "color/M3ColorMapper.js" as Mapper
 
 Singleton {
     id: root
@@ -316,7 +315,7 @@ Singleton {
     function flushPendingWallColors(): void {
         if (!_pendingWallColors.length)
             return;
-        const scheme = Mapper.parseSchemePayload(_pendingWallColors);
+        const scheme = M3ColorMapper.parseSchemePayload(_pendingWallColors);
         if (scheme) {
             bootPalette.applyScheme(scheme);
             bootSchemeMode = scheme.mode ?? "dark";
@@ -327,12 +326,12 @@ Singleton {
     }
 
     function ingestWallpaperColors(data, isPreview) {
-        const scheme = Mapper.parseSchemePayload(data);
+        const scheme = M3ColorMapper.parseSchemePayload(data);
         if (!scheme) {
             console.log("[Colours] Invalid wallpaper palette payload");
             return;
         }
-        console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"}, ${Object.keys(scheme.colours ?? {}).length} scheme keys → ${Object.keys(Mapper.PALETTE_PROPS).length} QML tokens)`);
+        console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"})`);
         if (!isPreview) {
             root.themeTransitioning = true;
             if (!bootPalette.applyScheme(scheme))
@@ -350,7 +349,7 @@ Singleton {
     function load(data, isPreview) { ingestWallpaperColors(data, isPreview) }
 
     function useFallbackPalette(): void {
-        const scheme = Mapper.fallbackScheme();
+        const scheme = M3ColorMapper.fallbackScheme();
         bootPalette.applyScheme(scheme);
         bootSchemeMode = scheme.mode ?? "dark";
         console.log("[Colours] Using fallback palette");

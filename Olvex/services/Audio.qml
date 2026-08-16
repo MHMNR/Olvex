@@ -115,9 +115,28 @@ Singleton {
             return;
 
         const newSinkName = sink.description || sink.name || qsTr("Unknown Device");
+        const lower = newSinkName.toLowerCase();
+        const isHeadphones = lower.includes("headphone") || lower.includes("headset") || lower.includes("earphone") || lower.includes("buds") || lower.includes("airpod");
+        const prevLower = previousSinkName.toLowerCase();
+        const prevIsHeadphones = prevLower.includes("headphone") || prevLower.includes("headset") || prevLower.includes("earphone") || prevLower.includes("buds") || prevLower.includes("airpod");
 
-        if (previousSinkName && previousSinkName !== newSinkName && GlobalConfig.qspanel.toasts.audioOutputChanged)
-            Toaster.toast(qsTr("Audio output changed"), qsTr("Now using: %1").arg(newSinkName), "volume_up");
+        if (previousSinkName && previousSinkName !== newSinkName && GlobalConfig.qspanel.toasts.audioOutputChanged) {
+            if (isHeadphones && !prevIsHeadphones) {
+                Toaster.toast(qsTr("Headphones connected"), newSinkName, "headphones", Toast.Info);
+            } else if (!isHeadphones && prevIsHeadphones) {
+                Toaster.toast(qsTr("Headphones disconnected"), qsTr("Switched to %1").arg(newSinkName), "headphones", Toast.Info);
+            } else {
+                let icon = "volume_up";
+                if (lower.includes("hdmi") || lower.includes("tv"))
+                    icon = "tv";
+                else if (lower.includes("speaker"))
+                    icon = "speaker";
+                else if (isHeadphones)
+                    icon = "headphones";
+
+                Toaster.toast(qsTr("Audio output changed"), qsTr("Now using: %1").arg(newSinkName), icon, Toast.Info);
+            }
+        }
 
         previousSinkName = newSinkName;
     }
@@ -134,9 +153,75 @@ Singleton {
         previousSourceName = newSourceName;
     }
 
+    property var detailedSinks: []
+    property var detailedSources: []
+
+    Process {
+        id: sinksProc
+        command: ["pactl", "-f", "json", "list", "sinks"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.detailedSinks = JSON.parse(text.trim());
+                } catch (e) {}
+            }
+        }
+    }
+
+    Process {
+        id: sourcesProc
+        command: ["pactl", "-f", "json", "list", "sources"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.detailedSources = JSON.parse(text.trim());
+                } catch (e) {}
+            }
+        }
+    }
+
+    Process {
+        id: setSinkProc
+    }
+
+    Process {
+        id: setSourceProc
+    }
+
+    Timer {
+        id: refreshTimer
+        interval: 150
+        repeat: false
+        onTriggered: root.refreshDetailedDevices()
+    }
+
+    function refreshDetailedDevices(): void {
+        sinksProc.running = true;
+        sourcesProc.running = true;
+    }
+
+    function setAudioOutputPort(sinkName: string, portName: string): void {
+        let cmd = `pactl set-default-sink "${sinkName}"`;
+        if (portName)
+            cmd += ` && pactl set-sink-port "${sinkName}" "${portName}"`;
+        setSinkProc.command = ["sh", "-c", cmd];
+        setSinkProc.running = true;
+        refreshTimer.restart();
+    }
+
+    function setAudioInputPort(sourceName: string, portName: string): void {
+        let cmd = `pactl set-default-source "${sourceName}"`;
+        if (portName)
+            cmd += ` && pactl set-source-port "${sourceName}" "${portName}"`;
+        setSourceProc.command = ["sh", "-c", cmd];
+        setSourceProc.running = true;
+        refreshTimer.restart();
+    }
+
     Component.onCompleted: {
         previousSinkName = sink?.description || sink?.name || qsTr("Unknown Device");
         previousSourceName = source?.description || source?.name || qsTr("Unknown Device");
+        root.refreshDetailedDevices();
     }
 
     Connections {
@@ -159,6 +244,7 @@ Singleton {
             root.sinks = newSinks;
             root.sources = newSources;
             root.streams = newStreams;
+            root.refreshDetailedDevices();
         }
 
         target: Pipewire.nodes

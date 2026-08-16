@@ -52,18 +52,25 @@ ColumnLayout {
 
     StyledRect {
         Layout.fillWidth: true
-        implicitHeight: Tokens.padding.normal
+        implicitHeight: 6
         radius: Tokens.rounding.full
-        color: Qt.alpha(Colours.palette.m3onSurface, 0.15)
-        opacity: root.readonly ? 0.5 : 1.0
+        color: Colours.palette.m3surfaceContainerHighest
+        opacity: root.readonly ? 0.6 : 1.0
 
         StyledRect {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: parent.width * ((root.value - root.from) / (root.to - root.from))
+            width: Math.max(0, Math.min(parent.width, parent.width * ((root.value - root.from) / Math.max(0.0001, root.to - root.from))))
             radius: parent.radius
             color: root.readonly ? Colours.palette.m3outline : Colours.palette.m3primary
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: Tokens.anim.durations.normal
+                    easing.type: Easing.OutCubic
+                }
+            }
         }
     }
 }

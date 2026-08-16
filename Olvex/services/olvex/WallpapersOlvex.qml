@@ -8,7 +8,6 @@ import Olvex.Config
 import Olvex.Models
 import qs.services
 import qs.utils
-import "../color/M3ColorMapper.js" as Mapper
 
 Searcher {
     id: root
@@ -337,7 +336,7 @@ Searcher {
     }
 
     function normalizePalettePayload(raw: string): string {
-        const filtered = Mapper.stringifySchemePayload(raw);
+        const filtered = M3ColorMapper.stringifySchemePayload(raw);
         return filtered.length > 0 ? filtered : raw;
     }
 

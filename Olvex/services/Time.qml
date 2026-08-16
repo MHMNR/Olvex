@@ -5,6 +5,8 @@ import Quickshell
 import Olvex.Config
 
 Singleton {
+    id: root
+
     property alias enabled: clock.enabled
     readonly property date date: clock.date
     readonly property int hours: clock.hours

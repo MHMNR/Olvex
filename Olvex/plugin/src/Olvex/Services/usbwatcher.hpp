@@ -34,6 +34,7 @@ private slots:
 private:
     void initUdev();
     void cleanupUdev();
+    void enumerateExistingDevices();
     static QString cleanString(const QString& str);
     static QString simplifyName(const QString& str);
     static QString getDeviceName(struct udev_device* dev);

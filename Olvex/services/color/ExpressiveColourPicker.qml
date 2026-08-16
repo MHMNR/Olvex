@@ -2,9 +2,9 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Olvex
 import qs.services
 import qs.utils
-import "M3ColorMapper.js" as Mapper
 
 Item {
     id: root
@@ -76,7 +76,7 @@ Item {
             const payload = schemePayloadAt(i);
             if (!payload || !payload.trim().length)
                 continue;
-            const scheme = Mapper.parseSchemePayload(payload);
+            const scheme = M3ColorMapper.parseSchemePayload(payload);
             if (!scheme)
                 continue;
             root.persistedLoaded = true;
@@ -92,7 +92,7 @@ Item {
         const cleanPath = String(imagePath).replace(/^file:\/\//, "");
         if (cleanPath !== root.lastPreviewSource || !root.lastPreviewPayload)
             return false;
-        const scheme = Mapper.parseSchemePayload(root.lastPreviewPayload);
+        const scheme = M3ColorMapper.parseSchemePayload(root.lastPreviewPayload);
         if (!scheme)
             return false;
         root.paletteReady(scheme, false);

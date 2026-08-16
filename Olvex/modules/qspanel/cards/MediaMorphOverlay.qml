@@ -674,17 +674,20 @@ Item {
                     id: progressTrackRow
                     anchors.left: timeElapsed.right
                     anchors.right: timeTotal.left
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
                     height: 28
 
-                    // M3 Expressive seekbar tokens
+                    // M3 Expressive slider & seekbar tokens (m3.material.io)
+                    readonly property bool isInteracting: dragging || hoverArea.containsMouse
+                    readonly property real trackThickness: 4
                     readonly property real activeThickness: 4
                     readonly property real inactiveThickness: 4
-                    readonly property real thumbW: dragging || hoverArea.containsMouse ? 7 : 4
-                    readonly property real thumbH: dragging || hoverArea.containsMouse ? 24 : 16
-                    readonly property real gap: 6            // thumb ↔ track gap
+                    readonly property real gap: 6            // thumbTrackGapSize: 6dp
+                    readonly property real stopIndicatorSize: 4 // trackStopIndicatorSize: 4dp
+                    readonly property real thumbW: dragging ? 4 : (hoverArea.containsMouse ? 5 : 4)
+                    readonly property real thumbH: dragging ? 24 : (hoverArea.containsMouse ? 20 : 16)
                     readonly property bool isPlaying: Players.active?.isPlaying ?? false
                     readonly property color activeColor: root.playButtonBg
                     property bool dragging: false
@@ -709,11 +712,9 @@ Item {
                         frequency: 7
                         startX: 0
                         fullLength: progressTrackRow.width
-                        // Draw wave only up to fill, leaving gap before thumb
+                        // Draw wave only up to fill, leaving 6dp gap before handle
                         value: progressTrackRow.width > 0 ? Math.max(0, (progressTrackRow.fillW - progressTrackRow.gap) / progressTrackRow.width) : 0
 
-                        // Playing → wavy; seeking or paused → flat (rect below takes over)
-                        // amplitude = lineWidth × mult = 4 × 1.6 = 6.4px peak (swing >> half-width → no flat baseline edge)
                         amplitudeMultiplier: progressTrackRow.waveActive ? 1.6 : 0
 
                         Behavior on amplitudeMultiplier {
@@ -730,13 +731,6 @@ Item {
                         }
 
                         Anim on waveProgress {
-                            // Only run while the progress bar is actually on screen
-                            // (card expanded) and the session is unlocked. Off-screen
-                            // (collapsed pill) or behind the lock surface this
-                            // QQuickPaintedItem would otherwise keep rebuilding its
-                            // path and forcing a ~144Hz GPU present every vsync the
-                            // whole time music plays — the lock-screen lag. Invisible
-                            // in those states anyway, so stopping it changes nothing.
                             running: waveIndicator.amplitudeMultiplier > 0 && expandedContent.opacity > 0.01 && !LockState.locked
                             from: 0
                             to: 1
@@ -754,90 +748,89 @@ Item {
                         width: Math.max(0, progressTrackRow.fillW - progressTrackRow.gap)
                         height: progressTrackRow.activeThickness
                         radius: height / 2
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop {
-                                position: 0.0
-                                color: Qt.alpha(progressTrackRow.activeColor, 0.72)
-                            }
-                            GradientStop {
-                                position: 1.0
-                                color: progressTrackRow.activeColor
-                            }
-                        }
+                        color: progressTrackRow.activeColor
                         visible: waveIndicator.amplitudeMultiplier <= 0.001
+
                         Behavior on width {
                             enabled: !progressTrackRow.dragging
                             NumberAnimation {
-                                duration: 180
-                                easing.type: Easing.OutCubic
+                                duration: Tokens.anim.durations.expressiveFastEffects
+                                easing: Tokens.anim.emphasizedDecel
                             }
                         }
                     }
 
                     // ── Inactive (remaining) track — from thumb gap to right edge ──
                     Rectangle {
+                        id: inactiveTrack
                         z: 0
                         anchors.verticalCenter: parent.verticalCenter
-                        x: progressTrackRow.thumbX + progressTrackRow.gap
+                        x: Math.round(progressTrackRow.thumbX + progressTrackRow.gap)
                         width: Math.max(0, progressTrackRow.width - x)
                         height: progressTrackRow.inactiveThickness
                         radius: height / 2
-                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.22)
+                        color: Qt.alpha(Players.musicOnSurfaceColor, 0.18)
                         visible: width > 0
 
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Tokens.anim.durations.expressiveFastEffects
+                                easing: Tokens.anim.expressiveFastEffects
+                            }
+                        }
                         Behavior on x {
                             enabled: !progressTrackRow.dragging
                             NumberAnimation {
-                                duration: 180
-                                easing.type: Easing.OutCubic
+                                duration: Tokens.anim.durations.expressiveFastEffects
+                                easing: Tokens.anim.emphasizedDecel
                             }
                         }
                     }
 
-                    // ── Stadium thumb — grows on press (M3 Expressive) ─────────────
+                    // ── M3 Stop Indicator at Track Terminus ─────────────────────────
+                    Rectangle {
+                        z: 5
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: progressTrackRow.stopIndicatorSize
+                        height: progressTrackRow.stopIndicatorSize
+                        radius: width / 2
+                        color: Qt.alpha(Players.musicOnSurfaceColor, progressTrackRow.isInteracting ? 0.40 : 0.25)
+                        visible: (progressTrackRow.width - progressTrackRow.fillW) > progressTrackRow.gap * 2
+                    }
+
+                    // ── M3 Vertical Bar Handle ──────────────────────────────────────
                     Rectangle {
                         id: seekThumb
                         z: 20
                         visible: root.canSeek
-                        x: progressTrackRow.thumbX - width / 2
+                        x: Math.round(progressTrackRow.thumbX - width / 2)
                         anchors.verticalCenter: parent.verticalCenter
                         width: progressTrackRow.thumbW
                         height: progressTrackRow.thumbH
-                        radius: width / 2
+                        radius: 2
                         color: progressTrackRow.activeColor
-                        border.width: 1
-                        border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.26)
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: Qt.alpha(progressTrackRow.activeColor, 0.58)
-                            shadowOpacity: (visible && (progressTrackRow.dragging || hoverArea.containsMouse)) ? 0.46 : 0
-                            shadowBlur: 0.7
-                            shadowHorizontalOffset: 0
-                            shadowVerticalOffset: 0
-                            Behavior on shadowOpacity { NumberAnimation { duration: 150 } }
-                        }
+                        antialiasing: true
 
                         Behavior on x {
                             enabled: !progressTrackRow.dragging
                             NumberAnimation {
-                                duration: 180
-                                easing.type: Easing.OutCubic
+                                duration: Tokens.anim.durations.expressiveFastEffects
+                                easing: Tokens.anim.emphasizedDecel
                             }
                         }
                         Behavior on width {
                             SpringAnimation {
-                                spring: 5.0
-                                damping: 0.7
-                                epsilon: 0.01
+                                spring: 5.5
+                                damping: 0.65
+                                epsilon: 0.001
                             }
                         }
                         Behavior on height {
                             SpringAnimation {
-                                spring: 5.0
-                                damping: 0.7
-                                epsilon: 0.01
+                                spring: 5.5
+                                damping: 0.65
+                                epsilon: 0.001
                             }
                         }
                     }
@@ -846,13 +839,13 @@ Item {
                     MouseArea {
                         id: hoverArea
                         anchors.fill: parent
-                        anchors.topMargin: -8
-                        anchors.bottomMargin: -8
+                        anchors.topMargin: -10
+                        anchors.bottomMargin: -10
                         hoverEnabled: true
                         enabled: root.canSeek && musicPill.state === "expanded"
                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         preventStealing: true
-                        z: 10
+                        z: 25
 
                         function fractionAt(mouseX: real): real {
                             const w = progressTrackRow.width;

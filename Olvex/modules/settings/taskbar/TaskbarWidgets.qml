@@ -95,6 +95,22 @@ ColumnLayout {
         }
 
         SettingRow {
+            title: qsTr("Layout mode")
+            description: qsTr("Separate upload/download rows or combined single line")
+            divider: true
+            Segmented {
+                model: [qsTr("Separate"), qsTr("Combined")]
+                currentIndex: (GlobalConfig.bar?.netSpeed?.mode || "separate") === "combined" ? 1 : 0
+                onSelected: i => {
+                    if (GlobalConfig.bar?.netSpeed) {
+                        GlobalConfig.bar.netSpeed.mode = i === 1 ? "combined" : "separate";
+                        GlobalConfig.save();
+                    }
+                }
+            }
+        }
+
+        SettingRow {
             title: qsTr("Show icons")
             description: qsTr("Display direction arrows next to speed numbers")
             divider: true

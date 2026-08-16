@@ -30,9 +30,105 @@ Item {
         return "speaker";
     }
 
+    readonly property var outputDevicesList: {
+        const list = [];
+        const sinks = Audio.detailedSinks && Audio.detailedSinks.length > 0 ? Audio.detailedSinks : [];
+
+        if (sinks.length > 0) {
+            for (const s of sinks) {
+                const sinkName = s.name || "";
+                const isDefaultSink = Audio.sink ? (Audio.sink.name === sinkName || sinkName.includes(Audio.sink.name) || Audio.sink.name.includes(sinkName)) : false;
+                const activePort = s.active_port || "";
+                const ports = s.ports || [];
+
+                if (ports.length > 1) {
+                    for (const p of ports) {
+                        const portName = p.name || "";
+                        const portDesc = p.description || portName;
+                        let displayName = portDesc;
+                        let icon = "speaker";
+
+                        const pLower = portName.toLowerCase();
+                        const dLower = portDesc.toLowerCase();
+
+                        if (pLower.includes("speaker") || dLower.includes("speaker")) {
+                            displayName = qsTr("Built-in Speaker");
+                            icon = "speaker";
+                        } else if (pLower.includes("headphone") || dLower.includes("headphone")) {
+                            displayName = qsTr("Headphones / Wired Speaker");
+                            icon = "headphones";
+                        } else if (pLower.includes("hdmi") || dLower.includes("hdmi") || pLower.includes("displayport")) {
+                            displayName = qsTr("HDMI / DisplayPort Audio");
+                            icon = "tv";
+                        } else if (pLower.includes("lineout") || dLower.includes("line")) {
+                            displayName = qsTr("Line Out");
+                            icon = "speaker";
+                        }
+
+                        const isActive = isDefaultSink && (activePort === portName);
+                        list.push({
+                            id: sinkName + ":" + portName,
+                            name: displayName,
+                            description: s.description || sinkName,
+                            icon: icon,
+                            active: isActive,
+                            sinkName: sinkName,
+                            portName: portName,
+                            available: p.availability !== "not available"
+                        });
+                    }
+                } else {
+                    let icon = "speaker";
+                    const sLower = (s.description || sinkName).toLowerCase();
+                    if (sLower.includes("bluez") || sLower.includes("bluetooth"))
+                        icon = "bluetooth_audio";
+                    else if (sLower.includes("headphone") || sLower.includes("headset") || sLower.includes("buds"))
+                        icon = "headphones";
+                    else if (sLower.includes("hdmi") || sLower.includes("tv"))
+                        icon = "tv";
+                    else if (sLower.includes("usb"))
+                        icon = "usb";
+
+                    list.push({
+                        id: sinkName,
+                        name: s.description || sinkName,
+                        description: sLower.includes("bluez") ? qsTr("Bluetooth Audio") : (sLower.includes("usb") ? qsTr("USB Audio") : qsTr("Audio Output")),
+                        icon: icon,
+                        active: isDefaultSink,
+                        sinkName: sinkName,
+                        portName: "",
+                        available: true
+                    });
+                }
+            }
+        }
+
+        // Fallback to Pipewire sinks if pactl query is still loading
+        if (list.length === 0 && Audio.sinks.length > 0) {
+            for (const s of Audio.sinks) {
+                list.push({
+                    id: s.id || s.name,
+                    name: s.description || s.name || qsTr("Output"),
+                    description: qsTr("Audio Output"),
+                    icon: root.deviceIcon(s),
+                    active: Audio.sink && Audio.sink.id === s.id,
+                    sinkName: s.name,
+                    portName: "",
+                    available: true,
+                    node: s
+                });
+            }
+        }
+
+        return list;
+    }
+
     opacity: 0
     y: 10
-    Component.onCompleted: cascadeIn.start()
+    Component.onCompleted: {
+        cascadeIn.start();
+        Audio.refreshDetailedDevices();
+    }
     
     ParallelAnimation {
         id: cascadeIn
@@ -85,16 +181,21 @@ Item {
             spacing: 0
 
             Repeater {
-                model: Audio.sinks
+                model: root.outputDevicesList
 
                 delegate: DeviceRow {
                     required property var modelData
 
-                    name: modelData.description || modelData.name || qsTr("Output")
-                    icon: root.deviceIcon(modelData)
-                    active: Audio.sink && Audio.sink.id === modelData.id
-                    status: active ? qsTr("Active") : qsTr("Available")
-                    onClicked: Audio.setAudioSink(modelData)
+                    name: modelData.name
+                    status: modelData.active ? qsTr("Active") : (modelData.description || qsTr("Available"))
+                    icon: modelData.icon
+                    active: modelData.active
+                    onClicked: {
+                        if (modelData.node)
+                            Audio.setAudioSink(modelData.node);
+                        else
+                            Audio.setAudioOutputPort(modelData.sinkName, modelData.portName);
+                    }
                 }
             }
         }

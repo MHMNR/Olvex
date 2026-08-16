@@ -103,6 +103,7 @@ Item {
             GlobalConfig.bar.netSpeed.refreshInterval = root.netSpeedInterval;
             GlobalConfig.bar.netSpeed.fontSize = root.netSpeedFontSize;
             GlobalConfig.bar.netSpeed.maxDigits = root.netSpeedMaxDigits;
+            GlobalConfig.bar.netSpeed.mode = root.netSpeedMode;
         }
         GlobalConfig.services.useTwelveHourClock = root.useTwelveHourClock;
         GlobalConfig.bar.excludedScreens = root.excludedScreens;
@@ -775,6 +776,25 @@ Item {
                                 onToggled: checked => {
                                     root.netSpeedBackground = checked;
                                     root.saveConfig();
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Tokens.spacing.normal
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: qsTr("Layout mode")
+                                }
+
+                                Segmented {
+                                    model: [qsTr("Separate"), qsTr("Combined")]
+                                    currentIndex: root.netSpeedMode === "combined" ? 1 : 0
+                                    onSelected: i => {
+                                        root.netSpeedMode = i === 1 ? "combined" : "separate";
+                                        root.saveConfig();
+                                    }
                                 }
                             }
 

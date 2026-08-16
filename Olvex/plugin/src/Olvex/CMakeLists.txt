@@ -61,6 +61,8 @@ qml_module(olvex
     URI Olvex
     SOURCES
         cutils.hpp cutils.cpp
+        fuzzysearcher.hpp fuzzysearcher.cpp
+        colormapper.hpp colormapper.cpp
         qalculator.hpp qalculator.cpp
         appdb.hpp appdb.cpp
         requests.hpp requests.cpp

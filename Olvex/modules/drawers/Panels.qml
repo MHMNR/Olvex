@@ -248,6 +248,7 @@ Item {
         function kick(ticks = 3): void {
             ticksLeft = Math.max(ticksLeft, ticks);
             restart();
+            Hyprland.refreshToplevels();
             const overlap = root.checkOverlap();
             if (overlap !== root.hasWindowsOverlappingPanel)
                 root.hasWindowsOverlappingPanel = overlap;
@@ -261,6 +262,32 @@ Item {
             if (root.bottomPanelMode !== "smarthide")
                 return;
             geometrySyncLoop.kick(3);
+        }
+        function onActiveWsIdChanged(): void {
+            if (root.bottomPanelMode !== "smarthide")
+                return;
+            geometrySyncLoop.kick(3);
+        }
+        function onFocusedWorkspaceChanged(): void {
+            if (root.bottomPanelMode !== "smarthide")
+                return;
+            geometrySyncLoop.kick(3);
+        }
+    }
+
+    Connections {
+        target: Hyprland.workspaces
+        function onValuesChanged(): void {
+            if (root.bottomPanelMode === "smarthide")
+                geometrySyncLoop.kick(3);
+        }
+    }
+
+    Connections {
+        target: Hyprland.toplevels
+        function onValuesChanged(): void {
+            if (root.bottomPanelMode === "smarthide")
+                geometrySyncLoop.kick(3);
         }
     }
 
@@ -306,8 +333,7 @@ Item {
         return true;
     }
     Component.onCompleted: {
-        hasWindowsOverlappingPanel = checkOverlap();
-        _lastOverlapState = hasWindowsOverlappingPanel;
+        geometrySyncLoop.kick(10);
     }
 
     Behavior on bottomMargin {

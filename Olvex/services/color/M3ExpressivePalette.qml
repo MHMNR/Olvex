@@ -1,6 +1,6 @@
 
 import QtQuick
-import "M3ColorMapper.js" as Mapper
+import Olvex
 
 QtObject {
     id: root
@@ -86,11 +86,11 @@ QtObject {
     Behavior on m3successContainer { ColorAnimation { duration: 100 } }
 
     function applyScheme(scheme) {
-        return Mapper.applySchemeToPalette(root, scheme);
+        return M3ColorMapper.applySchemeToPalette(root, scheme);
     }
 
     function applyPayload(data) {
-        const scheme = Mapper.parseSchemePayload(data);
+        const scheme = M3ColorMapper.parseSchemePayload(data);
         if (!scheme)
             return null;
         root.applyScheme(scheme);
