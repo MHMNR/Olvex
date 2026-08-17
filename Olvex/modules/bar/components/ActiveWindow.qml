@@ -13,21 +13,11 @@ import qs.services
 import qs.utils
 import "../../../components/effects"
 
-StyledRect {
+Item {
     id: root
 
-    color: root.playerActive ? Players.musicSurfaceColor : Colours.tPalette.m3surfaceContainer
-    radius: root.musicPillRadius
-    opacity: root.mediaMorphRendering ? 0 : 1
-
-    Behavior on color {
-        CAnim {
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
-        }
-    }
-    // No Behavior on opacity — snap visible immediately on collapse so bar
-    // pill is underneath the overlay crossfade with zero delay
+    readonly property color pillColor: root.playerActive ? Players.musicSurfaceColor : Colours.tPalette.m3surfaceContainer
+    readonly property real pillRadius: root.musicPillRadius
 
     required property var bar
     required property Brightness.Monitor monitor
@@ -245,6 +235,32 @@ StyledRect {
         root.kickDockSync();
     }
 
+    onIsNotificationPushedChanged: {
+        if (root.isNotificationPushed && root.playerActive) {
+            const morph = root.bar?.mediaMorph ?? Players.mediaMorphForScreen(root.bar?.screen?.name ?? "");
+            if (morph?.active) {
+                Qt.callLater(() => {
+                    const anchor = morph.parent ?? morph;
+                    const pos = musicPill.mapToItem(anchor, 0, 0);
+                    const artPos = artFrame.mapToItem(anchor, 0, 0);
+                    const b1 = prevSkipBtn.mapToItem(anchor, 0, 0);
+                    const b2 = playPillBtn.mapToItem(anchor, 0, 0);
+                    const b3 = nextSkipBtn.mapToItem(anchor, 0, 0);
+                    if (typeof morph.updateDockTarget === "function") {
+                        morph.updateDockTarget(
+                            pos.x, pos.y, root.musicPillWidth, root.musicPillWidth,
+                            artPos.x - pos.x, artPos.y - pos.y, artFrame.width, artFrame.height,
+                            b1.x - pos.x, b1.y - pos.y,
+                            b2.x - pos.x, b2.y - pos.y,
+                            b3.x - pos.x, b3.y - pos.y,
+                            root.musicButtonSize
+                        );
+                    }
+                });
+            }
+        }
+    }
+
     Connections {
         target: barAccentPicker
         function onAccentColorsChanged() {
@@ -364,21 +380,28 @@ StyledRect {
         ? 0
         : Math.max(64, root.height - icon.height - Tokens.spacing.small * 4)
 
-    clip: true
+    readonly property bool isNotificationPushed: Notifs.hasBarNotif
+
+    clip: false
     anchors.fill: parent
     implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
-    implicitHeight: root.playerActive ? root.musicPillHeight : icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
+    implicitHeight: root.isNotificationPushed
+        ? (icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small)
+        : (root.playerActive ? root.musicPillHeight : icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small)
 
-    property real animatedMaxHeight: root.playerActive ? root.musicPillHeight : root.maxHeight
+    property real animatedMaxHeight: root.isNotificationPushed
+        ? root.maxHeight
+        : (root.playerActive ? root.musicPillHeight : root.maxHeight)
+
+    Behavior on implicitHeight {
+        Anim { type: Anim.DefaultSpatial }
+    }
 
     Behavior on animatedMaxHeight {
-        Anim { type: Anim.SlowSpatial }
+        Anim { type: Anim.DefaultSpatial }
     }
 
     Loader {
-        // No click handler — clicking the active-window pill must NOT pop a
-        // popout ("pill choto + niche pill" symptom). The hover-driven popout
-        // path lives in Bar.qml's checkPopout (gated on Config.bar.activeWindow.showOnHover).
         asynchronous: true
         anchors.fill: parent
         active: false
@@ -389,18 +412,58 @@ StyledRect {
         z: -1
     }
 
-    Item {
+    // Top: Notification Pill (flexible, fills available space down to musicPill circle)
+    NotificationPill {
+        id: notifPill
+        bar: root.bar
+        anchors.top: parent.top
+        anchors.bottom: root.isNotificationPushed ? musicPill.top : undefined
+        anchors.bottomMargin: root.isNotificationPushed ? Tokens.spacing.small : 0
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: root.musicPillWidth
+        height: root.isNotificationPushed ? undefined : 0
+        opacity: root.isNotificationPushed ? 1 : 0
+        visible: opacity > 0.01
+
+        Behavior on anchors.bottomMargin {
+            Anim { type: Anim.DefaultSpatial }
+        }
+    }
+
+    // Bottom: Active Window / Music Pill (shrinks to 48x48 circle at parent.bottom, expands upwards)
+    StyledRect {
         id: musicPill
 
-        anchors.fill: parent
-        property real pillAlpha: 1
+        color: root.pillColor
+        radius: Math.min(width / 2, height / 2)
         opacity: root.mediaMorphRendering ? 0 : 1
         visible: true
+
+        Behavior on color {
+            CAnim {
+                duration: Tokens.anim.durations.expressiveDefaultSpatial
+                easing: Tokens.anim.expressiveDefaultSpatial
+            }
+        }
+
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: root.playerActive ? root.musicPillWidth : parent.width
+        height: root.isNotificationPushed ? root.musicPillWidth : (root.playerActive ? root.musicPillHeight : parent.height)
+
+        Behavior on height {
+            Anim { type: Anim.DefaultSpatial }
+        }
+        Behavior on radius {
+            Anim { type: Anim.DefaultSpatial }
+        }
+
+        property real pillAlpha: 1
 
         // ── Pill clip + background ─────────────────────────────────────
         StyledClippingRect {
             anchors.fill: parent
-            radius: Math.min(root.radius, width / 2, height / 2)
+            radius: parent.radius
             color: "transparent"
 
             Rectangle {
@@ -445,12 +508,10 @@ StyledRect {
             }
 
             // ── Art + controls — z:2 guarantees events hit buttons first ──
-            ColumnLayout {
+            Item {
                 id: controlsRow
                 z: 2
                 anchors.fill: parent
-                anchors.margins: 4
-                spacing: 6
                 opacity: root.playerActive ? 1 : 0
                 visible: opacity > 0
 
@@ -460,19 +521,16 @@ StyledRect {
 
                 Item {
                     id: artFrame
-                    Layout.preferredWidth: root.musicArtSize
-                    Layout.preferredHeight: root.musicArtSize
-                    Layout.minimumWidth: root.musicArtSize
-                    Layout.minimumHeight: root.musicArtSize
-                    Layout.alignment: Qt.AlignHCenter
+                    x: (parent.width - width) / 2
+                    y: root.isNotificationPushed ? ((parent.height - height) / 2) : 4
+                    width: root.musicArtSize
+                    height: root.musicArtSize
 
-                    // Ambient glow — dark, circular light bloom behind the art,
-                    // matching the lock-screen pills (MinimalLockContent.qml /
-                    // Media.qml). Three overlapping blurred discs (wide faint
-                    // halo → body → dark core), each owning its own blur. Not
-                    // clipped by artFrame (no clip:true here) — the outer pill's
-                    // own StyledClippingRect trims it to the pill's rounded
-                    // shape. Static, gated on playback only — no per-frame cost.
+                    Behavior on y {
+                        Anim { type: Anim.DefaultSpatial }
+                    }
+
+                    // Ambient glow — dark, circular light bloom behind the art
                     Repeater {
                         model: [
                             { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 56 }, // halo
@@ -488,8 +546,6 @@ StyledRect {
                             height: d
                             radius: d / 2
                             color: Qt.alpha(Qt.darker(root.musicAccent, modelData.dark), modelData.alpha)
-                            // Present whenever a player is loaded — not gated on
-                            // isPlaying, so it doesn't disappear on pause.
                             opacity: root.playerActive ? 1 : 0
                             Behavior on opacity {
                                 NumberAnimation {
@@ -563,9 +619,6 @@ StyledRect {
 
                         Rectangle {
                             anchors.fill: parent
-                            // Same formula as the enclosing StyledClippingRect
-                            // (not parent.radius) — ClippingRectangle.radius can
-                            // report undefined transiently during Loader setup.
                             radius: width / 2
                             color: "transparent"
                             border.width: 1
@@ -575,37 +628,55 @@ StyledRect {
                     }
                 }
 
-                // prev — referenced by id in morph sync (artFrame shifts child indices)
-                MorphControlButton {
-                    id: prevSkipBtn
-                    iconName: "skip_previous"
-                    balancedSkipIcon: true
-                    skipIconScale: 0.86
-                    iconSize: Tokens.font.size.large
-                    onClicked: Players.previous()
-                }
+                // Transport controls — smooth slide & fade during circle ↔ pill morph
+                Column {
+                    id: transportControls
+                    anchors.top: parent.top
+                    anchors.topMargin: 50
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 6
+                    opacity: root.isNotificationPushed ? 0 : 1
+                    visible: opacity > 0.01
 
-                // play — emphasized to match the card's compact play button.
-                // No spin: a running RotationAnimator (loops: Infinite) pins the
-                // always-visible bar window to the monitor's 144Hz refresh the
-                // whole time music plays — the system-wide perf drop. Static circle
-                // matches the old backup pill, which never dropped frames.
-                MorphControlButton {
-                    id: playPillBtn
-                    emphasized: true
-                    iconName: root.isMusicPlaying ? "pause" : "play_arrow"
-                    iconSize: Tokens.font.size.larger
-                    onClicked: Players.togglePlaying()
-                }
+                    Behavior on opacity {
+                        Anim { type: Anim.DefaultSpatial }
+                    }
 
-                // next
-                MorphControlButton {
-                    id: nextSkipBtn
-                    iconName: "skip_next"
-                    balancedSkipIcon: true
-                    skipIconScale: 0.86
-                    iconSize: Tokens.font.size.large
-                    onClicked: Players.next()
+                    transform: Translate {
+                        y: root.isNotificationPushed ? 18 : 0
+                        Behavior on y {
+                            Anim { type: Anim.DefaultSpatial }
+                        }
+                    }
+
+                    // prev
+                    MorphControlButton {
+                        id: prevSkipBtn
+                        iconName: "skip_previous"
+                        balancedSkipIcon: true
+                        skipIconScale: 0.86
+                        iconSize: Tokens.font.size.large
+                        onClicked: Players.previous()
+                    }
+
+                    // play
+                    MorphControlButton {
+                        id: playPillBtn
+                        emphasized: true
+                        iconName: root.isMusicPlaying ? "pause" : "play_arrow"
+                        iconSize: Tokens.font.size.larger
+                        onClicked: Players.togglePlaying()
+                    }
+
+                    // next
+                    MorphControlButton {
+                        id: nextSkipBtn
+                        iconName: "skip_next"
+                        balancedSkipIcon: true
+                        skipIconScale: 0.86
+                        iconSize: Tokens.font.size.large
+                        onClicked: Players.next()
+                    }
                 }
             }
             // ── Window info — shown when no music player is active ──
@@ -621,10 +692,16 @@ StyledRect {
                 MaterialIcon {
                     id: icon
                     anchors.horizontalCenter: parent.horizontalCenter
-                    y: (parent.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2
+                    y: root.isNotificationPushed
+                        ? ((musicPill.height - icon.height) / 2)
+                        : ((musicPill.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2)
                     animate: true
                     text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon(Hypr.activeToplevel?.lastIpcObject.class, "desktop_windows")
                     color: root.colour
+
+                    Behavior on y {
+                        Anim { type: Anim.DefaultSpatial }
+                    }
                 }
 
                 StyledText {
@@ -637,6 +714,12 @@ StyledRect {
                     color: root.colour
                     width: implicitHeight
                     height: implicitWidth
+                    visible: opacity > 0.01
+                    opacity: (root.playerActive || root.isNotificationPushed) ? 0 : 1
+
+                    Behavior on opacity {
+                        Anim { type: Anim.DefaultSpatial }
+                    }
 
                     transform: [
                         Translate {
@@ -691,10 +774,6 @@ StyledRect {
                 easing: Tokens.anim.expressiveDefaultSpatial
             }
         }
-    }
-
-    Behavior on implicitHeight {
-        Anim { type: Anim.SlowSpatial }
     }
 
     Behavior on implicitWidth {

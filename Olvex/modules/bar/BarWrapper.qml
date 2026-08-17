@@ -15,6 +15,7 @@ Item {
     required property bool fullscreen
     required property var safeBorder
     property var mediaMorph
+    property var notificationMorph
 
     readonly property bool disabled: Strings.testRegexList(Config.bar.excludedScreens, screen.name)
 
@@ -90,6 +91,7 @@ Item {
             popouts: root.popouts // qmllint disable incompatible-type
             fullscreen: root.fullscreen
             mediaMorph: root.mediaMorph
+            notificationMorph: root.notificationMorph
         }
     }
 }

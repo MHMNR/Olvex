@@ -18,6 +18,7 @@ ColumnLayout {
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
     property var mediaMorph
+    property var notificationMorph
     readonly property int vPadding: Tokens.padding.large
     readonly property alias osIcon: osIconWrapper
 
@@ -43,10 +44,30 @@ ColumnLayout {
             buttonSize
         );
     }
+
+    function expandNotificationMorphFromPill(pill: Item, iconItem: Item, contentItem: Item, notifData: var): void {
+        const morph = root.notificationMorph;
+        if (!morph || !pill || pill.width <= 0 || pill.height <= 0)
+            return;
+
+        const anchor = morph.parent ?? morph;
+        const pos = pill.mapToItem(anchor, 0, 0);
+        const iconPos = iconItem ? iconItem.mapToItem(anchor, 0, 0) : pos;
+        const iW = iconItem ? iconItem.width : pill.width;
+        const iH = iconItem ? iconItem.height : pill.height;
+
+        morph.start(
+            pos.x, pos.y, pill.width, pill.height,
+            iconPos.x - pos.x, iconPos.y - pos.y, iW, iH,
+            notifData
+        );
+    }
     // OS/launcher icon is pinned to the bar bottom — never part of reorderable entries.
     readonly property var barEntries: (Config.bar.entries ?? []).filter(entry => entry.id !== "logo")
 
     readonly property bool isMusicMode: {
+        if (Notifs.hasBarNotif)
+            return false;
         for (let i = 0; i < repeater.count; i++) {
             const loader = repeater.itemAt(i);
             if (loader?.enabled && loader.id === "activeWindow") {
@@ -189,13 +210,13 @@ ColumnLayout {
                 roleValue: "activeWindow"
                 delegate: WrappedLoader {
                     visible: !root.fullscreen
-                    
+
                     // Music pill keeps its fixed musicPillHeight (don't stretch
                     // the controls). Non-music pill flexes: the ColumnLayout
                     // hands it whatever's left, and compresses it when the
                     // workspace pill above expands — pills below stay put.
                     Layout.fillHeight: true
-                    Layout.minimumHeight: 64
+                    Layout.minimumHeight: item ? (item.isNotificationPushed ? (item.musicPillWidth * 2 + Tokens.spacing.small) : 64) : 64
                     Layout.maximumHeight: item ? item.animatedMaxHeight : 0
                     sourceComponent: ActiveWindow {
                         bar: root

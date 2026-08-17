@@ -1,0 +1,673 @@
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Effects
+import Quickshell
+import Olvex.Config
+import qs.components
+import qs.components.controls
+import qs.components.images
+import qs.services
+import qs.utils
+
+Item {
+    id: root
+
+    anchors.fill: parent
+
+    required property ShellScreen screen
+
+    property bool active: false
+    property bool isDismissing: false
+    property bool morphAnimating: expandTransition.running || collapseTransition.running || dismissAnimation.running
+    property bool closingDown: false
+    property var notifData: null
+
+    property real startX: 0
+    property real startY: 0
+    property real startW: 48
+    property real startH: 160
+    property real realIconX: 4
+    property real realIconY: 4
+    property real realIconW: 40
+    property real realIconH: 40
+    readonly property bool hasAttachedImage: Boolean(root.notifData?.image && String(root.notifData.image).trim().length > 0)
+    readonly property string attachedImageSource: hasAttachedImage ? (String(root.notifData.image).startsWith("/") ? "file://" + root.notifData.image : String(root.notifData.image)) : ""
+
+    readonly property real endW: 380
+    readonly property real endH: Math.max(180, cardCol.implicitHeight + 36)
+    readonly property real endRadius: 28
+    readonly property real startRadius: startW / 2
+
+    readonly property int expandDur: 420
+    readonly property int collapseDur: 260
+    readonly property var spatialEasing: Tokens.anim.expressiveDefaultSpatial
+    readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
+    readonly property int contentRevealDelay: 130
+
+    readonly property bool opensRight: startX < root.width / 2
+    readonly property real targetEndX: opensRight ? startX + startW + 20 : startX - endW - 20
+    readonly property real endX: Math.max(16, Math.min(root.width - root.endW - 16, targetEndX))
+    readonly property real endY: Math.max(16, Math.min(root.height - root.endH - 16, startY + (startH - endH) / 2))
+
+    visible: active || morphAnimating
+    z: 2000
+
+    Component.onCompleted: {
+        Notifs.registerNotifMorph(root.screen.name, root);
+    }
+
+    Component.onDestruction: {
+        Notifs.unregisterNotifMorph(root.screen.name, root);
+    }
+
+    function start(x: real, y: real, w: real, h: real,
+                   iconX: real, iconY: real, iconW: real, iconH: real,
+                   data: var): void {
+        startX = x;
+        startY = y;
+        startW = w;
+        startH = h;
+        realIconX = iconX;
+        realIconY = iconY;
+        realIconW = iconW;
+        realIconH = iconH;
+        notifData = data;
+
+        dismissAnimation.stop();
+        hideTimer.stop();
+        expandDeferred.stop();
+        isDismissing = false;
+        closingDown = false;
+
+        notifCard.opacity = 1.0;
+        notifCard.scale = 1.0;
+        notifCard.x = startX;
+        notifCard.y = startY;
+        notifCard.width = startW;
+        notifCard.height = startH;
+        notifCard.radius = startRadius;
+
+        heroIcon.x = realIconX;
+        heroIcon.y = realIconY;
+        heroIcon.width = realIconW;
+        heroIcon.height = realIconH;
+        heroIcon.radius = realIconW / 2;
+
+        cardBg.color = Colours.palette.m3secondaryContainer;
+        cardContent.opacity = 0.0;
+        cardContent.y = 28;
+
+        active = true;
+        Notifs.activeMorphNotif = data;
+        Notifs.notifMorphActive = true;
+        Notifs.notifMorphAnimating = true;
+        notifCard.state = "docked";
+        expandDeferred.start();
+    }
+
+    function collapse(): void {
+        if (dismissAnimation.running || hideTimer.running || root.isDismissing)
+            return;
+        closingDown = true;
+        Notifs.notifMorphAnimating = true;
+        notifCard.state = "docked";
+        hideTimer.start();
+    }
+
+    function close(): void {
+        collapse();
+    }
+
+    function dismiss(): void {
+        if (dismissAnimation.running || hideTimer.running)
+            return;
+        isDismissing = true;
+        closingDown = true;
+        Notifs.notifMorphAnimating = true;
+        dismissAnimation.start();
+    }
+
+    Timer {
+        id: expandDeferred
+        interval: 16
+        repeat: false
+        onTriggered: {
+            if (root.active && !root.closingDown && !root.isDismissing)
+                notifCard.state = "expanded";
+        }
+    }
+
+    Timer {
+        id: hideTimer
+        interval: root.collapseDur + 50
+        repeat: false
+        onTriggered: {
+            if (root.active && root.closingDown) {
+                root.active = false;
+                root.closingDown = false;
+                Notifs.activeMorphNotif = null;
+                Notifs.notifMorphActive = false;
+                Notifs.notifMorphAnimating = false;
+            }
+        }
+    }
+
+    // ── Direct Dismiss Animation (exits smoothly directly from expanded card on dismiss button) ──
+    ParallelAnimation {
+        id: dismissAnimation
+
+        NumberAnimation {
+            target: notifCard
+            property: "opacity"
+            to: 0.0
+            duration: 220
+            easing: Tokens.anim.expressiveFastSpatial
+        }
+        NumberAnimation {
+            target: notifCard
+            property: "scale"
+            to: 0.92
+            duration: 220
+            easing: Tokens.anim.emphasizedAccel
+        }
+        NumberAnimation {
+            target: notifCard
+            property: "x"
+            to: notifCard.x - 16
+            duration: 220
+            easing: Tokens.anim.emphasizedAccel
+        }
+        onFinished: {
+            root.active = false;
+            root.closingDown = false;
+            root.isDismissing = false;
+            Notifs.activeMorphNotif = null;
+            Notifs.notifMorphActive = false;
+            Notifs.notifMorphAnimating = false;
+            if (root.notifData && typeof root.notifData.close === "function")
+                root.notifData.close();
+            Notifs.dismissNotif(root.notifData);
+        }
+    }
+
+    Keys.onEscapePressed: collapse()
+
+    // ── Tap outside: collapse / morph back into bar pill (notification stays alive in bar) ──
+    MouseArea {
+        anchors.fill: parent
+        z: 0
+        enabled: root.active && !root.closingDown && !root.isDismissing
+        onClicked: root.collapse()
+    }
+
+    // ── Morphing Card Container (Material 3 Container Transform) ──
+    Rectangle {
+        id: notifCard
+
+        x: root.startX
+        y: root.startY
+        width: root.startW
+        height: root.startH
+        radius: root.startRadius
+        color: "transparent"
+        clip: true
+        z: 1
+
+        property real morphSquashX: 1.0
+        property real morphSquashY: 1.0
+        property real morphLift: 0.0
+
+        transform: [
+            Translate {
+                x: root.opensRight ? notifCard.morphLift : -notifCard.morphLift
+                y: 0
+            },
+            Scale {
+                origin.x: root.opensRight ? 0 : notifCard.width
+                origin.y: notifCard.height / 2
+                xScale: notifCard.morphSquashX
+                yScale: notifCard.morphSquashY
+            }
+        ]
+
+        state: "docked"
+
+        // Card background: M3 container color interpolation
+        Rectangle {
+            id: cardBg
+            anchors.fill: parent
+            radius: notifCard.radius
+            color: notifCard.state === "expanded" ? Colours.palette.m3surfaceContainerHigh : Colours.palette.m3secondaryContainer
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: Qt.alpha(Colours.palette.m3surfaceTint, notifCard.state === "expanded" ? 0.08 : 0.0)
+            }
+        }
+
+        states: [
+            State {
+                name: "docked"
+                PropertyChanges {
+                    target: notifCard
+                    x: root.startX
+                    y: root.startY
+                    width: root.startW
+                    height: root.startH
+                    radius: root.startRadius
+                }
+                PropertyChanges {
+                    target: cardContent
+                    opacity: 0
+                    y: 28
+                }
+                PropertyChanges {
+                    target: collapsedPillContent
+                    opacity: 1
+                }
+                PropertyChanges {
+                    target: heroIcon
+                    x: root.realIconX
+                    y: root.realIconY
+                    width: root.realIconW
+                    height: root.realIconH
+                    radius: root.realIconW / 2
+                }
+            },
+            State {
+                name: "expanded"
+                PropertyChanges {
+                    target: notifCard
+                    x: root.endX
+                    y: root.endY
+                    width: root.endW
+                    height: root.endH
+                    radius: root.endRadius
+                }
+                PropertyChanges {
+                    target: cardContent
+                    opacity: 1
+                    y: 18
+                }
+                PropertyChanges {
+                    target: collapsedPillContent
+                    opacity: 0
+                }
+                PropertyChanges {
+                    target: heroIcon
+                    x: 18
+                    y: 18
+                    width: 32
+                    height: 32
+                    radius: 16
+                }
+            }
+        ]
+
+        transitions: [
+            Transition {
+                id: expandTransition
+                from: "docked"
+                to: "expanded"
+                ParallelAnimation {
+                    // Container bounds travel
+                    NumberAnimation {
+                        target: notifCard
+                        properties: "x,y,width,height"
+                        duration: root.expandDur
+                        easing: root.spatialEasing
+                    }
+                    // Color transition
+                    ColorAnimation {
+                        target: cardBg
+                        property: "color"
+                        duration: root.expandDur
+                        easing.type: Easing.OutCubic
+                    }
+                    // Shape mask completes at 75% (M3 Container Transform shapeMaskProgressThresholds)
+                    NumberAnimation {
+                        target: notifCard
+                        property: "radius"
+                        duration: Math.round(root.expandDur * 0.75)
+                        easing: root.spatialEasing
+                    }
+                    // Shared hero icon travel
+                    NumberAnimation {
+                        target: heroIcon
+                        properties: "x,y,width,height"
+                        duration: root.expandDur
+                        easing: root.spatialEasing
+                    }
+                    NumberAnimation {
+                        target: heroIcon
+                        property: "radius"
+                        duration: Math.round(root.expandDur * 0.75)
+                        easing: root.spatialEasing
+                    }
+                    // Physical popout bounce
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashX"
+                            to: 1.045
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashX"
+                            to: 1.0
+                            duration: Math.round(root.expandDur * 0.58)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashY"
+                            to: 0.965
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashY"
+                            to: 1.0
+                            duration: Math.round(root.expandDur * 0.58)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphLift"
+                            to: 8
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphLift"
+                            to: 0
+                            duration: Math.round(root.expandDur * 0.58)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    // Fade-through: collapsed pill content fades out fast (0-30%)
+                    NumberAnimation {
+                        target: collapsedPillContent
+                        property: "opacity"
+                        duration: 110
+                        easing: Tokens.anim.expressiveFastSpatial
+                    }
+                    // Expanded content reveals delayed (30-100%) with upward slide
+                    SequentialAnimation {
+                        PauseAnimation { duration: root.contentRevealDelay }
+                        ParallelAnimation {
+                            NumberAnimation {
+                                target: cardContent
+                                property: "opacity"
+                                duration: root.expandDur - root.contentRevealDelay
+                                easing: root.spatialEasingDecel
+                            }
+                            NumberAnimation {
+                                target: cardContent
+                                property: "y"
+                                duration: root.expandDur - root.contentRevealDelay
+                                easing: root.spatialEasingDecel
+                            }
+                        }
+                    }
+                }
+            },
+            Transition {
+                id: collapseTransition
+                from: "expanded"
+                to: "docked"
+                enabled: !root.isDismissing
+                onRunningChanged: {
+                    if (!running && root.closingDown && !root.isDismissing) {
+                        root.active = false;
+                        root.closingDown = false;
+                        Notifs.activeMorphNotif = null;
+                        Notifs.notifMorphActive = false;
+                        Notifs.notifMorphAnimating = false;
+                    }
+                }
+                ParallelAnimation {
+                    // Container bounds travel back
+                    NumberAnimation {
+                        target: notifCard
+                        properties: "x,y,width,height,radius"
+                        duration: root.collapseDur
+                        easing: root.spatialEasing
+                    }
+                    ColorAnimation {
+                        target: cardBg
+                        property: "color"
+                        duration: root.collapseDur
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        target: heroIcon
+                        properties: "x,y,width,height,radius"
+                        duration: root.collapseDur
+                        easing: root.spatialEasing
+                    }
+                    NumberAnimation {
+                        target: cardContent
+                        property: "opacity"
+                        duration: Math.round(root.collapseDur * 0.4)
+                        easing: root.spatialEasing
+                    }
+                    SequentialAnimation {
+                        PauseAnimation { duration: Math.round(root.collapseDur * 0.5) }
+                        NumberAnimation {
+                            target: collapsedPillContent
+                            property: "opacity"
+                            duration: Math.round(root.collapseDur * 0.5)
+                            easing: root.spatialEasing
+                        }
+                    }
+                }
+            }
+        ]
+
+        // ── Start (Collapsed Pill) Content Layer — Fades out on expand (Only for tall pills, NOT for circles) ──
+        Item {
+            id: collapsedPillContent
+            anchors.fill: parent
+            visible: root.startH > 50
+            opacity: notifCard.state === "docked" ? 1 : 0
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 4
+                spacing: 6
+
+                Item {
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: root.notifData?.appName || root.notifData?.summary || ""
+                        rotation: 90
+                        font.weight: Font.DemiBold
+                        color: Colours.palette.m3onSecondaryContainer
+                        textPointSize: Tokens.font.size.smaller
+                    }
+                }
+            }
+        }
+
+        // ── Shared Hero App Icon ──
+        StyledRect {
+            id: heroIcon
+            x: notifCard.state === "expanded" ? 18 : root.realIconX
+            y: notifCard.state === "expanded" ? 18 : root.realIconY
+            width: notifCard.state === "expanded" ? 32 : root.realIconW
+            height: notifCard.state === "expanded" ? 32 : root.realIconH
+            radius: width / 2
+            color: Colours.palette.m3surfaceContainerHighest
+            z: 5
+
+            CachingIconImage {
+                anchors.centerIn: parent
+                width: parent.width * 0.625
+                height: parent.height * 0.625
+                source: Icons.resolveIcon(root.notifData?.appIcon || root.notifData?.appName || root.notifData?.image || "", "")
+                visible: source !== ""
+            }
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                text: "notifications"
+                color: Colours.palette.m3onSurfaceVariant
+                iconPointSize: Tokens.font.size.small
+                fill: 1
+                visible: !(root.notifData?.appIcon || root.notifData?.image)
+            }
+        }
+
+        // ── End (Expanded Card) Content Layer — Fades in on expand ──
+        Item {
+            id: cardContent
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 18
+            opacity: 0
+
+            ColumnLayout {
+                id: cardCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                spacing: 10
+
+                // Header Row: App Name + Timestamp + Close button (Icon is rendered by shared heroIcon)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Item {
+                        Layout.preferredWidth: 32
+                        Layout.preferredHeight: 32
+                    }
+
+                    StyledText {
+                        text: root.notifData?.appName || qsTr("Notification")
+                        textPointSize: Tokens.font.size.small
+                        font.weight: Font.DemiBold
+                        color: Colours.palette.m3onSurfaceVariant
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                    }
+
+                    StyledText {
+                        text: root.notifData?.timeStr || ""
+                        textPointSize: Tokens.font.size.smaller
+                        color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.7)
+                    }
+
+                    IconButton {
+                        icon: "close"
+                        type: IconButton.Text
+                        iconPointSize: Tokens.font.size.small
+                        onClicked: {
+                            root.dismiss();
+                        }
+                    }
+                }
+
+                // Summary / Title
+                StyledText {
+                    text: root.notifData?.summary || ""
+                    textPointSize: Tokens.font.size.normal
+                    font.weight: Font.Bold
+                    color: Colours.palette.m3onSurface
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    visible: text.length > 0
+                }
+
+                // Body text
+                StyledText {
+                    text: root.notifData?.body || ""
+                    textPointSize: Tokens.font.size.small
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.85)
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 6
+                    elide: Text.ElideRight
+                    visible: text.length > 0
+                }
+
+                // Attached Image preview (Pre-sized container so endH is 100% accurate before morph begins)
+                StyledRect {
+                    id: imageContainer
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: root.hasAttachedImage ? 160 : 0
+                    radius: 14
+                    color: Colours.palette.m3surfaceContainerHighest
+                    clip: true
+                    visible: root.hasAttachedImage
+
+                    Image {
+                        anchors.fill: parent
+                        source: root.attachedImageSource
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        opacity: status === Image.Ready ? 1.0 : 0.0
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 180; easing: Tokens.anim.expressiveFastSpatial }
+                        }
+                    }
+                }
+
+                // Action Buttons Row
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 4
+                    spacing: 8
+                    visible: (root.notifData?.actions && root.notifData.actions.length > 0) ?? false
+
+                    Repeater {
+                        model: root.notifData?.actions ?? []
+
+                        delegate: TextButton {
+                            required property var modelData
+                            text: modelData.text || modelData.id || qsTr("Action")
+                            type: TextButton.Tonal
+                            onClicked: {
+                                if (root.notifData?.notification?.invokeAction) {
+                                    root.notifData.notification.invokeAction(modelData.id);
+                                }
+                                root.dismiss();
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    TextButton {
+                        text: qsTr("Dismiss")
+                        type: TextButton.Text
+                        onClicked: {
+                            root.dismiss();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

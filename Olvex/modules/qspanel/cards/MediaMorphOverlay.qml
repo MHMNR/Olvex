@@ -192,6 +192,24 @@ Item {
         _dockSyncCount = 0;
     }
 
+    function updateDockTarget(x: real, y: real, w: real, h: real, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real): void {
+        startX = x;
+        startY = y;
+        startW = w;
+        startH = h;
+        realArtX = artX;
+        realArtY = artY;
+        realArtW = artW;
+        realArtH = artH;
+        realBtn1X = btn1X;
+        realBtn1Y = btn1Y;
+        realBtn2X = btn2X;
+        realBtn2Y = btn2Y;
+        realBtn3X = btn3X;
+        realBtn3Y = btn3Y;
+        realBtnSize = btnSize;
+    }
+
     function syncDock(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real): void {
         if (root.active)
             return;

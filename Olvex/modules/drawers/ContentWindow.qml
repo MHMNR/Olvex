@@ -140,7 +140,7 @@ StyledWindow {
         function onContextMenuVisibleChanged(): void { root.pulseShellMotion(); }
     }
 
-    mask: (hasFullscreen || morph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
+    mask: (hasFullscreen || morph.active || notifMorph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
 
     Regions {
         id: regions
@@ -504,6 +504,7 @@ StyledWindow {
                 visibilities: visibilities
                 popouts: panels.popouts
                 mediaMorph: morph
+                notificationMorph: notifMorph
 
                 fullscreen: root.hasFullscreen
                 safeBorder: root.safeBorder
@@ -604,6 +605,12 @@ StyledWindow {
 
         Cards.MediaMorphOverlay {
             id: morph
+
+            screen: root.screen
+        }
+
+        Cards.NotificationMorphOverlay {
+            id: notifMorph
 
             screen: root.screen
         }
