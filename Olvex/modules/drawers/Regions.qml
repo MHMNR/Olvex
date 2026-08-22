@@ -29,20 +29,19 @@ Region {
     height: Math.max(0, win.height - topInset - bottomInset - win.dragMaskPadding * 2)
     intersection: Intersection.Xor
 
-    // Top-right hot corner for dragging open QS panel (independent of border thickness)
-    Region {
-        readonly property real zoneSize: 56
-        x: root.win.width - zoneSize
-        y: 0
-        width: zoneSize
-        height: zoneSize
-        intersection: Intersection.Subtract
-    }
-
     R {
         panel: root.panels.dashboard
         y: 0
-        customHeight: (1 - root.panels.dashboard.offsetScale) > 0 ? (panel.height * (1 - root.panels.dashboard.offsetScale) + root.borderThickness) : 0
+        customHeight: {
+            if (root.panels.dashboard.visible) {
+                if (root.panels.dashboard.offsetScale < 1) {
+                    return root.panels.dashboard.height * (1 - root.panels.dashboard.offsetScale) + root.borderThickness;
+                } else if (root.panels.dashboard.peekOffset > 0) {
+                    return Math.max(0, root.panels.dashboard.peekOffset - 10) + root.borderThickness;
+                }
+            }
+            return 0;
+        }
     }
 
     R {
@@ -110,12 +109,11 @@ Region {
         property real customHeight: panel.height
 
         readonly property int gap: root.borderFloating ? 5 : 0
-        readonly property real extra: root.borderThickness + gap + 15
 
-        x: panel.x + root.bar.implicitWidth + gap - extra
-        y: panel.y + root.borderThickness + gap - extra
-        width: customWidth > 0 && customHeight > 0 ? (customWidth + extra * 2) : 0
-        height: customWidth > 0 && customHeight > 0 ? (customHeight + extra * 2) : 0
+        x: panel.x + root.bar.implicitWidth + gap
+        y: panel.y + root.borderThickness + gap
+        width: customWidth > 0 && customHeight > 0 ? customWidth : 0
+        height: customWidth > 0 && customHeight > 0 ? customHeight : 0
         intersection: Intersection.Subtract
     }
 }

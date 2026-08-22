@@ -44,17 +44,17 @@ Item {
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 24 // M3 Container Margin (24px)
+            spacing: 16 // M3 Standard Container Margin (16px)
 
             // =========================================================================
             // TOP ROW: SYSTEM CARD (FULL WIDTH - COMPACT HEIGHT)
             // =========================================================================
             StyledRect {
                 Layout.fillWidth: true
-                implicitHeight: sysCol.implicitHeight + 32 // 16px top + 16px bottom
+                implicitHeight: sysCol.implicitHeight + 40 // 20px top + 20px bottom
                 radius: 20 // M3Shapes.large
                 color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
+                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
                 border.width: 1
 
                 ColumnLayout {
@@ -62,8 +62,8 @@ Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: 16
-                    spacing: 10
+                    anchors.margins: 20
+                    spacing: 14
 
                     // 1. Header Category Chip: SYSTEM
                     RowLayout {
@@ -78,8 +78,8 @@ Item {
                         StyledText {
                             text: qsTr("SYSTEM")
                             color: Colours.palette.m3primary
-                            font.weight: Font.Bold
-                            font.letterSpacing: 1.2
+                            font.weight: Font.SemiBold
+                            font.letterSpacing: 0.8
                             textPointSize: Tokens.font.size.smaller
                         }
                     }
@@ -87,14 +87,14 @@ Item {
                     // 2. Hero Section: Animated Logo BEFORE Title (Symmetrical Spacing)
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.bottomMargin: 10
+                        Layout.bottomMargin: 6
                         spacing: 16
 
                         // Animated Olvex Logo Container
                         Item {
                             id: logoContainer
-                            Layout.preferredWidth: 128
-                            Layout.preferredHeight: 84
+                            Layout.preferredWidth: 120
+                            Layout.preferredHeight: 78
                             Layout.alignment: Qt.AlignVCenter
 
                             property real breath: 0
@@ -154,8 +154,8 @@ Item {
 
                             // Left Beam (Indigo)
                             Image {
-                                width: 128
-                                height: 128
+                                width: 120
+                                height: 120
                                 anchors.centerIn: parent
                                 opacity: logoContainer.introProgress
 
@@ -170,8 +170,8 @@ Item {
 
                             // Right Beam (Coral)
                             Image {
-                                width: 128
-                                height: 128
+                                width: 120
+                                height: 120
                                 anchors.centerIn: parent
                                 opacity: logoContainer.introProgress
 
@@ -186,8 +186,8 @@ Item {
 
                             // Wave Line
                             Image {
-                                width: 128
-                                height: 128
+                                width: 120
+                                height: 120
                                 anchors.centerIn: parent
                                 opacity: logoContainer.introProgress
                                 rotation: logoContainer.pulseRotation
@@ -217,9 +217,9 @@ Item {
                             StyledText {
                                 text: "Olvex Shell"
                                 font.weight: Font.Bold
-                                font.letterSpacing: -0.5
+                                font.letterSpacing: -0.2
                                 color: Colours.palette.m3onSurface
-                                textPointSize: 26
+                                textPointSize: 24
                             }
 
                             RowLayout {
@@ -227,10 +227,10 @@ Item {
 
                                 StyledRect {
                                     implicitWidth: verText.implicitWidth + 14
-                                    implicitHeight: 20
+                                    implicitHeight: 22
                                     radius: Tokens.rounding.full
-                                    color: Qt.alpha(Colours.palette.m3primary, 0.15)
-                                    border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
+                                    color: Qt.alpha(Colours.palette.m3primary, 0.12)
+                                    border.color: Qt.alpha(Colours.palette.m3primary, 0.28)
                                     border.width: 1
 
                                     StyledText {
@@ -238,7 +238,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "v1.0.0"
                                         color: Colours.palette.m3primary
-                                        font.weight: Font.Bold
+                                        font.weight: Font.SemiBold
                                         textPointSize: Tokens.font.size.smaller
                                     }
                                 }
@@ -257,20 +257,20 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 1
-                        color: Colours.layer(Colours.palette.m3outlineVariant, 0.2)
+                        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
                     }
 
                     // 3. 3-Column Clean Unboxed OS Spec Grid (Compact Height)
                     GridLayout {
                         Layout.fillWidth: true
                         columns: 3
-                        columnSpacing: 28
+                        columnSpacing: 24
                         rowSpacing: 14
 
                         // Item 1: KERNEL
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
@@ -282,8 +282,8 @@ Item {
                                 StyledText {
                                     text: qsTr("KERNEL")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.0
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -301,20 +301,20 @@ Item {
                         // Item 2: SYSTEM HOST
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
                                 MaterialIcon {
                                     text: "badge"
-                                    color: Colours.palette.m3secondary
+                                    color: Colours.palette.m3primary
                                     iconPointSize: 14
                                 }
                                 StyledText {
                                     text: qsTr("SYSTEM HOST")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.0
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -332,20 +332,20 @@ Item {
                         // Item 3: UPTIME
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
                                 MaterialIcon {
                                     text: "schedule"
-                                    color: Colours.palette.m3tertiary
+                                    color: Colours.palette.m3primary
                                     iconPointSize: 14
                                 }
                                 StyledText {
                                     text: qsTr("UPTIME")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.0
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -363,7 +363,7 @@ Item {
                         // Item 4: SHELL ENVIRONMENT
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
@@ -375,8 +375,8 @@ Item {
                                 StyledText {
                                     text: qsTr("SHELL ENVIRONMENT")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.0
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -394,20 +394,20 @@ Item {
                         // Item 5: WINDOW MANAGER
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
                                 MaterialIcon {
                                     text: "aspect_ratio"
-                                    color: Colours.palette.m3secondary
+                                    color: Colours.palette.m3primary
                                     iconPointSize: 14
                                 }
                                 StyledText {
                                     text: qsTr("WINDOW MANAGER")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.0
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -425,20 +425,20 @@ Item {
                         // Item 6: FRAMEWORK & TARGET
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
                                 MaterialIcon {
                                     text: "widgets"
-                                    color: Colours.palette.m3tertiary
+                                    color: Colours.palette.m3primary
                                     iconPointSize: 14
                                 }
                                 StyledText {
                                     text: qsTr("FRAMEWORK & TARGET")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.0
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -461,17 +461,17 @@ Item {
             // =========================================================================
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 24
+                spacing: 16
 
                 // --- CARD 1: SPECIFICATIONS ---
                 StyledRect {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     Layout.alignment: Qt.AlignTop
-                    implicitHeight: Math.max(hwCol.implicitHeight, maintCol.implicitHeight) + 48
-                    radius: 24 // M3Shapes.large
+                    implicitHeight: Math.max(hwCol.implicitHeight, maintCol.implicitHeight) + 40
+                    radius: 20 // M3Shapes.large
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
                     border.width: 1
 
                     ColumnLayout {
@@ -479,8 +479,8 @@ Item {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.margins: 24
-                        spacing: 20
+                        anchors.margins: 20
+                        spacing: 16
 
                         // Header
                         RowLayout {
@@ -495,8 +495,8 @@ Item {
                             StyledText {
                                 text: qsTr("SPECIFICATIONS")
                                 color: Colours.palette.m3primary
-                                font.weight: Font.Bold
-                                font.letterSpacing: 1.2
+                                font.weight: Font.SemiBold
+                                font.letterSpacing: 0.8
                                 textPointSize: Tokens.font.size.smaller
                             }
                         }
@@ -504,7 +504,7 @@ Item {
                         // CPU Item
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
@@ -516,8 +516,8 @@ Item {
                                 StyledText {
                                     text: qsTr("CPU")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 0.8
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -535,20 +535,20 @@ Item {
                         // GPU Item
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
+                            spacing: 3
 
                             RowLayout {
                                 spacing: 6
                                 MaterialIcon {
                                     text: "videogame_asset"
-                                    color: Colours.palette.m3tertiary
+                                    color: Colours.palette.m3primary
                                     iconPointSize: 14
                                 }
                                 StyledText {
                                     text: qsTr("GPU")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 0.8
+                                    font.weight: Font.SemiBold
+                                    font.letterSpacing: 0.6
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -583,8 +583,8 @@ Item {
                                     StyledText {
                                         text: qsTr("RAM")
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.weight: Font.Bold
-                                        font.letterSpacing: 0.8
+                                        font.weight: Font.SemiBold
+                                        font.letterSpacing: 0.6
                                         textPointSize: Tokens.font.size.smaller
                                     }
                                 }
@@ -592,11 +592,11 @@ Item {
                                 Item { Layout.fillWidth: true }
 
                                 RowLayout {
-                                    spacing: 6
+                                    spacing: 8
 
                                     StyledText {
                                         text: root.memUsedGB.toFixed(1) + " / " + root.memTotalGB.toFixed(1) + " GB"
-                                        color: Colours.palette.m3onSurface
+                                        color: Colours.palette.m3onSurfaceVariant
                                         font.weight: Font.Medium
                                         textPointSize: Tokens.font.size.small
                                     }
@@ -605,7 +605,7 @@ Item {
                                         implicitWidth: ramBadge.implicitWidth + 12
                                         implicitHeight: 20
                                         radius: Tokens.rounding.full
-                                        color: Qt.alpha(Colours.palette.m3primary, 0.15)
+                                        color: Qt.alpha(Colours.palette.m3primary, 0.14)
 
                                         StyledText {
                                             id: ramBadge
@@ -624,7 +624,7 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 6
                                 radius: 3
-                                color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.8)
+                                color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.65)
 
                                 Rectangle {
                                     height: parent.height
@@ -651,14 +651,14 @@ Item {
                                     spacing: 6
                                     MaterialIcon {
                                         text: "storage"
-                                        color: Colours.palette.m3secondary
+                                        color: Colours.palette.m3primary
                                         iconPointSize: 14
                                     }
                                     StyledText {
                                         text: qsTr("STORAGE (Root /)")
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.weight: Font.Bold
-                                        font.letterSpacing: 0.8
+                                        font.weight: Font.SemiBold
+                                        font.letterSpacing: 0.6
                                         textPointSize: Tokens.font.size.smaller
                                     }
                                 }
@@ -666,11 +666,11 @@ Item {
                                 Item { Layout.fillWidth: true }
 
                                 RowLayout {
-                                    spacing: 6
+                                    spacing: 8
 
                                     StyledText {
                                         text: root.storageUsedGB.toFixed(1) + " / " + root.storageTotalGB.toFixed(1) + " GB"
-                                        color: Colours.palette.m3onSurface
+                                        color: Colours.palette.m3onSurfaceVariant
                                         font.weight: Font.Medium
                                         textPointSize: Tokens.font.size.small
                                     }
@@ -679,7 +679,7 @@ Item {
                                         implicitWidth: storeBadge.implicitWidth + 12
                                         implicitHeight: 20
                                         radius: Tokens.rounding.full
-                                        color: Qt.alpha(Colours.palette.m3secondary, 0.15)
+                                        color: Qt.alpha(Colours.palette.m3secondary, 0.14)
 
                                         StyledText {
                                             id: storeBadge
@@ -698,7 +698,7 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 6
                                 radius: 3
-                                color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.8)
+                                color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.65)
 
                                 Rectangle {
                                     height: parent.height
@@ -720,10 +720,10 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     Layout.alignment: Qt.AlignTop
-                    implicitHeight: Math.max(hwCol.implicitHeight, maintCol.implicitHeight) + 48
-                    radius: 24 // M3Shapes.large
+                    implicitHeight: Math.max(hwCol.implicitHeight, maintCol.implicitHeight) + 40
+                    radius: 20 // M3Shapes.large
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
                     border.width: 1
 
                     ColumnLayout {
@@ -731,8 +731,8 @@ Item {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.margins: 24
-                        spacing: 20
+                        anchors.margins: 20
+                        spacing: 16
 
                         // Header
                         RowLayout {
@@ -747,8 +747,8 @@ Item {
                             StyledText {
                                 text: qsTr("MAINTAINER")
                                 color: Colours.palette.m3primary
-                                font.weight: Font.Bold
-                                font.letterSpacing: 1.2
+                                font.weight: Font.SemiBold
+                                font.letterSpacing: 0.8
                                 textPointSize: Tokens.font.size.smaller
                             }
                         }
@@ -759,8 +759,8 @@ Item {
 
                             StyledRect {
                                 id: profileAvatar
-                                Layout.preferredWidth: 46
-                                Layout.preferredHeight: 46
+                                Layout.preferredWidth: 44
+                                Layout.preferredHeight: 44
                                 radius: Tokens.rounding.full
                                 color: profileArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.25) : Qt.alpha(Colours.palette.m3primary, 0.15)
                                 border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
@@ -772,8 +772,8 @@ Item {
                                 // Circle Mask Source
                                 Item {
                                     id: avatarMask
-                                    width: 46
-                                    height: 46
+                                    width: 44
+                                    height: 44
                                     visible: false
                                     layer.enabled: true
 
@@ -856,7 +856,7 @@ Item {
                                     text: qsTr("Creator & Lead Architect")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
-                                    textPointSize: Tokens.font.size.small
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
                         }
@@ -870,9 +870,9 @@ Item {
                             StyledRect {
                                 id: repoCard
                                 Layout.fillWidth: true
-                                implicitHeight: repoRow.implicitHeight + 16
+                                implicitHeight: repoRow.implicitHeight + 14
                                 radius: 12 // M3Shapes.medium
-                                color: repoArea.containsMouse ? Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.7) : Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.3)
+                                color: repoArea.containsMouse ? Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6) : Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.25)
                                 border.color: repoArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.35) : "transparent"
                                 border.width: 1
 
@@ -885,7 +885,7 @@ Item {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.margins: 12
-                                    spacing: 10
+                                    spacing: 12
 
                                     MaterialIcon {
                                         text: "code"
@@ -894,18 +894,18 @@ Item {
                                     }
 
                                     ColumnLayout {
-                                        spacing: 0
+                                        spacing: 1
                                         StyledText {
-                                            text: "Repository"
-                                            color: Colours.palette.m3onSurfaceVariant
-                                            font.weight: Font.Bold
-                                            textPointSize: Tokens.font.size.smaller
+                                            text: qsTr("Repository")
+                                            color: Colours.palette.m3onSurface
+                                            font.weight: Font.SemiBold
+                                            textPointSize: Tokens.font.size.small
                                         }
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex"
                                             color: Colours.palette.m3primary
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.small
+                                            textPointSize: Tokens.font.size.smaller
                                         }
                                     }
 
@@ -931,9 +931,9 @@ Item {
                             StyledRect {
                                 id: cfgCard
                                 Layout.fillWidth: true
-                                implicitHeight: cfgRow.implicitHeight + 16
+                                implicitHeight: cfgRow.implicitHeight + 14
                                 radius: 12 // M3Shapes.medium
-                                color: cfgArea.containsMouse ? Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.7) : Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.3)
+                                color: cfgArea.containsMouse ? Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6) : Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.25)
                                 border.color: cfgArea.containsMouse ? Qt.alpha(Colours.palette.m3tertiary, 0.35) : "transparent"
                                 border.width: 1
 
@@ -946,7 +946,7 @@ Item {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.margins: 12
-                                    spacing: 10
+                                    spacing: 12
 
                                     MaterialIcon {
                                         text: "folder_open"
@@ -955,18 +955,18 @@ Item {
                                     }
 
                                     ColumnLayout {
-                                        spacing: 0
+                                        spacing: 1
                                         StyledText {
-                                            text: "Config Directory"
-                                            color: Colours.palette.m3onSurfaceVariant
-                                            font.weight: Font.Bold
-                                            textPointSize: Tokens.font.size.smaller
+                                            text: qsTr("Config Directory")
+                                            color: Colours.palette.m3onSurface
+                                            font.weight: Font.SemiBold
+                                            textPointSize: Tokens.font.size.small
                                         }
                                         StyledText {
                                             text: "~/.config/olvex"
                                             color: Colours.palette.m3tertiary
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.small
+                                            textPointSize: Tokens.font.size.smaller
                                         }
                                     }
 
@@ -992,9 +992,9 @@ Item {
                             StyledRect {
                                 id: issueCard
                                 Layout.fillWidth: true
-                                implicitHeight: issueRow.implicitHeight + 16
+                                implicitHeight: issueRow.implicitHeight + 14
                                 radius: 12 // M3Shapes.medium
-                                color: issueArea.containsMouse ? Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.7) : Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.3)
+                                color: issueArea.containsMouse ? Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6) : Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.25)
                                 border.color: issueArea.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.35) : "transparent"
                                 border.width: 1
 
@@ -1007,7 +1007,7 @@ Item {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.margins: 12
-                                    spacing: 10
+                                    spacing: 12
 
                                     MaterialIcon {
                                         text: "bug_report"
@@ -1016,18 +1016,18 @@ Item {
                                     }
 
                                     ColumnLayout {
-                                        spacing: 0
+                                        spacing: 1
                                         StyledText {
-                                            text: "Report Issue"
-                                            color: Colours.palette.m3onSurfaceVariant
-                                            font.weight: Font.Bold
-                                            textPointSize: Tokens.font.size.smaller
+                                            text: qsTr("Report Issue")
+                                            color: Colours.palette.m3onSurface
+                                            font.weight: Font.SemiBold
+                                            textPointSize: Tokens.font.size.small
                                         }
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex/issues"
                                             color: Colours.palette.m3error
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.small
+                                            textPointSize: Tokens.font.size.smaller
                                         }
                                     }
 

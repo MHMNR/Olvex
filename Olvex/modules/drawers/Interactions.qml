@@ -29,29 +29,30 @@ CustomMouseArea {
     property bool launcherHoverDisabled: false
 
     readonly property int floatingGap: safeBorder.floating ? 5 : 0
-    readonly property real hoverTolerance: root.borderThickness + 20
-    readonly property real verticalTolerance: root.borderThickness + floatingGap + 8
+    readonly property real hoverTolerance: root.borderThickness + floatingGap
+    readonly property real verticalTolerance: root.borderThickness + floatingGap
 
     function inBottomPanelArea(x: real, y: real): bool {
+        if (x < bar.implicitWidth)
+            return false;
         if (visibilities.bottomPanel) {
-            return y >= height - 80 - verticalTolerance && x >= bar.implicitWidth;
+            return y >= height - 80;
         }
-        const bottomEdge = height - 12;
-        return y >= bottomEdge && x >= bar.implicitWidth;
+        return y >= height - 4;
     }
 
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
         const panelY = root.borderThickness + floatingGap + panel.y;
-        return y >= panelY - verticalTolerance && y <= panelY + panel.height + verticalTolerance;
+        return y >= panelY && y <= panelY + panel.height;
     }
 
     function withinPanelWidth(panel: Item, x: real, y: real): bool {
         const panelX = bar.implicitWidth + floatingGap + panel.x;
-        return x >= panelX - safeBorder.rounding - hoverTolerance && x <= panelX + panel.width + safeBorder.rounding + hoverTolerance;
+        return x >= panelX && x <= panelX + panel.width;
     }
 
     function inLeftPanel(panel: Item, x: real, y: real): bool {
-        return x < bar.implicitWidth + floatingGap + panel.x + panel.width + hoverTolerance && withinPanelHeight(panel, x, y);
+        return x >= bar.implicitWidth + floatingGap + panel.x && x <= bar.implicitWidth + floatingGap + panel.x + panel.width && withinPanelHeight(panel, x, y);
     }
 
     // Right-edge panels (OSD, powermenu, QS qspanel). isCorner: closed-peek strip (bottom-right).
@@ -59,24 +60,22 @@ CustomMouseArea {
         const offset = panel.offsetScale ?? 0; // qmllint disable missing-property
         if (offset < 1 && panel.width > 0) {
             // Open / peeking — use live panel geometry
-            return x > Math.min(width - safeBorder.minThickness - floatingGap, bar.implicitWidth + floatingGap + panel.x) - hoverTolerance
-                && withinPanelHeight(panel, x, y);
+            return x >= bar.implicitWidth + floatingGap + panel.x && withinPanelHeight(panel, x, y);
         }
-        // Fully closed — right-edge hot zone (qspanel hover-peek)
-        const zoneW = Math.max(isCorner ? 60 : 24, safeBorder.minThickness + floatingGap);
-        const inX = x > width - zoneW - (isCorner ? safeBorder.rounding : 0) - verticalTolerance;
+        // Fully closed — right-edge hot zone
+        const zoneW = isCorner ? 40 : 4;
+        const inX = x >= width - zoneW;
         if (isCorner) {
             const panelH = Math.max(panel.implicitHeight || 0, panel.height, 200);
-            return inX && y > height - panelH - 40 - verticalTolerance;
+            return inX && y > height - panelH - 40;
         }
         return inX && withinPanelHeight(panel, x, y);
     }
 
     // Top-right corner hot zone — drag-only opens QS qspanel panel (no click).
-    // Match Regions.qsHotCorner so hit-test aligns with interactive mask.
-    readonly property real topRightZone: Math.max(72, safeBorder.clampedThickness + floatingGap + 48)
     function inTopRightCorner(x: real, y: real): bool {
-        return x >= width - topRightZone && y <= topRightZone;
+        const edge = Math.max(6, safeBorder.thickness + floatingGap);
+        return (x >= width - 80 && y <= edge) || (x >= width - edge && y <= 80);
     }
 
     // Heads-up notifs sit top-right — never steal their press/drag (expand / dismiss)
@@ -89,13 +88,27 @@ CustomMouseArea {
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
-        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y < Math.max(12, safeBorder.thickness + floatingGap + panelHeight) + verticalTolerance && withinPanelWidth(panel, x, y);
+        if (!withinPanelWidth(panel, x, y))
+            return false;
+        if (panel.offsetScale !== undefined && panel.offsetScale < 1) {
+            const panelHeight = panel.height * (1 - panel.offsetScale);
+            return y <= safeBorder.thickness + floatingGap + panelHeight;
+        }
+        if (panel.peekOffset !== undefined && panel.peekOffset > 0) {
+            return y <= Math.max(7, panel.peekOffset - 10);
+        }
+        // Closed state: edge hover trigger at the very top edge only
+        return y <= Math.max(4, safeBorder.thickness + floatingGap);
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
-        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y > height - Math.max(12, safeBorder.thickness + floatingGap + panelHeight) - (isCorner ? safeBorder.rounding : 0) - verticalTolerance && withinPanelWidth(panel, x, y);
+        if (!withinPanelWidth(panel, x, y))
+            return false;
+        if (panel.offsetScale !== undefined && panel.offsetScale < 1) {
+            const panelHeight = panel.height * (1 - panel.offsetScale);
+            return y >= height - safeBorder.thickness - floatingGap - panelHeight;
+        }
+        return y >= height - Math.max(4, safeBorder.thickness + floatingGap);
     }
 
     function onWheel(event: WheelEvent): void {
@@ -151,13 +164,6 @@ CustomMouseArea {
         // Heads-up notifs (any size) — never steal expand / swipe / action clicks
         if (overNotifications(event.x, event.y)) {
             event.accepted = false;
-            return;
-        }
-
-        // Top-right corner press — claim only for drag-to-open QS (no click-open)
-        if (Config.qspanel.enabled && !visibilities.qspanel
-                && inTopRightCorner(event.x, event.y)) {
-            event.accepted = true;
             return;
         }
 
