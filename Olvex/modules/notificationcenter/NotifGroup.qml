@@ -132,7 +132,7 @@ StyledRect {
                     ColouredIcon {
                         anchors.centerIn: parent
                         implicitSize: 10
-                        source: Quickshell.iconPath(root.appIcon)
+                        source: Icons.resolveIcon(root.appIcon, "")
                         colour: root.urgencyOnAccent
                         layer.enabled: root.appIcon.endsWith("symbolic")
                     }

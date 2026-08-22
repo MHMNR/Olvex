@@ -36,7 +36,7 @@ CustomMouseArea {
         if (visibilities.bottomPanel) {
             return y >= height - 80 - verticalTolerance && x >= bar.implicitWidth;
         }
-        const bottomEdge = height - 8;
+        const bottomEdge = height - 12;
         return y >= bottomEdge && x >= bar.implicitWidth;
     }
 
@@ -90,12 +90,12 @@ CustomMouseArea {
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y < Math.max(safeBorder.minThickness + floatingGap, safeBorder.thickness + floatingGap + panelHeight) + verticalTolerance && withinPanelWidth(panel, x, y);
+        return y < Math.max(12, safeBorder.thickness + floatingGap + panelHeight) + verticalTolerance && withinPanelWidth(panel, x, y);
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y > height - Math.max(safeBorder.minThickness + floatingGap, safeBorder.thickness + floatingGap + panelHeight) - (isCorner ? safeBorder.rounding : 0) - verticalTolerance && withinPanelWidth(panel, x, y);
+        return y > height - Math.max(12, safeBorder.thickness + floatingGap + panelHeight) - (isCorner ? safeBorder.rounding : 0) - verticalTolerance && withinPanelWidth(panel, x, y);
     }
 
     function onWheel(event: WheelEvent): void {

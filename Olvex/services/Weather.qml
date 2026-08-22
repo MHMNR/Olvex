@@ -131,7 +131,11 @@ Singleton {
                 fetchCoordsFromCity(configLocation);
             }
         } else if (!loc || timer.elapsed() > 900) {
-            geoclueProcess.running = true;
+            if (CUtils.fileExists("/usr/lib/geoclue-2.0/demos/where-am-i")) {
+                geoclueProcess.running = true;
+            } else {
+                fetchCoordsFromIp();
+            }
         }
     }
 

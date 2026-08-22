@@ -199,37 +199,37 @@ Item {
 
         Item { Layout.preferredHeight: 12 }
 
-        // 1. TOP: Hero Time Stack
+        // 1. TOP: Hero Time Stack (90° Clockwise Rotated)
         Column {
             Layout.alignment: Qt.AlignHCenter
-            spacing: -4
+            spacing: Tokens.spacing.large
 
             property string hh: { var _ = Time.minuteStr; return Time.format(GlobalConfig.services.useTwelveHourClock ? "hh A" : "HH").substring(0, 2) }
             property string mm: { var _ = Time.minuteStr; return Time.format("mm") }
 
-            StyledText {
-                text: parent.hh.charAt(0)
-                textPointSize: 48
-                font.weight: Font.Black
-                color: Colours.palette.m3onSurface
+            Item {
                 anchors.horizontalCenter: parent.horizontalCenter
-            }
+                width: hhText.implicitHeight
+                height: hhText.implicitWidth
 
-            StyledText {
-                text: parent.hh.charAt(1)
-                textPointSize: 48
-                font.weight: Font.Black
-                color: Colours.palette.m3onSurface
-                anchors.horizontalCenter: parent.horizontalCenter
+                StyledText {
+                    id: hhText
+                    anchors.centerIn: parent
+                    rotation: 90
+                    text: parent.parent.hh.split("").join(" ")
+                    textPointSize: 58
+                    font.weight: Font.Black
+                    color: Colours.palette.m3onSurface
+                }
             }
 
             // Animated M3 Capsule Separator
             Rectangle {
                 id: sepCapsule
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: 24
-                height: 3.5
-                radius: 1.75
+                width: 28
+                height: 4
+                radius: 2
                 color: root.accentColor
 
                 SequentialAnimation on opacity {
@@ -240,20 +240,20 @@ Item {
                 }
             }
 
-            StyledText {
-                text: parent.mm.charAt(0)
-                textPointSize: 48
-                font.weight: Font.Black
-                color: Colours.palette.m3onSurface
+            Item {
                 anchors.horizontalCenter: parent.horizontalCenter
-            }
+                width: mmText.implicitHeight
+                height: mmText.implicitWidth
 
-            StyledText {
-                text: parent.mm.charAt(1)
-                textPointSize: 48
-                font.weight: Font.Black
-                color: Colours.palette.m3onSurface
-                anchors.horizontalCenter: parent.horizontalCenter
+                StyledText {
+                    id: mmText
+                    anchors.centerIn: parent
+                    rotation: 90
+                    text: parent.parent.mm.split("").join(" ")
+                    textPointSize: 58
+                    font.weight: Font.Black
+                    color: Colours.palette.m3onSurface
+                }
             }
         }
 

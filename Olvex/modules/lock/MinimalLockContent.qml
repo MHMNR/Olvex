@@ -1195,7 +1195,7 @@ Item {
                                     anchors.centerIn: parent
                                     visible: modelData.image.length === 0 && modelData.appIcon.length > 0
                                     implicitSize: 18
-                                    source: modelData.appIcon.length > 0 ? Quickshell.iconPath(modelData.appIcon) : ""
+                                    source: modelData.appIcon.length > 0 ? Icons.resolveIcon(modelData.appIcon, "") : ""
                                     colour: Qt.rgba(1, 1, 1, 0.7)
                                     layer.enabled: modelData.appIcon.endsWith("symbolic")
                                 }

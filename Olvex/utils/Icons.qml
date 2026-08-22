@@ -342,6 +342,12 @@ Singleton {
             }
         }
 
+        if (!base.endsWith("-symbolic")) {
+            _addIconName(names, seen, base + "-symbolic");
+        } else {
+            _addIconName(names, seen, base.slice(0, -9));
+        }
+
         if (!base.endsWith("_app") && !base.includes(".")) {
             _addIconName(names, seen, base + "_app");
             _addIconName(names, seen, base + "-app");

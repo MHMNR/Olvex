@@ -15,11 +15,29 @@ Region {
     readonly property real clampedThickness: win.safeBorder.clampedThickness
     readonly property bool borderFloating: win.safeBorder.floating
 
+    readonly property real topEdgeTrigger: 4
+    readonly property real bottomEdgeTrigger: 4
+    readonly property real rightEdgeTrigger: 3
+
+    readonly property real topInset: Math.max(topEdgeTrigger, clampedThickness)
+    readonly property real bottomInset: Math.max(bottomEdgeTrigger, clampedThickness)
+    readonly property real rightInset: Math.max(rightEdgeTrigger, clampedThickness)
+
     x: bar.clampedWidth + win.dragMaskPadding
-    y: clampedThickness + win.dragMaskPadding
-    width: win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
-    height: win.height - clampedThickness * 2 - win.dragMaskPadding * 2
+    y: topInset + win.dragMaskPadding
+    width: Math.max(0, win.width - bar.clampedWidth - rightInset - win.dragMaskPadding * 2)
+    height: Math.max(0, win.height - topInset - bottomInset - win.dragMaskPadding * 2)
     intersection: Intersection.Xor
+
+    // Top-right hot corner for dragging open QS panel (independent of border thickness)
+    Region {
+        readonly property real zoneSize: 56
+        x: root.win.width - zoneSize
+        y: 0
+        width: zoneSize
+        height: zoneSize
+        intersection: Intersection.Subtract
+    }
 
     R {
         panel: root.panels.dashboard

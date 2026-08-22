@@ -41,7 +41,18 @@ Item {
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
     readonly property int contentRevealDelay: 130
 
-    readonly property real targetEndH: Math.max(180, cardCol.implicitHeight + 36)
+    readonly property string notifRawImage: String(root.notifData?.image ?? "")
+    readonly property bool hasRealImage: {
+        if (!notifRawImage || notifRawImage.length === 0)
+            return false;
+        if (notifRawImage.startsWith("image://icon/"))
+            return false;
+        if (Icons.iconNameFromUrl(notifRawImage).length > 0)
+            return false;
+        return notifRawImage.startsWith("/") || notifRawImage.startsWith("file://") || notifRawImage.startsWith("http://") || notifRawImage.startsWith("https://");
+    }
+
+    readonly property real targetEndH: Math.max(100, cardCol.implicitHeight + 36)
     property real endH: targetEndH
     Behavior on endH {
         enabled: notifCard.state === "expanded" && !root.morphAnimating
@@ -543,24 +554,22 @@ Item {
                     visible: text.length > 0
                 }
 
-                // Attached Image preview
-                Image {
+                // Attached Image preview — only displayed when actual media bitmap exists and is ready
+                StyledClippingRect {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(140, width * 0.5)
-                    source: root.notifData?.image ? Qt.resolvedUrl(root.notifData.image) : ""
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    visible: !!root.notifData?.image && status !== Image.Error
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        maskEnabled: true
-                        maskSource: ShaderEffectSource {
-                            sourceItem: Rectangle {
-                                width: notifCard.width
-                                height: notifCard.height
-                                radius: 12
-                            }
-                        }
+                    Layout.preferredHeight: root.hasRealImage && attachedImg.status === Image.Ready ? Math.min(180, Math.round(width * 0.52)) : 0
+                    visible: Layout.preferredHeight > 0
+                    radius: 12
+                    color: "transparent"
+
+                    Image {
+                        id: attachedImg
+                        anchors.fill: parent
+                        source: root.hasRealImage ? Qt.resolvedUrl(root.notifRawImage) : ""
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        smooth: true
+                        mipmap: true
                     }
                 }
 
