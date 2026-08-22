@@ -130,6 +130,53 @@ Singleton {
         return resolveIcon(icon, "");
     }
 
+    function getNotificationIcon(notif: var, fallback = ""): string {
+        if (!notif) return "";
+        
+        const fb = (typeof fallback === "string" && fallback.length > 0) ? fallback : "application-x-executable";
+
+        // 1. Direct explicit appIcon from notification
+        if (notif.appIcon && typeof notif.appIcon === "string" && notif.appIcon.length > 0) {
+            let direct = resolveIcon(notif.appIcon, "");
+            if (direct)
+                return direct;
+        }
+
+        // 2. Extracted theme icon or direct file path from image URL
+        if (notif.image && typeof notif.image === "string" && notif.image.length > 0) {
+            const iconName = iconNameFromUrl(notif.image);
+            if (iconName) {
+                let resolved = resolveIcon(iconName, "");
+                if (resolved)
+                    return resolved;
+            } else if (notif.image.startsWith("/") || notif.image.startsWith("file://") || notif.image.startsWith("~")) {
+                let fileUrl = _fileIconUrl(notif.image);
+                if (fileUrl)
+                    return fileUrl;
+            }
+        }
+
+        // 3. Heuristic / desktop entry lookup by appName
+        if (notif.appName && typeof notif.appName === "string" && notif.appName.length > 0) {
+            let appIcon = getAppIcon(notif.appName, "");
+            if (appIcon)
+                return appIcon;
+            let direct = resolveIcon(notif.appName, "");
+            if (direct)
+                return direct;
+        }
+
+        // 4. Desktop entry property if present
+        if (notif.desktopEntry && typeof notif.desktopEntry === "string" && notif.desktopEntry.length > 0) {
+            let appIcon = getAppIcon(notif.desktopEntry, "");
+            if (appIcon)
+                return appIcon;
+        }
+
+        // 5. Fallback
+        return resolveIcon(fb, "application-x-executable");
+    }
+
     function _withTrailingSlash(path: string): string {
         return path && path.endsWith("/") ? path : path + "/";
     }
@@ -221,13 +268,14 @@ Singleton {
             return "";
         const s = String(path);
         if (s.startsWith("image://icon/")) {
-            // Extract name and try manual file lookup instead of broken icon provider
             const name = s.slice("image://icon/".length).split("?")[0];
-            return name ? _manualIcon(name) : "";
+            let manual = name ? _manualIcon(name) : "";
+            if (manual)
+                return manual;
+            return s;
         }
         if (s.startsWith("/") || s.startsWith("file://") || s.startsWith("~"))
             return _fileIconUrl(s);
-        // Bare theme names / other schemes — not loadable as Image source reliably
         return "";
     }
 
@@ -235,7 +283,6 @@ Singleton {
         if (!icon)
             return "";
 
-        // Prefer filesystem hit first (avoids image://icon size failures)
         let resolved = _manualIcon(icon);
         if (resolved)
             return resolved;
@@ -252,9 +299,8 @@ Singleton {
                 return resolved;
         }
 
-        // Last resort: non-symbolic name
         if (icon.endsWith("-symbolic")) {
-            resolved = _manualIcon(icon.slice(0, -9));
+            resolved = _manualIcon(icon.slice(0, -9)) || _normalisedResolvedIcon(Quickshell.iconPath(icon.slice(0, -9), true));
             if (resolved)
                 return resolved;
         }

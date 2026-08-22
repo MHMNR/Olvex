@@ -195,27 +195,32 @@ StyledRect {
                 width: root.avatarSize
                 height: root.avatarSize
 
-                Loader {
-                    id: image
-
-                    asynchronous: true
-                    // Only real bitmaps / cache files — never image://icon (size-36 QIcon warn)
-                    active: root.hasImage
+                StyledClippingRect {
+                    id: avatarBg
+                    radius: width / 2
+                    color: root.urgencyAccent
                     anchors.fill: parent
+                    visible: root.hasImage
 
-                    sourceComponent: StyledClippingRect {
-                        radius: Tokens.rounding.full
-                        color: root.urgencyAccent
+                    Loader {
+                        id: image
+
+                        asynchronous: true
+                        active: root.hasImage
                         anchors.fill: parent
 
-                        Image {
+                        sourceComponent: Item {
                             anchors.fill: parent
-                            source: Qt.resolvedUrl(root.rawImage)
-                            fillMode: Image.PreserveAspectCrop
-                            sourceSize.width: root.avatarSize
-                            sourceSize.height: root.avatarSize
-                            cache: false
-                            asynchronous: true
+
+                            Image {
+                                anchors.fill: parent
+                                source: Qt.resolvedUrl(root.rawImage)
+                                fillMode: Image.PreserveAspectCrop
+                                sourceSize.width: root.avatarSize
+                                sourceSize.height: root.avatarSize
+                                cache: false
+                                asynchronous: true
+                            }
                         }
                     }
                 }
@@ -231,7 +236,7 @@ StyledRect {
                     anchors.bottom: root.hasImage ? parent.bottom : undefined
 
                     sourceComponent: StyledRect {
-                        radius: Tokens.rounding.full
+                        radius: width / 2
                         color: root.urgencyAccent
                         implicitWidth: root.hasImage ? root.badgeSize : root.avatarSize
                         implicitHeight: root.hasImage ? root.badgeSize : root.avatarSize

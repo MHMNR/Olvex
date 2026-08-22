@@ -6,6 +6,7 @@ import Olvex
 import Olvex.Config
 import qs.components
 import qs.components.images
+import qs.components.effects
 import qs.services
 import qs.utils
 
@@ -13,28 +14,76 @@ Item {
     id: root
 
     required property var bar
+    clip: true
 
     readonly property bool hasNotif: Notifs.hasBarNotif
     readonly property var currentNotif: Notifs.currentBarNotif
     readonly property var olderNotifs: {
-        if (!root.hasNotif || !Notifs.barQueue)
+        if (!Notifs.barQueue)
             return [];
         return Notifs.barQueue.filter(n => n && !n.closed && n !== root.currentNotif);
     }
     readonly property int notifCount: (root.hasNotif ? 1 : 0) + olderNotifs.length
 
+    ListModel {
+        id: olderCirclesModel
+    }
+
+    Connections {
+        target: root
+        function onOlderNotifsChanged() {
+            const newNotifs = root.olderNotifs;
+            for (let i = olderCirclesModel.count - 1; i >= 0; i--) {
+                const nId = olderCirclesModel.get(i).notifId;
+                if (!newNotifs.some(newN => newN && newN.id === nId)) {
+                    olderCirclesModel.remove(i);
+                }
+            }
+            for (let i = 0; i < newNotifs.length; i++) {
+                const n = newNotifs[i];
+                if (i >= olderCirclesModel.count) {
+                    olderCirclesModel.insert(i, { notif: n, notifId: n.id, explicitTargetOffset: 0 });
+                } else if (olderCirclesModel.get(i).notifId !== n.id) {
+                    olderCirclesModel.insert(i, { notif: n, notifId: n.id, explicitTargetOffset: 0 });
+                }
+            }
+            
+            const count = olderCirclesModel.count;
+            for (let i = 0; i < count; i++) {
+                const offset = (count - i) * root.pillWidth + Math.max(0, count - 1 - i) * Tokens.spacing.small;
+                olderCirclesModel.setProperty(i, "explicitTargetOffset", offset);
+            }
+        }
+    }
+
     readonly property int pillWidth: 48
     readonly property real pillRadius: pillWidth / 2
 
     readonly property real olderCirclesHeight: {
-        const len = root.olderNotifs.length;
+        const len = olderCirclesModel.count;
         if (len === 0) return 0;
         return len * root.pillWidth + (len - 1) * Tokens.spacing.small;
     }
+    
+    property real currentOlderCirclesHeight: olderCirclesHeight
+    Behavior on currentOlderCirclesHeight {
+        NumberAnimation {
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+    }
+
+    readonly property real targetOlderCirclesSpacing: olderCirclesModel.count > 0 ? Tokens.spacing.small : 0
+    property real currentOlderCirclesSpacing: targetOlderCirclesSpacing
+    Behavior on currentOlderCirclesSpacing {
+        NumberAnimation {
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+    }
+
     readonly property real targetTopHeight: {
-        if (root.olderNotifs.length === 0)
-            return root.height;
-        return Math.max(root.pillWidth, root.height - root.olderCirclesHeight - Tokens.spacing.small);
+        return Math.max(root.pillWidth, root.height - currentOlderCirclesHeight - currentOlderCirclesSpacing);
     }
 
     opacity: root.hasNotif ? 1 : 0
@@ -58,66 +107,216 @@ Item {
         }
     }
 
-    // ── 100% Synchronized Single-Driver Push-Down Shrink Pipeline ──
-    property real pushProgress: 0.0
-    property real startShrinkH: 160
-    property real targetCircY: 0
-    property real targetTopH: 160
+    // ── Transition animation properties ──
+    property bool isPushingDown: pushDownAnim.running
+    property bool isPoppingUp: popUpAnim.running
     property var animatingOldNotif: null
-    property real lastPillHeight: 160
+    property var animatingNewNotif: null
 
     Connections {
         target: Notifs
 
         function onNotificationPushed(newNotif: var, oldNotif: var): void {
-            if (oldNotif !== null && oldNotif !== undefined) {
+            if (newNotif && oldNotif) {
                 root.animatingOldNotif = oldNotif;
+                root.animatingNewNotif = newNotif;
+                
+                const olderCountBefore = Math.max(0, olderCirclesModel.count - 1);
+                const olderHeightBefore = olderCountBefore * root.pillWidth + Math.max(0, olderCountBefore - 1) * Tokens.spacing.small;
+                const oldTopH = Math.max(root.pillWidth, root.height - olderHeightBefore - (olderCountBefore > 0 ? Tokens.spacing.small : 0));
+                
+                const initialOldY = root.pillWidth + Tokens.spacing.small;
+                const initialOldH = Math.max(root.pillWidth, oldTopH - initialOldY);
 
-                const prevH = Math.max(root.pillWidth, topPill.height > 0 ? topPill.height : root.lastPillHeight);
-                const olderCountAfter = root.olderNotifs.length;
+                shrinkingPill.y = initialOldY;
+                shrinkingPill.height = initialOldH;
+                shrinkingPill.opacity = 1.0;
+                shrinkingPill.textAlpha = 1.0;
+                shrinkingPill.scale = 1.0;
+                
+                const olderCountAfter = olderCirclesModel.count;
                 const olderHeightAfter = olderCountAfter * root.pillWidth + Math.max(0, olderCountAfter - 1) * Tokens.spacing.small;
+                const targetCircY = Math.max(0, root.height - olderHeightAfter);
+                const targetTopH = Math.max(root.pillWidth, root.height - olderHeightAfter - Tokens.spacing.small);
 
-                root.startShrinkH = prevH;
-                root.targetTopH = Math.max(root.pillWidth, root.height - (olderHeightAfter + Tokens.spacing.small));
-                root.targetCircY = Math.max(0, root.height - olderHeightAfter);
-
-                shrinkingPill.visible = true;
+                incomingPill.y = 0;
+                incomingPill.height = root.pillWidth;
+                incomingPill.opacity = 0.0;
+                incomingPill.scale = 0.6;
+                
+                pushShrinkYAnim.to = targetCircY;
+                pushShrinkHAnim.to = root.pillWidth;
+                pushExpandHAnim.to = targetTopH;
+                
                 pushDownAnim.restart();
+            }
+        }
+
+        function onNotificationPopped(poppedNotif: var, newTopNotif: var): void {
+            if (poppedNotif && newTopNotif) {
+                root.animatingOldNotif = poppedNotif;
+                root.animatingNewNotif = newTopNotif;
+
+                const isFromOverlay = (Notifs.activeMorphNotif && Notifs.activeMorphNotif.id === poppedNotif.id) || (Notifs.notifMorphRendering && Notifs.activeMorphNotif);
+
+                const oldCount = olderCirclesModel.count + 1;
+                const oldOlderCirclesHeight = oldCount * root.pillWidth + Math.max(0, oldCount - 1) * Tokens.spacing.small;
+                const oldTargetCircY = Math.max(0, root.height - oldOlderCirclesHeight);
+                const oldTopH = Math.max(root.pillWidth, root.height - oldOlderCirclesHeight - Tokens.spacing.small);
+
+                const newOlderCirclesHeight = olderCirclesModel.count * root.pillWidth + Math.max(0, olderCirclesModel.count - 1) * Tokens.spacing.small;
+                const finalTargetTopH = Math.max(root.pillWidth, root.height - newOlderCirclesHeight - Tokens.spacing.small);
+
+                shrinkingPill.y = 0;
+                shrinkingPill.height = oldTopH;
+                shrinkingPill.textAlpha = 0.0;
+                shrinkingPill.opacity = isFromOverlay ? 0.0 : 1.0;
+                shrinkingPill.scale = 1.0;
+
+                incomingPill.y = oldTargetCircY;
+                incomingPill.height = root.pillWidth;
+                incomingPill.textAlpha = 0.0;
+                incomingPill.opacity = 1.0;
+
+                popShrinkOpacityAnim.to = 0.0;
+                popShrinkYAnim.from = 0;
+                popShrinkYAnim.to = -(oldTopH + Tokens.spacing.small);
+                popShrinkScaleAnim.from = 1.0;
+                popShrinkScaleAnim.to = 0.8;
+                
+                popExpandYAnim.to = 0;
+                popExpandHAnim.to = finalTargetTopH;
+                
+                popUpAnim.restart();
             }
         }
     }
 
-    NumberAnimation {
+    // ── Push-Down Shrink Parallel Animation ──
+    ParallelAnimation {
         id: pushDownAnim
-        target: root
-        property: "pushProgress"
-        from: 0.0
-        to: 1.0
-        duration: Tokens.anim.durations.expressiveDefaultSpatial
-        easing: Tokens.anim.expressiveDefaultSpatial
+
+        NumberAnimation {
+            id: pushShrinkYAnim
+            target: shrinkingPill
+            property: "y"
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+        NumberAnimation {
+            id: pushShrinkHAnim
+            target: shrinkingPill
+            property: "height"
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+        NumberAnimation {
+            target: shrinkingPill
+            property: "textAlpha"
+            to: 0.0
+            duration: Math.round(Tokens.anim.durations.expressiveDefaultSpatial * 0.35)
+            easing: Tokens.anim.expressiveFastSpatial
+        }
+
+        NumberAnimation {
+            id: pushExpandHAnim
+            target: incomingPill
+            property: "height"
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+        NumberAnimation {
+            target: incomingPill
+            property: "opacity"
+            to: 1.0
+            duration: Math.round(Tokens.anim.durations.expressiveDefaultSpatial * 0.4)
+            easing: Tokens.anim.expressiveFastSpatial
+        }
+        NumberAnimation {
+            target: incomingPill
+            property: "textAlpha"
+            to: 1.0
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.emphasizedDecel
+        }
+        NumberAnimation {
+            target: incomingPill
+            property: "scale"
+            to: 1.0
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.emphasizedDecel
+        }
 
         onFinished: {
-            shrinkingPill.visible = false;
             root.animatingOldNotif = null;
-            root.pushProgress = 0.0;
-            topPill.opacity = Qt.binding(() => (Notifs.notifMorphRendering && Notifs.activeMorphNotif === root.currentNotif) ? 0 : 1);
-            root.lastPillHeight = topPill.height;
+            root.animatingNewNotif = null;
+            incomingPill.scale = 1.0;
         }
     }
 
-    // ── Transient Shrinking Pill (Physical Push-Down & Shrink) ──
+    ParallelAnimation {
+        id: popUpAnim
+
+        NumberAnimation {
+            id: popShrinkOpacityAnim
+            target: shrinkingPill
+            property: "opacity"
+            duration: Math.round(Tokens.anim.durations.expressiveDefaultSpatial * 0.4)
+            easing: Tokens.anim.expressiveFastSpatial
+        }
+        NumberAnimation {
+            id: popShrinkYAnim
+            target: shrinkingPill
+            property: "y"
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+        NumberAnimation {
+            id: popShrinkScaleAnim
+            target: shrinkingPill
+            property: "scale"
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+
+        NumberAnimation {
+            id: popExpandYAnim
+            target: incomingPill
+            property: "y"
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+        NumberAnimation {
+            id: popExpandHAnim
+            target: incomingPill
+            property: "height"
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
+        }
+        NumberAnimation {
+            target: incomingPill
+            property: "textAlpha"
+            to: 1.0
+            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            easing: Tokens.anim.emphasizedDecel
+        }
+
+        onFinished: {
+            root.animatingOldNotif = null;
+            root.animatingNewNotif = null;
+        }
+    }
+
+    // ── Transient Shrinking Pill (Active during Push-Down Animation) ──
     StyledRect {
         id: shrinkingPill
-        x: 0
-        y: (1.0 - root.pushProgress) * 0 + root.pushProgress * root.targetCircY
         width: root.pillWidth
-        height: (1.0 - root.pushProgress) * root.startShrinkH + root.pushProgress * root.pillWidth
-        radius: root.pillRadius
+        radius: Math.min(width/2, height/2)
         color: Colours.palette.m3secondaryContainer
-        visible: false
-        z: 10
+        visible: root.isPushingDown || root.isPoppingUp
+        z: 8
 
-        property real textAlpha: Math.max(0.0, 1.0 - root.pushProgress * 2.5)
+        property real textAlpha: 1.0
 
         Item {
             anchors.fill: parent
@@ -133,26 +332,16 @@ Item {
                     Layout.preferredHeight: 40
                     Layout.alignment: Qt.AlignHCenter
 
-                    StyledRect {
+                    StyledClippingRect {
+                        id: shrinkingBg
                         anchors.fill: parent
                         radius: width / 2
                         color: Colours.palette.m3surfaceContainerHighest
 
                         CachingIconImage {
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            source: Icons.resolveIcon(root.animatingOldNotif?.appIcon || root.animatingOldNotif?.appName || root.animatingOldNotif?.image || "", "")
-                            visible: source !== ""
-                        }
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "notifications"
-                            color: Colours.palette.m3onSecondaryContainer
-                            iconPointSize: Tokens.font.size.normal
-                            fill: 1
-                            visible: !root.animatingOldNotif?.appIcon
+                            id: shrinkingIconImg
+                            anchors.fill: parent
+                            source: Icons.getNotificationIcon(root.animatingOldNotif)
                         }
                     }
                 }
@@ -181,26 +370,166 @@ Item {
         }
     }
 
-    // ── Settled Top / Newest Notification: PILL (Synchronously locked to pushing pill) ──
+    // ── Transient Incoming Pill (Active during Push-Down Animation) ──
+    StyledRect {
+        id: incomingPill
+        width: root.pillWidth
+        radius: Math.min(width/2, height/2)
+        color: Colours.palette.m3secondaryContainer
+        visible: root.isPushingDown || root.isPoppingUp
+        z: 9
+
+        property real textAlpha: 0.0
+
+        Item {
+            anchors.fill: parent
+            anchors.margins: 4
+            clip: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 6
+
+                Item {
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                    Layout.alignment: Qt.AlignHCenter
+
+                    StyledClippingRect {
+                        id: incomingBg
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: Colours.palette.m3surfaceContainerHighest
+
+                        CachingIconImage {
+                            id: incomingIconImg
+                            anchors.fill: parent
+                            source: Icons.getNotificationIcon(root.animatingNewNotif)
+                        }
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    opacity: incomingPill.textAlpha
+
+                    Item {
+                        anchors.centerIn: parent
+                        width: Math.max(1, parent.height)
+                        height: 24
+                        transform: [ Rotation { angle: 90; origin.x: width / 2; origin.y: height / 2 } ]
+
+                        MarqueeText {
+                            anchors.fill: parent
+                            text: root.animatingNewNotif?.summary || root.animatingNewNotif?.appName || ""
+                            color: Colours.palette.m3onSecondaryContainer
+                            textPointSize: Tokens.font.size.smaller
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Settled Older Notifications: Mini Circles dynamically positioned with Y-glide animation ──
+    Item {
+        id: olderCirclesContainer
+        anchors.fill: parent
+        z: 1
+
+        Repeater {
+            model: olderCirclesModel
+
+            delegate: StyledRect {
+                id: olderCircleDelegate
+                required property var notif
+                required property int index
+                required property real explicitTargetOffset
+
+                property real targetStackOffset: explicitTargetOffset
+                property real currentStackOffset: targetStackOffset
+                
+                Behavior on currentStackOffset {
+                    NumberAnimation {
+                        duration: Tokens.anim.durations.expressiveDefaultSpatial
+                        easing: Tokens.anim.expressiveDefaultSpatial
+                    }
+                }
+
+                x: (parent.width - width) / 2
+                y: Math.max(0, root.height - currentStackOffset)
+                width: root.pillWidth
+                height: root.pillWidth
+                radius: root.pillRadius
+                color: Colours.palette.m3secondaryContainer
+                opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && notif && Notifs.activeMorphNotif.id === notif.id) ? 0 : 
+                         ((root.isPushingDown || root.isPoppingUp) && root.animatingOldNotif && notif && notif.id === root.animatingOldNotif.id) ? 0 : 
+                         ((root.isPushingDown || root.isPoppingUp) && root.animatingNewNotif && notif && notif.id === root.animatingNewNotif.id) ? 0 : 1
+
+                Behavior on opacity {
+                    NumberAnimation { 
+                        duration: (root.isPushingDown || root.isPoppingUp) ? 150 : 0
+                        easing: Tokens.anim.expressiveFastSpatial 
+                    }
+                }
+
+                Behavior on color {
+                    CAnim {
+                        duration: Tokens.anim.durations.expressiveDefaultSpatial
+                        easing: Tokens.anim.expressiveDefaultSpatial
+                    }
+                }
+
+                property real circleScale: 1.0
+                scale: circleScale
+
+                SequentialAnimation {
+                    id: circlePressSpring
+                    NumberAnimation { target: olderCircleDelegate; property: "circleScale"; to: 0.92; duration: 90; easing.type: Easing.OutQuad }
+                    NumberAnimation { target: olderCircleDelegate; property: "circleScale"; to: 1.0; duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+                }
+
+                StyledClippingRect {
+                    id: circleIconFrame
+                    anchors.centerIn: parent
+                    width: 36
+                    height: 36
+                    radius: width / 2
+                    color: Colours.palette.m3surfaceContainerHighest
+
+                    CachingIconImage {
+                        id: circleIconImg
+                        anchors.fill: parent
+                        source: Icons.getNotificationIcon(notif)
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        circlePressSpring.start();
+                        root.triggerExpand(olderCircleDelegate, circleIconFrame, notif);
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Settled Top / Newest Notification: PILL (occupies all space above older circles with smooth height animation) ──
     StyledRect {
         id: topPill
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         width: root.pillWidth
-        height: pushDownAnim.running
-            ? Math.max(root.pillWidth, shrinkingPill.y > 0 ? (shrinkingPill.y - Tokens.spacing.small) : ((1.0 - root.pushProgress) * root.pillWidth + root.pushProgress * root.targetTopH))
-            : root.targetTopHeight
+        height: root.targetTopHeight
         radius: root.pillRadius
         color: Colours.palette.m3secondaryContainer
-        opacity: pushDownAnim.running
-            ? Math.min(1.0, root.pushProgress * 2.0)
-            : ((Notifs.notifMorphRendering && Notifs.activeMorphNotif === root.currentNotif) ? 0 : 1)
+        visible: !root.isPushingDown && !root.isPoppingUp && root.hasNotif
+        opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && root.currentNotif && Notifs.activeMorphNotif.id === root.currentNotif.id) ? 0 : 1
         z: 2
-
-        Behavior on height {
-            enabled: !pushDownAnim.running
-            Anim { type: Anim.DefaultSpatial }
-        }
 
         Behavior on color {
             CAnim {
@@ -234,27 +563,16 @@ Item {
                     Layout.preferredHeight: 40
                     Layout.alignment: Qt.AlignHCenter
 
-                    StyledRect {
+                    StyledClippingRect {
+                        id: topAppBg
                         anchors.fill: parent
                         radius: width / 2
                         color: Colours.palette.m3surfaceContainerHighest
 
                         CachingIconImage {
                             id: topAppIconImg
-                            anchors.centerIn: parent
-                            width: 24
-                            height: 24
-                            source: Icons.resolveIcon(root.currentNotif?.appIcon || root.currentNotif?.appName || root.currentNotif?.image || "", "")
-                            visible: source !== ""
-                        }
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "notifications"
-                            color: Colours.palette.m3onSecondaryContainer
-                            iconPointSize: Tokens.font.size.normal
-                            fill: 1
-                            visible: !topAppIconImg.visible
+                            anchors.fill: parent
+                            source: Icons.getNotificationIcon(root.currentNotif)
                         }
                     }
                 }
@@ -264,11 +582,14 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    visible: topPill.height > root.pillWidth + 24
-                    opacity: topPill.height > root.pillWidth + 24 ? 1.0 : 0.0
+                    visible: root.hasNotif
+                    opacity: (root.hasNotif && !root.isPushingDown && !root.isPoppingUp) ? 1.0 : 0.0
 
                     Behavior on opacity {
-                        NumberAnimation { duration: Tokens.anim.durations.small; easing: Tokens.anim.expressiveFastSpatial }
+                        NumberAnimation {
+                            duration: Tokens.anim.durations.expressiveFastSpatial
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
                     }
 
                     Item {
@@ -277,13 +598,43 @@ Item {
                         width: Math.max(1, topTextFrame.height)
                         height: 24
 
+                        property real slideOffset: 0
+
                         transform: [
                             Rotation {
                                 angle: 90
                                 origin.x: rotatedMarqueeWrapper.width / 2
                                 origin.y: rotatedMarqueeWrapper.height / 2
+                            },
+                            Translate {
+                                x: rotatedMarqueeWrapper.slideOffset
                             }
                         ]
+
+                        NumberAnimation {
+                            id: titleSlideAnim
+                            target: rotatedMarqueeWrapper
+                            property: "slideOffset"
+                            from: -20
+                            to: 0
+                            duration: 280
+                            easing: Tokens.anim.emphasizedDecel
+                        }
+
+                        Connections {
+                            target: root
+                            function onCurrentNotifChanged() {
+                                if (root.currentNotif) {
+                                    titleSlideAnim.restart();
+                                }
+                            }
+                        }
+
+                        Component.onCompleted: {
+                            if (root.currentNotif) {
+                                titleSlideAnim.restart();
+                            }
+                        }
 
                         MarqueeText {
                             anchors.fill: parent
@@ -306,120 +657,26 @@ Item {
         }
     }
 
-    // ── Older Notification Circles: Persistent slots with fluid Y-glide physics ──
-    Repeater {
-        model: 4
-
-        delegate: StyledRect {
-            id: circleSlot
-            required property int index
-
-            readonly property var notifData: index < root.olderNotifs.length ? root.olderNotifs[index] : null
-            readonly property bool slotActive: notifData !== null
-            readonly property real targetY: Math.max(0, root.height - (root.olderNotifs.length - index) * root.pillWidth - (root.olderNotifs.length - 1 - index) * Tokens.spacing.small)
-
-            x: (root.width - width) / 2
-            y: targetY
-            width: root.pillWidth
-            height: root.pillWidth
-            radius: root.pillRadius
-            color: Colours.palette.m3secondaryContainer
-            z: 1
-
-            visible: opacity > 0.01
-            opacity: slotActive ? ((Notifs.notifMorphRendering && Notifs.activeMorphNotif === notifData) ? 0 : 1) : 0
-
-            Behavior on y {
-                Anim { type: Anim.DefaultSpatial }
-            }
-
-            Behavior on color {
-                CAnim {
-                    duration: Tokens.anim.durations.expressiveDefaultSpatial
-                    easing: Tokens.anim.expressiveDefaultSpatial
-                }
-            }
-
-            property real circleScale: 1.0
-            scale: circleScale
-
-            SequentialAnimation {
-                id: circlePressSpring
-                NumberAnimation { target: circleSlot; property: "circleScale"; to: 0.92; duration: 90; easing.type: Easing.OutQuad }
-                NumberAnimation { target: circleSlot; property: "circleScale"; to: 1.0; duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
-            }
-
-            StyledRect {
-                id: circleIconFrame
-                anchors.centerIn: parent
-                width: 36
-                height: 36
-                radius: width / 2
-                color: Colours.palette.m3surfaceContainerHighest
-
-                CachingIconImage {
-                    id: circleIconImg
-                    anchors.centerIn: parent
-                    width: 22
-                    height: 22
-                    source: Icons.resolveIcon(circleSlot.notifData?.appIcon || circleSlot.notifData?.appName || circleSlot.notifData?.image || "", "")
-                    visible: source !== ""
-                }
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "notifications"
-                    color: Colours.palette.m3onSecondaryContainer
-                    iconPointSize: Tokens.font.size.small
-                    fill: 1
-                    visible: !circleIconImg.visible
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                enabled: circleSlot.slotActive
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    circlePressSpring.start();
-                    root.triggerExpand(circleSlot, circleIconFrame, circleSlot.notifData);
-                }
-            }
-        }
-    }
-
     // ── MarqueeText Component ──
     component MarqueeText: Item {
         id: marqueeRoot
 
         required property string text
         property color color: Colours.palette.m3onSecondaryContainer
+        property color fadeColor: Colours.palette.m3secondaryContainer
         property real textPointSize: Tokens.font.size.smaller
         property bool running: true
 
         height: primaryLabel.implicitHeight
         clip: true
 
+        onTextChanged: {
+            marqueeRow.scrollX = 0;
+            marqueeAnim.restart();
+        }
+
         readonly property real speed: 26
         readonly property bool needsMarquee: width > 0 && primaryLabel.implicitWidth > width + 2
-
-        layer.enabled: needsMarquee
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: ShaderEffectSource {
-                sourceItem: Rectangle {
-                    width: marqueeRoot.width
-                    height: marqueeRoot.height
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.08; color: "black" }
-                        GradientStop { position: 0.92; color: "black" }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                }
-            }
-        }
 
         Row {
             id: marqueeRow
@@ -451,6 +708,34 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 visible: marqueeRoot.needsMarquee
                 elide: Text.ElideNone
+            }
+        }
+
+        Rectangle {
+            z: 2
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: 8
+            visible: marqueeRoot.needsMarquee
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: marqueeRoot.fadeColor }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+        }
+
+        Rectangle {
+            z: 2
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: 8
+            visible: marqueeRoot.needsMarquee
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 1.0; color: marqueeRoot.fadeColor }
             }
         }
 

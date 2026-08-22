@@ -28,6 +28,7 @@ fi
 # Handle stop
 if pidof gpu-screen-recorder > /dev/null; then
     killall -INT gpu-screen-recorder
+    notify-send -a "olvex-recorder" -i "video-x-generic" "Recording saved" "Saved to $REC_DIR" 2>/dev/null || true
     exit 0
 fi
 
@@ -54,9 +55,8 @@ while getopts "rsf:" opt; do
       REGION_GEOM="-region ${W}x${H}+${X}+${Y}"
       ;;
     s)
-      # Get default sink monitor
-      DEFAULT_SINK=$(pactl get-default-sink)
-      AUDIO="-a $DEFAULT_SINK.monitor"
+      # Use default audio output
+      AUDIO="-a default_output"
       ;;
     f)
       FPS=$OPTARG
@@ -76,5 +76,5 @@ if [ -z "$TARGET" ]; then
 fi
 
 # Start recording
-# Note: Using $FPS for dynamic control
+notify-send -a "olvex-recorder" -i "media-record" "Recording started" "Screen recording in progress..." 2>/dev/null || true
 gpu-screen-recorder -w "$TARGET" $REGION_GEOM -f "$FPS" $AUDIO -o "$FILENAME" &

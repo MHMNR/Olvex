@@ -210,6 +210,7 @@ StyledRect {
                                         args.push("-s");
                                     else if (foundIndex === 3)
                                         args.push("-sr");
+                                    root.visibilities.qspanel = false;
                                     Recorder.start(args);
                                 }
                             }
@@ -286,7 +287,7 @@ StyledRect {
                                 if (Recorder.running) {
                                     Recorder.stop();
                                 } else {
-                                    modeMenu.expanded = true;
+                                    modeMenu.expanded = !modeMenu.expanded;
                                 }
                             }
                         }

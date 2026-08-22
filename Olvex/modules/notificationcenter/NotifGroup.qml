@@ -6,6 +6,7 @@ import Quickshell.Services.Notifications
 import Olvex.Config
 import qs.components
 import qs.components.effects
+import qs.components.images
 import qs.services
 import qs.utils
 
@@ -33,13 +34,13 @@ StyledRect {
     readonly property color urgencyAccent: urgency === NotificationUrgency.Critical
         ? Colours.palette.m3error
         : urgency === NotificationUrgency.Low
-            ? Colours.palette.m3surfaceContainerHighest
-            : Colours.palette.m3secondaryContainer
+            ? Colours.palette.m3onSurface
+            : Colours.palette.m3onSecondaryContainer
     readonly property color urgencyOnAccent: urgency === NotificationUrgency.Critical
         ? Colours.palette.m3onError
         : urgency === NotificationUrgency.Low
-            ? Colours.palette.m3onSurface
-            : Colours.palette.m3onSecondaryContainer
+            ? Colours.palette.m3surface
+            : Colours.palette.m3secondaryContainer
 
     readonly property int nonAnimHeight: {
         const headerHeight = header.implicitHeight + (root.expanded ? Math.round(Tokens.spacing.small / 2) : 0);
@@ -91,54 +92,26 @@ StyledRect {
         // ── App avatar ──
         Item {
             Layout.alignment: Qt.AlignLeft | Qt.AlignTop
+            Layout.preferredWidth: root.avatarSize
+            Layout.preferredHeight: root.avatarSize
             implicitWidth: root.avatarSize
             implicitHeight: root.avatarSize
 
-            Component {
-                id: imageComp
-
-                Image {
-                    source: Qt.resolvedUrl(root.image)
-                    fillMode: Image.PreserveAspectCrop
-                    sourceSize.width: root.avatarSize
-                    sourceSize.height: root.avatarSize
-                    cache: false
-                    asynchronous: true
-                    width: root.avatarSize
-                    height: root.avatarSize
-                }
-            }
-
-            Component {
-                id: appIconComp
-
-                ColouredIcon {
-                    implicitSize: Math.round(root.avatarSize * 0.52)
-                    source: Quickshell.iconPath(root.appIcon)
-                    colour: root.urgencyOnAccent
-                    layer.enabled: root.appIcon.endsWith("symbolic")
-                }
-            }
-
-            Component {
-                id: materialIconComp
-
-                MaterialIcon {
-                    text: Icons.getNotifIcon(root.activeNotifs[0]?.summary, root.urgency)
-                    color: root.urgencyOnAccent
-                    iconPointSize: Tokens.font.size.normal
-                }
-            }
-
-            StyledClippingRect {
+            // Analytical GPU SDF circle mask — borderless, matching NotificationPill
+            Item {
                 anchors.fill: parent
-                color: root.urgencyAccent
-                radius: Tokens.rounding.full
+                layer.enabled: true
+                layer.smooth: true
+                layer.effect: CircleMask {}
 
-                Loader {
-                    asynchronous: true
-                    anchors.centerIn: parent
-                    sourceComponent: root.image ? imageComp : root.appIcon ? appIconComp : materialIconComp
+                Rectangle {
+                    anchors.fill: parent
+                    color: Colours.palette.m3surfaceContainerHighest
+                }
+
+                CachingIconImage {
+                    anchors.fill: parent
+                    source: root.image ? Qt.resolvedUrl(root.image) : Icons.getNotificationIcon(root.activeNotifs[0])
                 }
             }
 
@@ -152,7 +125,7 @@ StyledRect {
                     implicitWidth: 16
                     implicitHeight: 16
                     color: root.urgencyAccent
-                    radius: Tokens.rounding.full
+                    radius: width / 2
                     border.width: 1.5
                     border.color: Colours.tileFill
 
@@ -205,7 +178,7 @@ StyledRect {
                     color: root.urgency === NotificationUrgency.Critical
                         ? Colours.palette.m3error
                         : Qt.alpha(Colours.palette.m3onSurface, expandHover.containsMouse ? 0.12 : 0.07)
-                    radius: Tokens.rounding.full
+                    radius: height / 2
                     border.width: 0
                     border.color: "transparent"
 

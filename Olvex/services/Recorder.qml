@@ -71,12 +71,26 @@ Singleton {
         }
     }
 
-    Connections {
-        enabled: props.running && !props.paused
-        function onSecondsChanged(): void {
-            props.elapsed++;
+    Process {
+        id: pollProc
+        command: ["pidof", "gpu-screen-recorder"]
+        onExited: code => { // qmllint disable signal-handler-parameters
+            if (code !== 0 && props.running) {
+                props.running = false;
+                props.paused = false;
+            }
         }
+    }
 
-        target: Time // qmllint disable incompatible-type
+    Timer {
+        id: elapsedTimer
+        interval: 1000
+        repeat: true
+        running: props.running && !props.paused
+        onTriggered: {
+            props.elapsed++;
+            if (!pollProc.running && !checkProc.running)
+                pollProc.running = true;
+        }
     }
 }

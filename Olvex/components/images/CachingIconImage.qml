@@ -11,6 +11,7 @@ Item {
     readonly property real actualSize: Math.min(width, height)
     property real implicitSize
     property url source
+    property real margins: 0
 
     implicitWidth: implicitSize
     implicitHeight: implicitSize
@@ -18,7 +19,7 @@ Item {
     Loader {
         id: loader
 
-        asynchronous: true
+        asynchronous: false
         anchors.fill: parent
         sourceComponent: root.source ? root.source.toString().startsWith("image://icon/") ? iconImage : cachingImage : null
     }
@@ -28,7 +29,7 @@ Item {
 
         CachingImage {
             path: Paths.toLocalFile(root.source)
-            fillMode: Image.PreserveAspectFit
+            fillMode: Image.PreserveAspectCrop
             smooth: true
             mipmap: true
         }
@@ -39,10 +40,10 @@ Item {
 
         IconImage {
             anchors.fill: parent
-            anchors.margins: Math.max(2, root.actualSize * 0.08)
+            anchors.margins: root.margins
             source: root.source
-            asynchronous: true
             smooth: true
+            mipmap: true
         }
     }
 }

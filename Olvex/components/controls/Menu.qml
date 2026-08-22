@@ -7,10 +7,10 @@ import qs.components
 import qs.components.containers
 import qs.components.effects
 import qs.services
-import qs.modules.drawers
 
 MouseArea {
     id: root
+    z: 999
 
     enum Side {
         Top,
@@ -59,12 +59,17 @@ MouseArea {
 
     readonly property Item overlayParent: {
         const win = QsWindow.window;
-        if (!win)
-            return null;
-        const contentWin = win as ContentWindow;
-        if (contentWin?.interactionWrapper)
-            return contentWin.interactionWrapper;
-        return (win as QsWindow)?.contentItem ?? null;
+        if (win) {
+            if (win.interactionWrapper)
+                return win.interactionWrapper;
+            if (win.contentItem)
+                return win.contentItem;
+            return win;
+        }
+        let p = root.attachTo || root;
+        while (p && p.parent)
+            p = p.parent;
+        return p;
     }
 
     parent: {
@@ -73,6 +78,7 @@ MouseArea {
     anchors.fill: parent ?? undefined
 
     enabled: expanded
+    visible: expanded || opacity > 0.01
     onClicked: expanded = false
 
     opacity: expanded ? 1 : 0
@@ -133,6 +139,8 @@ MouseArea {
         implicitWidth: Math.max(200, flickContent.implicitWidth + contentPad)
         // Scroll when list exceeds maxHeight or available parent space
         implicitHeight: Math.min(effectiveMaxHeight, flickContent.implicitHeight + contentPad)
+        width: implicitWidth
+        height: implicitHeight
 
         transform: Scale {
             yScale: root.expanded ? 1 : 0.05
