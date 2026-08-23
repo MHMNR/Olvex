@@ -197,7 +197,7 @@ Item {
         spacing: 0
         z: 1
 
-        Item { Layout.preferredHeight: 12 }
+        Item { Layout.preferredHeight: 36 }
 
         // 1. TOP: Hero Time Stack (90° Clockwise Rotated)
         Column {
