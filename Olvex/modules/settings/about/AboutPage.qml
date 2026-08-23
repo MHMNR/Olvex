@@ -6,6 +6,7 @@ import "../../../components"
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
+import QtQuick.Shapes
 import Quickshell
 import Olvex.Config
 import qs.services
@@ -153,51 +154,88 @@ Item {
                             }
 
                             // Left Beam (Indigo)
-                            Image {
+                            Shape {
                                 width: 120
                                 height: 120
                                 anchors.centerIn: parent
                                 opacity: logoContainer.introProgress
+                                preferredRendererType: Shape.CurveRenderer
+                                layer.enabled: true
+                                layer.samples: 4
+                                layer.smooth: true
 
                                 anchors.horizontalCenterOffset: ((1.0 - logoContainer.introProgress) * -45) + (logoContainer.hoverProgress * -14) + (logoContainer.pressProgress * 6)
                                 anchors.verticalCenterOffset: ((1.0 - logoContainer.introProgress) * -61) + (logoContainer.hoverProgress * -8) + (logoContainer.pressProgress * 4) + (logoContainer.breath * -4)
 
-                                source: Quickshell.shellPath("assets/images/olvex-beam-left.svg")
-                                sourceSize: Qt.size(360, 360)
-                                smooth: true
-                                antialiasing: true
+                                ShapePath {
+                                    strokeColor: "#675FFF"
+                                    strokeWidth: 14
+                                    capStyle: ShapePath.RoundCap
+                                    joinStyle: ShapePath.RoundJoin
+                                    fillColor: "transparent"
+
+                                    startX: 29
+                                    startY: 95
+
+                                    PathLine { x: 51.5; y: 48 }
+                                }
                             }
 
                             // Right Beam (Coral)
-                            Image {
+                            Shape {
                                 width: 120
                                 height: 120
                                 anchors.centerIn: parent
                                 opacity: logoContainer.introProgress
+                                preferredRendererType: Shape.CurveRenderer
+                                layer.enabled: true
+                                layer.samples: 4
+                                layer.smooth: true
 
                                 anchors.horizontalCenterOffset: ((1.0 - logoContainer.introProgress) * 45) + (logoContainer.hoverProgress * 14) + (logoContainer.pressProgress * -6)
                                 anchors.verticalCenterOffset: ((1.0 - logoContainer.introProgress) * -61) + (logoContainer.hoverProgress * -8) + (logoContainer.pressProgress * 4) + (logoContainer.breath * 4)
 
-                                source: Quickshell.shellPath("assets/images/olvex-beam-right.svg")
-                                sourceSize: Qt.size(360, 360)
-                                smooth: true
-                                antialiasing: true
+                                ShapePath {
+                                    strokeColor: "#FF8A5B"
+                                    strokeWidth: 14
+                                    capStyle: ShapePath.RoundCap
+                                    joinStyle: ShapePath.RoundJoin
+                                    fillColor: "transparent"
+
+                                    startX: 91
+                                    startY: 95
+
+                                    PathLine { x: 68.5; y: 48 }
+                                }
                             }
 
                             // Wave Line
-                            Image {
+                            Shape {
                                 width: 120
                                 height: 120
                                 anchors.centerIn: parent
                                 opacity: logoContainer.introProgress
                                 rotation: logoContainer.pulseRotation
+                                preferredRendererType: Shape.CurveRenderer
+                                layer.enabled: true
+                                layer.samples: 4
+                                layer.smooth: true
 
                                 anchors.verticalCenterOffset: ((1.0 - logoContainer.introProgress) * 39) + (logoContainer.hoverProgress * 14) + (logoContainer.pressProgress * -4) + (Math.sin(logoContainer.breath * Math.PI) * 4)
 
-                                source: Quickshell.shellPath("assets/images/olvex-wave.svg")
-                                sourceSize: Qt.size(360, 360)
-                                smooth: true
-                                antialiasing: true
+                                ShapePath {
+                                    strokeColor: Colours.palette.m3onSurface
+                                    strokeWidth: 4
+                                    capStyle: ShapePath.RoundCap
+                                    joinStyle: ShapePath.RoundJoin
+                                    fillColor: "transparent"
+
+                                    startX: 20
+                                    startY: 103
+
+                                    PathCubic { control1X: 35; control1Y: 96; control2X: 45; control2Y: 110; x: 60; y: 103 }
+                                    PathCubic { control1X: 75; control1Y: 96; control2X: 85; control2Y: 110; x: 100; y: 103 }
+                                }
                             }
 
                             MouseArea {
@@ -217,9 +255,9 @@ Item {
                             StyledText {
                                 text: "Olvex Shell"
                                 font.weight: Font.Bold
-                                font.letterSpacing: -0.2
+                                font.letterSpacing: -0.3
                                 color: Colours.palette.m3onSurface
-                                textPointSize: 24
+                                textPointSize: 22
                             }
 
                             RowLayout {
@@ -238,7 +276,8 @@ Item {
                                         anchors.centerIn: parent
                                         text: "v1.0.0"
                                         color: Colours.palette.m3primary
-                                        font.weight: Font.SemiBold
+                                        font.family: Tokens.font.family.mono
+                                        font.weight: Font.Bold
                                         textPointSize: Tokens.font.size.smaller
                                     }
                                 }
@@ -246,7 +285,8 @@ Item {
                                 StyledText {
                                     text: qsTr("Rolling Release")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Medium
+                                    font.weight: Font.Normal
+                                    font.letterSpacing: 0.1
                                     textPointSize: Tokens.font.size.small
                                 }
                             }
@@ -277,13 +317,13 @@ Item {
                                 MaterialIcon {
                                     text: "tune"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("KERNEL")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -292,6 +332,7 @@ Item {
                                 text: SysInfo.kernel || "Linux"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -308,13 +349,13 @@ Item {
                                 MaterialIcon {
                                     text: "badge"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("SYSTEM HOST")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -323,6 +364,7 @@ Item {
                                 text: (SysInfo.user || "user") + "@" + (SysInfo.osPrettyName || "linux")
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -339,13 +381,13 @@ Item {
                                 MaterialIcon {
                                     text: "schedule"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("UPTIME")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -354,6 +396,7 @@ Item {
                                 text: SysInfo.uptime || "2 days, 14 hours"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -370,13 +413,13 @@ Item {
                                 MaterialIcon {
                                     text: "terminal"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("SHELL ENVIRONMENT")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -385,6 +428,7 @@ Item {
                                 text: (SysInfo.shell || "fish").toUpperCase() + " · Quickshell"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -401,13 +445,13 @@ Item {
                                 MaterialIcon {
                                     text: "aspect_ratio"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("WINDOW MANAGER")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -416,6 +460,7 @@ Item {
                                 text: (SysInfo.wm || "Hyprland") + " · Wayland"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -432,13 +477,13 @@ Item {
                                 MaterialIcon {
                                     text: "widgets"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("FRAMEWORK & TARGET")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -447,6 +492,7 @@ Item {
                                 text: "Qt 6.7 · QML · Hyprland IPC"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -511,21 +557,22 @@ Item {
                                 MaterialIcon {
                                     text: "developer_board"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("CPU")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
                             StyledText {
-                                text: SystemUsage.cpuName ? SystemUsage.cpuName : "AMD Ryzen 5 Processor"
+                                text: SystemUsage.cpuName ? SystemUsage.cpuName : "AMD Ryzen Processor"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -542,13 +589,13 @@ Item {
                                 MaterialIcon {
                                     text: "videogame_asset"
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 14
+                                    iconPointSize: 13
                                 }
                                 StyledText {
                                     text: qsTr("GPU")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
-                                    font.letterSpacing: 0.6
+                                    font.letterSpacing: 0.8
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -559,6 +606,7 @@ Item {
                                       : "AMD Radeon / NVIDIA Graphics"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
+                                font.letterSpacing: -0.1
                                 textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
@@ -578,13 +626,13 @@ Item {
                                     MaterialIcon {
                                         text: "memory"
                                         color: Colours.palette.m3primary
-                                        iconPointSize: 14
+                                        iconPointSize: 13
                                     }
                                     StyledText {
                                         text: qsTr("RAM")
                                         color: Colours.palette.m3onSurfaceVariant
                                         font.weight: Font.SemiBold
-                                        font.letterSpacing: 0.6
+                                        font.letterSpacing: 0.8
                                         textPointSize: Tokens.font.size.smaller
                                     }
                                 }
@@ -597,8 +645,9 @@ Item {
                                     StyledText {
                                         text: root.memUsedGB.toFixed(1) + " / " + root.memTotalGB.toFixed(1) + " GB"
                                         color: Colours.palette.m3onSurfaceVariant
+                                        font.family: Tokens.font.family.mono
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens.font.size.small
+                                        textPointSize: Tokens.font.size.smaller
                                     }
 
                                     StyledRect {
@@ -612,6 +661,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: root.memPercInt + "%"
                                             color: Colours.palette.m3primary
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Bold
                                             textPointSize: Tokens.font.size.smaller
                                         }
@@ -652,13 +702,13 @@ Item {
                                     MaterialIcon {
                                         text: "storage"
                                         color: Colours.palette.m3primary
-                                        iconPointSize: 14
+                                        iconPointSize: 13
                                     }
                                     StyledText {
                                         text: qsTr("STORAGE (Root /)")
                                         color: Colours.palette.m3onSurfaceVariant
                                         font.weight: Font.SemiBold
-                                        font.letterSpacing: 0.6
+                                        font.letterSpacing: 0.8
                                         textPointSize: Tokens.font.size.smaller
                                     }
                                 }
@@ -671,8 +721,9 @@ Item {
                                     StyledText {
                                         text: root.storageUsedGB.toFixed(1) + " / " + root.storageTotalGB.toFixed(1) + " GB"
                                         color: Colours.palette.m3onSurfaceVariant
+                                        font.family: Tokens.font.family.mono
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens.font.size.small
+                                        textPointSize: Tokens.font.size.smaller
                                     }
 
                                     StyledRect {
@@ -686,6 +737,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: root.storagePercInt + "%"
                                             color: Colours.palette.m3secondary
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Bold
                                             textPointSize: Tokens.font.size.smaller
                                         }
@@ -831,6 +883,7 @@ Item {
                                         text: "Muhimenur"
                                         color: creatorArea.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onSurface
                                         font.weight: Font.Bold
+                                        font.letterSpacing: -0.1
                                         textPointSize: Tokens.font.size.normal
 
                                         Behavior on color { CAnim {} }
@@ -846,9 +899,10 @@ Item {
 
                                     StyledText {
                                         text: "(@MHMNR)"
-                                        color: Colours.palette.m3onSurfaceVariant
+                                        color: Colours.palette.m3primary
+                                        font.family: Tokens.font.family.mono
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens.font.size.small
+                                        textPointSize: Tokens.font.size.smaller
                                     }
                                 }
 
@@ -856,6 +910,7 @@ Item {
                                     text: qsTr("Creator & Lead Architect")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
+                                    font.letterSpacing: 0.1
                                     textPointSize: Tokens.font.size.smaller
                                 }
                             }
@@ -904,8 +959,9 @@ Item {
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex"
                                             color: Colours.palette.m3primary
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.smaller
+                                            textPointSize: Tokens.font.size.smaller - 1
                                         }
                                     }
 
@@ -965,8 +1021,9 @@ Item {
                                         StyledText {
                                             text: "~/.config/olvex"
                                             color: Colours.palette.m3tertiary
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.smaller
+                                            textPointSize: Tokens.font.size.smaller - 1
                                         }
                                     }
 
@@ -1026,8 +1083,9 @@ Item {
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex/issues"
                                             color: Colours.palette.m3error
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.smaller
+                                            textPointSize: Tokens.font.size.smaller - 1
                                         }
                                     }
 

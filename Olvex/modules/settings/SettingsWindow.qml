@@ -77,67 +77,139 @@ Item {
                 }
             }
 
-            // search
-            StyledRect {
+            // search (Lockscreen cardstyle input field)
+            Rectangle {
                 id: search
 
                 anchors.centerIn: parent
                 implicitWidth: 380
                 implicitHeight: 46
-                radius: Tokens.rounding.full
-                color: Colours.palette.m3surfaceContainerHigh
+                radius: height / 2
+                color: searchInput.activeFocus 
+                    ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+                    : (searchHover.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1) : Colours.palette.m3surfaceContainerHigh)
+
+                border.color: searchInput.activeFocus
+                    ? Colours.palette.m3primary
+                    : (searchHover.containsMouse ? Qt.alpha(Colours.palette.m3outline, 0.6) : Qt.alpha(Colours.palette.m3outlineVariant, 0.35))
                 border.width: searchInput.activeFocus ? 2 : 1
-                border.color: searchInput.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
 
-                MaterialIcon {
-                    id: searchIcon
+                scale: 1.0
 
-                    anchors.left: parent.left
-                    anchors.leftMargin: Tokens.padding.large
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "search"
-                    color: Colours.palette.m3onSurfaceVariant
-                    iconPointSize: Tokens.font.size.larger
+                Behavior on color { CAnim {} }
+                Behavior on border.color { ColorAnimation { duration: 200 } }
+                Behavior on border.width { NumberAnimation { duration: 150 } }
+                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutBack } }
+
+                HoverHandler {
+                    id: searchHover
+                    cursorShape: Qt.IBeamCursor
                 }
 
-                StyledTextField {
-                    id: searchInput
-
-                    anchors.left: searchIcon.right
-                    anchors.right: clearBtn.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: Tokens.spacing.normal
-                    anchors.rightMargin: Tokens.spacing.small
-                    placeholderText: qsTr("Search settings…")
-                    // body-large field — slightly bigger than default smaller
-                    font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
-                    onTextChanged: session.query = text
+                TapHandler {
+                    onTapped: {
+                        searchInput.forceActiveFocus();
+                        search.scale = 0.98;
+                        pulseTimer.restart();
+                    }
                 }
 
-                StyledRect {
-                    id: clearBtn
+                Timer {
+                    id: pulseTimer
+                    interval: 120
+                    onTriggered: search.scale = 1.0
+                }
 
-                    anchors.right: parent.right
-                    anchors.rightMargin: Tokens.padding.small
-                    anchors.verticalCenter: parent.verticalCenter
-                    implicitWidth: 30
-                    implicitHeight: 30
-                    radius: 15
-                    color: "transparent"
-                    visible: searchInput.text.length > 0
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 10
+                    spacing: Tokens.spacing.normal
 
                     MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "close"
-                        color: Colours.palette.m3onSurfaceVariant
-                        iconPointSize: Tokens.font.size.normal
+                        id: searchIcon
+                        Layout.alignment: Qt.AlignVCenter
+                        text: "search"
+                        color: searchInput.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                        iconPointSize: Tokens.font.size.large
+                        verticalAlignment: Text.AlignVCenter
+
+                        Behavior on color { CAnim {} }
                     }
 
-                    StateLayer {
-                        radius: parent.radius
-                        onClicked: {
-                            searchInput.text = "";
-                            searchInput.forceActiveFocus();
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+
+                        TextInput {
+                            id: searchInput
+                            anchors.fill: parent
+                            verticalAlignment: TextInput.AlignVCenter
+                            color: Colours.palette.m3onSurface
+                            selectionColor: Qt.alpha(Colours.palette.m3primary, 0.3)
+                            selectedTextColor: Colours.palette.m3onSurface
+                            font.family: Tokens.font.family.sans
+                            font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                            selectByMouse: true
+                            cursorVisible: activeFocus
+                            onTextChanged: session.query = text
+
+                            cursorDelegate: Rectangle {
+                                width: 2
+                                height: searchInput.font.pixelSize * 1.2
+                                radius: 1
+                                color: Colours.palette.m3primary
+                                SequentialAnimation on opacity {
+                                    loops: Animation.Infinite
+                                    running: searchInput.activeFocus
+                                    NumberAnimation { to: 1.0; duration: 80 }
+                                    PauseAnimation   { duration: 520 }
+                                    NumberAnimation { to: 0.0; duration: 80 }
+                                    PauseAnimation   { duration: 380 }
+                                }
+                            }
+                        }
+
+                        StyledText {
+                            anchors.fill: parent
+                            verticalAlignment: Text.AlignVCenter
+                            text: qsTr("Search settings…")
+                            color: Colours.palette.m3outline
+                            font.family: Tokens.font.family.sans
+                            font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                            visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
+                            opacity: searchInput.text.length === 0 ? 0.75 : 0
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        }
+                    }
+
+                    StyledRect {
+                        id: clearBtn
+                        Layout.alignment: Qt.AlignVCenter
+                        implicitWidth: 28
+                        implicitHeight: 28
+                        radius: 14
+                        color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+                        visible: searchInput.text.length > 0
+                        opacity: searchInput.text.length > 0 ? 1 : 0
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "close"
+                            color: Colours.palette.m3onSurfaceVariant
+                            iconPointSize: 14
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        StateLayer {
+                            radius: parent.radius
+                            color: Colours.palette.m3primary
+                            onClicked: {
+                                searchInput.text = "";
+                                searchInput.forceActiveFocus();
+                            }
                         }
                     }
                 }

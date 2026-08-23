@@ -8,6 +8,7 @@ import "../../../components/controls"
 import "../../../components/containers"
 import "../../../components/effects"
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
 import Olvex.Config
@@ -154,23 +155,25 @@ Item {
             }
         }
 
-        Row {
+        RowLayout {
             id: faceRow
             anchors.centerIn: parent
             spacing: Tokens.spacing.small
 
             Item {
-                width: Math.min(faceText.implicitWidth, 160)
-                height: faceText.implicitHeight
+                Layout.preferredWidth: Math.min(faceText.implicitWidth, 160)
+                Layout.preferredHeight: faceText.implicitHeight
+                Layout.alignment: Qt.AlignVCenter
                 clip: true
 
                 StyledText {
                     id: faceText
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.centerIn: parent
                     text: root.labelOf(root.currentIndex)
                     color: Colours.palette.m3onPrimary
                     textPointSize: Tokens.font.size.small
                     font.weight: Font.Medium
+                    verticalAlignment: Text.AlignVCenter
                     
                     SequentialAnimation on x {
                         loops: Animation.Infinite
@@ -191,11 +194,12 @@ Item {
                 }
             }
             MaterialIcon {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 text: "expand_more"
                 color: Colours.palette.m3onPrimary
                 iconPointSize: Tokens.font.size.normal
                 opacity: 0.85
+                verticalAlignment: Text.AlignVCenter
             }
         }
     }
@@ -277,13 +281,14 @@ Item {
             StyledText {
                 id: travelingText
                 x: root.morphState === "open" ? Tokens.padding.normal : parent.contentStartX
-                y: (parent.height - implicitHeight) / 2
+                anchors.verticalCenter: parent.verticalCenter
                 text: root.labelOf(root.currentIndex)
                 color: Colours.palette.m3onPrimary
                 textPointSize: Tokens.font.size.small
                 font.weight: root.morphState === "open" ? Font.DemiBold : Font.Medium
                 elide: Text.ElideRight
                 width: Math.min(implicitWidth, 160)
+                verticalAlignment: Text.AlignVCenter
                 
                 Behavior on x { Anim { type: Anim.DefaultSpatial } }
             }
@@ -291,11 +296,12 @@ Item {
             MaterialIcon {
                 id: travelingIcon
                 x: root.morphState === "open" ? root.targetW : (parent.contentStartX + travelingText.width + Tokens.spacing.small)
-                y: (parent.height - implicitHeight) / 2
+                anchors.verticalCenter: parent.verticalCenter
                 text: "expand_more"
                 color: Colours.palette.m3onPrimary
                 iconPointSize: Tokens.font.size.normal
                 opacity: root.morphState === "open" ? 0 : 0.85
+                verticalAlignment: Text.AlignVCenter
                 
                 Behavior on x { Anim { type: Anim.DefaultSpatial } }
                 Behavior on opacity { NumberAnimation { duration: 150 } }

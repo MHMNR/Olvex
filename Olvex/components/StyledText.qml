@@ -24,13 +24,13 @@ Text {
             return textPixelSize;
         if (textPointSize > 0)
             return Math.max(10, Math.round(textPointSize * 96 / 72));
-        return Math.max(10, Math.round(Tokens.font.size.smaller * 96 / 72));
+        return Math.max(10, Math.round((Tokens?.font?.size?.smaller ?? 11) * 96 / 72));
     }
 
     renderType: Text.NativeRendering
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
-    font.family: Tokens.font.family.sans
+    font.family: Tokens?.font?.family?.sans ?? "sans-serif"
     font.pixelSize: resolvedPixelSize
     font.hintingPreference: Font.PreferDefaultHinting
 

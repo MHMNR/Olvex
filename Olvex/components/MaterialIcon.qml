@@ -15,15 +15,15 @@ Text {
     property int animateDuration: Tokens?.anim?.durations?.normal ?? 300
     property real fill
     property int grade: Colours.light ? 0 : -25
-    property real iconPointSize: Tokens.font.size.larger
+    property real iconPointSize: Tokens?.font?.size?.larger ?? 18
 
-    readonly property int iconPixelSize: Math.max(12, Math.round(iconPointSize * 96 / 72))
+    readonly property int iconPixelSize: Math.max(12, Math.round((iconPointSize > 0 ? iconPointSize : (Tokens?.font?.size?.larger ?? 18)) * 96 / 72))
 
     renderType: Text.NativeRendering
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
 
-    font.family: Tokens.font.family.material
+    font.family: Tokens?.font?.family?.material ?? "Material Symbols Rounded"
     font.pixelSize: iconPixelSize
     font.variableAxes: ({
             FILL: fill.toFixed(1),
