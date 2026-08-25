@@ -35,7 +35,7 @@ Item {
     readonly property bool mediaMorphCollapsing: root.playerActive && (root.mediaMorph?.closingDown ?? false)
     readonly property bool mediaMorphRendering: root.playerActive && ((root.mediaMorph?.active ?? false) || (root.mediaMorph?.morphAnimating ?? false))
     readonly property bool mediaVisualizerWarm: root.playerActive
-    readonly property bool mediaVisualizerActive: root.playerActive && root.isMusicPlaying && !root.mediaMorphRendering
+    readonly property bool mediaVisualizerActive: root.playerActive && root.isMusicPlaying
     readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "pill"
     property bool mediaVisualizerLoaded: mediaVisualizerActive
     readonly property string musicArtUrl: Players.currentArtUrl
@@ -48,6 +48,7 @@ Item {
     property color playIconColor: Colours.palette.m3onPrimary
     property bool _syncingBarAccent: false
     property bool _accentRefreshPending: false
+    property bool isLoaded: false
     readonly property int musicPillWidth: 48
     readonly property int musicPillHeight: 160
     readonly property int musicArtSize: 40
@@ -288,6 +289,8 @@ Item {
         root.syncBarAccent();
         root.kickDockSync();
         root.syncVisualizerOwner();
+
+        Qt.callLater(() => root.isLoaded = true);
     }
 
     Component.onDestruction: {
@@ -436,6 +439,7 @@ Item {
 
     transitions: [
         Transition {
+            enabled: root.isLoaded
             // No AnchorAnimation needed — anchor itself never changes, only bottomMargin & height
             Anim { targets: [musicPill]; properties: "height,anchors.bottomMargin"; type: Anim.DefaultSpatial }
             Anim { targets: [icon]; properties: "y"; type: Anim.DefaultSpatial }
@@ -552,17 +556,16 @@ Item {
         Item {
             id: visualizerContainer
             anchors.fill: parent
+            
+            // Fades in/out smoothly without destroying the item
             visible: opacity > 0.01
             opacity: root.mediaVisualizerActive ? 1 : 0
-
             Behavior on opacity {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
-                }
+                Anim { type: Anim.DefaultSpatial }
             }
 
-            layer.enabled: root.mediaVisualizerActive
+            // Keeps the mask active during the fade-out, fixing the clipping leak!
+            layer.enabled: visible
             layer.smooth: true
             layer.effect: OpacityMask {
                 maskSource: visualizerMask
@@ -584,24 +587,15 @@ Item {
                 }
             }
 
-            Loader {
+            NeonWaveVisualizer {
                 anchors.fill: parent
-                active: root.mediaVisualizerLoaded
-                asynchronous: true
-                sourceComponent: Component {
-                    Item {
-                        NeonWaveVisualizer {
-                            anchors.fill: parent
-                            accentColor: root.musicAccent
-                            numBands: 32
-                            maxHeightRatio: 0.76
-                            topFadeRatio: 0.12
-                            valueMultiplier: 1.42
-                            active: root.mediaVisualizerActive && root.ownsVisualizer
-                            frameInterval: root.visualizerFrameInterval
-                        }
-                    }
-                }
+                accentColor: root.musicAccent
+                numBands: 32
+                maxHeightRatio: 0.76
+                topFadeRatio: 0.12
+                valueMultiplier: 1.42
+                active: root.mediaVisualizerActive && (root.ownsVisualizer || root.mediaMorphCollapsing)
+                frameInterval: root.visualizerFrameInterval
             }
         }
 

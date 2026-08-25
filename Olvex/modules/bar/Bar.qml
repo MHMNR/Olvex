@@ -265,6 +265,7 @@ ColumnLayout {
     }
 
     component WrappedLoader: Loader {
+        id: wrapperItem
         required enabled
         required property string id
         required property int index
@@ -287,15 +288,74 @@ ColumnLayout {
 
         visible: enabled
         active: enabled
+
+        property real entryXOffset: -50
+        opacity: 0
+        transform: Translate { x: wrapperItem.entryXOffset }
+
+        Component.onCompleted: {
+            if (enabled) {
+                entryAnim.start();
+            }
+        }
+
+        SequentialAnimation {
+            id: entryAnim
+            PauseAnimation { duration: wrapperItem.index * 45 }
+            ParallelAnimation {
+                NumberAnimation {
+                    target: wrapperItem
+                    property: "entryXOffset"
+                    to: 0
+                    duration: Tokens.anim.durations.expressiveDefaultSpatial
+                    easing: Tokens.anim.expressiveDefaultSpatial
+                }
+                NumberAnimation {
+                    target: wrapperItem
+                    property: "opacity"
+                    to: 1
+                    duration: Tokens.anim.durations.expressiveDefaultEffects
+                    easing: Tokens.anim.expressiveDefaultEffects
+                }
+            }
+        }
     }
 
-    // Hardcoded bottom launcher / OS icon (ignores bar.entries order).
     Item {
         id: osIconWrapper
         Layout.alignment: Qt.AlignHCenter
         Layout.bottomMargin: root.vPadding
         implicitWidth: osIconLoader.implicitWidth
         implicitHeight: osIconLoader.implicitHeight
+
+        property real entryXOffset: -50
+        opacity: 0
+        transform: Translate { x: osIconWrapper.entryXOffset }
+
+        Component.onCompleted: {
+            entryAnim.start();
+        }
+
+        SequentialAnimation {
+            id: entryAnim
+            PauseAnimation { duration: root.barEntries.length * 45 }
+            ParallelAnimation {
+                NumberAnimation {
+                    target: osIconWrapper
+                    property: "entryXOffset"
+                    to: 0
+                    duration: Tokens.anim.durations.expressiveDefaultSpatial
+                    easing: Tokens.anim.expressiveDefaultSpatial
+                }
+                NumberAnimation {
+                    target: osIconWrapper
+                    property: "opacity"
+                    to: 1
+                    duration: Tokens.anim.durations.expressiveDefaultEffects
+                    easing: Tokens.anim.expressiveDefaultEffects
+                }
+            }
+        }
 
         Loader {
             id: osIconLoader

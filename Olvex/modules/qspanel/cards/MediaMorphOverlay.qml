@@ -485,17 +485,16 @@ Item {
         // ── Neon wave visualizer ───────────────────────────────────────────────
         Item {
             anchors.fill: parent
+
             visible: opacity > 0.01
             opacity: root.mediaVisualizerActive ? 1 : 0
 
             Behavior on opacity {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
-                }
+                Anim { type: Anim.DefaultSpatial }
             }
 
-            layer.enabled: root.mediaVisualizerActive
+            layer.enabled: visible
+            layer.smooth: true
             layer.effect: OpacityMask {
                 maskSource: visualizerOverlayMask
             }
@@ -504,33 +503,27 @@ Item {
                 id: visualizerOverlayMask
                 anchors.fill: parent
                 layer.enabled: true
+                layer.smooth: true
                 visible: false
 
                 Rectangle {
                     anchors.fill: parent
                     radius: musicPill.radius
                     color: "black"
+                    antialiasing: true
+                    smooth: true
                 }
             }
 
-            Loader {
+            NeonWaveVisualizer {
                 anchors.fill: parent
-                active: root.mediaVisualizerLoaded
-                asynchronous: true
-                sourceComponent: Component {
-                    Item {
-                        NeonWaveVisualizer {
-                            anchors.fill: parent
-                            accentColor: root.resolvedVisualizerAccent
-                            numBands: 32
-                            maxHeightRatio: musicPill.state === "expanded" ? 0.46 : 0.76
-                            topFadeRatio: musicPill.state === "expanded" ? 0.26 : 0.14
-                            valueMultiplier: musicPill.state === "expanded" ? 1.24 : 1.42
-                            active: root.mediaVisualizerActive && root.ownsVisualizer
-                            frameInterval: root.visualizerFrameInterval
-                        }
-                    }
-                }
+                accentColor: root.resolvedVisualizerAccent
+                numBands: 32
+                maxHeightRatio: musicPill.state === "expanded" ? 0.46 : 0.76
+                topFadeRatio: musicPill.state === "expanded" ? 0.26 : 0.14
+                valueMultiplier: musicPill.state === "expanded" ? 1.24 : 1.42
+                active: root.mediaVisualizerActive && root.ownsVisualizer
+                frameInterval: root.visualizerFrameInterval
             }
         }
 
@@ -1469,8 +1462,6 @@ Item {
             anchors.fill: parent
             radius: 12
             color: Players.musicSurfaceColor
-            border.width: 1
-            border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.16)
             clip: true
 
             layer.enabled: sourceSelector.expanded
