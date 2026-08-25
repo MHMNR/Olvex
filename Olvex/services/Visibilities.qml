@@ -10,6 +10,7 @@ Singleton {
     property var bars: new Map()
     property bool launcherInterrupted: false
     property bool shellMotionActive: false
+    property bool areaPickerActive: false
 
     function pulseShellMotion(duration: int): void {
         const hold = duration || 520;

@@ -200,7 +200,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: (visibilities.launcher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.wallpaperLauncher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.powermenu && root.contentItem?.Config?.powermenu?.enabled) || (visibilities.notificationcenter && root.contentItem?.Config?.notificationcenter?.enabled) || (visibilities.dashboard && root.contentItem?.Config?.dashboard?.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.qspanel || visibilities.clipboard
+        active: !Visibilities.areaPickerActive && ((visibilities.launcher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.wallpaperLauncher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.powermenu && root.contentItem?.Config?.powermenu?.enabled) || (visibilities.notificationcenter && root.contentItem?.Config?.notificationcenter?.enabled) || (visibilities.dashboard && root.contentItem?.Config?.dashboard?.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.qspanel || visibilities.clipboard)
         windows: root.oskWindow && visibilities.osk ? [root, root.oskWindow] : [root]
         onActiveChanged: {
             if (active) {
@@ -209,13 +209,15 @@ StyledWindow {
             }
         }
         onCleared: {
-            if (root.launchTransition)
+            if (root.launchTransition || Visibilities.areaPickerActive)
                 return;
             visibilities.launcher = false;
             visibilities.wallpaperLauncher = false;
             visibilities.powermenu = false;
             visibilities.notificationcenter = false;
             visibilities.dashboard = false;
+            visibilities.qspanel = false;
+            visibilities.clipboard = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -528,7 +530,7 @@ StyledWindow {
                     inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
                 }
 
-                if (!inLauncher && !inBottomPanel && !inOsIcon) {
+                if (!inLauncher && !inBottomPanel && !inOsIcon && !Visibilities.areaPickerActive) {
                     visibilities.launcher = false;
                 }
                 // Always propagate — Interactions already handled the accept/reject decision
@@ -560,7 +562,7 @@ StyledWindow {
                     inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
                 }
 
-                if (!inWS && !inBottomPanel && !inOsIcon) {
+                if (!inWS && !inBottomPanel && !inOsIcon && !Visibilities.areaPickerActive) {
                     visibilities.wallpaperLauncher = false;
                 }
                 // Always propagate

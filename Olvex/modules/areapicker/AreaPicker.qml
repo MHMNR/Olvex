@@ -14,6 +14,14 @@ Scope {
         property bool closing
         property bool clipboardOnly
 
+        onActiveChanged: {
+            Visibilities.areaPickerActive = active;
+        }
+        onClosingChanged: {
+            if (closing)
+                Visibilities.areaPickerActive = false;
+        }
+
         Variants {
             model: Screens.screens
 
@@ -48,6 +56,7 @@ Scope {
 
     IpcHandler {
         function open(): void {
+            Visibilities.areaPickerActive = true;
             root.freeze = false;
             root.closing = false;
             root.clipboardOnly = false;
@@ -55,6 +64,7 @@ Scope {
         }
 
         function openFreeze(): void {
+            Visibilities.areaPickerActive = true;
             root.freeze = true;
             root.closing = false;
             root.clipboardOnly = false;
@@ -62,6 +72,7 @@ Scope {
         }
 
         function openClip(): void {
+            Visibilities.areaPickerActive = true;
             root.freeze = false;
             root.closing = false;
             root.clipboardOnly = true;
@@ -69,6 +80,7 @@ Scope {
         }
 
         function openFreezeClip(): void {
+            Visibilities.areaPickerActive = true;
             root.freeze = true;
             root.closing = false;
             root.clipboardOnly = true;
@@ -78,12 +90,11 @@ Scope {
         target: "picker"
     }
 
-    // qmllint disable unresolved-type
     CustomShortcut {
-        // qmllint enable unresolved-type
         name: "screenshot"
         description: "Open screenshot tool"
         onPressed: {
+            Visibilities.areaPickerActive = true;
             root.freeze = false;
             root.closing = false;
             root.clipboardOnly = false;
@@ -91,12 +102,11 @@ Scope {
         }
     }
 
-    // qmllint disable unresolved-type
     CustomShortcut {
-        // qmllint enable unresolved-type
         name: "screenshotFreeze"
         description: "Open screenshot tool (freeze mode)"
         onPressed: {
+            Visibilities.areaPickerActive = true;
             root.freeze = true;
             root.closing = false;
             root.clipboardOnly = false;
@@ -104,12 +114,11 @@ Scope {
         }
     }
 
-    // qmllint disable unresolved-type
     CustomShortcut {
-        // qmllint enable unresolved-type
         name: "screenshotClip"
         description: "Open screenshot tool (clipboard)"
         onPressed: {
+            Visibilities.areaPickerActive = true;
             root.freeze = false;
             root.closing = false;
             root.clipboardOnly = true;
@@ -117,12 +126,11 @@ Scope {
         }
     }
 
-    // qmllint disable unresolved-type
     CustomShortcut {
-        // qmllint enable unresolved-type
         name: "screenshotFreezeClip"
         description: "Open screenshot tool (freeze mode, clipboard)"
         onPressed: {
+            Visibilities.areaPickerActive = true;
             root.freeze = true;
             root.closing = false;
             root.clipboardOnly = true;

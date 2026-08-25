@@ -116,6 +116,10 @@ MouseArea {
         }
     }
 
+    Component.onDestruction: {
+        Visibilities.areaPickerActive = false;
+    }
+
     onPressed: event => {
         ssx = event.x;
         ssy = event.y;
@@ -155,6 +159,11 @@ MouseArea {
     SequentialAnimation {
         id: closeAnim
 
+        ScriptAction {
+            script: {
+                Visibilities.areaPickerActive = false;
+            }
+        }
         PropertyAction {
             target: root.loader
             property: "closing"
@@ -187,6 +196,11 @@ MouseArea {
             target: root.loader
             property: "activeAsync"
             value: false
+        }
+        ScriptAction {
+            script: {
+                Visibilities.areaPickerActive = false;
+            }
         }
     }
 
