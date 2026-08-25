@@ -148,12 +148,12 @@ Item {
     readonly property real targetEndX: opensRight ? startX + startW + 24 : startX - endW - 24
     property real endX: {
         const maxX = Math.max(16, root.width - root.endW - 16);
-        return Math.max(16, Math.min(maxX, root.targetEndX));
+        return Math.round(Math.max(16, Math.min(maxX, root.targetEndX)));
     }
     property real endY: {
         const targetY = startY + (startH - endH) / 2;
         const maxY = Math.max(16, root.height - root.endH - 16);
-        return Math.max(16, Math.min(maxY, targetY));
+        return Math.round(Math.max(16, Math.min(maxY, targetY)));
     }
 
     visible: !!Players.active
@@ -422,15 +422,7 @@ Item {
                 color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
             }
 
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: Math.max(0, parent.radius - 1)
-                antialiasing: true
-                color: "transparent"
-                border.width: musicPill.state === "expanded" ? 1 : 0
-                border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.07)
-            }
+
 
             // Ambient glow — a soft, thumbnail-shaped light bloom behind the
             // art. Three overlapping rounded-square discs (wide faint halo →
@@ -543,18 +535,42 @@ Item {
         }
 
         // ── Art — StyledClippingRect (backup pattern: default pos = pill pos, states drive everything) ──
-        StyledClippingRect {
+        Item {
             id: musicIcon
             x: 7
             y: 7
             width: 34
             height: 34
-            radius: 17
-            color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(root.musicAccent, 0.22)
+            property real radius: 17
+            
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                maskSource: artMask
+            }
+            
+            Item {
+                id: artMask
+                anchors.fill: parent
+                layer.enabled: true
+                visible: false
+                Rectangle {
+                    anchors.fill: parent
+                    radius: musicIcon.radius
+                    color: "black"
+                    antialiasing: true
+                    smooth: true
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(root.musicAccent, 0.22)
+            }
 
             Image {
                 id: artImage
                 anchors.fill: parent
+                anchors.margins: -1 // Bleed out to hide OpacityMask edge anti-aliasing artifacts
                 source: root.artDisplaySource
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true

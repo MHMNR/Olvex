@@ -507,6 +507,48 @@ Item {
             smooth: true
         }
 
+        // ── Ambient Glow (Clipped to pill boundary) ─────────────────────
+        StyledClippingRect {
+            id: glowClip
+            anchors.fill: parent
+            radius: musicPill.radius
+            color: "transparent"
+            opacity: root.playerActive ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Tokens.anim.durations.expressiveDefaultEffects
+                    easing: Tokens.anim.emphasizedDecel
+                }
+            }
+
+            Repeater {
+                model: [
+                    { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 56 }, // halo
+                    { mult: 1.6,  dark: 1.8, alpha: 0.16, bmax: 44 }, // body
+                    { mult: 1.05, dark: 2.2, alpha: 0.28, bmax: 30 }  // dark core
+                ]
+                delegate: Rectangle {
+                    id: glowLayer
+                    required property var modelData
+                    readonly property real d: artFrame.width * modelData.mult
+                    width: d
+                    height: d
+                    radius: d / 2
+                    // Center on the artFrame
+                    x: artFrame.x + artFrame.width / 2 - d / 2
+                    y: artFrame.y + artFrame.height / 2 - d / 2
+                    color: Qt.alpha(Qt.darker(root.musicAccent, modelData.dark), modelData.alpha)
+                    antialiasing: true
+                    layer.enabled: glowClip.opacity > 0.01
+                    layer.effect: MultiEffect {
+                        blurEnabled: true
+                        blur: 1.0
+                        blurMax: glowLayer.modelData.bmax
+                    }
+                }
+            }
+        }
+
         Item {
             id: visualizerContainer
             anchors.fill: parent
@@ -596,38 +638,7 @@ Item {
                         Anim { type: Anim.DefaultSpatial }
                     }
 
-                    // Ambient glow — dark, circular light bloom behind the art
-                    Repeater {
-                        model: [
-                            { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 56 }, // halo
-                            { mult: 1.6,  dark: 1.8, alpha: 0.16, bmax: 44 }, // body
-                            { mult: 1.05, dark: 2.2, alpha: 0.28, bmax: 30 }  // dark core
-                        ]
-                        delegate: Rectangle {
-                            id: glowLayer
-                            required property var modelData
-                            readonly property real d: artFrame.width * modelData.mult
-                            anchors.centerIn: parent
-                            width: d
-                            height: d
-                            radius: d / 2
-                            color: Qt.alpha(Qt.darker(root.musicAccent, modelData.dark), modelData.alpha)
-                            opacity: root.playerActive ? 1 : 0
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: Tokens.anim.durations.expressiveDefaultEffects
-                                    easing: Tokens.anim.emphasizedDecel
-                                }
-                            }
-                            antialiasing: true
-                            layer.enabled: root.playerActive && opacity > 0.01
-                            layer.effect: MultiEffect {
-                                blurEnabled: true
-                                blur: 1.0
-                                blurMax: glowLayer.modelData.bmax
-                            }
-                        }
-                    }
+                    // Ambient glow moved to StyledClippingRect at musicPill level
 
                     Rectangle {
                         anchors.fill: parent
@@ -647,11 +658,17 @@ Item {
                         }
                     }
 
-                    StyledClippingRect {
+                    Item {
+                        id: barArtContainer
                         anchors.fill: parent
-                        radius: width / 2
-                        clip: true
-                        color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(root.musicAccent, 0.22)
+
+                        layer.enabled: true
+                        layer.effect: CircleMask {}
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(root.musicAccent, 0.22)
+                        }
 
                         Image {
                             id: barArtImage
@@ -705,7 +722,7 @@ Item {
                     visible: opacity > 0.01
 
                     Behavior on opacity {
-                        Anim { type: Anim.DefaultSpatial }
+                        Anim { type: transportControls.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
                     }
 
                     transform: Translate {
@@ -752,7 +769,7 @@ Item {
                 visible: opacity > 0.01
 
                 Behavior on opacity {
-                    Anim { type: Anim.DefaultSpatial }
+                    Anim { type: parent.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
                 }
 
                 MaterialIcon {
@@ -777,7 +794,7 @@ Item {
                     opacity: (root.playerActive || root.isNotificationPushed) ? 0 : 1
 
                     Behavior on opacity {
-                        Anim { type: Anim.DefaultSpatial }
+                        Anim { type: windowTitleText.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
                     }
 
                     transform: [
