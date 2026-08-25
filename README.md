@@ -10,7 +10,7 @@
     <a href="#keybindings"><img src="https://img.shields.io/badge/Compositor-Hyprland_Wayland-6ED2FB?style=for-the-badge&logo=hyprland&logoColor=black" alt="Hyprland"></a>
   </p>
 
-  <h3>A GPU-accelerated Linux desktop environment shell built on Quickshell and Hyprland.</h3>
+  <h3>A Linux desktop environment shell built on Quickshell and Hyprland.</h3>
 
 </div>
 
