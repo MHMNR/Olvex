@@ -275,6 +275,16 @@ ColumnLayout {
                 implicitWidth: 100
                 implicitHeight: 100
 
+                property real spin: 0
+
+                NumberAnimation on spin {
+                    from: 360
+                    to: 0
+                    duration: 20000
+                    loops: Animation.Infinite
+                    running: LockState.locked && root.visible
+                }
+
                 // Outer spinning ring
                 MaterialShape {
                     id: avatarRing
@@ -283,15 +293,7 @@ ColumnLayout {
                     implicitSize: 100
                     shape: MaterialShape.Cookie12Sided
                     color: Colours.layer(Colours.current.m3primaryContainer, 1)
-
-                    Anim on rotation {
-                        running: LockState.locked && root.visible
-                        from: 360
-                        to: 0
-                        duration: 20000
-                        easing.type: Easing.Linear
-                        loops: Animation.Infinite
-                    }
+                    rotation: avatarHost.spin
                 }
 
                 // Invisible spinning mask (clips pfp + fallback icon)
@@ -303,18 +305,11 @@ ColumnLayout {
                     layer.enabled: true
 
                     MaterialShape {
+                        anchors.fill: parent
                         implicitSize: 100
                         shape: MaterialShape.Cookie12Sided
                         color: "white"
-
-                        Anim on rotation {
-                            running: LockState.locked && root.visible
-                            from: 360
-                            to: 0
-                            duration: 20000
-                            easing.type: Easing.Linear
-                            loops: Animation.Infinite
-                        }
+                        rotation: avatarHost.spin
                     }
                 }
 

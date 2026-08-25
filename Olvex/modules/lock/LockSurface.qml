@@ -104,15 +104,22 @@ WlSessionLockSurface {
     SequentialAnimation {
         id: unlockAnim
 
-        ScriptAction { script: backdropFadeOut.start() }
+        ScriptAction {
+            script: {
+                LockState.unlocking = true;
+                backdropFadeOut.start();
+            }
+        }
 
         // Wait for all staggered card exits to finish (5×70ms stagger + 650ms exit)
         PauseAnimation { duration: 1050 }
 
-        PropertyAction {
-            target: root.lock
-            property: "locked"
-            value: false
+        ScriptAction {
+            script: {
+                LockState.locked = false;
+                root.lock.locked = false;
+                LockState.unlocking = false;
+            }
         }
     }
 

@@ -234,7 +234,7 @@ Item {
         id: geometrySyncLoop
         interval: 350
         property int ticksLeft: 0
-        running: ticksLeft > 0 && bottomPanelMode === "smarthide" && root.bottomPanelEnabled && !LockState.locked
+        running: ticksLeft > 0 && bottomPanelMode === "smarthide" && root.bottomPanelEnabled && (!LockState.locked || LockState.unlocking)
         repeat: true
         onTriggered: {
             ticksLeft--;
@@ -545,16 +545,6 @@ Item {
             enabled: parent ? parent.height > 100 : false
             Anim {
                 type: Anim.DefaultSpatial
-            }
-        }
-
-        transform: Translate {
-            y: (!LockState.locked) ? 0 : 120
-            Behavior on y {
-                NumberAnimation {
-                    duration: 350
-                    easing.type: Easing.OutExpo
-                }
             }
         }
 

@@ -387,42 +387,19 @@ StyledWindow {
     }
 
     // Entrance Animation State
-    readonly property bool isVisible: !LockState.locked
-
-    // ── Stop rendering entirely while locked ────────────────────────────────
-    // The lock surface fully occludes this window, but Qt keeps compositing it
-    // (opacity:0 ≠ hidden), so any continuously-animating child — e.g. the media
-    // overlay's WavyLine progress bar while music plays — keeps forcing a ~144Hz
-    // GPU present that competes with the lock screen on the shared iGPU and drops
-    // frames across every lock animation. Unmap the surface a beat after locking
-    // (the lock surface is already on top, so no flash) so this window costs zero
-    // until unlock, then re-map instantly so the entrance fade-in still plays.
-    // Mirrors the bar's own visible:false self-hide (line ~487).
-    property bool surfaceMapped: true
-    visible: surfaceMapped
-
-    Timer {
-        id: lockHideGrace
-        interval: 200
-        onTriggered: root.surfaceMapped = false
-    }
-
-    Connections {
-        target: LockState
-        function onLockedChanged(): void {
-            if (LockState.locked) {
-                lockHideGrace.restart();
-            } else {
-                lockHideGrace.stop();
-                root.surfaceMapped = true;
-            }
-        }
-    }
+    readonly property bool isVisible: !LockState.locked || LockState.unlocking
 
     Item {
         id: revealContainer
         anchors.fill: parent
         opacity: isVisible ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
+        }
 
         // Full-screen live capture used as the backdrop-blur source for OSD
         // sliders. Invisible here — each slider crops its own region via
@@ -511,20 +488,11 @@ StyledWindow {
                 enabled: !visibilities.powermenu
                 visible: opacity > 0
 
-                // Staggered entry for bar
+                // Smooth entrance for bar
                 opacity: visibilities.powermenu ? 0 : (root.isVisible ? 1 : 0)
-                transform: Translate {
-                    x: root.isVisible ? 0 : -120
-                    Behavior on x {
-                        NumberAnimation {
-                            duration: 350
-                            easing.type: Easing.OutExpo
-                        }
-                    }
-                }
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 200
+                        duration: 250
                         easing.type: Easing.OutCubic
                     }
                 }

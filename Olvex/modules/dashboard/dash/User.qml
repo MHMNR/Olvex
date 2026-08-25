@@ -63,6 +63,16 @@ Item {
                 }
             }
 
+            property real spin: 0
+
+            NumberAnimation on spin {
+                from: 360
+                to: 0
+                duration: 20000
+                loops: Animation.Infinite
+                running: root.dashboardActive
+            }
+
             MaterialShape {
                 id: avatarRing
 
@@ -71,15 +81,7 @@ Item {
                 implicitSize: root.avatarSize
                 shape: MaterialShape.Cookie12Sided
                 color: Colours.layer(Colours.palette.m3primaryContainer, 1)
-
-                Anim on rotation {
-                    running: root.dashboardActive
-                    from: 360
-                    to: 0
-                    duration: 20000
-                    easing.type: Easing.Linear
-                    loops: Animation.Infinite
-                }
+                rotation: avatarHost.spin
             }
 
             Item {
@@ -91,18 +93,11 @@ Item {
                 layer.enabled: true
 
                 MaterialShape {
+                    anchors.fill: parent
                     implicitSize: root.avatarSize
                     shape: MaterialShape.Cookie12Sided
                     color: "white"
-
-                    Anim on rotation {
-                        running: root.dashboardActive
-                        from: 360
-                        to: 0
-                        duration: 20000
-                        easing.type: Easing.Linear
-                        loops: Animation.Infinite
-                    }
+                    rotation: avatarHost.spin
                 }
             }
 
