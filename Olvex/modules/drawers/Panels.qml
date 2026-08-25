@@ -459,18 +459,32 @@ Item {
         anchors.right: parent.right
     }
 
-    // Top-right: drag-only open via Interactions (no click MouseArea — would steal heads-up notifs).
-    // Bottom-right: still click-to-open when bottom panel is off.
+    // Corner click triggers:
+    // Bottom-right corner: click to toggle QS panel
     MouseArea {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        width: 32
-        height: 32
-        visible: !(root.bottomPanelEnabled) && !root.visibilities.qspanel && Config.qspanel.enabled
-        z: 20
+        width: 60
+        height: 60
+        visible: Config.qspanel.enabled
+        z: 30
 
         onClicked: {
-            root.visibilities.qspanel = true;
+            root.visibilities.qspanel = !root.visibilities.qspanel;
+        }
+    }
+
+    // Bottom-left corner: click to toggle launcher
+    MouseArea {
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        width: 60
+        height: 60
+        visible: Config.launcher.enabled
+        z: 30
+
+        onClicked: {
+            root.visibilities.launcher = !root.visibilities.launcher;
         }
     }
 
@@ -527,9 +541,17 @@ Item {
             // Dismiss QS panel and clipboard if clicking empty space in the bottom panel
             MouseArea {
                 anchors.fill: parent
-                onClicked: {
+                onClicked: mouse => {
                     if (root.contextMenuVisible) {
                         root.hideContextMenu();
+                        return;
+                    }
+                    if (mouse.x <= 80) {
+                        root.visibilities.launcher = !root.visibilities.launcher;
+                        return;
+                    }
+                    if (mouse.x >= width - 80) {
+                        root.visibilities.qspanel = !root.visibilities.qspanel;
                         return;
                     }
                     if (root.visibilities.launcher) {

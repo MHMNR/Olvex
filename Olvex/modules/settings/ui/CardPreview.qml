@@ -240,19 +240,6 @@ Item {
                 }
             }
 
-            PreviewPill {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                // Stay inside inset — no negative y (was clipping on hover)
-                anchors.topMargin: 0
-                icon: Colours.light ? "light_mode" : "dark_mode"
-                label: Colours.light ? qsTr("Light") : qsTr("Dark")
-                fg: root.accent
-                bg: Qt.alpha(root.accent, 0.18)
-                maxLabelW: 40
-                maxWidth: Math.max(48, parent.width - 2)
-            }
-
             // Type sample + swatch row — bottom density
             Column {
                 anchors.left: parent.left

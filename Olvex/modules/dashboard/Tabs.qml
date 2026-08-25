@@ -81,19 +81,13 @@ Item {
                     Row {
                         id: cellContent
                         anchors.centerIn: parent
-                        spacing: Tokens.spacing.small
-
-                        scale: cellState.pressed ? 0.94 : (cellState.containsMouse && !cell.isCurrent ? 1.04 : 1.0)
-
-                        Behavior on scale {
-                            Anim { type: Anim.FastSpatial }
-                        }
+                        spacing: Tokens?.spacing?.small ?? 4
 
                         MaterialIcon {
                             anchors.verticalCenter: parent.verticalCenter
                             text: cell.modelData.iconName
                             fill: cell.isCurrent ? 1 : 0
-                            iconPointSize: Tokens.font.size.normal + 1
+                            iconPointSize: (Tokens?.font?.size?.normal ?? 13) + 1
                             color: cell.isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
 
                             Behavior on color {
@@ -104,10 +98,10 @@ Item {
                         StyledText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: cell.modelData.text
-                            font.family: Tokens.font.family.sans
+                            font.family: Tokens?.font?.family?.sans ?? "sans-serif"
                             font.weight: cell.isCurrent ? Font.DemiBold : Font.Medium
                             font.letterSpacing: 0.2
-                            textPointSize: Tokens.font.size.small
+                            textPointSize: Tokens?.font?.size?.small ?? 12
                             color: cell.isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
 
                             Behavior on color {
@@ -116,10 +110,24 @@ Item {
                         }
                     }
 
+                    // Subtle smooth hover highlight pill matching Olvex slider switches
+                    StyledRect {
+                        anchors.fill: parent
+                        radius: height / 2
+                        color: Qt.alpha(Colours.palette.m3onSurface, 0.05)
+                        opacity: cellState.containsMouse && !cell.isCurrent && !cellState.pressed ? 1 : 0
+                        visible: opacity > 0
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+                        }
+                    }
+
                     StateLayer {
                         id: cellState
                         anchors.fill: parent
                         radius: height / 2
+                        showHoverBackground: false
                         color: cell.isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                         onClicked: root.dashState.currentTab = cell.index
                     }

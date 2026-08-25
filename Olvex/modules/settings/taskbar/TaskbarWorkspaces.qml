@@ -20,8 +20,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -77,6 +77,53 @@ Item {
                     checked: Config.bar.workspaces.activeIndicator ?? true
                     onToggled: {
                         GlobalConfig.bar.workspaces.activeIndicator = checked;
+                        GlobalConfig.save();
+                    }
+                }
+            }
+
+            SettingRow {
+                title: qsTr("Active indicator icon")
+                description: qsTr("Icon or number style for the active workspace")
+                divider: true
+                OptionPicker {
+                    id: tbActiveLabelPicker
+                    model: [
+                        { label: qsTr("Filled Circle Number"), preview: "❶", isMaterial: false, value: "filled_number" },
+                        { label: qsTr("Pacman"), preview: "󰮯", isMaterial: false, value: "󰮯" },
+                        { label: qsTr("Star"), preview: "star", isMaterial: true, value: "star" },
+                        { label: qsTr("Plain Number"), preview: "1", isMaterial: false, value: "number" },
+                        { label: qsTr("Circled Number"), preview: "①", isMaterial: false, value: "circle_number" },
+                        { label: qsTr("Arch Linux"), preview: "󰣇", isMaterial: false, value: "󰣇" },
+                        { label: qsTr("Fire"), preview: "local_fire_department", isMaterial: true, value: "local_fire_department" },
+                        { label: qsTr("Lightning"), preview: "bolt", isMaterial: true, value: "bolt" },
+                        { label: qsTr("Sparkles"), preview: "auto_awesome", isMaterial: true, value: "auto_awesome" },
+                        { label: qsTr("Rocket"), preview: "rocket_launch", isMaterial: true, value: "rocket_launch" },
+                        { label: qsTr("Heart"), preview: "favorite", isMaterial: true, value: "favorite" },
+                        { label: qsTr("Terminal"), preview: "terminal", isMaterial: true, value: "terminal" },
+                        { label: qsTr("Code"), preview: "code", isMaterial: true, value: "code" },
+                        { label: qsTr("Dot"), preview: "circle", isMaterial: true, value: "circle" }
+                    ]
+                    currentIndex: {
+                        const cur = Config.bar.workspaces.activeLabel ?? "󰮯";
+                        for (let i = 0; i < model.length; i++) {
+                            const v = model[i].value;
+                            if (v === cur) return i;
+                            if (v === "star" && cur === "") return i;
+                            if (v === "local_fire_department" && cur === "󰈸") return i;
+                            if (v === "bolt" && (cur === "󱐋" || cur === "zap")) return i;
+                            if (v === "auto_awesome" && cur === "󰫢") return i;
+                            if (v === "rocket_launch" && cur === "󰄛") return i;
+                            if (v === "favorite" && cur === "󰋑") return i;
+                            if (v === "terminal" && cur === "󰞷") return i;
+                            if (v === "code" && cur === "󰘐") return i;
+                            if (v === "circle" && cur === "") return i;
+                        }
+                        return 0;
+                    }
+                    onSelected: i => {
+                        const opt = model[i];
+                        GlobalConfig.bar.workspaces.activeLabel = opt.value;
                         GlobalConfig.save();
                     }
                 }

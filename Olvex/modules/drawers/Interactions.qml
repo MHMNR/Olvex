@@ -101,6 +101,19 @@ CustomMouseArea {
         return y <= Math.max(4, safeBorder.thickness + floatingGap);
     }
 
+    // Bottom-left corner hot zone (launcher trigger)
+    function inBottomLeftCorner(x: real, y: real): bool {
+        const edgeH = Math.max(60, safeBorder.thickness + floatingGap + 30);
+        const edgeW = Math.max(60, bar.implicitWidth + 30);
+        return x <= edgeW && y >= height - edgeH;
+    }
+
+    // Bottom-right corner hot zone (QS panel trigger)
+    function inBottomRightCorner(x: real, y: real): bool {
+        const edgeH = Math.max(60, safeBorder.thickness + floatingGap + 30);
+        return x >= width - 60 && y >= height - edgeH;
+    }
+
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         if (!withinPanelWidth(panel, x, y))
             return false;
@@ -133,6 +146,21 @@ CustomMouseArea {
     propagateComposedEvents: true
     onPressed: event => {
         dragStart = Qt.point(event.x, event.y);
+
+        // Click bottom-left corner to toggle launcher
+        if (inBottomLeftCorner(event.x, event.y)) {
+            visibilities.launcher = !visibilities.launcher;
+            event.accepted = true;
+            return;
+        }
+
+        // Click bottom-right corner to toggle QS panel
+        if (inBottomRightCorner(event.x, event.y)) {
+            visibilities.qspanel = !visibilities.qspanel;
+            qspanelShortcutActive = visibilities.qspanel;
+            event.accepted = true;
+            return;
+        }
 
         // Click peeked dashboard to open
         if (Config.dashboard.showOnHover && inTopPanel(panels.dashboard, event.x, event.y) && !visibilities.dashboard) {

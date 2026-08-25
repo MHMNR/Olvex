@@ -81,7 +81,7 @@ Item {
                             color: Colours.palette.m3primary
                             font.weight: Font.SemiBold
                             font.letterSpacing: 0.8
-                            textPointSize: Tokens.font.size.smaller
+                            textPointSize: Tokens?.font?.size?.smaller ?? 11
                         }
                     }
 
@@ -266,7 +266,7 @@ Item {
                                 StyledRect {
                                     implicitWidth: verText.implicitWidth + 14
                                     implicitHeight: 22
-                                    radius: Tokens.rounding.full
+                                    radius: Tokens?.rounding?.full ?? 9999
                                     color: Qt.alpha(Colours.palette.m3primary, 0.12)
                                     border.color: Qt.alpha(Colours.palette.m3primary, 0.28)
                                     border.width: 1
@@ -276,9 +276,9 @@ Item {
                                         anchors.centerIn: parent
                                         text: "v1.0.0"
                                         color: Colours.palette.m3primary
-                                        font.family: Tokens.font.family.mono
+                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
                                         font.weight: Font.Bold
-                                        textPointSize: Tokens.font.size.smaller
+                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
                                     }
                                 }
 
@@ -287,7 +287,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
                                     font.letterSpacing: 0.1
-                                    textPointSize: Tokens.font.size.small
+                                    textPointSize: Tokens?.font?.size?.small ?? 12
                                 }
                             }
                         }
@@ -324,7 +324,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -333,7 +333,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -356,7 +356,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -365,7 +365,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -388,7 +388,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -397,7 +397,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -420,7 +420,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -429,7 +429,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -452,7 +452,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -461,7 +461,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -484,7 +484,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -493,7 +493,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -543,7 +543,7 @@ Item {
                                 color: Colours.palette.m3primary
                                 font.weight: Font.SemiBold
                                 font.letterSpacing: 0.8
-                                textPointSize: Tokens.font.size.smaller
+                                textPointSize: Tokens?.font?.size?.smaller ?? 11
                             }
                         }
 
@@ -564,7 +564,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -573,7 +573,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -596,7 +596,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.SemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
 
@@ -607,7 +607,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
+                                textPointSize: Tokens?.font?.size?.normal ?? 13
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -633,7 +633,7 @@ Item {
                                         color: Colours.palette.m3onSurfaceVariant
                                         font.weight: Font.SemiBold
                                         font.letterSpacing: 0.8
-                                        textPointSize: Tokens.font.size.smaller
+                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
                                     }
                                 }
 
@@ -645,15 +645,15 @@ Item {
                                     StyledText {
                                         text: root.memUsedGB.toFixed(1) + " / " + root.memTotalGB.toFixed(1) + " GB"
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.family: Tokens.font.family.mono
+                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens.font.size.smaller
+                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
                                     }
 
                                     StyledRect {
                                         implicitWidth: ramBadge.implicitWidth + 12
                                         implicitHeight: 20
-                                        radius: Tokens.rounding.full
+                                        radius: Tokens?.rounding?.full ?? 9999
                                         color: Qt.alpha(Colours.palette.m3primary, 0.14)
 
                                         StyledText {
@@ -661,9 +661,9 @@ Item {
                                             anchors.centerIn: parent
                                             text: root.memPercInt + "%"
                                             color: Colours.palette.m3primary
-                                            font.family: Tokens.font.family.mono
+                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
                                             font.weight: Font.Bold
-                                            textPointSize: Tokens.font.size.smaller
+                                            textPointSize: Tokens?.font?.size?.smaller ?? 11
                                         }
                                     }
                                 }
@@ -709,7 +709,7 @@ Item {
                                         color: Colours.palette.m3onSurfaceVariant
                                         font.weight: Font.SemiBold
                                         font.letterSpacing: 0.8
-                                        textPointSize: Tokens.font.size.smaller
+                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
                                     }
                                 }
 
@@ -721,15 +721,15 @@ Item {
                                     StyledText {
                                         text: root.storageUsedGB.toFixed(1) + " / " + root.storageTotalGB.toFixed(1) + " GB"
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.family: Tokens.font.family.mono
+                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens.font.size.smaller
+                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
                                     }
 
                                     StyledRect {
                                         implicitWidth: storeBadge.implicitWidth + 12
                                         implicitHeight: 20
-                                        radius: Tokens.rounding.full
+                                        radius: Tokens?.rounding?.full ?? 9999
                                         color: Qt.alpha(Colours.palette.m3secondary, 0.14)
 
                                         StyledText {
@@ -737,9 +737,9 @@ Item {
                                             anchors.centerIn: parent
                                             text: root.storagePercInt + "%"
                                             color: Colours.palette.m3secondary
-                                            font.family: Tokens.font.family.mono
+                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
                                             font.weight: Font.Bold
-                                            textPointSize: Tokens.font.size.smaller
+                                            textPointSize: Tokens?.font?.size?.smaller ?? 11
                                         }
                                     }
                                 }
@@ -801,7 +801,7 @@ Item {
                                 color: Colours.palette.m3primary
                                 font.weight: Font.SemiBold
                                 font.letterSpacing: 0.8
-                                textPointSize: Tokens.font.size.smaller
+                                textPointSize: Tokens?.font?.size?.smaller ?? 11
                             }
                         }
 
@@ -813,7 +813,7 @@ Item {
                                 id: profileAvatar
                                 Layout.preferredWidth: 44
                                 Layout.preferredHeight: 44
-                                radius: Tokens.rounding.full
+                                radius: Tokens?.rounding?.full ?? 9999
                                 color: profileArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.25) : Qt.alpha(Colours.palette.m3primary, 0.15)
                                 border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
                                 border.width: 1.5
@@ -842,7 +842,7 @@ Item {
                                     text: "M"
                                     color: Colours.palette.m3primary
                                     font.weight: Font.Bold
-                                    textPointSize: Tokens.font.size.large
+                                    textPointSize: Tokens?.font?.size?.large ?? 16
                                     visible: avatarImg.status !== Image.Ready
                                 }
 
@@ -884,7 +884,7 @@ Item {
                                         color: creatorArea.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onSurface
                                         font.weight: Font.Bold
                                         font.letterSpacing: -0.1
-                                        textPointSize: Tokens.font.size.normal
+                                        textPointSize: Tokens?.font?.size?.normal ?? 13
 
                                         Behavior on color { CAnim {} }
 
@@ -900,9 +900,9 @@ Item {
                                     StyledText {
                                         text: "(@MHMNR)"
                                         color: Colours.palette.m3primary
-                                        font.family: Tokens.font.family.mono
+                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens.font.size.smaller
+                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
                                     }
                                 }
 
@@ -911,7 +911,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
                                     font.letterSpacing: 0.1
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
                                 }
                             }
                         }
@@ -954,14 +954,14 @@ Item {
                                             text: qsTr("Repository")
                                             color: Colours.palette.m3onSurface
                                             font.weight: Font.SemiBold
-                                            textPointSize: Tokens.font.size.small
+                                            textPointSize: Tokens?.font?.size?.small ?? 12
                                         }
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex"
                                             color: Colours.palette.m3primary
-                                            font.family: Tokens.font.family.mono
+                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.smaller - 1
+                                            textPointSize: (Tokens?.font?.size?.smaller ?? 11) - 1
                                         }
                                     }
 
@@ -1016,14 +1016,14 @@ Item {
                                             text: qsTr("Config Directory")
                                             color: Colours.palette.m3onSurface
                                             font.weight: Font.SemiBold
-                                            textPointSize: Tokens.font.size.small
+                                            textPointSize: Tokens?.font?.size?.small ?? 12
                                         }
                                         StyledText {
                                             text: "~/.config/olvex"
                                             color: Colours.palette.m3tertiary
-                                            font.family: Tokens.font.family.mono
+                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.smaller - 1
+                                            textPointSize: (Tokens?.font?.size?.smaller ?? 11) - 1
                                         }
                                     }
 
@@ -1078,14 +1078,14 @@ Item {
                                             text: qsTr("Report Issue")
                                             color: Colours.palette.m3onSurface
                                             font.weight: Font.SemiBold
-                                            textPointSize: Tokens.font.size.small
+                                            textPointSize: Tokens?.font?.size?.small ?? 12
                                         }
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex/issues"
                                             color: Colours.palette.m3error
-                                            font.family: Tokens.font.family.mono
+                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
                                             font.weight: Font.Medium
-                                            textPointSize: Tokens.font.size.smaller - 1
+                                            textPointSize: (Tokens?.font?.size?.smaller ?? 11) - 1
                                         }
                                     }
 

@@ -72,6 +72,35 @@ Item {
         return s.split(/[\s_-]+/).map(w => w.length ? (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : w).join(" ");
     }
 
+    function previewOf(v): string {
+        if (v === undefined || v === null) return "";
+        if (v.preview !== undefined) return String(v.preview);
+        if (v.icon !== undefined) return String(v.icon);
+        return "";
+    }
+
+    function isMaterialPreview(v): bool {
+        if (v === undefined || v === null) return false;
+        if (v.isMaterial !== undefined) return Boolean(v.isMaterial);
+        const p = root.previewOf(v);
+        if (!p || p.length === 0) return false;
+        const knownMaterial = [
+            "star", "local_fire_department", "bolt", "auto_awesome", "rocket_launch",
+            "favorite", "terminal", "code", "circle", "videogame_asset", "pacman",
+            "sports_esports", "diamond", "brightness_5", "bedtime", "visibility"
+        ];
+        return knownMaterial.includes(p) || /^[a-z][a-z0-9_]{2,}$/.test(p);
+    }
+
+    function isCircledText(t: string): bool {
+        if (!t || t.length === 0) return false;
+        const code = t.charCodeAt(0);
+        return (code >= 0x2776 && code <= 0x277F)
+            || (code >= 0x2460 && code <= 0x2473)
+            || (code >= 0x24EB && code <= 0x24F4)
+            || (code >= 0x2780 && code <= 0x2789);
+    }
+
     function labelOf(i: int): string {
         if (!model || i < 0 || i >= model.length) return qsTr("Select\u2026");
         return root.displayName(model[i]);
@@ -160,6 +189,37 @@ Item {
             anchors.centerIn: parent
             spacing: Tokens.spacing.small
 
+            readonly property string currentPrev: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.previewOf(root.model[root.currentIndex]) : ""
+            readonly property bool isMat: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.isMaterialPreview(root.model[root.currentIndex]) : false
+
+            Item {
+                visible: faceRow.currentPrev.length > 0
+                Layout.preferredWidth: visible ? 20 : 0
+                Layout.preferredHeight: 20
+                Layout.alignment: Qt.AlignVCenter
+
+                StyledText {
+                    anchors.centerIn: parent
+                    visible: !faceRow.isMat
+                    text: faceRow.currentPrev
+                    color: Colours.palette.m3onPrimary
+                    textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.smaller ?? 11)
+                    font.weight: Font.Medium
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    visible: faceRow.isMat
+                    text: faceRow.currentPrev
+                    color: Colours.palette.m3onPrimary
+                    iconPointSize: Tokens.font.size.normal
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                }
+            }
+
             Item {
                 Layout.preferredWidth: Math.min(faceText.implicitWidth, 160)
                 Layout.preferredHeight: faceText.implicitHeight
@@ -177,12 +237,12 @@ Item {
                     
                     SequentialAnimation on x {
                         loops: Animation.Infinite
-                        running: root.visible && faceText.implicitWidth > parent.width && !root.expanded
+                        running: Boolean(parent) && root.visible && faceText.implicitWidth > (parent ? parent.width : 0) && !root.expanded
                         PauseAnimation { duration: 1500 }
                         NumberAnimation {
                             from: 0
-                            to: parent.width - faceText.implicitWidth
-                            duration: Math.max(0, faceText.implicitWidth - parent.width) * 30
+                            to: (parent ? parent.width : 0) - faceText.implicitWidth
+                            duration: Math.max(0, faceText.implicitWidth - (parent ? parent.width : 0)) * 30
                         }
                         PauseAnimation { duration: 1500 }
                         NumberAnimation {
@@ -273,14 +333,49 @@ Item {
             Behavior on radius { Anim { type: Anim.DefaultSpatial } }
 
             // Absolute positioning for flawless M3 Shared Element text glide
+            readonly property string currentPrev: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.previewOf(root.model[root.currentIndex]) : ""
+            readonly property bool isMat: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.isMaterialPreview(root.model[root.currentIndex]) : false
+            readonly property real prevStartW: currentPrev.length > 0 ? (20 + Tokens.spacing.small) : 0
             readonly property real textStartW: travelingText.width
             readonly property real iconStartW: travelingIcon.width
-            readonly property real totalStartW: textStartW + Tokens.spacing.small + iconStartW
+            readonly property real totalStartW: prevStartW + textStartW + Tokens.spacing.small + iconStartW
             readonly property real contentStartX: (root.startW - totalStartW) / 2
+
+            Item {
+                id: travelingPreview
+                visible: travelingPill.currentPrev.length > 0
+                x: root.morphState === "open" ? Tokens.padding.normal : travelingPill.contentStartX
+                anchors.verticalCenter: parent.verticalCenter
+                width: 20
+                height: 20
+
+                Behavior on x { Anim { type: Anim.DefaultSpatial } }
+
+                StyledText {
+                    anchors.centerIn: parent
+                    visible: !travelingPill.isMat
+                    text: travelingPill.currentPrev
+                    color: Colours.palette.m3onPrimary
+                    textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.smaller ?? 11)
+                    font.weight: Font.Medium
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    visible: travelingPill.isMat
+                    text: travelingPill.currentPrev
+                    color: Colours.palette.m3onPrimary
+                    iconPointSize: Tokens.font.size.normal
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                }
+            }
 
             StyledText {
                 id: travelingText
-                x: root.morphState === "open" ? Tokens.padding.normal : parent.contentStartX
+                x: root.morphState === "open" ? (Tokens.padding.normal + travelingPill.prevStartW) : (travelingPill.contentStartX + travelingPill.prevStartW)
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.labelOf(root.currentIndex)
                 color: Colours.palette.m3onPrimary
@@ -373,38 +468,76 @@ Item {
                     implicitHeight: root.rowHeight
                     height: implicitHeight
 
-                    Item {
+                    RowLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: Tokens.padding.normal
                         anchors.rightMargin: Tokens.padding.normal
-                        height: rowText.implicitHeight
-                        clip: true
+                        spacing: Tokens.spacing.small
 
-                        StyledText {
-                            id: rowText
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: row.label
-                            opacity: row.active ? 0 : 1 // Active label is drawn by travelingPill
-                            color: Colours.palette.m3onSurface
-                            font.family: row.previewAsFont ? String(row.modelData) : (Tokens?.font?.family?.sans ?? "sans-serif")
-                            textPointSize: Tokens.font.size.smaller
-                            
-                            SequentialAnimation on x {
-                                loops: Animation.Infinite
-                                running: rowText.implicitWidth > parent.width && root.expanded && opacity > 0
-                                PauseAnimation { duration: 1500 }
-                                NumberAnimation {
-                                    from: 0
-                                    to: parent.width - rowText.implicitWidth
-                                    duration: Math.max(0, rowText.implicitWidth - parent.width) * 30
-                                }
-                                PauseAnimation { duration: 1500 }
-                                NumberAnimation {
-                                    to: 0
-                                    duration: 400
-                                    easing.type: Easing.InOutQuad
+                        Item {
+                            visible: rowPrev.length > 0
+                            Layout.preferredWidth: visible ? 20 : 0
+                            Layout.preferredHeight: 20
+                            Layout.alignment: Qt.AlignVCenter
+
+                            readonly property string rowPrev: root.previewOf(row.modelData)
+                            readonly property bool isMat: root.isMaterialPreview(row.modelData)
+
+                            StyledText {
+                                anchors.centerIn: parent
+                                visible: !parent.isMat
+                                text: parent.rowPrev
+                                opacity: row.active ? 0 : 1
+                                color: Colours.palette.m3onSurface
+                                textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.smaller ?? 11)
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                visible: parent.isMat
+                                text: parent.rowPrev
+                                opacity: row.active ? 0 : 1
+                                color: Colours.palette.m3onSurface
+                                iconPointSize: Tokens.font.size.normal
+                                verticalAlignment: Text.AlignVCenter
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: rowText.implicitHeight
+                            Layout.alignment: Qt.AlignVCenter
+                            clip: true
+
+                            StyledText {
+                                id: rowText
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: row.label
+                                opacity: row.active ? 0 : 1 // Active label is drawn by travelingPill
+                                color: Colours.palette.m3onSurface
+                                font.family: row.previewAsFont ? String(row.modelData) : (Tokens?.font?.family?.sans ?? "sans-serif")
+                                textPointSize: Tokens.font.size.smaller
+                                
+                                SequentialAnimation on x {
+                                    loops: Animation.Infinite
+                                    running: Boolean(parent) && rowText.implicitWidth > (parent ? parent.width : 0) && root.expanded && opacity > 0
+                                    PauseAnimation { duration: 1500 }
+                                    NumberAnimation {
+                                        from: 0
+                                        to: (parent ? parent.width : 0) - rowText.implicitWidth
+                                        duration: Math.max(0, rowText.implicitWidth - (parent ? parent.width : 0)) * 30
+                                    }
+                                    PauseAnimation { duration: 1500 }
+                                    NumberAnimation {
+                                        to: 0
+                                        duration: 400
+                                        easing.type: Easing.InOutQuad
+                                    }
                                 }
                             }
                         }

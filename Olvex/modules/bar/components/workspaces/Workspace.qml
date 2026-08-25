@@ -80,11 +80,86 @@ Item {
         }
     }
 
+    function isMaterialSymbol(str: string): bool {
+        if (!str || str.length === 0) return false;
+        const knownMaterial = [
+            "star", "local_fire_department", "bolt", "auto_awesome", "rocket_launch",
+            "favorite", "terminal", "code", "circle", "videogame_asset", "pacman",
+            "sports_esports", "diamond", "brightness_5", "bedtime", "visibility"
+        ];
+        if (knownMaterial.includes(str.trim())) return true;
+        return /^[a-z][a-z0-9_]{2,}$/.test(str.trim());
+    }
+
+    function formatWsLabel(pattern: string, wsId: int): string {
+        if (!pattern || pattern.length === 0)
+            return wsId.toString();
+
+        const filledNumbers = [
+            "❶", "❷", "❸", "❹", "❺", "❻", "❼", "❽", "❾", "❿",
+            "⓫", "⓬", "⓭", "⓮", "⓯", "⓰", "⓱", "⓲", "⓳", "⓴"
+        ];
+        const circledNumbers = [
+            "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩",
+            "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳"
+        ];
+
+        const trimmed = pattern.trim();
+        const lower = trimmed.toLowerCase();
+
+        if (lower === "filled_number" || lower === "filled_circle" || lower === "circled_number" || lower === "badge_number" || lower === "filled") {
+            const idx = wsId - 1;
+            if (idx >= 0 && idx < filledNumbers.length)
+                return filledNumbers[idx];
+            return wsId.toString();
+        }
+        if (lower === "circle_number" || lower === "circled" || lower === "circle_num") {
+            const idx = wsId - 1;
+            if (idx >= 0 && idx < circledNumbers.length)
+                return circledNumbers[idx];
+            return wsId.toString();
+        }
+        if (lower === "number" || lower === "index" || lower === "plain_number" || lower === "digit") {
+            return wsId.toString();
+        }
+
+        // Aliases to material symbols or nerd glyphs
+        if (lower === "star" || pattern === "") return "star";
+        if (lower === "fire" || pattern === "󰈸") return "local_fire_department";
+        if (lower === "bolt" || lower === "zap" || lower === "lightning" || pattern === "󱐋") return "bolt";
+        if (lower === "sparkles" || pattern === "󰫢") return "auto_awesome";
+        if (lower === "rocket" || pattern === "󰄛") return "rocket_launch";
+        if (lower === "heart" || pattern === "󰋑") return "favorite";
+        if (lower === "terminal" || pattern === "󰞷") return "terminal";
+        if (lower === "code" || pattern === "󰘐") return "code";
+        if (lower === "circle" || lower === "dot" || pattern === "") return "circle";
+        if (lower === "pacman") return "󰮯";
+        if (lower === "arch") return "󰣇";
+
+        if (pattern.includes("{number}"))
+            return pattern.replace(/{number}/g, wsId.toString());
+        if (pattern.includes("{index}"))
+            return pattern.replace(/{index}/g, wsId.toString());
+        if (pattern.includes("{filled}")) {
+            const idx = wsId - 1;
+            const filled = (idx >= 0 && idx < filledNumbers.length) ? filledNumbers[idx] : wsId.toString();
+            return pattern.replace(/{filled}/g, filled);
+        }
+        if (pattern.includes("{circle}")) {
+            const idx = wsId - 1;
+            const circle = (idx >= 0 && idx < circledNumbers.length) ? circledNumbers[idx] : wsId.toString();
+            return pattern.replace(/{circle}/g, circle);
+        }
+
+        return trimmed;
+    }
+
     // ── Detail: number + open-app glyphs (current, or any slot while expanded) ──
     ColumnLayout {
         id: detailCol
 
         anchors.centerIn: parent
+        width: root.width
         spacing: 0
 
         opacity: root.showDetail ? 1 : 0
@@ -103,13 +178,16 @@ Item {
             }
         }
 
-        StyledText {
-            id: labelText
+        Item {
+            id: labelContainer
 
             Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+            Layout.preferredWidth: root.width
+            Layout.preferredHeight: root.labelHeight
+            implicitWidth: root.width
+            implicitHeight: root.labelHeight
 
-            animate: true
-            text: {
+            readonly property string currentText: {
                 const ws = Hypr.workspaces.values.find(w => w.id === root.ws);
                 const wsName = !ws || ws.name == root.ws ? root.ws : ws.name[0];
                 let displayName = wsName.toString();
@@ -118,13 +196,58 @@ Item {
                 } else if (Config.bar.workspaces.capitalisation.toLowerCase() === "lower") {
                     displayName = displayName.toLowerCase();
                 }
+
+                const activePattern = Config.bar.workspaces.activeLabel || "󰮯";
+                if (root.isCurrent || root.isOccupied) {
+                    return root.formatWsLabel(activePattern, root.ws);
+                }
+
                 const label = Config.bar.workspaces.label || displayName;
-                const occupiedLabel = Config.bar.workspaces.occupiedLabel || label;
-                const activeLabel = Config.bar.workspaces.activeLabel || (root.isOccupied ? occupiedLabel : label);
-                return root.isCurrent ? activeLabel : root.isOccupied ? occupiedLabel : label;
+                return root.formatWsLabel(label, root.ws);
             }
-            color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
-            verticalAlignment: Qt.AlignVCenter
+
+            readonly property bool isMaterial: root.isMaterialSymbol(currentText)
+            readonly property bool isCircledNumber: {
+                const t = currentText;
+                if (!t || t.length === 0) return false;
+                const code = t.charCodeAt(0);
+                return (code >= 0x2776 && code <= 0x277F)
+                    || (code >= 0x2460 && code <= 0x2473)
+                    || (code >= 0x24EB && code <= 0x24F4)
+                    || (code >= 0x2780 && code <= 0x2789);
+            }
+
+            StyledText {
+                id: labelText
+
+                anchors.centerIn: parent
+                width: parent.width
+
+                textPointSize: labelContainer.isCircledNumber ? ((Tokens?.font?.size?.larger ?? 18) + 1) : (Tokens?.font?.size?.normal ?? 13)
+
+                visible: !labelContainer.isMaterial
+                animate: true
+                text: labelContainer.currentText
+                color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            MaterialIcon {
+                id: labelIcon
+
+                anchors.centerIn: parent
+                width: parent.width
+
+                iconPointSize: Tokens?.font?.size?.larger ?? 18
+
+                visible: labelContainer.isMaterial
+                animate: true
+                text: labelContainer.currentText
+                color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
 
         Loader {
@@ -133,6 +256,7 @@ Item {
             asynchronous: true
 
             Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
 
             // Stays loaded whenever occupied (not gated on showDetail) so its
             // height is always known for detailHeight above — visibility is
@@ -142,6 +266,7 @@ Item {
 
             sourceComponent: Column {
                 spacing: 0
+                width: root.width
 
                 add: Transition {
                     Anim {
@@ -175,6 +300,11 @@ Item {
 
                     MaterialIcon {
                         required property var modelData
+
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
 
                         grade: 0
                         text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
