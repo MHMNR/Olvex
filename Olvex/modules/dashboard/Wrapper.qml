@@ -59,6 +59,9 @@ Item {
     }
 
     visible: offsetScale < 1 || (peekOffset > 0 && Config.dashboard.enabled)
+    layer.enabled: peekOffset > 0 && !shouldBeActive
+    layer.smooth: true
+
     // Top margin defaults to fully hiding the panel (-implicitHeight - 10)
     // If hovered and inactive, we peek 7px by adding 17 (10 + 7) to the top margin
     property real peekOffset: (hovered && !shouldBeActive) ? 17 : 0
@@ -69,13 +72,13 @@ Item {
         }
     }
 
-    anchors.topMargin: (-implicitHeight - 10 + peekOffset) * offsetScale
+    anchors.topMargin: (-implicitHeight - 10) * offsetScale + peekOffset * offsetScale
 
     // Stabilize dimensions to prevent jitter during first load
     implicitHeight: Math.max(480, content.implicitHeight)
     implicitWidth: Math.max(854, content.implicitWidth)
-    // Match launcher: linear 1-offsetScale (snaps to fully opaque at rest).
-    opacity: 1 - offsetScale
+    // Match QS panel: quadratic 1 - (offsetScale * offsetScale)
+    opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)
 
     Behavior on offsetScale {
         Anim {
@@ -89,7 +92,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
-        active: root.shouldBeActive || closeGrace.running
+        active: true
 
         sourceComponent: Content {
             dashboardActive: root.dashboardActive
