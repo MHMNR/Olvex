@@ -167,6 +167,18 @@ CustomMouseArea {
             return;
         }
 
+        // Dismiss popout menus (tray context menu, popouts) when clicking outside
+        if (popouts.hasCurrent) {
+            const inPopout = inLeftPanel(panels.popoutsWrapper, event.x, event.y);
+            const inBarArea = event.x < bar.implicitWidth;
+            if (!inPopout && !inBarArea) {
+                popouts.hasCurrent = false;
+                bar.closeTray();
+                event.accepted = false;
+                return;
+            }
+        }
+
         // Dismiss qspanel (QS panel) when clicking outside — only if NOT on a shell panel.
         // Must close + reject here (not ContentWindow MouseArea) so Wayland gets the event.
         if (visibilities.qspanel) {

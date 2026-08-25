@@ -20,7 +20,8 @@ Singleton {
 
     // ── Bar Notification Pill State ──
     property NotifData currentBarNotif: null
-    readonly property bool hasBarNotif: currentBarNotif !== null && !currentBarNotif.closed
+    property bool barNotifPopping: false
+    readonly property bool hasBarNotif: (currentBarNotif !== null && !currentBarNotif.closed) || (barQueue && barQueue.some(n => n && !n.closed)) || barNotifPopping
     property list<NotifData> barQueue: []
     readonly property var allBarNotifs: {
         let res = [];
@@ -92,10 +93,10 @@ Singleton {
             dismissBarNotif();
             return;
         }
-        if (root.currentBarNotif === notif) {
+        if (!root.currentBarNotif || root.currentBarNotif === notif || (notif.id && root.currentBarNotif.id === notif.id)) {
             dismissBarNotif();
         } else {
-            root.barQueue = root.barQueue.filter(n => n !== notif && !n.closed);
+            root.barQueue = root.barQueue.filter(n => n !== notif && (!notif.id || n.id !== notif.id) && !n.closed);
         }
     }
 
@@ -105,12 +106,15 @@ Singleton {
         const nextQueue = root.barQueue.filter(n => !n.closed && n !== root.currentBarNotif);
         if (nextQueue.length > 0) {
             const next = nextQueue[0];
-            root.barQueue = nextQueue.slice(1);
+            const remainingQueue = nextQueue.slice(1);
+            root.barNotifPopping = true;
             root.currentBarNotif = next;
+            root.barQueue = remainingQueue;
             root.notificationPopped(popped, next);
             barExpireTimer.interval = Math.max(7000, next.expireTimeout > 0 ? next.expireTimeout : 8000);
             barExpireTimer.restart();
         } else {
+            root.barNotifPopping = false;
             root.barQueue = [];
             root.currentBarNotif = null;
             root.notificationPopped(popped, null);

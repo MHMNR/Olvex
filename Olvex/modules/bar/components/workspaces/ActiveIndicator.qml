@@ -94,7 +94,6 @@ StyledRect {
     }
 
     component EAnim: Anim {
-        type: Anim.FastSpatial
-        duration: 600
+        type: Anim.DefaultSpatial
     }
 }

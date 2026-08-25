@@ -139,7 +139,8 @@ Item {
                 const targetCircY = Math.max(0, root.height - olderHeightAfter);
                 const targetTopH = Math.max(root.pillWidth, root.height - olderHeightAfter - Tokens.spacing.small);
 
-                incomingPill.y = 0;
+                incomingPill.useBottomEdge = false;
+                incomingPill.manualY = 0;
                 incomingPill.height = root.pillWidth;
                 incomingPill.opacity = 0.0;
                 incomingPill.scale = 0.6;
@@ -159,13 +160,16 @@ Item {
 
                 const isFromOverlay = (Notifs.activeMorphNotif && Notifs.activeMorphNotif.id === poppedNotif.id) || (Notifs.notifMorphRendering && Notifs.activeMorphNotif);
 
-                const oldCount = olderCirclesModel.count + 1;
+                const actualNewCount = root.olderNotifs.length;
+                const actualOldCount = newTopNotif ? actualNewCount + 1 : 0;
+
+                const oldCount = actualOldCount;
                 const oldOlderCirclesHeight = oldCount * root.pillWidth + Math.max(0, oldCount - 1) * Tokens.spacing.small;
                 const oldTargetCircY = Math.max(0, root.height - oldOlderCirclesHeight);
                 const oldTopH = Math.max(root.pillWidth, root.height - oldOlderCirclesHeight - Tokens.spacing.small);
 
-                const newOlderCirclesHeight = olderCirclesModel.count * root.pillWidth + Math.max(0, olderCirclesModel.count - 1) * Tokens.spacing.small;
-                const finalTargetTopH = Math.max(root.pillWidth, root.height - newOlderCirclesHeight - Tokens.spacing.small);
+                const newOlderCirclesHeight = actualNewCount * root.pillWidth + Math.max(0, actualNewCount - 1) * Tokens.spacing.small;
+                const finalTargetTopH = Math.max(root.pillWidth, root.height - newOlderCirclesHeight - (actualNewCount > 0 ? Tokens.spacing.small : 0));
 
                 shrinkingPill.y = 0;
                 shrinkingPill.height = oldTopH;
@@ -173,7 +177,8 @@ Item {
                 shrinkingPill.opacity = isFromOverlay ? 0.0 : 1.0;
                 shrinkingPill.scale = 1.0;
 
-                incomingPill.y = oldTargetCircY;
+                incomingPill.useBottomEdge = true;
+                incomingPill.targetBottomEdge = oldTargetCircY + root.pillWidth;
                 incomingPill.height = root.pillWidth;
                 incomingPill.textAlpha = 0.0;
                 incomingPill.opacity = 1.0;
@@ -184,7 +189,6 @@ Item {
                 popShrinkScaleAnim.from = 1.0;
                 popShrinkScaleAnim.to = 0.8;
                 
-                popExpandYAnim.to = 0;
                 popExpandHAnim.to = finalTargetTopH;
                 
                 popUpAnim.restart();
@@ -279,13 +283,7 @@ Item {
             easing: Tokens.anim.expressiveDefaultSpatial
         }
 
-        NumberAnimation {
-            id: popExpandYAnim
-            target: incomingPill
-            property: "y"
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
-        }
+
         NumberAnimation {
             id: popExpandHAnim
             target: incomingPill
@@ -378,6 +376,11 @@ Item {
         color: Colours.palette.m3secondaryContainer
         visible: root.isPushingDown || root.isPoppingUp
         z: 9
+
+        property bool useBottomEdge: false
+        property real targetBottomEdge: 0
+        property real manualY: 0
+        y: useBottomEdge ? targetBottomEdge - height : manualY
 
         property real textAlpha: 0.0
 

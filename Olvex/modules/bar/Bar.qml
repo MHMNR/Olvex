@@ -71,7 +71,8 @@ ColumnLayout {
         for (let i = 0; i < repeater.count; i++) {
             const loader = repeater.itemAt(i);
             if (loader?.enabled && loader.id === "activeWindow") {
-                return loader.item?.playerActive ?? false;
+                const aw = loader.item;
+                return aw ? (aw.playerActive || aw.isMusicClosing) : false;
             }
         }
         return false;
@@ -193,8 +194,8 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "spacer"
                 delegate: WrappedLoader {
-                    visible: enabled && root.isMusicMode
-                    Layout.fillHeight: enabled && root.isMusicMode
+                    visible: false
+                    Layout.fillHeight: false
                 }
             }
             DelegateChoice {

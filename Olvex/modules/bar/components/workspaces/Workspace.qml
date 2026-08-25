@@ -71,7 +71,7 @@ Item {
 
         Behavior on scale {
             Anim {
-                type: Anim.FastEffects
+                type: Anim.FastSpatial
             }
         }
 
@@ -99,7 +99,7 @@ Item {
 
         Behavior on scale {
             Anim {
-                type: Anim.FastEffects
+                type: Anim.FastSpatial
             }
         }
 

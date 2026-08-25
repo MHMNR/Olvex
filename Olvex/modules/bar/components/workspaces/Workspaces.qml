@@ -79,12 +79,6 @@ StyledClippingRect {
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
 
-    Behavior on implicitHeight {
-        Anim {
-            type: Anim.DefaultSpatial
-        }
-    }
-
 
 
     MouseArea {
@@ -92,7 +86,7 @@ StyledClippingRect {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width
-        height: Math.max(parent.height, root.expandedContentHeight + Tokens.padding.small * 2)
+        height: root.expanded ? Math.max(parent.height, root.expandedContentHeight + Tokens.padding.small * 2) : parent.height
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
         propagateComposedEvents: true

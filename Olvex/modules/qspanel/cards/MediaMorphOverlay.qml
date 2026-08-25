@@ -491,10 +491,35 @@ Item {
         }
 
         // ── Neon wave visualizer ───────────────────────────────────────────────
-        StyledClippingRect {
+        Item {
             anchors.fill: parent
-            radius: musicPill.radius
-            color: "transparent"
+            visible: opacity > 0.01
+            opacity: root.mediaVisualizerActive ? 1 : 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            layer.enabled: root.mediaVisualizerActive
+            layer.effect: OpacityMask {
+                maskSource: visualizerOverlayMask
+            }
+
+            Item {
+                id: visualizerOverlayMask
+                anchors.fill: parent
+                layer.enabled: true
+                visible: false
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: musicPill.radius
+                    color: "black"
+                }
+            }
 
             Loader {
                 anchors.fill: parent

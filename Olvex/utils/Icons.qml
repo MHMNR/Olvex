@@ -142,18 +142,14 @@ Singleton {
                 return direct;
         }
 
-        // 2. Extracted theme icon or direct file path from image URL
-        if (notif.image && typeof notif.image === "string" && notif.image.length > 0) {
-            const iconName = iconNameFromUrl(notif.image);
-            if (iconName) {
-                let resolved = resolveIcon(iconName, "");
-                if (resolved)
-                    return resolved;
-            } else if (notif.image.startsWith("/") || notif.image.startsWith("file://") || notif.image.startsWith("~")) {
-                let fileUrl = _fileIconUrl(notif.image);
-                if (fileUrl)
-                    return fileUrl;
-            }
+        // 2. Desktop entry property if present
+        if (notif.desktopEntry && typeof notif.desktopEntry === "string" && notif.desktopEntry.length > 0) {
+            let appIcon = getAppIcon(notif.desktopEntry, "");
+            if (appIcon)
+                return appIcon;
+            let direct = resolveIcon(notif.desktopEntry, "");
+            if (direct)
+                return direct;
         }
 
         // 3. Heuristic / desktop entry lookup by appName
@@ -166,11 +162,18 @@ Singleton {
                 return direct;
         }
 
-        // 4. Desktop entry property if present
-        if (notif.desktopEntry && typeof notif.desktopEntry === "string" && notif.desktopEntry.length > 0) {
-            let appIcon = getAppIcon(notif.desktopEntry, "");
-            if (appIcon)
-                return appIcon;
+        // 4. Extracted theme icon or direct file path from image URL (only if no app icon found)
+        if (notif.image && typeof notif.image === "string" && notif.image.length > 0) {
+            const iconName = iconNameFromUrl(notif.image);
+            if (iconName) {
+                let resolved = resolveIcon(iconName, "");
+                if (resolved)
+                    return resolved;
+            } else if (notif.image.startsWith("/") || notif.image.startsWith("file://") || notif.image.startsWith("~")) {
+                let fileUrl = _fileIconUrl(notif.image);
+                if (fileUrl)
+                    return fileUrl;
+            }
         }
 
         // 5. Fallback

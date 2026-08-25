@@ -1,7 +1,6 @@
-
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
-import Quickshell.Services.SystemTray
 import Olvex.Config
 import qs.components
 import qs.services
@@ -11,28 +10,38 @@ StyledRect {
 
     readonly property alias layout: layout
     readonly property alias items: items
-    readonly property alias expandIcon: expandIcon
+    readonly property alias expandBtn: expandBtn
+    readonly property alias expandIcon: expandBtn
 
     readonly property int padding: Config.bar.tray.background ? Tokens.padding.normal : Tokens.padding.small
-    readonly property int spacing: Config.bar.tray.background ? Tokens.spacing.small : 0
+    readonly property int spacing: Config.bar.tray.background ? Tokens.spacing.small : 4
 
-    property bool expanded: false
+    property var bar: null
 
-    readonly property real nonAnimHeight: {
-        if (items.count === 0) return 0;
-        if (!Config.bar.tray.compact)
+    property bool expanded: !Config.bar.tray.compact
+
+    readonly property real collapsedSize: Tokens.sizes.bar.innerWidth
+    readonly property real contentHeight: {
+        if (!TrayService.hasItems) return 0;
+        if (!Config.bar.tray.compact) {
             return layout.implicitHeight + padding * 2;
-        return (expanded ? expandIcon.implicitHeight + layout.implicitHeight + spacing : expandIcon.implicitHeight) + padding * 2;
+        }
+        return expanded ? (layout.implicitHeight + 32 + spacing + padding * 2) : collapsedSize;
     }
 
     clip: true
-    visible: implicitHeight > 0
+    visible: TrayService.hasItems
 
-    implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: nonAnimHeight
+    implicitWidth: collapsedSize
+    implicitHeight: contentHeight
+    width: implicitWidth
+    height: implicitHeight
 
-    color: Qt.alpha(Colours.tPalette.m3surfaceContainer, (Config.bar.tray.background && items.count > 0) ? Colours.tPalette.m3surfaceContainer.a : 0)
-    radius: Tokens.rounding.full
+    Layout.preferredWidth: width
+    Layout.preferredHeight: height
+
+    color: Qt.alpha(Colours.tPalette.m3surfaceContainer, (Config.bar.tray.background && TrayService.hasItems) ? Colours.tPalette.m3surfaceContainer.a : 0)
+    radius: width / 2
     border.width: 1
     border.color: hoverArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.35) : Qt.alpha(Colours.palette.m3outlineVariant, 0.12)
     scale: hoverArea.containsMouse ? 1.03 : 1.0
@@ -47,15 +56,23 @@ StyledRect {
         CAnim {}
     }
 
+    Behavior on implicitHeight {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
+    Behavior on height {
+        Anim {
+            type: Anim.DefaultSpatial
+        }
+    }
+
     MouseArea {
         id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            if (Config.bar.tray.compact)
-                root.expanded = !root.expanded;
-        }
+        acceptedButtons: Qt.NoButton
     }
 
     Column {
@@ -66,7 +83,8 @@ StyledRect {
         anchors.topMargin: root.padding
         spacing: Tokens.spacing.small
 
-        opacity: (!Config.bar.tray.compact || root.expanded) && items.count > 0 ? 1 : 0
+        opacity: (!Config.bar.tray.compact || root.expanded) && TrayService.hasItems ? 1 : 0
+        visible: opacity > 0.01
 
         add: Transition {
             Anim {
@@ -90,57 +108,67 @@ StyledRect {
 
         Repeater {
             id: items
+            model: TrayService.items
 
-            model: ScriptModel {
-                values: SystemTray.items.values.filter(i => !GlobalConfig.bar.tray.hiddenIcons.includes(i.id))
+            TrayItem {
+                required property int index
+                itemIndex: index
+                bar: root.bar
             }
-
-            TrayItem {}
         }
 
         Behavior on opacity {
-            Anim {}
-        }
-    }
-
-    Loader {
-        id: expandIcon
-
-        asynchronous: true
-
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-
-        active: Config.bar.tray.compact && items.count > 0
-
-        sourceComponent: Item {
-            implicitWidth: expandIconInner.implicitWidth
-            implicitHeight: expandIconInner.implicitHeight - Tokens.padding.small * 2
-
-            MaterialIcon {
-                id: expandIconInner
-
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: Config.bar.tray.background ? Tokens.padding.small : -Tokens.padding.small
-                text: "expand_less"
-                iconPointSize: Tokens.font.size.large
-                rotation: root.expanded ? 180 : 0
-
-                Behavior on rotation {
-                    Anim {}
-                }
-
-                Behavior on anchors.bottomMargin {
-                    Anim {}
-                }
+            Anim {
+                type: Anim.FastEffects
             }
         }
     }
 
-    Behavior on implicitHeight {
-        Anim {
-            type: Anim.DefaultSpatial
+    Item {
+        id: expandBtn
+        visible: Config.bar.tray.compact && TrayService.hasItems
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: root.expanded ? parent.bottom : undefined
+        anchors.bottomMargin: root.expanded ? root.padding : 0
+        anchors.centerIn: !root.expanded ? parent : undefined
+
+        width: root.expanded ? 32 : root.collapsedSize
+        height: root.expanded ? 32 : root.collapsedSize
+
+        property real btnScale: 1.0
+        scale: btnScale
+
+        SequentialAnimation {
+            id: expandSpring
+            NumberAnimation { target: expandBtn; property: "btnScale"; to: 0.88; duration: 80; easing.type: Easing.OutQuad }
+            NumberAnimation { target: expandBtn; property: "btnScale"; to: 1.0; duration: 160; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
+        }
+
+        StateLayer {
+            anchors.fill: parent
+            radius: width / 2
+            color: Colours.palette.m3onSurfaceVariant
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: {
+                expandSpring.start();
+                root.expanded = !root.expanded;
+            }
+        }
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            text: "expand_less"
+            iconPointSize: Tokens.font.size.large
+            color: Colours.palette.m3onSurfaceVariant
+            rotation: root.expanded ? 180 : 0
+
+            Behavior on rotation {
+                Anim {
+                    type: Anim.FastSpatial
+                }
+            }
         }
     }
 }

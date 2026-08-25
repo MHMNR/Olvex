@@ -225,9 +225,24 @@ Item {
         }
     }
 
+    property bool isMusicClosing: false
+    Timer {
+        id: musicCloseTimer
+        interval: Tokens.anim.durations.expressiveDefaultSpatial
+        onTriggered: root.isMusicClosing = false
+    }
+
     onPlayerActiveChanged: {
         root.syncBarAccent();
         root.kickDockSync();
+        
+        if (!root.playerActive) {
+            root.isMusicClosing = true;
+            musicCloseTimer.restart();
+        } else {
+            root.isMusicClosing = false;
+            musicCloseTimer.stop();
+        }
     }
 
     onMediaMorphChanged: {
@@ -385,21 +400,47 @@ Item {
     clip: false
     anchors.fill: parent
     implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
-    implicitHeight: root.isNotificationPushed
-        ? (icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small)
-        : (root.playerActive ? root.musicPillHeight : icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small)
 
-    property real animatedMaxHeight: root.isNotificationPushed
-        ? root.maxHeight
-        : (root.playerActive ? root.musicPillHeight : root.maxHeight)
+    implicitHeight: icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
+    property real animatedMaxHeight: root.maxHeight
 
-    Behavior on implicitHeight {
-        Anim { type: Anim.DefaultSpatial }
-    }
+    states: [
+        State {
+            name: "notification"
+            when: root.isNotificationPushed
+            // Shrink to circle — bottom stays locked, shrinks upward
+            PropertyChanges { target: musicPill; height: root.musicPillWidth }
+            PropertyChanges { target: icon; y: ((root.musicPillWidth - icon.height) / 2) }
+        },
+        State {
+            name: "music"
+            when: root.playerActive && !root.isNotificationPushed
+            // Center pill vertically: shift it up from the bottom by half the
+            // remaining space so it sits in the middle of the available height.
+            PropertyChanges {
+                target: musicPill
+                height: root.musicPillHeight
+                // Offset upward from the bottom anchor so it appears centered
+                anchors.bottomMargin: Math.max(0, (root.height - root.musicPillHeight) / 2)
+            }
+            PropertyChanges { target: icon; y: ((root.musicPillHeight - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2) }
+        },
+        State {
+            name: "default"
+            when: !root.playerActive && !root.isNotificationPushed
+            // Full height, bottom locked — the pill fills root from top
+            PropertyChanges { target: musicPill; height: root.height; anchors.bottomMargin: 0 }
+            PropertyChanges { target: icon; y: ((root.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2) }
+        }
+    ]
 
-    Behavior on animatedMaxHeight {
-        Anim { type: Anim.DefaultSpatial }
-    }
+    transitions: [
+        Transition {
+            // No AnchorAnimation needed — anchor itself never changes, only bottomMargin & height
+            Anim { targets: [musicPill]; properties: "height,anchors.bottomMargin"; type: Anim.DefaultSpatial }
+            Anim { targets: [icon]; properties: "y"; type: Anim.DefaultSpatial }
+        }
+    ]
 
     Loader {
         asynchronous: true
@@ -448,32 +489,56 @@ Item {
 
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
+        y: 0
         width: root.playerActive ? root.musicPillWidth : parent.width
-        height: root.isNotificationPushed ? root.musicPillWidth : (root.playerActive ? root.musicPillHeight : parent.height)
 
-        Behavior on height {
-            Anim { type: Anim.DefaultSpatial }
-        }
         Behavior on radius {
             Anim { type: Anim.DefaultSpatial }
         }
 
         property real pillAlpha: 1
 
-        // ── Pill clip + background ─────────────────────────────────────
-        StyledClippingRect {
+        // ── Pill background tint ───────────────────────────────────────
+        Rectangle {
             anchors.fill: parent
-            radius: parent.radius
-            color: "transparent"
+            radius: musicPill.radius
+            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
+            antialiasing: true
+            smooth: true
+        }
 
-            Rectangle {
+        Item {
+            id: visualizerContainer
+            anchors.fill: parent
+            visible: opacity > 0.01
+            opacity: root.mediaVisualizerActive ? 1 : 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            layer.enabled: root.mediaVisualizerActive
+            layer.smooth: true
+            layer.effect: OpacityMask {
+                maskSource: visualizerMask
+            }
+
+            Item {
+                id: visualizerMask
                 anchors.fill: parent
-                color: "transparent" // Handled by root pill
+                layer.enabled: true
+                layer.smooth: true
+                visible: false
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: parent.radius
-                    color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
+                    radius: musicPill.radius
+                    color: "black"
+                    antialiasing: true
+                    smooth: true
                 }
             }
 
@@ -496,16 +561,17 @@ Item {
                     }
                 }
             }
+        }
 
-            // ── Tap-to-expand — z:0, buttons are z:2 so they get events first ──
-            MouseArea {
-                anchors.fill: parent
-                z: 0
-                onClicked: mouse => {
-                    mouse.accepted = true;
-                    root.triggerPillExpand();
-                }
+        // ── Tap-to-expand — z:0, buttons are z:2 so they get events first ──
+        MouseArea {
+            anchors.fill: parent
+            z: 0
+            onClicked: mouse => {
+                mouse.accepted = true;
+                root.triggerPillExpand();
             }
+        }
 
             // ── Art + controls — z:2 guarantees events hit buttons first ──
             Item {
@@ -692,16 +758,9 @@ Item {
                 MaterialIcon {
                     id: icon
                     anchors.horizontalCenter: parent.horizontalCenter
-                    y: root.isNotificationPushed
-                        ? ((musicPill.height - icon.height) / 2)
-                        : ((musicPill.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2)
                     animate: true
                     text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon(Hypr.activeToplevel?.lastIpcObject.class, "desktop_windows")
                     color: root.colour
-
-                    Behavior on y {
-                        Anim { type: Anim.DefaultSpatial }
-                    }
                 }
 
                 StyledText {
@@ -744,7 +803,6 @@ Item {
                     }
                 }
             }
-        }
 
         property real pillScale: 1.0
 

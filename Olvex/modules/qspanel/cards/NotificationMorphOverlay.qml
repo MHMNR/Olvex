@@ -143,6 +143,10 @@ Item {
         isDismissing = true;
         closingDown = true;
         Notifs.notifMorphAnimating = true;
+        const closingNotif = root.notifData;
+        Notifs.dismissNotif(closingNotif);
+        if (closingNotif && typeof closingNotif.close === "function")
+            closingNotif.close();
         dismissAnimation.start();
     }
 
@@ -195,13 +199,9 @@ Item {
             easing: Tokens.anim.emphasizedAccel
         }
         onFinished: {
-            const closingNotif = root.notifData;
             root.isDismissing = false;
             root.active = false;
             root.closingDown = false;
-            if (closingNotif && typeof closingNotif.close === "function")
-                closingNotif.close();
-            Notifs.dismissNotif(closingNotif);
             Notifs.activeMorphNotif = null;
             Notifs.notifMorphActive = false;
             Notifs.notifMorphAnimating = false;

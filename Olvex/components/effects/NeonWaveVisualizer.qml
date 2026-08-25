@@ -21,6 +21,9 @@ import qs.services
 Canvas {
     id: canvas
 
+    antialiasing: true
+    smooth: true
+
     property color accentColor: Colours.palette.m3primary
     property color boostedAccent: Qt.lighter(accentColor, 1.3)
     property int numBands: 32
