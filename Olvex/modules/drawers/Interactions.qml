@@ -183,41 +183,12 @@ CustomMouseArea {
         // Must close + reject here (not ContentWindow MouseArea) so Wayland gets the event.
         if (visibilities.qspanel) {
             const util = panels.qspanel;
-            const utilMapped = util.mapToItem(root, event.x, event.y);
+            const utilMapped = util.mapFromItem(root, event.x, event.y);
             const inUtil = utilMapped.x >= 0 && utilMapped.y >= 0 
                         && utilMapped.x <= util.width && utilMapped.y <= util.height;
 
-            const bp = panels.bottomPanel;
-            const bpMapped = bp.mapToItem(root, event.x, event.y);
-            const inBp = bp.visible && bpMapped.x >= 0 && bpMapped.y >= 0
-                      && bpMapped.x <= bp.width && bpMapped.y <= bp.height;
-
-            const cb = panels.clipboard;
-            const cbMapped = cb.mapToItem(root, event.x, event.y);
-            const inCb = cb.visible && cbMapped.x >= 0 && cbMapped.y >= 0
-                      && cbMapped.x <= cb.width && cbMapped.y <= cb.height;
-
-            if (!inUtil && !inBp && !inCb) {
+            if (!inUtil) {
                 visibilities.qspanel = false;
-                event.accepted = false;
-                return;
-            }
-        }
-
-        // Dismiss clipboard when clicking outside
-        if (visibilities.clipboard) {
-            const cb = panels.clipboard;
-            const cbMapped = cb.mapToItem(root, event.x, event.y);
-            const inCb = cbMapped.x >= 0 && cbMapped.y >= 0
-                      && cbMapped.x <= cb.width && cbMapped.y <= cb.height;
-
-            const bp = panels.bottomPanel;
-            const bpMapped = bp.mapToItem(root, event.x, event.y);
-            const inBp = bp.visible && bpMapped.x >= 0 && bpMapped.y >= 0
-                      && bpMapped.x <= bp.width && bpMapped.y <= bp.height;
-
-            if (!inCb && !inBp) {
-                visibilities.clipboard = false;
                 event.accepted = false;
                 return;
             }
@@ -255,11 +226,21 @@ CustomMouseArea {
             }
         }
 
-        // NUCLEAR FIX: If dashboard is open, DO NOT accept clicks in the main area.
-        // This forces events to propagate to the buttons.
-        if (visibilities.dashboard && event.y > root.borderThickness && event.x > bar.implicitWidth) {
-            event.accepted = false;
-            return;
+        // Dismiss dashboard when clicking outside — only if NOT on dashboard panel
+        if (visibilities.dashboard) {
+            const dash = panels.dashboard;
+            const dashMapped = dash.mapFromItem(root, event.x, event.y);
+            const inDash = dashMapped.x >= 0 && dashMapped.y >= 0 
+                        && dashMapped.x <= dash.width && dashMapped.y <= dash.height;
+
+            if (!inDash) {
+                visibilities.dashboard = false;
+                event.accepted = false;
+                return;
+            } else {
+                event.accepted = false;
+                return;
+            }
         }
 
         dragStart = Qt.point(event.x, event.y);
@@ -275,9 +256,6 @@ CustomMouseArea {
                 root.panels.flyouts.hovered = false;
             }
 
-            if (!dashboardShortcutActive) {
-                visibilities.dashboard = false;
-            }
             root.panels.dashboard.hovered = false;
 
             // Close qspanel on hover-away
@@ -383,18 +361,7 @@ CustomMouseArea {
 
         // Peek dashboard on hover
         const showDashboard = Config.dashboard.showOnHover && inTopPanel(panels.dashboard, x, y);
-
-        // Always update visibility based on hover if not in shortcut mode
-        if (!dashboardShortcutActive) {
-            panels.dashboard.hovered = showDashboard;
-            if (!showDashboard) {
-                visibilities.dashboard = false;
-            }
-        } else if (showDashboard) {
-            // If hovering over dashboard area while in shortcut mode, transition to hover control
-            dashboardShortcutActive = false;
-            panels.dashboard.hovered = true;
-        }
+        panels.dashboard.hovered = showDashboard && !visibilities.dashboard;
 
         // Show/hide dashboard on drag (for touchscreen devices)
         if (pressed && inTopPanel(panels.dashboard, dragStart.x, dragStart.y) && withinPanelWidth(panels.dashboard, x, y)) {
@@ -453,7 +420,6 @@ CustomMouseArea {
                 const inOsdArea = root.inRightPanel(root.panels.flyoutsWrapper, root.mouseX, root.mouseY);
 
                 if (!inDashboardArea) {
-                    root.visibilities.dashboard = false;
                     root.panels.dashboard.hovered = false;
                 }
                 if (!inOsdArea) {

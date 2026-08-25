@@ -62,7 +62,9 @@ StyledRect {
     }
     clip: true
 
-    Behavior on implicitHeight { Anim {} }
+    Behavior on implicitHeight { 
+        Anim { type: Anim.DefaultSpatial }
+    }
 
     ColumnLayout {
         id: layout
@@ -210,7 +212,6 @@ StyledRect {
                                         args.push("-s");
                                     else if (foundIndex === 3)
                                         args.push("-sr");
-                                    root.visibilities.qspanel = false;
                                     Recorder.start(args);
                                 }
                             }
@@ -398,9 +399,10 @@ StyledRect {
             id: listLoader
             property bool expanded: root.props.recordingListExpanded
             asynchronous: false
+            clip: true
             Layout.fillWidth: true
             Layout.preferredHeight: expanded ? implicitHeight : 0
-            sourceComponent: expanded ? recordingList : null
+            sourceComponent: recordingList
         }
     }
 
@@ -416,7 +418,7 @@ StyledRect {
         color: arrowPillState.containsMouse
             ? Colours.palette.m3secondaryContainer
             : Qt.alpha(Colours.palette.m3onSurface, 0.06)
-        border.width: 1
+        border.width: 0
         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
         Behavior on color {
             CAnim {}

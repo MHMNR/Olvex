@@ -1,11 +1,11 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell
-import Quickshell.Widgets
 import Olvex.Config
 import qs.components
-import qs.components.controls
+import qs.components.effects
 import qs.services
 
 Item {
@@ -15,72 +15,116 @@ Item {
     required property DashboardState dashState
     required property var tabs
 
-    implicitHeight: 80
+    readonly property int count: tabs ? tabs.length : 0
+    readonly property real trackInset: 4
+    readonly property real segmentWidth: Math.max(148, Math.min(180, (root.nonAnimWidth - root.trackInset * 2) / Math.max(count, 1)))
+    readonly property real totalTrackWidth: Math.min(nonAnimWidth, (segmentWidth * Math.max(count, 1)) + (trackInset * 2))
+    readonly property int safeIndex: Math.max(0, Math.min(dashState.currentTab, Math.max(count - 1, 0)))
 
-    RowLayout {
-        anchors.fill: parent
-        anchors.margins: 10
-        spacing: 20
+    implicitHeight: 52
 
-        Repeater {
-            model: root.tabs
+    // Centered M3 Expressive Pill Track
+    StyledRect {
+        id: track
 
-            delegate: Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        width: root.totalTrackWidth
+        height: 44
+        radius: height / 2
+        color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.5)
+        border.width: 0
 
-                readonly property bool isCurrent: root.dashState.currentTab === index
+        // Sliding Primary Indicator Pill
+        StyledRect {
+            id: indicator
 
-                ColumnLayout {
-                    anchors.centerIn: parent
-                    spacing: 4
+            x: root.trackInset + root.safeIndex * root.segmentWidth
+            y: root.trackInset
+            width: root.segmentWidth
+            height: track.height - root.trackInset * 2
+            radius: height / 2
+            color: Colours.palette.m3primary
+            z: 0
 
-                    MaterialIcon {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: modelData.iconName
-                        color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                        iconPointSize: 22
-                        fill: isCurrent ? 1 : 0
-                        Behavior on color { ColorAnimation { duration: 200 } }
+            Behavior on x {
+                Anim { type: Anim.DefaultSpatial }
+            }
+            Behavior on width {
+                Anim { type: Anim.DefaultSpatial }
+            }
+
+            border.width: 0
+        }
+
+        // Segment Tabs Row
+        Row {
+            anchors.fill: parent
+            anchors.margins: root.trackInset
+            spacing: 0
+            z: 1
+
+            Repeater {
+                model: root.tabs
+
+                delegate: Item {
+                    id: cell
+
+                    required property var modelData
+                    required property int index
+
+                    readonly property bool isCurrent: root.dashState.currentTab === index
+
+                    width: root.segmentWidth
+                    height: parent.height
+
+                    Row {
+                        id: cellContent
+                        anchors.centerIn: parent
+                        spacing: Tokens.spacing.small
+
+                        scale: cellState.pressed ? 0.94 : (cellState.containsMouse && !cell.isCurrent ? 1.04 : 1.0)
+
+                        Behavior on scale {
+                            Anim { type: Anim.FastSpatial }
+                        }
+
+                        MaterialIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: cell.modelData.iconName
+                            fill: cell.isCurrent ? 1 : 0
+                            iconPointSize: Tokens.font.size.normal + 1
+                            color: cell.isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+
+                            Behavior on color {
+                                CAnim {}
+                            }
+                        }
+
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: cell.modelData.text
+                            font.family: Tokens.font.family.sans
+                            font.weight: cell.isCurrent ? Font.DemiBold : Font.Medium
+                            font.letterSpacing: 0.2
+                            textPointSize: Tokens.font.size.small
+                            color: cell.isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+
+                            Behavior on color {
+                                CAnim {}
+                            }
+                        }
                     }
 
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: modelData.text
-                        color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                        textPointSize: 12
-                        font.weight: isCurrent ? 600 : 400
-                        Behavior on color { ColorAnimation { duration: 200 } }
+                    StateLayer {
+                        id: cellState
+                        anchors.fill: parent
+                        radius: height / 2
+                        color: cell.isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                        onClicked: root.dashState.currentTab = cell.index
                     }
-                }
-
-                // Selection Indicator (Glow line)
-                StyledRect {
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: isCurrent ? 40 : 0
-                    height: 3
-                    radius: 2
-                    color: Colours.palette.m3primary
-                    visible: isCurrent
-                    
-                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutQuint } }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.dashState.currentTab = index
                 }
             }
         }
-    }
-
-    // Bottom Separator
-    Rectangle {
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 1
-        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
     }
 }

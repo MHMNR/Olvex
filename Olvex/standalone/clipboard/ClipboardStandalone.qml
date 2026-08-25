@@ -117,6 +117,9 @@ Window {
             readonly property var emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
             readonly property int emphasizedLong: 400
             readonly property int emphasizedMedium: 250
+            // M3 Expressive Default Spatial — spatial container expansion & tab sliding (m3.material.io)
+            readonly property var expressiveDefaultSpatial: [0.38, 1.20, 0.22, 1.0, 1, 1]
+            readonly property int expressiveDefaultSpatialMs: 500
         }
         readonly property QtObject type: QtObject {
             readonly property font title: Qt.font({ family: "Sans Serif", pixelSize: 15, weight: Font.DemiBold })
@@ -165,18 +168,18 @@ Window {
             Behavior on x {
                 enabled: !win.reducedMotion
                 NumberAnimation {
-                    duration: 350
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: [0.42, 1.67, 0.21, 0.90]
+                    duration: tok.motion.expressiveDefaultSpatialMs
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: tok.motion.expressiveDefaultSpatial
                 }
             }
 
             Behavior on width {
                 enabled: !win.reducedMotion
                 NumberAnimation {
-                    duration: 350
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: [0.42, 1.67, 0.21, 0.90]
+                    duration: tok.motion.expressiveDefaultSpatialMs
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: tok.motion.expressiveDefaultSpatial
                 }
             }
         }

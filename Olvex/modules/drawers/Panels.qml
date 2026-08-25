@@ -48,7 +48,7 @@ Item {
     readonly property alias qspanel: qspanel
     readonly property alias toasts: toasts
     readonly property alias bottomPanel: bottomPanel
-    readonly property alias clipboard: clipboard
+
     readonly property alias pinnedLayout: layout
 
     // App launch morph — set by ContentWindow after creation
@@ -474,36 +474,7 @@ Item {
         }
     }
 
-    Clipboard.ClipboardPanel {
-        id: clipboard
 
-        visibilities: root.visibilities
-
-        anchors.bottom: bottomPanel.visible ? bottomPanel.top : parent.bottom
-        anchors.right: parent.right
-        anchors.bottomMargin: Tokens.spacing.normal
-        anchors.rightMargin: Tokens.spacing.normal
-
-        width: Tokens.sizes.qspanel.width || 380
-        height: 520
-
-        visible: root.visibilities.clipboard
-        opacity: visible ? 1 : 0
-        Behavior on opacity {
-            Anim {
-                type: Anim.Emphasized
-            }
-        }
-
-        transform: Translate {
-            y: root.visibilities.clipboard ? 0 : 16
-            Behavior on y {
-                Anim {
-                    type: Anim.Emphasized
-                }
-            }
-        }
-    }
 
     Toasts.Toasts {
         id: toasts
@@ -966,134 +937,7 @@ Item {
                 }
             }
 
-            // Clipboard Toggle Button (left of QS toggle)
-            Item {
-                id: clipboardToggle
-                anchors.right: qsToggle.left
-                anchors.rightMargin: 8
-                anchors.verticalCenter: parent.verticalCenter
-                implicitWidth: 44
-                implicitHeight: 44
 
-                StateLayer {
-                    id: clipState
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    radius: Tokens.rounding.normal
-                    hoverEnabled: true
-
-                    onClicked: {
-                        clipboardAnim.start();
-                        root.visibilities.clipboard = !root.visibilities.clipboard;
-                        if (root.visibilities.qspanel)
-                            root.visibilities.qspanel = false;
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 10
-                    color: clipState.containsMouse || root.visibilities.clipboard ? Colours.layer(Colours.palette.m3surfaceVariant, 0.8) : "transparent"
-                    border.color: clipState.containsMouse || root.visibilities.clipboard ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : "transparent"
-                    border.width: 1
-
-                    scale: clipState.containsMouse ? 1.12 : 1.0
-                    Behavior on scale {
-                        NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
-                    }
-
-                    MaterialIcon {
-                        id: clipIcon
-                        text: "content_paste"
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        fill: root.visibilities.clipboard ? 1 : 0
-                        color: root.visibilities.clipboard ? Colours.palette.m3primary : Colours.palette.m3onSurface
-
-                        Behavior on fill { Anim {} }
-                        Behavior on color { ColorAnimation { duration: 200 } }
-
-                        SequentialAnimation {
-                            id: clipboardAnim
-                            NumberAnimation {
-                                target: clipIcon; property: "scale"
-                                from: 1.0; to: 1.3; duration: 120
-                                easing.type: Easing.OutBack; easing.overshoot: 1.5
-                            }
-                            NumberAnimation {
-                                target: clipIcon; property: "scale"
-                                from: 1.3; to: 1.0; duration: 180
-                                easing.type: Easing.OutElastic; easing.overshoot: 0.5
-                            }
-                        }
-                    }
-                }
-            }
-
-            // QS Panel Toggle Button (right side)
-            Item {
-                id: qsToggle
-                anchors.right: parent.right
-                anchors.rightMargin: 20
-                anchors.verticalCenter: parent.verticalCenter
-                implicitWidth: 44
-                implicitHeight: 44
-
-                StateLayer {
-                    id: qsState
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    radius: Tokens.rounding.normal
-                    hoverEnabled: true
-
-                    onClicked: {
-                        settingsAnim.start();
-                        root.visibilities.qspanel = !root.visibilities.qspanel;
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 10
-                    color: qsState.containsMouse || root.visibilities.qspanel ? Colours.layer(Colours.palette.m3surfaceVariant, 0.8) : "transparent"
-                    border.color: qsState.containsMouse || root.visibilities.qspanel ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : "transparent"
-                    border.width: 1
-
-                    scale: qsState.containsMouse ? 1.12 : 1.0
-                    Behavior on scale {
-                        NumberAnimation { duration: 250; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
-                    }
-
-                    MaterialIcon {
-                        id: settingsIcon
-                        text: "settings"
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        color: root.visibilities.qspanel ? Colours.palette.m3primary : Colours.palette.m3onSurface
-
-                        SequentialAnimation {
-                            id: settingsAnim
-                            RotationAnimator {
-                                target: settingsIcon; from: 0; to: 180
-                                duration: 300; easing.type: Easing.OutBack; easing.overshoot: 0.8
-                            }
-                            ScriptAction { script: settingsIcon.rotation = 0 }
-                        }
-                    }
-                }
-            }
-
-            // Bottom-right corner click area for qspanel (cursor at bottom-right)
-            MouseArea {
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                width: 100
-                height: 100
-
-                onClicked: {
-                    root.visibilities.qspanel = !root.visibilities.qspanel;
-                }
-            }
         }
     }
 

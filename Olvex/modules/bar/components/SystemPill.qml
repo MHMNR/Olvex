@@ -111,7 +111,13 @@ StyledRect {
         id: pillHover
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.LeftButton
+        onClicked: {
+            const vis = Visibilities.getForActive();
+            if (vis) {
+                vis.qspanel = !vis.qspanel;
+            }
+        }
         z: 1
     }
 

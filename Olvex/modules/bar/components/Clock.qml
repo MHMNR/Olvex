@@ -20,7 +20,14 @@ StyledRect {
         id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.LeftButton
+        cursorShape: Qt.PointingHandCursor
+        onClicked: {
+            const visibilities = Visibilities.getForActive();
+            if (visibilities) {
+                visibilities.dashboard = !visibilities.dashboard;
+            }
+        }
     }
 
     Column {

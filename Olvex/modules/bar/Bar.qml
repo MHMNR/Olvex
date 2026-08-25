@@ -246,8 +246,24 @@ ColumnLayout {
                     sourceComponent: ColumnLayout {
                         spacing: Tokens.spacing.normal
                         implicitWidth: Tokens.sizes.bar.innerWidth
-                        OlvexBar.NetSpeedWidget { Layout.alignment: Qt.AlignHCenter }
-                        StatusIcons { Layout.alignment: Qt.AlignHCenter }
+
+                        OlvexBar.NetSpeedWidget {
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+
+                        StatusIcons {
+                            Layout.alignment: Qt.AlignHCenter
+
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton
+                                onClicked: {
+                                    if (root.visibilities) {
+                                        root.visibilities.qspanel = !root.visibilities.qspanel;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

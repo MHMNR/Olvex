@@ -54,7 +54,7 @@ ColumnLayout {
         model: FileSystemModel {
             path: Paths.recsdir
             nameFilters: ["Recording_*.mp4"]
-            sortReverse: true
+            sortReverse: false
         }
 
         Layout.fillWidth: true
@@ -126,7 +126,7 @@ ColumnLayout {
                     color: recording.selected
                         ? Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.62)
                         : Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.38)
-                    border.width: 1
+                    border.width: 0
                     border.color: Qt.alpha(Colours.palette.m3outlineVariant, recording.selected ? 0.42 : 0.22)
 
                     Behavior on color {
