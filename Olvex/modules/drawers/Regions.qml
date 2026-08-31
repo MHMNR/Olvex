@@ -112,15 +112,6 @@ Region {
         intersection: Intersection.Subtract
     }
 
-    Region {
-        // Bottom-right corner hot zone (QS panel trigger)
-        x: root.win.width - 60
-        y: root.win.height - 60
-        width: 60
-        height: 60
-        intersection: Intersection.Subtract
-    }
-
     component R: Region {
         required property Item panel
         property real customWidth: panel.width

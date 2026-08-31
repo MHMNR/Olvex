@@ -16,7 +16,7 @@ QtObject {
     /**
      * Handle network connection with automatic disconnection if needed.
      */
-    function handleConnect(network, session, onPasswordNeeded): void {
+    function handleConnect(network, session, onPasswordNeeded) {
         if (!network) return;
 
         // Store previous SSID before any disconnection
@@ -38,13 +38,12 @@ QtObject {
     /**
      * Connect to a wireless network.
      */
-    function connectToNetwork(network, session, onPasswordNeeded): void {
+    function connectToNetwork(network, session, onPasswordNeeded) {
         if (!network) return;
 
         if (network.isSecure) {
             Nmcli.connectToNetworkWithPasswordCheck(network.ssid, network.isSecure, result => {
                 if (result.needsPassword) {
-                    // Clear pending connection if exists
                     if (Nmcli.pendingConnection) {
                         Nmcli.connectionCheckTimer.stop();
                         Nmcli.immediateCheckTimer.stop();
@@ -58,22 +57,24 @@ QtObject {
                         onPasswordNeeded(network);
                     }
                 } else if (!result.success) {
-                    // Connection failed (e.g. wrong saved password)
-                    console.log("NetworkConnection - Connection failed. Deleting broken profile and requesting password.");
-                    Nmcli.checkAndDeleteConnection(network.ssid, () => {
+                    const errMsg = (result.error || "").toLowerCase();
+                    const isAuthError = errMsg.includes("secret") || errMsg.includes("password") || errMsg.includes("agent") || errMsg.includes("key-mgmt");
+
+                    console.warn("NetworkConnection - Connection failed:", result.error || "Unknown error");
+                    if (isAuthError) {
                         if (session && session.network) {
                             session.network.showPasswordDialog = true;
                             session.network.pendingNetwork = network;
                         } else if (onPasswordNeeded) {
                             onPasswordNeeded(network);
                         }
-                    });
+                    }
                 }
             }, network.bssid);
         } else {
             Nmcli.connectToNetwork(network.ssid, "", network.bssid, result => {
                 if (result && !result.success) {
-                    console.log("NetworkConnection - Unsecure connection failed. Falling back.");
+                    console.warn("NetworkConnection - Unsecure connection failed. Falling back.");
                     root.forceFallback();
                 }
             });
@@ -83,24 +84,18 @@ QtObject {
     /**
      * Connect with password.
      */
-    function connectWithPassword(network, password, onResult): void {
+    function connectWithPassword(network, password, onResult) {
         if (!network) return;
         Nmcli.connectToNetwork(network.ssid, password || "", network.bssid || "", result => {
-            if (!result.success) {
-                console.log("NetworkConnection - Connection with password failed. Deleting broken profile.");
-                Nmcli.checkAndDeleteConnection(network.ssid, () => {
-                    if (onResult) onResult(result);
-                });
-            } else {
-                if (onResult) onResult(result);
-            }
+            if (onResult)
+                onResult(result);
         });
     }
 
     /**
      * Force a fallback to the previous SSID by performing a clean disconnection first.
      */
-    function forceFallback(): void {
+    function forceFallback() {
         if (root.previousSsid === "") {
             console.log("NetworkConnection - [FORCE] Fallback aborted: No previous SSID stored.");
             return;

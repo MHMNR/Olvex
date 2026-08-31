@@ -4,6 +4,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from olvex.utils.dots.deployer import Deployer
+from olvex.utils.dots.drivers import DriverInstaller
 from olvex.utils.dots.legacy import (
     LEGACY_META_PKG,
     detect_legacy_repo,
@@ -61,6 +62,9 @@ class Command:
         source, tip, manifest = self.fetch_manifest()
         try:
             installer, packages, local_packages = self.install_packages(source, manifest)
+            driver_packages = self.install_drivers(installer)
+            if driver_packages:
+                packages.extend([p for p in driver_packages if p not in packages])
         except PackageError as e:
             fatal(e)
         run_hooks(manifest, "post_package")
@@ -100,8 +104,8 @@ class Command:
         info("Welcome to the Olvex dotfiles installer!")
         info("Here's a quick overview on what this command is going to do:")
         info("  - Install dependencies")
+        info("  - Optionally detect and install hardware drivers")
         info("  - Install config files")
-        info("The installer does NOT set up hardware/system level configs (e.g. drivers). Please do this yourself.")
         pause()
         print()
 
@@ -192,6 +196,21 @@ class Command:
             local_packages = build_local_packages(installer, source, local_dirs)
 
         return installer, packages, local_packages
+
+    def install_drivers(self, installer: PackageInstaller) -> list[str]:
+        # Check CLI flag: --drivers (True), --no-drivers (False), or None (prompt)
+        should_install = getattr(self.args, "drivers", None)
+        if should_install is None:
+            print()
+            should_install = confirm(
+                "Automatically detect and install hardware drivers (GPU, audio, microcode, bluetooth)?",
+                default=False,
+            )
+
+        if not should_install:
+            return []
+
+        return DriverInstaller.install(installer)
 
     def dereference_legacy(self, legacy_dir: Path | None) -> None:
         """Replace legacy symlinks with real copies of their targets."""

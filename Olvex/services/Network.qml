@@ -7,23 +7,24 @@ import qs.services
 Singleton {
     id: root
 
-    readonly property list<AccessPoint> networks: []
-    readonly property AccessPoint active: networks.find(n => n.active) ?? null
+    property var networks: []
+    readonly property var active: (networks && networks.find) ? (networks.find(n => n.active) || null) : null
     property bool wifiEnabled: true
     readonly property bool scanning: Nmcli.scanning
-    property list<var> ethernetDevices: []
-    readonly property var activeEthernet: ethernetDevices.find(d => d.connected) ?? null
+    property var ethernetDevices: []
+    readonly property var activeEthernet: (ethernetDevices && ethernetDevices.find) ? (ethernetDevices.find(d => d.connected) || null) : null
     property int ethernetDeviceCount: 0
     property bool ethernetProcessRunning: false
     property var ethernetDeviceDetails: null
     property var wirelessDeviceDetails: null
     property var pendingConnection: null
-    property list<string> savedConnections: []
-    property list<string> savedConnectionSsids: []
+    property var savedConnections: []
+    property var savedConnectionSsids: []
+    property var savedProfiles: []
 
     signal connectionFailed(string ssid)
 
-    function enableWifi(enabled: bool): void {
+    function enableWifi(enabled: bool) {
         Nmcli.enableWifi(enabled, result => {
             if (result.success) {
                 root.getWifiStatus();
@@ -34,7 +35,7 @@ Singleton {
         });
     }
 
-    function toggleWifi(): void {
+    function toggleWifi() {
         Nmcli.toggleWifi(result => {
             if (result.success) {
                 root.getWifiStatus();
@@ -45,11 +46,11 @@ Singleton {
         });
     }
 
-    function rescanWifi(): void {
+    function rescanWifi() {
         Nmcli.rescanWifi();
     }
 
-    function connectToNetwork(ssid: string, password: string, bssid: string, callback: var): void {
+    function connectToNetwork(ssid: string, password: string, bssid: string, callback) {
         // Set up pending connection tracking if callback provided
         if (callback) {
             const hasBssid = bssid !== undefined && bssid !== null && bssid.length > 0;
@@ -82,7 +83,7 @@ Singleton {
         });
     }
 
-    function connectToNetworkWithPasswordCheck(ssid: string, isSecure: bool, callback: var, bssid: string): void {
+    function connectToNetworkWithPasswordCheck(ssid: string, isSecure: bool, callback, bssid: string) {
         // Set up pending connection tracking
         const hasBssid = bssid !== undefined && bssid !== null && bssid.length > 0;
         root.pendingConnection = {
@@ -113,7 +114,7 @@ Singleton {
         }, bssid);
     }
 
-    function disconnectFromNetwork(): void {
+    function disconnectFromNetwork() {
         // Try to disconnect - use connection name if available, otherwise use device
         Nmcli.disconnectFromNetwork();
         // Refresh network list after disconnection
@@ -124,7 +125,7 @@ Singleton {
         }, 500);
     }
 
-    function forgetNetwork(ssid: string): void {
+    function forgetNetwork(ssid: string) {
         // Delete the connection profile for this network
         // This will remove the saved password and connection settings
         Nmcli.forgetNetwork(ssid, result => {
@@ -139,7 +140,7 @@ Singleton {
         });
     }
 
-    function syncNetworksFromNmcli(): void {
+    function syncNetworksFromNmcli() {
         const rNetworks = root.networks;
         const nNetworks = Nmcli.networks;
 
@@ -184,17 +185,28 @@ Singleton {
     }
 
     function hasSavedProfile(ssid: string): bool {
-        // Use Nmcli's hasSavedProfile which has the same logic
         return Nmcli.hasSavedProfile(ssid);
     }
 
-    function getWifiStatus(): void {
+    function getSavedProfile(ssid: string) {
+        return Nmcli.getSavedProfile(ssid);
+    }
+
+    function forgetNetworkWithCallback(ssidOrUuid: string, callback) {
+        Nmcli.forgetNetwork(ssidOrUuid, callback);
+    }
+
+    function forgetNetworkByUuid(uuid: string, callback) {
+        Nmcli.forgetNetworkByUuid(uuid, callback);
+    }
+
+    function getWifiStatus() {
         Nmcli.getWifiStatus(enabled => {
             root.wifiEnabled = enabled;
         });
     }
 
-    function getEthernetDevices(): void {
+    function getEthernetDevices() {
         root.ethernetProcessRunning = true;
         Nmcli.getEthernetInterfaces(interfaces => {
             root.ethernetDevices = Nmcli.ethernetDevices;
@@ -203,7 +215,7 @@ Singleton {
         });
     }
 
-    function connectEthernet(connectionName: string, interfaceName: string): void {
+    function connectEthernet(connectionName: string, interfaceName: string) {
         Nmcli.connectEthernet(connectionName, interfaceName, result => {
             if (result.success) {
                 getEthernetDevices();
@@ -220,7 +232,7 @@ Singleton {
         });
     }
 
-    function disconnectEthernet(connectionName: string): void {
+    function disconnectEthernet(connectionName: string) {
         Nmcli.disconnectEthernet(connectionName, result => {
             if (result.success) {
                 getEthernetDevices();
@@ -232,13 +244,13 @@ Singleton {
         });
     }
 
-    function updateEthernetDeviceDetails(interfaceName: string): void {
+    function updateEthernetDeviceDetails(interfaceName: string) {
         Nmcli.getEthernetDeviceDetails(interfaceName, details => {
             root.ethernetDeviceDetails = details;
         });
     }
 
-    function updateWirelessDeviceDetails(): void {
+    function updateWirelessDeviceDetails() {
         // Find the wireless interface by looking for wifi devices
         // Pass empty string to let Nmcli find the active interface automatically
         Nmcli.getWirelessDeviceDetails("", details => {
@@ -281,10 +293,10 @@ Singleton {
 
     Connections {
         target: Nmcli
-        function onNetworksChanged(): void {
+        function onNetworksChanged() {
             syncNetworksFromNmcli();
         }
-        function onEthernetDevicesChanged(): void {
+        function onEthernetDevicesChanged() {
             root.ethernetDevices = Nmcli.ethernetDevices;
             root.ethernetDeviceCount = Nmcli.ethernetDevices.length;
         }
@@ -292,6 +304,8 @@ Singleton {
 
     // Sync saved connections from Nmcli when they're updated
     Connections {
+        target: Nmcli
+
         function onSavedConnectionsChanged() {
             root.savedConnections = Nmcli.savedConnections;
         }
@@ -300,7 +314,9 @@ Singleton {
             root.savedConnectionSsids = Nmcli.savedConnectionSsids;
         }
 
-        target: Nmcli
+        function onSavedProfilesChanged() {
+            root.savedProfiles = Nmcli.savedProfiles;
+        }
     }
 
     Component {

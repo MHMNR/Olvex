@@ -130,6 +130,19 @@ def parse_args() -> tuple[argparse.ArgumentParser, argparse.Namespace]:
         "--disable-components", metavar="LIST", help="comma-separated list of components to disable"
     )
     install_parser.add_argument("--noconfirm", action="store_true", help="use defaults for all prompts")
+    install_parser.add_argument(
+        "--drivers",
+        dest="drivers",
+        action="store_true",
+        default=None,
+        help="automatically detect and install hardware drivers (GPU, audio, microcode, bluetooth)",
+    )
+    install_parser.add_argument(
+        "--no-drivers",
+        dest="drivers",
+        action="store_false",
+        help="skip hardware driver detection and installation",
+    )
     _set_install_epilog(install_parser)
 
     # Create parser for update opts

@@ -460,20 +460,6 @@ Item {
     }
 
     // Corner click triggers:
-    // Bottom-right corner: click to toggle QS panel
-    MouseArea {
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        width: 60
-        height: 60
-        visible: Config.qspanel.enabled
-        z: 30
-
-        onClicked: {
-            root.visibilities.qspanel = !root.visibilities.qspanel;
-        }
-    }
-
     // Bottom-left corner: click to toggle launcher
     MouseArea {
         anchors.left: parent.left

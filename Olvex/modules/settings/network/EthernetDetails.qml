@@ -12,7 +12,7 @@ Item {
     id: root
 
     property Session session
-    readonly property var ethernetDevice: root.session?.ethernet?.active
+    readonly property var ethernetDevice: root.session && root.session.ethernet ? root.session.ethernet.active : null
 
     property bool isManual: false
     property string staticIpAddress: "192.168.1.100"
@@ -44,7 +44,7 @@ Item {
             property: "opacity"
             from: 0
             to: 1
-            duration: Tokens.anim.durations.slow
+            duration: Tokens.anim.durations.long
             easing.type: Easing.OutCubic
         }
     }
@@ -82,21 +82,21 @@ Item {
 
             SettingRow {
                 Layout.fillWidth: true
-                title: root.ethernetDevice?.interface ?? qsTr("Unknown Interface")
+                title: root.ethernetDeviceinterface || qsTr("Unknown Interface")
                 description: {
-                    if (root.ethernetDevice?.connected) {
-                        return root.ethernetDevice?.connection || qsTr("Connected - 1000 Mbps, Full Duplex");
+                    if (root.ethernetDeviceconnected) {
+                        return root.ethernetDeviceconnection || qsTr("Connected - 1000 Mbps, Full Duplex");
                     }
                     return qsTr("Disconnected");
                 }
                 icon: "cable"
                 StyledSwitch {
-                    checked: root.ethernetDevice?.connected ?? false
+                    checked: root.ethernetDeviceconnected || false
                     onToggled: {
                         if (checked) {
-                            Nmcli.connectEthernet(root.ethernetDevice?.connection || "", root.ethernetDevice?.interface || "", () => {});
+                            Nmcli.connectEthernet(root.ethernetDeviceconnection || "", root.ethernetDeviceinterface || "", () => {});
                         } else {
-                            if (root.ethernetDevice?.connection) {
+                            if (root.ethernetDeviceconnection) {
                                 Nmcli.disconnectEthernet(root.ethernetDevice.connection, () => {});
                             }
                         }
@@ -306,17 +306,12 @@ Item {
             SettingRow {
                 Layout.fillWidth: true
                 title: qsTr("MAC Address")
-                description: Nmcli.ethernetDeviceDetails?.hwAddress || "00:00:00:00:00:00"
+                description: Nmcli.ethernetDeviceDetailshwAddress || "00:00:00:00:00:00"
                 icon: "memory"
                 divider: false
                 
                 IconButton {
                     icon: "content_copy"
-                    
-                    scale: pressed ? 0.96 : (hovered ? 1.02 : 1.0)
-                    Behavior on scale {
-                        NumberAnimation { duration: 150; easing.type: Easing.OutBack }
-                    }
                     
                     onClicked: {
                         root.copyMacToClipboard();

@@ -33,6 +33,9 @@ QtObject {
     // Alias used by SettingsWindow / NavRail: session.root
     readonly property var root: rootItem
 
+    // Top-level floating overlays (set by SettingsWindow.onCompleted)
+    property var wifiConfigMenu: null
+
     property bool _syncingActive: false
 
     onActiveChanged: {

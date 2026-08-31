@@ -4,6 +4,7 @@ import "../../components"
 import "../../components/controls"
 import "../../components/containers"
 import ".."
+import "network"
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
@@ -686,7 +687,18 @@ Item {
         }
     }
 
+    WifiConfigMenu {
+        id: wifiConfigMenuRoot
+        session: root.session
+        // anchors.fill already set inside WifiConfigMenu via anchors.fill: parent
+        // but we need it filling THIS item (the SettingsWindow root), not NetworkDetails
+        // Override parent anchor to fill the top-level SettingsWindow item
+        parent: root
+    }
+
     Component.onCompleted: {
+        // Expose the overlay to session so NetworkWifi can call openFor()
+        session.wifiConfigMenu = wifiConfigMenuRoot;
         // Deep-link from bar popout / active prop
         if (session.active && session.active !== "") {
             const cat = PaneRegistry.getById(session.active) || PaneRegistry.getByLabel(session.active);

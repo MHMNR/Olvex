@@ -55,20 +55,15 @@ CustomMouseArea {
         return x >= bar.implicitWidth + floatingGap + panel.x && x <= bar.implicitWidth + floatingGap + panel.x + panel.width && withinPanelHeight(panel, x, y);
     }
 
-    // Right-edge panels (OSD, powermenu, QS qspanel). isCorner: closed-peek strip (bottom-right).
-    function inRightPanel(panel: Item, x: real, y: real, isCorner = false): bool {
+    // Right-edge panels (OSD, powermenu, QS qspanel).
+    function inRightPanel(panel: Item, x: real, y: real): bool {
         const offset = panel.offsetScale ?? 0; // qmllint disable missing-property
         if (offset < 1 && panel.width > 0) {
             // Open / peeking — use live panel geometry
             return x >= bar.implicitWidth + floatingGap + panel.x && withinPanelHeight(panel, x, y);
         }
-        // Fully closed — right-edge hot zone
-        const zoneW = isCorner ? 40 : 4;
-        const inX = x >= width - zoneW;
-        if (isCorner) {
-            const panelH = Math.max(panel.implicitHeight || 0, panel.height, 200);
-            return inX && y > height - panelH - 40;
-        }
+        // Fully closed — right-edge hot zone (narrow edge trigger only)
+        const inX = x >= width - 4;
         return inX && withinPanelHeight(panel, x, y);
     }
 
@@ -108,11 +103,6 @@ CustomMouseArea {
         return x <= edgeW && y >= height - edgeH;
     }
 
-    // Bottom-right corner hot zone (QS panel trigger)
-    function inBottomRightCorner(x: real, y: real): bool {
-        const edgeH = Math.max(60, safeBorder.thickness + floatingGap + 30);
-        return x >= width - 60 && y >= height - edgeH;
-    }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         if (!withinPanelWidth(panel, x, y))
@@ -154,37 +144,10 @@ CustomMouseArea {
             return;
         }
 
-        // Click bottom-right corner to toggle QS panel
-        if (inBottomRightCorner(event.x, event.y)) {
-            visibilities.qspanel = !visibilities.qspanel;
-            qspanelShortcutActive = visibilities.qspanel;
-            event.accepted = true;
-            return;
-        }
-
         // Click peeked dashboard to open
         if (Config.dashboard.showOnHover && inTopPanel(panels.dashboard, event.x, event.y) && !visibilities.dashboard) {
             visibilities.dashboard = true;
             dashboardShortcutActive = true;
-            event.accepted = true;
-            return;
-        }
-
-        // Click peeked qspanel to open (only when bottom panel is off and qspanel is peeking)
-        const bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
-        if (bottomPanelOff && panels.qspanel.hovered && !visibilities.qspanel
-                && inRightPanel(panels.qspanel, event.x, event.y, true)) {
-            visibilities.qspanel = true;
-            qspanelShortcutActive = true;
-            event.accepted = true;
-            return;
-        }
-
-        // Right-edge / bottom-right corner click opens qspanel (only when bottom panel is off)
-        if (bottomPanelOff && !visibilities.qspanel
-                && inRightPanel(panels.qspanel, event.x, event.y, true)) {
-            visibilities.qspanel = true;
-            qspanelShortcutActive = true;
             event.accepted = true;
             return;
         }
@@ -402,7 +365,7 @@ CustomMouseArea {
         // Show/hide qspanel hover peek from the right edge when bottom panel is off
         const _bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
         if (_bottomPanelOff && !visibilities.qspanel && !qspanelShortcutActive) {
-            panels.qspanel.hovered = inRightPanel(panels.qspanel, x, y, true);
+            panels.qspanel.hovered = inRightPanel(panels.qspanel, x, y);
         } else if (!_bottomPanelOff) {
             panels.qspanel.hovered = false;
         }
@@ -486,7 +449,7 @@ CustomMouseArea {
         function onQspanelChanged() {
             if (root.visibilities.qspanel) {
                 // Utilities became visible, immediately check if this should be shortcut mode
-                const inUtilitiesArea = root.inRightPanel(root.panels.qspanel, root.mouseX, root.mouseY, true);
+                const inUtilitiesArea = root.inRightPanel(root.panels.qspanel, root.mouseX, root.mouseY);
                 if (!inUtilitiesArea) {
                     root.qspanelShortcutActive = true;
                 }
