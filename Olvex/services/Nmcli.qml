@@ -385,6 +385,9 @@ Singleton {
                 connectionCheckTimer.stop();
                 immediateCheckTimer.stop();
                 root.pendingConnection = null;
+                checkAndDeleteConnection(ssid, () => {
+                    loadSavedConnections(() => {});
+                });
                 if (callback)
                     callback(result);
                 return;
@@ -407,6 +410,11 @@ Singleton {
                 connectionCheckTimer.stop();
                 immediateCheckTimer.stop();
                 root.pendingConnection = null;
+                if (!password || password.length === 0) {
+                    checkAndDeleteConnection(ssid, () => {
+                        loadSavedConnections(() => {});
+                    });
+                }
                 if (callback)
                     callback(result);
             }
@@ -547,6 +555,10 @@ Singleton {
         return false;
     }
 
+    function isSaved(ssid) {
+        return hasSavedProfile(ssid);
+    }
+
     function getSavedProfile(ssid) {
         if (!ssid || ssid.length === 0)
             return null;
@@ -675,7 +687,6 @@ Singleton {
         const iface = (interfaceName && interfaceName.length > 0) ? interfaceName : getWirelessDeviceName();
         executeCommand([root.nmcliCommandDevice, "disconnect", iface], result => {
             if (result.success) {
-                root.active = null;
                 root.activeConnection = "";
                 getNetworks(() => {});
                 getWifiStatus();
@@ -688,7 +699,6 @@ Singleton {
     function disconnectFromNetwork(callback) {
         const iface = getWirelessDeviceName();
         executeCommand([root.nmcliCommandDevice, "disconnect", iface], result => {
-            root.active = null;
             root.activeConnection = "";
             getNetworks(() => {});
             getWifiStatus();
@@ -869,6 +879,8 @@ Singleton {
                     }));
                 }
             }
+
+            root.networks = [...rNetworks];
 
             if (callback)
                 callback(root.networks);

@@ -11,8 +11,8 @@ import qs.services
 Singleton {
     id: root
 
-    function create(parent: Item, props: var): void {
-        settingsWindow.createObject(parent ?? dummy, props);
+    function create(parent, props) {
+        settingsWindow.createObject(parent || dummy, props || {});
     }
 
     QtObject {
@@ -28,6 +28,7 @@ Singleton {
             property alias active: cc.active
             property alias navExpanded: cc.navExpanded
             property alias currentId: cc.currentId
+            property alias activeSection: cc.activeSection
 
             // Solid opaque surface matching theme mode; Hyprland natively clips window corners.
             color: Colours.palette.m3surface

@@ -19,6 +19,7 @@ QtObject {
     // Bento navigation
     property string currentId: "" // "" → home
     property string pageId: ""
+    property string activeSection: ""
     property string query: ""
     property rect srcRect: Qt.rect(0, 0, 0, 0)
 
@@ -58,12 +59,12 @@ QtObject {
         }
     }
 
-    function open(id: string): void {
+    function open(id) {
         pageId = id;
         currentId = id;
     }
 
-    function openFrom(item, id: string, stackItem): void {
+    function openFrom(item, id, stackItem) {
         if (!item || !stackItem) {
             open(id);
             return;
@@ -76,12 +77,12 @@ QtObject {
         currentId = id;
     }
 
-    function goHome(): void {
+    function goHome() {
         // Collapse first; pageId cleared when transformProgress hits 0
         currentId = "";
     }
 
-    function matches(cat): bool {
+    function matches(cat) {
         if (query === "")
             return true;
         const q = query.toLowerCase();

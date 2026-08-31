@@ -1,5 +1,3 @@
-pragma ComponentBehavior: Bound
-
 import ".."
 import "../ui"
 import "../components"
@@ -16,7 +14,16 @@ Item {
 
     property Session session
     signal back
-    property string activeSection: "wifi"
+    property string activeSection: (session && session.activeSection) ? session.activeSection : "wifi"
+
+    Connections {
+        target: root.session ?? null
+        function onActiveSectionChanged() {
+            if (root.session && root.session.activeSection) {
+                root.activeSection = root.session.activeSection;
+            }
+        }
+    }
 
     SettingsPage {
         anchors.fill: parent

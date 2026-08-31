@@ -17,16 +17,17 @@ Item {
     StyledFlickable {
         anchors.fill: parent
         flickableDirection: Flickable.VerticalFlick
-        contentHeight: detailsLoader.height + (Tokens.padding.large * 2)
+        contentHeight: detailsLoader.implicitHeight + (Tokens.padding.large * 2)
         clip: true
+        smoothWheel: true
 
         Loader {
             id: detailsLoader
-            onLoaded: if (item) height = Qt.binding(() => item ? (item["implicitHeight"] || 0) : 0);
-                        anchors.top: parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.padding.large
+            height: item ? item.implicitHeight : 0
                         
             source: {
                 switch(root.activeSection) {

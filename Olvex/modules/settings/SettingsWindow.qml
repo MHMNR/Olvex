@@ -1,5 +1,3 @@
-pragma ComponentBehavior: Bound
-
 import "../../components"
 import "../../components/controls"
 import "../../components/containers"
@@ -26,6 +24,7 @@ Item {
     property alias active: session.active
     property alias navExpanded: session.navExpanded
     property alias currentId: session.currentId
+    property alias activeSection: session.activeSection
 
     readonly property bool initialOpeningComplete: true
     readonly property Session session: Session {
@@ -316,7 +315,7 @@ Item {
             // Match bento card fill so progress=0 handoff is invisible
             readonly property color containerColor: Colours.palette.m3surfaceContainer
 
-            function mapRange(t: real, start: real, end: real): real {
+            function mapRange(t, start, end) {
                 if (end <= start)
                     return t >= end ? 1 : 0;
                 if (t <= start)
@@ -326,7 +325,7 @@ Item {
                 return (t - start) / (end - start);
             }
 
-            function lerp(a: real, b: real, t: real): real {
+            function lerp(a, b, t) {
                 return a + (b - a) * t;
             }
 
@@ -349,7 +348,7 @@ Item {
             readonly property real originCoverThreshold: 0.14
             readonly property bool morphCoversOrigin: (transformProgress ?? 0) > originCoverThreshold
 
-            function captureStartRect(): void {
+            function captureStartRect() {
                 let r = session.srcRect;
                 if (r.width < 8 || r.height < 8) {
                     const w = Math.min(160, stack.width * 0.25);
@@ -383,7 +382,7 @@ Item {
                 }
             }
 
-            function expandToPage(): void {
+            function expandToPage() {
                 stack.returning = false;
                 stack.captureStartRect();
                 transformAnim.stop();
@@ -394,7 +393,7 @@ Item {
                 transformAnim.start();
             }
 
-            function collapseToHome(): void {
+            function collapseToHome() {
                 stack.returning = true;
                 // Keep frozen start rect from open (don't re-capture mid-layout)
                 transformAnim.stop();
@@ -406,11 +405,17 @@ Item {
             Connections {
                 target: session
                 // Expand first, before heavy page work — seamless click response
-                function onCurrentIdChanged(): void {
+                function onCurrentIdChanged() {
                     if (session.currentId !== "")
                         stack.expandToPage();
                     else
                         stack.collapseToHome();
+                }
+            }
+
+            Component.onCompleted: {
+                if (session.currentId !== "" || session.pageId !== "" || (session.active && session.active !== "")) {
+                    stack.transformProgress = 1;
                 }
             }
 
@@ -619,7 +624,7 @@ Item {
                     visible: stack.showPageContent && status === Loader.Ready
                     enabled: stack.pageOpen && !stack.returning
 
-                    function loadPage(id: string): void {
+                    function loadPage(id) {
                         if (!id) {
                             source = "";
                             return;
@@ -632,9 +637,13 @@ Item {
                         const url = Qt.resolvedUrl(cat.component);
                         if (source === url && item)
                             return;
-                        setSource(url, {
+                        const pageProps = {
                             "session": session
-                        });
+                        };
+                        if (session.activeSection) {
+                            pageProps["activeSection"] = session.activeSection;
+                        }
+                        setSource(url, pageProps);
                     }
 
                     onLoaded: {
@@ -651,7 +660,7 @@ Item {
 
                     Connections {
                         target: session
-                        function onPageIdChanged(): void {
+                        function onPageIdChanged() {
                             pageLoader.loadPage(session.pageId);
                         }
                     }
@@ -711,8 +720,10 @@ Item {
         // Deep-link from bar popout / active prop
         if (session.active && session.active !== "") {
             const cat = PaneRegistry.getById(session.active) || PaneRegistry.getByLabel(session.active);
-            if (cat)
+            if (cat) {
                 session.open(cat.id);
+                stack.transformProgress = 1;
+            }
         }
     }
 }

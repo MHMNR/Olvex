@@ -19,7 +19,7 @@ Item {
     required property DrawerVisibilities visibilities
 
     readonly property bool active: props.expansionActive !== ""
-    property bool btEnabled: Bluetooth.defaultAdapter?.enabled ?? false
+    property bool btEnabled: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
     property string lastActiveType: ""
     property var passwordNetwork: null
     readonly property bool needsKeyboard: dummyPopoutState.currentName === "wirelesspassword"
@@ -70,7 +70,7 @@ Item {
         if (active) {
             // Capture ALL element positions BEFORE expansion starts
             const srcItem = props.expansionSourceItem
-            const pillW   = (srcItem?.checked ?? false) ? 100 : 55
+            const pillW   = (srcItem && srcItem.checked) ? 100 : 55
             
             // Bulletproof coordinate mapping that works for all nested layouts (like customPillsColumn) and repeaters!
             var mapped = srcItem.mapToItem(root, 0, 0)
@@ -106,7 +106,7 @@ Item {
                 dummyPopoutState.currentName = "displayprojection";
             }
             
-            btEnabled = Bluetooth.defaultAdapter?.enabled ?? false
+            btEnabled = Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
             hideTimer.stop()
             _overlayVisible = true
         } else {
@@ -123,7 +123,7 @@ Item {
     Connections {
         target: Bluetooth
         function onDefaultAdapterChanged() {
-            root.btEnabled = Bluetooth.defaultAdapter?.enabled ?? false
+            root.btEnabled = Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
         }
     }
     Connections {
@@ -142,7 +142,7 @@ Item {
     readonly property var md3EmphasizedDecelerate: [0.05, 0.7, 0.1, 1.0, 1, 1]
     readonly property int expandDur: 500
     readonly property int collapseDur: 400
-    readonly property int dur: Tokens?.anim?.durations?.normal ?? 250
+    readonly property int dur: Tokens.anim.durations.normal
     readonly property int expandedHeight: Math.min(root.height - 80, Math.max(150, contentLoader.implicitHeight + 120))
 
     MouseArea {
@@ -525,7 +525,7 @@ Item {
 
             MaterialIcon {
                 id: chevronRightIcon
-                visible: root.lastActiveType === "displayprojection"
+                visible: root.lastActiveType === "displayprojection" && !root.active
                 text: "chevron_right"
                 color: Colours.palette.m3onSurfaceVariant
                 iconPointSize: Tokens.font.size.normal
@@ -535,7 +535,9 @@ Item {
                 
                 x: startX
                 y: startY
-                opacity: 1
+                opacity: root.active ? 0 : 1
+
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
             }
 
             RowLayout {
@@ -563,77 +565,78 @@ Item {
                     }
                 }
 
-                IconButton {
-                    id: rescanHeaderBtn
+                Item {
+                    id: wifiScanCtl
                     visible: root.lastActiveType === "network"
-                    type: IconButton.Text
-                    
-                    implicitWidth: 48
-                    implicitHeight: 48
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    readonly property bool scanning: Nmcli.scanning
+                    readonly property bool canScan: Nmcli.wifiEnabled
 
-                    // Base WiFi Search icon
-                    MaterialIcon {
+                    LoadingIndicator {
                         anchors.centerIn: parent
-                        text: "wifi_find"
-                        opacity: Nmcli.scanning ? 0 : 1
-                        iconPointSize: Tokens.font.size.large
+                        implicitSize: 30
                         color: Colours.palette.m3primary
-                        Behavior on opacity { Anim {} }
+                        animated: wifiScanCtl.scanning
+                        opacity: wifiScanCtl.scanning ? 1 : 0
+                        scale: wifiScanCtl.scanning ? 1 : 0.72
+                        visible: opacity > 0.01
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        Behavior on scale { Anim { type: Anim.DefaultSpatial } }
                     }
 
-                    // Modern Circular Loading Indicator (Matching Network.qml style)
-                    CircularIndicator {
-                        anchors.fill: parent
-                        anchors.margins: 2
-                        running: Nmcli.scanning
-                        opacity: Nmcli.scanning ? 1 : 0
-                        
-                        strokeWidth: 4.5
-                        fgColour: Colours.palette.m3primary
-                        // bgColour default (track background stays)
-                        
-                        Behavior on opacity { Anim {} }
+                    IconButton {
+                        anchors.centerIn: parent
+                        type: IconButton.Text
+                        icon: "refresh"
+                        inactiveOnColour: Colours.palette.m3primary
+                        disabled: !wifiScanCtl.canScan
+                        opacity: wifiScanCtl.scanning ? 0 : 1
+                        visible: opacity > 0.01
+                        enabled: wifiScanCtl.canScan && !wifiScanCtl.scanning
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        onClicked: if (Nmcli.wifiEnabled) Nmcli.rescanWifi()
                     }
-                    
-                    onClicked: Nmcli.rescanWifi()
                 }
 
-                IconButton {
-                    id: btRescanHeaderBtn
+                Item {
+                    id: btScanCtl
                     visible: root.lastActiveType === "bluetooth"
-                    type: IconButton.Text
-                    
-                    implicitWidth: 48
-                    implicitHeight: 48
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    readonly property bool scanning: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.discovering : false
+                    readonly property bool canScan: root.btEnabled && (Bluetooth.defaultAdapter !== null)
 
-                    readonly property bool scanning: Bluetooth.defaultAdapter?.discovering ?? false
-
-                    // Base Bluetooth Search icon
-                    MaterialIcon {
+                    LoadingIndicator {
                         anchors.centerIn: parent
-                        text: "bluetooth_searching"
-                        opacity: btRescanHeaderBtn.scanning ? 0 : 1
-                        iconPointSize: Tokens.font.size.large
+                        implicitSize: 30
                         color: Colours.palette.m3primary
-                        Behavior on opacity { Anim {} }
+                        animated: btScanCtl.scanning
+                        opacity: btScanCtl.scanning ? 1 : 0
+                        scale: btScanCtl.scanning ? 1 : 0.72
+                        visible: opacity > 0.01
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        Behavior on scale { Anim { type: Anim.DefaultSpatial } }
                     }
 
-                    // Modern Circular Loading Indicator
-                    CircularIndicator {
-                        anchors.fill: parent
-                        anchors.margins: 2
-                        running: btRescanHeaderBtn.scanning
-                        opacity: btRescanHeaderBtn.scanning ? 1 : 0
-                        
-                        strokeWidth: 4.5
-                        fgColour: Colours.palette.m3primary
-                        
-                        Behavior on opacity { Anim {} }
-                    }
-                    
-                    onClicked: {
-                        const a = Bluetooth.defaultAdapter
-                        if (a) a.discovering = !a.discovering
+                    IconButton {
+                        anchors.centerIn: parent
+                        type: IconButton.Text
+                        icon: "refresh"
+                        inactiveOnColour: Colours.palette.m3primary
+                        disabled: !btScanCtl.canScan
+                        opacity: btScanCtl.scanning ? 0 : 1
+                        visible: opacity > 0.01
+                        enabled: btScanCtl.canScan && !btScanCtl.scanning
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        onClicked: {
+                            const a = Bluetooth.defaultAdapter;
+                            if (a) a.discovering = !a.discovering;
+                        }
                     }
                 }
             }
@@ -879,41 +882,32 @@ Item {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
 
-            StyledText {
-                Layout.fillWidth: true
-                Layout.bottomMargin: Tokens.spacing.small
-                Layout.rightMargin: Tokens.padding.small
-                text: qsTr("Select display projection mode:")
-                color: Colours.palette.m3onSurfaceVariant
-                textPointSize: Tokens.font.size.small
-            }
-
             DisplayProjectionItem {
                 mode: "primary"
                 icon: "laptop"
-                title: qsTr("Primary")
-                description: qsTr("Turn off external display, keep built-in screen.")
-            }
-
-            DisplayProjectionItem {
-                mode: "secondary"
-                icon: "tv"
-                title: qsTr("Secondary")
-                description: qsTr("Turn off built-in display, use external screen.")
-            }
-
-            DisplayProjectionItem {
-                mode: "expand"
-                icon: "grid_view"
-                title: qsTr("Expand")
-                description: qsTr("Extend your desktop across both screens.")
+                title: qsTr("PC screen only")
+                description: qsTr("Turn off external displays, use built-in screen.")
             }
 
             DisplayProjectionItem {
                 mode: "mirror"
                 icon: "sync"
-                title: qsTr("Mirror")
+                title: qsTr("Duplicate")
                 description: qsTr("Duplicate your screen onto external display.")
+            }
+
+            DisplayProjectionItem {
+                mode: "expand"
+                icon: "splitscreen"
+                title: qsTr("Extend")
+                description: qsTr("Extend your desktop across both screens.")
+            }
+
+            DisplayProjectionItem {
+                mode: "secondary"
+                icon: "tv"
+                title: qsTr("Second screen only")
+                description: qsTr("Turn off built-in display, use external screen.")
             }
         }
     }
@@ -934,6 +928,16 @@ Item {
         color: isActive ? Colours.palette.m3primary : Colours.tileFill
         border.width: 0
         border.color: "transparent"
+
+        scale: projMa.pressed ? 0.98 : 1.0
+        Behavior on scale {
+            SpringAnimation {
+                spring: 5.0
+                damping: 0.70
+            }
+        }
+
+        Behavior on color { CAnim {} }
 
         RowLayout {
             anchors.fill: parent
@@ -978,8 +982,10 @@ Item {
         }
 
         StateLayer {
+            id: projMa
             anchors.fill: parent
             color: projItemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+            preventStealing: false
             onClicked: DisplayProjection.applyProjection(projItemRoot.mode)
         }
     }

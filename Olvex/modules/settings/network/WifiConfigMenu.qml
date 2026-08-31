@@ -615,7 +615,8 @@ Item {
                             Layout.fillWidth: true
                             implicitHeight: 34
                             radius: Tokens.rounding.full
-                            color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.75)
+                            color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.65)
+                            border.width: 0
 
                             RowLayout {
                                 anchors.fill: parent
