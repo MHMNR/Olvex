@@ -145,6 +145,7 @@ class BarBottomPanel : public ConfigObject {
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(QString, visibilityMode, u"always"_s)
+    CONFIG_PROPERTY(bool, dockBackground, true)
 
 public:
     explicit BarBottomPanel(QObject* parent = nullptr)

@@ -103,6 +103,7 @@ Item {
     // Bottom panel config
     readonly property bool bottomPanelEnabled: Config.bar.bottomPanel && Config.bar.bottomPanel.enabled !== undefined ? Config.bar.bottomPanel.enabled : true
     readonly property string bottomPanelMode: Config.bar.bottomPanel && Config.bar.bottomPanel.visibilityMode ? Config.bar.bottomPanel.visibilityMode : "always"
+    readonly property bool bottomPanelDockBg: Visibilities.bottomPanelDockBackground && (Config.bar?.bottomPanel?.dockBackground !== false)
 
     property bool hasWindowsOverlappingPanel: false
     property bool _lastOverlapState: false
@@ -554,22 +555,30 @@ Item {
 
             // Pill layout container — same glass bg as Quick Toggles card
             Rectangle {
+                id: dockContainer
                 anchors.centerIn: parent
                 height: 70
                 width: layout.width + 20
                 radius: 20
                 visible: pinnedModel.count > 0
-                color: Colours.tileGlassStrong
-                border.color: Colours.tileShine
-                border.width: 1
+
+                readonly property bool showBg: root.bottomPanelDockBg
+                color: showBg ? Colours.tileGlassStrong : "transparent"
+                border.color: showBg ? Colours.tileShine : "transparent"
+                border.width: showBg ? 1 : 0
+
+                Behavior on color { CAnim {} }
+                Behavior on border.color { CAnim {} }
 
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
                     radius: parent.radius - 1
                     color: "transparent"
-                    border.color: Colours.tileShineSoft
-                    border.width: 1
+                    border.color: dockContainer.showBg ? Colours.tileShineSoft : "transparent"
+                    border.width: dockContainer.showBg ? 1 : 0
+                    visible: dockContainer.showBg
+                    Behavior on border.color { CAnim {} }
                 }
 
                 // Manual positioning container for drag-and-drop

@@ -2,6 +2,7 @@ pragma Singleton
 
 import Quickshell
 import QtQuick
+import QtCore as QC
 import qs.components
 import qs.services
 
@@ -12,7 +13,20 @@ Singleton {
     property bool shellMotionActive: false
     property bool areaPickerActive: false
 
-    function pulseShellMotion(duration: int): void {
+    property bool bottomPanelDockBackground: bpSettings.dockBackground
+
+    QC.Settings {
+        id: bpSettings
+        category: "BottomPanel"
+        property bool dockBackground: true
+    }
+
+    function setBottomPanelDockBackground(val) {
+        bpSettings.dockBackground = val;
+        bottomPanelDockBackground = val;
+    }
+
+    function pulseShellMotion(duration) {
         const hold = duration || 520;
         shellMotionActive = true;
         shellMotionTimer.interval = Math.max(shellMotionTimer.interval, hold);
@@ -26,11 +40,11 @@ Singleton {
         onTriggered: shellMotionActive = false
     }
 
-    function load(screen: ShellScreen, visibilities: DrawerVisibilities): void {
+    function load(screen, visibilities) {
         screens.set(Hypr.monitorFor(screen), visibilities);
     }
 
-    function getForActive(): DrawerVisibilities {
+    function getForActive() {
         return screens.get(Hypr.focusedMonitor);
     }
 }

@@ -106,6 +106,24 @@ Item {
                 }
             }
             SettingRow {
+                title: qsTr("Dock background")
+                description: qsTr("Show background container behind pinned apps")
+                enabled: Config.bar.bottomPanel?.enabled ?? true
+                opacity: enabled ? 1.0 : 0.38
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
+                StyledSwitch {
+                    enabled: Config.bar.bottomPanel?.enabled ?? true
+                    checked: Visibilities.bottomPanelDockBackground
+                    onToggled: {
+                        Visibilities.setBottomPanelDockBackground(checked);
+                        if (GlobalConfig.bar && GlobalConfig.bar.bottomPanel) {
+                            GlobalConfig.bar.bottomPanel.dockBackground = checked;
+                        }
+                        GlobalConfig.save();
+                    }
+                }
+            }
+            SettingRow {
                 title: qsTr("Visibility")
                 description: qsTr("Always show, hide until hover, or hide when windows overlap")
                 divider: false

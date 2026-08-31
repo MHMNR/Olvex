@@ -8,6 +8,7 @@ import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
+import qs.services
 
 Item {
     id: root
@@ -47,6 +48,29 @@ Item {
                 checked: Config.bar.bottomPanel.enabled ?? true
                 onToggled: {
                     GlobalConfig.bar.bottomPanel.enabled = checked;
+                    GlobalConfig.save();
+                }
+            }
+        }
+
+        SettingRow {
+            Layout.fillWidth: true
+            title: qsTr("Dock Background")
+            description: qsTr("Show a container background behind pinned apps")
+            icon: "view_compact_alt"
+            divider: true
+            enabled: Config.bar.bottomPanel.enabled ?? true
+            opacity: enabled ? 1.0 : 0.38
+            Behavior on opacity { Anim { type: Anim.FastEffects } }
+            
+            StyledSwitch {
+                enabled: Config.bar.bottomPanel.enabled ?? true
+                checked: Visibilities.bottomPanelDockBackground
+                onToggled: {
+                    Visibilities.setBottomPanelDockBackground(checked);
+                    if (GlobalConfig.bar && GlobalConfig.bar.bottomPanel) {
+                        GlobalConfig.bar.bottomPanel.dockBackground = checked;
+                    }
                     GlobalConfig.save();
                 }
             }

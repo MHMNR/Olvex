@@ -63,6 +63,7 @@ Item {
     property list<string> excludedScreens: Config.bar.excludedScreens ?? []
     property bool bottomPanelEnabled: Config.bar.bottomPanel.enabled ?? true
     property string bottomPanelVisibilityMode: Config.bar.bottomPanel.visibilityMode ?? "always"
+    property bool bottomPanelDockBackground: Config.bar.bottomPanel.dockBackground ?? true
 
     function saveConfig(entryIndex, entryEnabled) {
         GlobalConfig.bar.activeWindow.compact = root.activeWindowCompact;
@@ -109,6 +110,7 @@ Item {
         GlobalConfig.bar.excludedScreens = root.excludedScreens;
         GlobalConfig.bar.bottomPanel.enabled = root.bottomPanelEnabled;
         GlobalConfig.bar.bottomPanel.visibilityMode = root.bottomPanelVisibilityMode;
+        GlobalConfig.bar.bottomPanel.dockBackground = root.bottomPanelDockBackground;
 
         const entries = [];
         for (let i = 0; i < entriesModel.count; i++) {
@@ -686,6 +688,19 @@ Item {
                                 checked: root.bottomPanelEnabled
                                 onToggled: checked => {
                                     root.bottomPanelEnabled = checked;
+                                    root.saveConfig();
+                                }
+                            }
+
+                            SwitchRow {
+                                label: qsTr("Dock Background")
+                                checked: Visibilities.bottomPanelDockBackground
+                                enabled: root.bottomPanelEnabled
+                                opacity: root.bottomPanelEnabled ? 1.0 : 0.38
+                                Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                onToggled: checked => {
+                                    Visibilities.setBottomPanelDockBackground(checked);
+                                    root.bottomPanelDockBackground = checked;
                                     root.saveConfig();
                                 }
                             }
