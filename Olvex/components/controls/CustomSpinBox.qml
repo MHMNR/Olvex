@@ -97,12 +97,12 @@ Item {
         StyledRect {
             Layout.fillHeight: true
             Layout.preferredWidth: Math.max(48, textField.contentWidth + 24)
-            radius: 8
-            color: Colours.tPalette.m3surfaceContainer
-            border.color: textField.activeFocus ? Colours.palette.m3primary : "transparent"
-            border.width: textField.activeFocus ? 2 : 0
+            radius: Tokens.rounding.full
+            color: textField.activeFocus ? Qt.alpha(Colours.palette.m3onSurface, 0.18) : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+            border.width: 0
+            border.color: "transparent"
 
-            Behavior on border.color { CAnim {} }
+            Behavior on color { CAnim {} }
             Behavior on Layout.preferredWidth { Anim {} }
 
             StyledTextField {

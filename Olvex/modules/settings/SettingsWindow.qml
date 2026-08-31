@@ -78,27 +78,23 @@ Item {
             }
 
             // search (Lockscreen cardstyle input field)
-            Rectangle {
+            StyledRect {
                 id: search
 
                 anchors.centerIn: parent
                 implicitWidth: 380
                 implicitHeight: 46
-                radius: height / 2
+                radius: Tokens.rounding.full
                 color: searchInput.activeFocus 
-                    ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
-                    : (searchHover.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1) : Colours.palette.m3surfaceContainerHigh)
+                    ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+                    : (searchHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.15) : Qt.alpha(Colours.palette.m3onSurface, 0.12))
 
-                border.color: searchInput.activeFocus
-                    ? Colours.palette.m3primary
-                    : (searchHover.containsMouse ? Qt.alpha(Colours.palette.m3outline, 0.6) : Qt.alpha(Colours.palette.m3outlineVariant, 0.35))
-                border.width: searchInput.activeFocus ? 2 : 1
+                border.width: 0
+                border.color: "transparent"
 
                 scale: 1.0
 
                 Behavior on color { CAnim {} }
-                Behavior on border.color { ColorAnimation { duration: 200 } }
-                Behavior on border.width { NumberAnimation { duration: 150 } }
                 Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutBack } }
 
                 HoverHandler {

@@ -200,17 +200,16 @@ PanelWindow {
             height: 52
             anchors.topMargin: 8
 
-            Rectangle {
+            StyledRect {
                 anchors.fill: parent
-                radius: 12
-                color: Qt.rgba(1, 1, 1, searchField.activeFocus ? 0.08 : 0.05)
-                border.color: searchField.activeFocus
-                    ? Qt.alpha(Colours.palette.m3primary, 0.6)
-                    : Qt.rgba(1, 1, 1, 0.08)
-                border.width: 1
+                radius: Tokens.rounding.full
+                color: searchField.activeFocus 
+                    ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+                    : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                border.width: 0
+                border.color: "transparent"
 
-                Behavior on color { ColorAnimation { duration: 150 } }
-                Behavior on border.color { ColorAnimation { duration: 150 } }
+                Behavior on color { CAnim {} }
 
                 Row {
                     anchors.left: parent.left

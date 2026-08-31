@@ -353,14 +353,14 @@ Item {
 
             StyledRect {
                 anchors.fill: parent
-                radius: Tokens.rounding.normal
-                color: Colours.tileFillHover
-                border.color: panelSearchInput.activeFocus
-                    ? Qt.alpha(Colours.palette.m3primary, 0.55)
-                    : Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-                border.width: 1
+                radius: Tokens.rounding.full
+                color: panelSearchInput.activeFocus
+                    ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+                    : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                border.width: 0
+                border.color: "transparent"
 
-                Behavior on border.color { CAnim {} }
+                Behavior on color { CAnim {} }
 
                 Row {
                     anchors.left: parent.left

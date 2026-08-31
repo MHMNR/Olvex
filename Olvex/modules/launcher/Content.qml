@@ -74,12 +74,13 @@ Item {
     StyledRect {
         id: searchWrapper
 
-        color: search.activeFocus ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2) : Colours.layer(Colours.palette.m3surfaceContainer, 2)
+        color: search.activeFocus 
+            ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+            : Qt.alpha(Colours.palette.m3onSurface, 0.12)
         radius: Tokens.rounding.full
-        border.color: search.activeFocus ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
-        border.width: search.activeFocus ? 2 : 1
+        border.width: 0
+        border.color: "transparent"
 
-        Behavior on border.color { CAnim {} }
         Behavior on color { CAnim {} }
 
         anchors.left: parent.left

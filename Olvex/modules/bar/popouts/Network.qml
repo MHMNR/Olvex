@@ -487,7 +487,7 @@ ColumnLayout {
                             border.color: "transparent"
 
                             color: {
-                                if (networkItem.isEditing) return Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.65);
+                                if (networkItem.isEditing) return Qt.alpha(Colours.palette.m3onSurface, 0.12);
                                 if (networkItem.isConnecting) return Qt.alpha(Colours.palette.m3primary, 0.16);
                                 if (networkItem.modelData.active) return Colours.palette.m3primaryContainer;
                                 return Qt.alpha(Colours.palette.m3onSurface, 0.08);

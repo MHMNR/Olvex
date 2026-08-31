@@ -26,16 +26,15 @@ Item {
         id: container
 
         anchors.fill: parent
-        color: inputHover.containsMouse || inputField.activeFocus ? Colours.layer(Colours.palette.m3surfaceContainer, 3) : Colours.layer(Colours.palette.m3surfaceContainer, 2)
-        radius: Tokens.rounding.small
-        border.width: 1
-        border.color: inputField.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outline, 0.3)
+        color: inputHover.containsMouse || inputField.activeFocus
+            ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+            : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+        radius: Tokens.rounding.full
+        border.width: 0
+        border.color: "transparent"
         opacity: root.enabled ? 1 : 0.5
 
         Behavior on color {
-            CAnim {}
-        }
-        Behavior on border.color {
             CAnim {}
         }
 

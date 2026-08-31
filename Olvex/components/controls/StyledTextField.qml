@@ -28,18 +28,15 @@ TextField {
         id: bgRect
         implicitHeight: 36
         implicitWidth: 120
-        radius: Tokens.rounding.normal
+        radius: Tokens.rounding.full
         color: root.activeFocus 
-            ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
-            : (root.hovered ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1) : Colours.palette.m3surfaceContainerHigh)
+            ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+            : (root.hovered ? Qt.alpha(Colours.palette.m3onSurface, 0.15) : Qt.alpha(Colours.palette.m3onSurface, 0.12))
         
-        border.color: root.activeFocus 
-            ? Colours.palette.m3primary 
-            : (root.hovered ? Qt.alpha(Colours.palette.m3outline, 0.7) : Qt.alpha(Colours.palette.m3outlineVariant, 0.6))
-        border.width: root.activeFocus ? 2 : 1
+        border.width: 0
+        border.color: "transparent"
         
         Behavior on color { CAnim {} }
-        Behavior on border.color { CAnim {} }
     }
 
     cursorDelegate: StyledRect {

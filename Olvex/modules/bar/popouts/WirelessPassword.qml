@@ -141,26 +141,14 @@ StyledRect {
             id: passwordContainer
             Layout.fillWidth: true
             Layout.preferredHeight: 64
-            radius: 20
+            radius: Tokens.rounding.full
+            color: hiddenInput.activeFocus 
+                ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+                : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+            border.width: 0
+            border.color: "transparent"
 
-            // Premium Glassmorphic Gradient
-            color: "transparent"
-            gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop {
-                    position: 0.0
-                    color: Qt.alpha(Colours.palette.m3onSurface, hiddenInput.activeFocus ? 0.12 : 0.08)
-                }
-                GradientStop {
-                    position: 1.0
-                    color: Qt.alpha(Colours.palette.m3onSurface, hiddenInput.activeFocus ? 0.08 : 0.04)
-                }
-            }
-
-            border.width: 1.5
-            border.color: hiddenInput.activeFocus ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.15)
-
-            Behavior on border.color {
+            Behavior on color {
                 CAnim {}
             }
 

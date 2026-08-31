@@ -458,7 +458,7 @@ Item {
                             Behavior on color { CAnim {} }
 
                             color: {
-                                if (network.isEditing) return Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.65);
+                                if (network.isEditing) return Qt.alpha(Colours.palette.m3onSurface, 0.12);
                                 if (network.isConnecting) return Qt.alpha(Colours.palette.m3primary, 0.16);
                                 if (network.modelData.active) return Colours.palette.m3primaryContainer;
                                 return Colours.palette.m3surfaceContainerHighest;
@@ -936,7 +936,7 @@ Item {
                         width: 200
                         implicitHeight: 34
                         radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.65)
+                        color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         border.width: 0
 
                         TextInput {
@@ -975,7 +975,7 @@ Item {
                         width: 200
                         implicitHeight: 34
                         radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.65)
+                        color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         border.width: 0
 
                         RowLayout {
