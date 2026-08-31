@@ -40,6 +40,17 @@ Item {
     anchors.fill: parent
     z: 9999
     visible: active || expandTransition.running || collapseTransition.running
+    focus: active
+
+    Keys.onEscapePressed: event => {
+        if (isPasswordEditing) {
+            isPasswordEditing = false;
+            event.accepted = true;
+            return;
+        }
+        menu.close();
+        event.accepted = true;
+    }
 
     function openFor(ap, sourceItem) {
         if (!ap || !sourceItem) return;
@@ -66,6 +77,7 @@ Item {
         active = true;
         container.state = "docked";
         expandTimer.start();
+        menu.forceActiveFocus();
     }
 
     function close() {

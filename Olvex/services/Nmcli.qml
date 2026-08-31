@@ -69,7 +69,7 @@ Singleton {
         return (error.includes("Secrets were required") || error.includes("Secrets were required, but not provided") || error.includes("No secrets provided") || error.includes("802-11-wireless-security.psk") || error.includes("password for") || (error.includes("password") && !error.includes("Connection activated") && !error.includes("successfully")) || (error.includes("Secrets") && !error.includes("Connection activated") && !error.includes("successfully")) || (error.includes("802.11") && !error.includes("Connection activated") && !error.includes("successfully"))) && !error.includes("Connection activated") && !error.includes("successfully");
     }
 
-    function parseNetworkOutput(output: string) {
+    function parseNetworkOutput(output) {
         if (!output || output.length === 0) {
             return [];
         }
@@ -125,7 +125,7 @@ Singleton {
         return command.includes(root.nmcliCommandWifi) || command.includes(root.nmcliCommandConnection);
     }
 
-    function parseDeviceStatusOutput(output: string, filterType: string) {
+    function parseDeviceStatusOutput(output, filterType) {
         if (!output || output.length === 0) {
             return [];
         }
@@ -234,7 +234,7 @@ Singleton {
         });
     }
 
-    function connectEthernet(connectionName: string, interfaceName: string, callback) {
+    function connectEthernet(connectionName, interfaceName, callback) {
         if (connectionName && connectionName.length > 0) {
             executeCommand([root.nmcliCommandConnection, "up", connectionName], result => {
                 if (result.success) {
@@ -274,7 +274,7 @@ Singleton {
         }
     }
 
-    function disconnectEthernet(connectionName: string, callback) {
+    function disconnectEthernet(connectionName, callback) {
         if (!connectionName || connectionName.length === 0) {
             if (callback)
                 callback({
@@ -306,7 +306,7 @@ Singleton {
         });
     }
 
-    function isInterfaceConnected(interfaceName: string, callback) {
+    function isInterfaceConnected(interfaceName, callback) {
         executeCommand([root.nmcliCommandDevice, "status"], result => {
             const lines = result.output.trim().split("\n");
             for (const line of lines) {
@@ -323,7 +323,7 @@ Singleton {
         });
     }
 
-    function connectToNetworkWithPasswordCheck(ssid: string, isSecure: bool, callback, bssid: string) {
+    function connectToNetworkWithPasswordCheck(ssid, isSecure, callback, bssid) {
         if (isSecure) {
             const hasBssid = bssid !== undefined && bssid !== null && bssid.length > 0;
             connectWireless(ssid, "", bssid, result => {
@@ -671,7 +671,7 @@ Singleton {
         return "wlan0";
     }
 
-    function disconnect(interfaceName: string, callback) {
+    function disconnect(interfaceName, callback) {
         const iface = (interfaceName && interfaceName.length > 0) ? interfaceName : getWirelessDeviceName();
         executeCommand([root.nmcliCommandDevice, "disconnect", iface], result => {
             if (result.success) {
@@ -697,7 +697,7 @@ Singleton {
         });
     }
 
-    function getDeviceDetails(interfaceName: string, callback) {
+    function getDeviceDetails(interfaceName, callback) {
         executeCommand([root.nmcliCommandDevice, "show", interfaceName], result => {
             if (callback)
                 callback(result.output);
@@ -737,7 +737,7 @@ Singleton {
         });
     }
 
-    function bringInterfaceUp(interfaceName: string, callback) {
+    function bringInterfaceUp(interfaceName, callback) {
         if (interfaceName && interfaceName.length > 0) {
             executeCommand([root.nmcliCommandDevice, "connect", interfaceName], result => {
                 if (callback) {
@@ -755,7 +755,7 @@ Singleton {
         }
     }
 
-    function bringInterfaceDown(interfaceName: string, callback) {
+    function bringInterfaceDown(interfaceName, callback) {
         if (interfaceName && interfaceName.length > 0) {
             executeCommand([root.nmcliCommandDevice, "disconnect", interfaceName], result => {
                 if (callback) {
@@ -773,7 +773,7 @@ Singleton {
         }
     }
 
-    function scanWirelessNetworks(interfaceName: string, callback) {
+    function scanWirelessNetworks(interfaceName, callback) {
         let cmd = [root.nmcliCommandDevice, root.nmcliCommandWifi, "rescan"];
         if (interfaceName && interfaceName.length > 0) {
             cmd.push(root.connectionParamIfname, interfaceName);
@@ -795,7 +795,7 @@ Singleton {
         rescanProc.running = false;
     }
 
-    function enableWifi(enabled: bool, callback) {
+    function enableWifi(enabled, callback) {
         const cmd = enabled ? "on" : "off";
         executeCommand([root.nmcliCommandRadio, root.nmcliCommandWifi, cmd], result => {
             if (result.success) {
@@ -876,7 +876,7 @@ Singleton {
         });
     }
 
-    function getWirelessSSIDs(interfaceName: string, callback) {
+    function getWirelessSSIDs(interfaceName, callback) {
         let cmd = ["-t", "-f", root.networkListFields, root.nmcliCommandDevice, root.nmcliCommandWifi, "list"];
         if (interfaceName && interfaceName.length > 0) {
             cmd.push(root.connectionParamIfname, interfaceName);
@@ -1008,7 +1008,7 @@ Singleton {
         return `${octet1}.${octet2}.${octet3}.${octet4}`;
     }
 
-    function getWirelessDeviceDetails(interfaceName: string, callback) {
+    function getWirelessDeviceDetails(interfaceName, callback) {
         if (!interfaceName || interfaceName.length === 0) {
             const activeInterface = root.wirelessInterfaces.find(iface => {
                 return isConnectedState(iface.state);
@@ -1037,7 +1037,7 @@ Singleton {
         });
     }
 
-    function getEthernetDeviceDetails(interfaceName: string, callback) {
+    function getEthernetDeviceDetails(interfaceName, callback) {
         if (!interfaceName || interfaceName.length === 0) {
             const activeInterface = root.ethernetInterfaces.find(iface => {
                 return isConnectedState(iface.state);
@@ -1066,7 +1066,7 @@ Singleton {
         });
     }
 
-    function parseDeviceDetails(output: string, isEthernet: bool) {
+    function parseDeviceDetails(output, isEthernet) {
         const details = {
             ipAddress: "",
             gateway: "",
@@ -1158,7 +1158,7 @@ Singleton {
         });
     }
 
-    function setMonitorEnabled(enabled: bool) {
+    function setMonitorEnabled(enabled) {
         if (root.monitorEnabled === enabled)
             return;
 

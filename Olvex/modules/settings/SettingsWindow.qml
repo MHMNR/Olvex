@@ -668,6 +668,11 @@ Item {
     focus: true
 
     Keys.onEscapePressed: event => {
+        if (wifiConfigMenuRoot && wifiConfigMenuRoot.active) {
+            wifiConfigMenuRoot.close();
+            event.accepted = true;
+            return;
+        }
         if (session.currentId !== "") {
             session.goHome();
             event.accepted = true;
@@ -680,6 +685,10 @@ Item {
     Shortcut {
         sequence: "Esc"
         onActivated: {
+            if (wifiConfigMenuRoot && wifiConfigMenuRoot.active) {
+                wifiConfigMenuRoot.close();
+                return;
+            }
             if (session.currentId !== "")
                 session.goHome();
             else
