@@ -176,10 +176,11 @@ Item {
                     MouseArea {
                         id: segMa
                         anchors.fill: parent
-                        hoverEnabled: !cell.isDisabled
-                        cursorShape: cell.isDisabled ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                        enabled: !cell.isDisabled && root.enabled
+                        hoverEnabled: !cell.isDisabled && root.enabled
+                        cursorShape: (cell.isDisabled || !root.enabled) ? Qt.ForbiddenCursor : Qt.PointingHandCursor
                         onClicked: {
-                            if (cell.isDisabled) return;
+                            if (cell.isDisabled || !root.enabled) return;
                             if (root.currentIndex !== cell.index)
                                 root.selected(cell.index);
                         }

@@ -109,7 +109,11 @@ Item {
                 title: qsTr("Visibility")
                 description: qsTr("Always show, hide until hover, or hide when windows overlap")
                 divider: false
+                enabled: Config.bar.bottomPanel?.enabled ?? true
+                opacity: enabled ? 1.0 : 0.38
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
                 Segmented {
+                    enabled: Config.bar.bottomPanel?.enabled ?? true
                     model: [{
                             label: qsTr("Always"),
                             icon: "visibility"

@@ -695,6 +695,9 @@ Item {
                                 implicitHeight: bpModeLayout.implicitHeight + Tokens.padding.large * 2
                                 radius: Tokens.rounding.normal
                                 color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                                enabled: root.bottomPanelEnabled
+                                opacity: root.bottomPanelEnabled ? 1.0 : 0.38
+                                Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                                 ColumnLayout {
                                     id: bpModeLayout

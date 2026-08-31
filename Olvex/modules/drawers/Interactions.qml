@@ -103,6 +103,12 @@ CustomMouseArea {
         return x <= edgeW && y >= height - edgeH;
     }
 
+    // Bottom-right corner hot zone (QS panel trigger)
+    function inBottomRightCorner(x: real, y: real): bool {
+        const edgeH = Math.max(60, safeBorder.thickness + floatingGap + 30);
+        const edgeW = Math.max(80, safeBorder.thickness + floatingGap + 40);
+        return x >= width - edgeW && y >= height - edgeH;
+    }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         if (!withinPanelWidth(panel, x, y))
@@ -114,7 +120,7 @@ CustomMouseArea {
         return y >= height - Math.max(4, safeBorder.thickness + floatingGap);
     }
 
-    function onWheel(event: WheelEvent): void {
+    function onWheel(event) {
         if (fullscreen)
             return;
         if (event.x < bar.implicitWidth) {
@@ -140,6 +146,15 @@ CustomMouseArea {
         // Click bottom-left corner to toggle launcher
         if (inBottomLeftCorner(event.x, event.y)) {
             visibilities.launcher = !visibilities.launcher;
+            event.accepted = true;
+            return;
+        }
+
+        // Click bottom-right corner to toggle QS panel
+        if (inBottomRightCorner(event.x, event.y)) {
+            visibilities.qspanel = !visibilities.qspanel;
+            if (visibilities.qspanel)
+                qspanelShortcutActive = true;
             event.accepted = true;
             return;
         }
