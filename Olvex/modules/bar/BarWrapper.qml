@@ -4,6 +4,7 @@ import Quickshell
 import Olvex.Config
 import qs.components
 import qs.utils
+import qs.services
 import qs.modules.bar.popouts as BarPopouts
 
 Item {
@@ -23,20 +24,23 @@ Item {
     readonly property int padding: Math.max(Tokens.padding.smaller, safeBorder.thickness)
     readonly property int contentWidth: Tokens.sizes.bar.innerWidth + padding * 2
     readonly property int exclusiveZone: !disabled && (Config.bar.persistent || visibilities.bar) ? contentWidth : safeBorder.thickness
-    readonly property bool shouldBeVisible: !fullscreen && !disabled && (Config.bar.persistent || visibilities.bar || isHovered)
+    readonly property bool shouldBeVisible: !fullscreen && !disabled && (Config.bar.persistent || visibilities.bar || isHovered || (Visibilities.areaPickerActive && root.implicitWidth > safeBorder.thickness))
     property bool isHovered
     readonly property Item osIcon: content.item ? content.item.osIcon : null
 
-    function closeTray(): void {
-        content.item?.closeTray?.();
+    function closeTray() {
+        if (content.item && content.item.closeTray)
+            content.item.closeTray();
     }
 
-    function checkPopout(y: real): void {
-        content.item?.checkPopout?.(y);
+    function checkPopout(y: real) {
+        if (content.item && content.item.checkPopout)
+            content.item.checkPopout(y);
     }
 
-    function handleWheel(y: real, angleDelta: point): void {
-        content.item?.handleWheel?.(y, angleDelta);
+    function handleWheel(y: real, angleDelta: point) {
+        if (content.item && content.item.handleWheel)
+            content.item.handleWheel(y, angleDelta);
     }
 
     clip: true

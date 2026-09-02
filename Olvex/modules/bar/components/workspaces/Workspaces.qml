@@ -13,18 +13,27 @@ StyledClippingRect {
     required property ShellScreen screen
     required property bool fullscreen
 
-    readonly property bool onSpecial: (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor)?.lastIpcObject.specialWorkspace?.name !== ""
-    readonly property int activeWsId: GlobalConfig.bar.workspaces.perMonitorWorkspaces ? (Hypr.monitorFor(screen).activeWorkspace?.id ?? 1) : Hypr.activeWsId
+    readonly property bool onSpecial: {
+        const mon = GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor;
+        return mon && mon.lastIpcObject && mon.lastIpcObject.specialWorkspace ? mon.lastIpcObject.specialWorkspace.name !== "" : false;
+    }
+    readonly property int activeWsId: {
+        if (GlobalConfig.bar.workspaces.perMonitorWorkspaces) {
+            const mon = Hypr.monitorFor(screen);
+            return mon && mon.activeWorkspace ? mon.activeWorkspace.id : 1;
+        }
+        return Hypr.activeWsId;
+    }
 
     property var occupied: ({})
 
-    function updateOccupied(): void {
+    function updateOccupied() {
         let changed = false;
         const next = {};
         const values = Hypr.workspaces.values || [];
         for (let i = 0; i < values.length; i++) {
             const ws = values[i];
-            const hasWin = (ws.lastIpcObject?.windows ?? 0) > 0;
+            const hasWin = (ws && ws.lastIpcObject && ws.lastIpcObject.windows ? ws.lastIpcObject.windows : 0) > 0;
             next[ws.id] = hasWin;
             if (root.occupied[ws.id] !== hasWin)
                 changed = true;
@@ -36,7 +45,7 @@ StyledClippingRect {
 
     Connections {
         target: Hypr.workspaces
-        function onValuesChanged(): void {
+        function onValuesChanged() {
             root.updateOccupied();
         }
     }
@@ -117,7 +126,9 @@ StyledClippingRect {
         ColumnLayout {
             id: layout
 
-            anchors.centerIn: parent
+            anchors.top: parent.top
+            anchors.topMargin: Tokens.padding.small
+            anchors.horizontalCenter: parent.horizontalCenter
             spacing: Tokens.spacing.small
 
             Repeater {
@@ -150,7 +161,8 @@ StyledClippingRect {
         MouseArea {
             anchors.fill: layout
             onClicked: event => {
-                const ws = (layout.childAt(event.x, event.y) as Workspace)?.ws;
+                const child = layout.childAt(event.x, event.y);
+                const ws = child ? child.ws : undefined;
                 if (Hypr.activeWsId !== ws)
                     Hypr.dispatch(`workspace ${ws}`);
                 else

@@ -426,8 +426,8 @@ Item {
                 interactive: !stack.transformActive && !stack.pageOpen
                 // No layer.enable — first-frame layer capture was open hitch/delay
                 layer.enabled: false
-                // Keep home painted under morph (card-sized shell covers origin)
-                visible: true
+                // Keep home painted under morph, hide when page is fully open
+                visible: !stack.pageOpen || stack.transformActive
                 opacity: 1
 
                 Item {
@@ -673,6 +673,11 @@ Item {
     focus: true
 
     Keys.onEscapePressed: event => {
+        if (session.modalActive) {
+            session.requestCloseModal();
+            event.accepted = true;
+            return;
+        }
         if (wifiConfigMenuRoot && wifiConfigMenuRoot.active) {
             wifiConfigMenuRoot.close();
             event.accepted = true;
@@ -690,6 +695,10 @@ Item {
     Shortcut {
         sequence: "Esc"
         onActivated: {
+            if (session.modalActive) {
+                session.requestCloseModal();
+                return;
+            }
             if (wifiConfigMenuRoot && wifiConfigMenuRoot.active) {
                 wifiConfigMenuRoot.close();
                 return;

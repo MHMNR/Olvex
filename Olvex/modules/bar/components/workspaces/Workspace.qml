@@ -31,17 +31,20 @@ Item {
     // Always reflects the "if fully expanded" height, regardless of current
     // showDetail state — Workspaces.qml sums these for the hover hit-region,
     // which must not lag behind the (springy, animated) visual size.
-    readonly property int detailHeight: (isCurrent || hasWindows) ? (labelHeight + (hasWindows ? (windows.item?.implicitHeight ?? 0) + Tokens.padding.small : 0)) : Math.max(detailCol.implicitHeight, collapsedHeight)
+    readonly property int detailHeight: (isCurrent || hasWindows) ? (labelHeight + (hasWindows ? (windows.item ? windows.item.implicitHeight : 0) + Tokens.padding.small : 0)) : Math.max(detailCol.implicitHeight, collapsedHeight)
     readonly property int collapsedHeight: isOccupied ? dotDiameter : ringDiameter
 
     // Unanimated prop for others (ActiveIndicator) to use as reference
     readonly property int size: (showDetail && (isCurrent || hasWindows)) ? detailHeight : collapsedHeight
+    readonly property real currentHeight: Layout.preferredHeight
 
     Layout.alignment: Qt.AlignHCenter
     Layout.preferredHeight: size
     Layout.topMargin: index === 0 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (Layout.preferredHeight / 2) - Tokens.padding.small) : 0
     Layout.bottomMargin: index === Config.bar.workspaces.shown - 1 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (Layout.preferredHeight / 2) - Tokens.padding.small) : 0
     implicitWidth: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
+    Layout.preferredWidth: implicitWidth
+    width: implicitWidth
 
     Behavior on Layout.preferredHeight {
         Anim {
@@ -60,18 +63,18 @@ Item {
         border.color: Colours.layer(Colours.palette.m3outlineVariant, 2)
 
         opacity: root.showDetail ? 0 : 1
-        scale: root.showDetail ? 0.4 : 1
+        scale: root.showDetail ? 0.85 : 1
         visible: opacity > 0.01
 
         Behavior on opacity {
             Anim {
-                type: Anim.FastEffects
+                type: Anim.DefaultEffects
             }
         }
 
         Behavior on scale {
             Anim {
-                type: Anim.FastSpatial
+                type: Anim.DefaultSpatial
             }
         }
 
@@ -132,7 +135,7 @@ Item {
         if (lower === "heart" || pattern === "󰋑") return "favorite";
         if (lower === "terminal" || pattern === "󰞷") return "terminal";
         if (lower === "code" || pattern === "󰘐") return "code";
-        if (lower === "circle" || lower === "dot" || pattern === "") return "circle";
+        if (lower === "circle" || lower === "dot" || trimmed === "" || trimmed === "\uf444" || trimmed === "•") return "circle";
         if (lower === "pacman") return "󰮯";
         if (lower === "arch") return "󰣇";
 
@@ -163,18 +166,18 @@ Item {
         spacing: 0
 
         opacity: root.showDetail ? 1 : 0
-        scale: root.showDetail ? 1 : 0.4
+        scale: root.showDetail ? 1 : 0.85
         visible: opacity > 0.01
 
         Behavior on opacity {
             Anim {
-                type: Anim.FastEffects
+                type: Anim.DefaultEffects
             }
         }
 
         Behavior on scale {
             Anim {
-                type: Anim.FastSpatial
+                type: Anim.DefaultSpatial
             }
         }
 
@@ -186,6 +189,8 @@ Item {
             Layout.preferredHeight: root.labelHeight
             implicitWidth: root.width
             implicitHeight: root.labelHeight
+            width: root.width
+            height: root.labelHeight
 
             readonly property string currentText: {
                 const ws = Hypr.workspaces.values.find(w => w.id === root.ws);
@@ -202,11 +207,15 @@ Item {
                     return root.formatWsLabel(activePattern, root.ws);
                 }
 
-                const label = Config.bar.workspaces.label || displayName;
+                const label = (Config.bar.workspaces.label || displayName).trim();
                 return root.formatWsLabel(label, root.ws);
             }
 
-            readonly property bool isMaterial: root.isMaterialSymbol(currentText)
+            readonly property bool isCircleDot: {
+                const t = (currentText || "").trim().toLowerCase();
+                return t === "" || t === "\uf444" || t === "circle" || t === "dot" || t === "•";
+            }
+            readonly property bool isMaterial: !isCircleDot && root.isMaterialSymbol(currentText)
             readonly property bool isCircledNumber: {
                 const t = currentText;
                 if (!t || t.length === 0) return false;
@@ -217,16 +226,32 @@ Item {
                     || (code >= 0x2780 && code <= 0x2789);
             }
 
+            Rectangle {
+                id: dotIcon
+
+                anchors.centerIn: parent
+                width: root.collapsedHeight
+                height: width
+                radius: width / 2
+
+                visible: labelContainer.isCircleDot
+                color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
+
+                Behavior on color {
+                    CAnim {}
+                }
+            }
+
             StyledText {
                 id: labelText
 
                 anchors.centerIn: parent
                 width: parent.width
 
-                textPointSize: labelContainer.isCircledNumber ? ((Tokens?.font?.size?.larger ?? 18) + 1) : (Tokens?.font?.size?.normal ?? 13)
+                textPointSize: labelContainer.isCircledNumber ? ((Tokens ? Tokens.font.size.larger : 18) + 1) : (Tokens ? Tokens.font.size.normal : 13)
 
-                visible: !labelContainer.isMaterial
-                animate: true
+                visible: !labelContainer.isMaterial && !labelContainer.isCircleDot
+                animate: false
                 text: labelContainer.currentText
                 color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
                 verticalAlignment: Text.AlignVCenter
@@ -239,10 +264,10 @@ Item {
                 anchors.centerIn: parent
                 width: parent.width
 
-                iconPointSize: Tokens?.font?.size?.larger ?? 18
+                iconPointSize: Tokens ? Tokens.font.size.larger : 18
 
-                visible: labelContainer.isMaterial
-                animate: true
+                visible: labelContainer.isMaterial && !labelContainer.isCircleDot
+                animate: false
                 text: labelContainer.currentText
                 color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
                 verticalAlignment: Text.AlignVCenter
@@ -253,7 +278,7 @@ Item {
         Loader {
             id: windows
 
-            asynchronous: true
+            asynchronous: false
 
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
@@ -268,31 +293,11 @@ Item {
                 spacing: 0
                 width: root.width
 
-                add: Transition {
-                    Anim {
-                        properties: "scale"
-                        from: 0
-                        to: 1
-                        easing: Tokens.anim.standardDecel
-                    }
-                }
-
-                move: Transition {
-                    Anim {
-                        properties: "scale"
-                        to: 1
-                        easing: Tokens.anim.standardDecel
-                    }
-                    Anim {
-                        properties: "x,y"
-                    }
-                }
-
                 Repeater {
                     model: ScriptModel {
                         values: {
                             const ws = root.ws;
-                            const windows = Hypr.toplevels.values.filter(c => c.workspace?.id === ws);
+                            const windows = Hypr.toplevels.values.filter(c => (c.workspace ? c.workspace.id === ws : false));
                             const maxIcons = root.Config.bar.workspaces.maxWindowIcons;
                             return maxIcons > 0 ? windows.slice(0, maxIcons) : windows;
                         }

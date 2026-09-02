@@ -1,5 +1,3 @@
-pragma ComponentBehavior: Bound
-
 import ".."
 import "."
 import "../ui"
@@ -22,7 +20,7 @@ Item {
     SettingsPage {
         anchors.fill: parent
         title: qsTr("System Settings")
-        subtitle: qsTr("Clock, default apps and system options")
+        subtitle: qsTr("Clock, keybindings and system options")
         icon: "tune"
         accent: Colours.palette.m3primary
         onBack: root.back()

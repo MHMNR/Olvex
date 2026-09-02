@@ -20,15 +20,41 @@ StyledRect {
         return i % Config.bar.workspaces.shown;
     }
 
-    property real leading: workspaces.count > 0 ? workspaces.itemAt(currentWsIdx)?.y ?? 0 : 0
-    property real trailing: workspaces.count > 0 ? workspaces.itemAt(currentWsIdx)?.y ?? 0 : 0
-    property real currentSize: workspaces.count > 0 ? (workspaces.itemAt(currentWsIdx) as Workspace)?.size ?? 0 : 0
+    property var _occupiedTrack: mask.parent.occupied
+    property bool _expandedTrack: mask.parent.expanded
+
+    function getTargetY(idx) {
+        let _ = _occupiedTrack;
+        let _2 = _expandedTrack;
+        if (!workspaces || workspaces.count === 0 || workspaces.count <= idx || idx < 0) return 0;
+
+        let targetY = 0;
+        const firstWs = workspaces.itemAt(0) as Workspace;
+        if (firstWs) {
+            targetY += Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (firstWs.size / 2) - Tokens.padding.small);
+        }
+
+        for (let i = 0; i < idx; i++) {
+            const ws = workspaces.itemAt(i) as Workspace;
+            if (ws) {
+                targetY += ws.size + Tokens.spacing.small;
+            }
+        }
+        return targetY;
+    }
+
+    property real leading: getTargetY(currentWsIdx)
+    property real trailing: getTargetY(currentWsIdx)
+    property real currentSize: {
+        let _ = _occupiedTrack;
+        let _2 = _expandedTrack;
+        return workspaces.count > 0 && currentWsIdx >= 0 && currentWsIdx < workspaces.count ? (workspaces.itemAt(currentWsIdx) ? (workspaces.itemAt(currentWsIdx) as Workspace).size : 0) : 0;
+    }
     property real offset: Math.min(leading, trailing)
     property real size: {
         const s = Math.abs(leading - trailing) + currentSize;
         if (Config.bar.workspaces.activeTrail && lastWs > currentWsIdx) {
-            const ws = workspaces.itemAt(lastWs) as Workspace;
-            return ws ? Math.min(ws.y + ws.size - offset, s) : 0;
+            return Math.min(getTargetY(lastWs) + (workspaces.itemAt(lastWs) ? (workspaces.itemAt(lastWs) as Workspace).size : 0) - offset, s);
         }
         return s;
     }
@@ -43,6 +69,8 @@ StyledRect {
 
     clip: true
     y: offset + mask.y
+    width: implicitWidth
+    height: size
     implicitWidth: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
     implicitHeight: size
     radius: Tokens.rounding.full
@@ -54,6 +82,8 @@ StyledRect {
         colorizationColor: Colours.palette.m3onPrimary
 
         y: -parent.offset
+        width: root.mask.width
+        height: root.mask.height
         implicitWidth: root.mask.implicitWidth
         implicitHeight: root.mask.implicitHeight
 

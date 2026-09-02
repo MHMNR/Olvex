@@ -22,6 +22,8 @@ QtObject {
     property string activeSection: ""
     property string query: ""
     property rect srcRect: Qt.rect(0, 0, 0, 0)
+    property bool modalActive: false
+    signal requestCloseModal()
 
     readonly property var panes: PaneRegistry.labels
 

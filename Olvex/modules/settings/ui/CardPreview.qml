@@ -1,5 +1,3 @@
-pragma ComponentBehavior: Bound
-
 
 import ".."
 import "."
@@ -27,16 +25,12 @@ Item {
     readonly property int inset: Tokens.spacing.normal + 4 // ~14–16
     clip: true
 
-    // Always layer-smooth — scale stays crisp (no hover enable pop)
-    layer.enabled: true
-    layer.smooth: true
-
     // Shared motion helpers
     readonly property var spatial: Anim.DefaultSpatial
     readonly property int staggerMs: 28
 
     // Pool for filmstrip / carousel — current first, then catalog (cap by max)
-    function wallpaperPreviewPaths(maxCount: int): var {
+    function wallpaperPreviewPaths(maxCount) {
         const limit = maxCount > 0 ? maxCount : 3;
         const _ = Wallpapers.thumbnailUpdateCount;
         Wallpapers.ensureCatalog();
@@ -51,17 +45,17 @@ Item {
         push(Wallpapers.actualCurrent);
         const statics = Wallpapers.staticEntryObjects || Wallpapers.staticEntries || [];
         for (let i = 0; i < statics.length && out.length < limit; i++)
-            push(statics[i]?.path);
+            push(statics[i] ? statics[i].path : "");
         const lives = Wallpapers.liveEntryObjects || Wallpapers.liveEntries || [];
         for (let i = 0; i < lives.length && out.length < limit; i++)
-            push(lives[i]?.path);
+            push(lives[i] ? lives[i].path : "");
         const all = Wallpapers.entries || [];
         for (let i = 0; i < all.length && out.length < limit; i++)
-            push(all[i]?.path);
+            push(all[i] ? all[i].path : "");
         return out;
     }
 
-    function wallpaperImageSource(path: string): string {
+    function wallpaperImageSource(path) {
         const p = Wallpapers.displayPathFor(path);
         if (!p)
             return "";
@@ -69,7 +63,7 @@ Item {
     }
 
     // Fisher–Yates shuffle copy for random slideshow order
-    function shufflePaths(arr: var): var {
+    function shufflePaths(arr) {
         const a = arr.slice();
         for (let i = a.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -87,8 +81,6 @@ Item {
         anchors.margins: root.inset
         active: root.kind !== "" && root.width > 8
         asynchronous: true
-        layer.enabled: true
-        layer.smooth: true
         sourceComponent: {
             switch (root.kind) {
             case "appearance":
@@ -222,8 +214,6 @@ Item {
                         color: modelData.c
                         opacity: root.hovered ? 0.95 : 0.82
                         antialiasing: true
-                        layer.enabled: true
-                        layer.smooth: true
 
                         Behavior on y {
                             Anim {
@@ -340,7 +330,7 @@ Item {
                 }
             }
 
-            function rebuildCarousel(): void {
+            function rebuildCarousel() {
                 const pool = root.wallpaperPreviewPaths(10);
                 if (pool.length === 0) {
                     carouselPaths = [];
@@ -362,14 +352,14 @@ Item {
                 ensureThumbs();
             }
 
-            function ensureThumbs(): void {
+            function ensureThumbs() {
                 for (let i = 0; i < carouselPaths.length; i++) {
                     if (Wallpapers.isVideoPath(carouselPaths[i]))
                         Wallpapers.queueThumbnail(carouselPaths[i], i === slideIndex);
                 }
             }
 
-            function advanceRandom(): void {
+            function advanceRandom() {
                 const n = carouselPaths.length;
                 if (n <= 1)
                     return;
@@ -395,10 +385,10 @@ Item {
 
             Connections {
                 target: Wallpapers
-                function onThumbnailUpdateCountChanged(): void {
+                function onThumbnailUpdateCountChanged() {
                     wpRoot.ensureThumbs();
                 }
-                function onActualCurrentChanged(): void {
+                function onActualCurrentChanged() {
                     wpRoot.rebuildCarousel();
                 }
             }
@@ -410,7 +400,7 @@ Item {
             Timer {
                 id: slideTimer
                 interval: root.hovered ? 5000 : 3200
-                running: wpRoot.slideCount > 1
+                running: wpRoot.slideCount > 1 && root.visible
                 repeat: true
                 onTriggered: wpRoot.advanceRandom()
             }

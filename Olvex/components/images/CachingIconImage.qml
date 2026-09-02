@@ -41,7 +41,7 @@ Item {
         IconImage {
             anchors.fill: parent
             anchors.margins: root.margins
-            source: root.source
+            source: root.actualSize >= 8 ? root.source : ""
             smooth: true
             mipmap: true
         }

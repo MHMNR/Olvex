@@ -1,6 +1,3 @@
-pragma ComponentBehavior: Bound
-
-
 import ".."
 import "."
 import "../components"
@@ -30,19 +27,19 @@ Item {
     function labelOf(entry): string {
         if (typeof entry === "string")
             return entry;
-        return entry?.label ?? "";
+        return (entry && entry.label) ? String(entry.label) : "";
     }
 
     function iconOf(entry): string {
         if (typeof entry === "string")
             return "";
-        return entry?.icon ?? "";
+        return (entry && entry.icon) ? String(entry.icon) : "";
     }
     
     function isDisabled(entry): bool {
         if (typeof entry === "string")
             return false;
-        return !!entry?.disabled;
+        return !!(entry && entry.disabled);
     }
 
     readonly property bool hasIcons: {
@@ -140,7 +137,7 @@ Item {
                             visible: !!cell.icon
                             text: cell.icon
                             fill: cell.active ? 1 : 0
-                            color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                            color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                             iconPointSize: Tokens.font.size.normal
 
                             Behavior on color {
@@ -151,9 +148,9 @@ Item {
                         StyledText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: cell.label
-                            font.weight: cell.active ? Font.Medium : Font.Normal
+                            font.weight: cell.active ? Font.DemiBold : Font.Normal
                             font.letterSpacing: 0.15
-                            color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                            color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
                             textPointSize: Tokens.font.size.smaller
                             elide: Text.ElideNone
 

@@ -55,15 +55,7 @@ Scope {
     }
 
     IpcHandler {
-        function open(): void {
-            Visibilities.areaPickerActive = true;
-            root.freeze = false;
-            root.closing = false;
-            root.clipboardOnly = false;
-            root.activeAsync = true;
-        }
-
-        function openFreeze(): void {
+        function open() {
             Visibilities.areaPickerActive = true;
             root.freeze = true;
             root.closing = false;
@@ -71,15 +63,23 @@ Scope {
             root.activeAsync = true;
         }
 
-        function openClip(): void {
+        function openFreeze() {
             Visibilities.areaPickerActive = true;
-            root.freeze = false;
+            root.freeze = true;
+            root.closing = false;
+            root.clipboardOnly = false;
+            root.activeAsync = true;
+        }
+
+        function openClip() {
+            Visibilities.areaPickerActive = true;
+            root.freeze = true;
             root.closing = false;
             root.clipboardOnly = true;
             root.activeAsync = true;
         }
 
-        function openFreezeClip(): void {
+        function openFreezeClip() {
             Visibilities.areaPickerActive = true;
             root.freeze = true;
             root.closing = false;
@@ -95,7 +95,7 @@ Scope {
         description: "Open screenshot tool"
         onPressed: {
             Visibilities.areaPickerActive = true;
-            root.freeze = false;
+            root.freeze = true;
             root.closing = false;
             root.clipboardOnly = false;
             root.activeAsync = true;
@@ -119,7 +119,7 @@ Scope {
         description: "Open screenshot tool (clipboard)"
         onPressed: {
             Visibilities.areaPickerActive = true;
-            root.freeze = false;
+            root.freeze = true;
             root.closing = false;
             root.clipboardOnly = true;
             root.activeAsync = true;

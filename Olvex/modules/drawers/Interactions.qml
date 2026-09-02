@@ -51,8 +51,33 @@ CustomMouseArea {
         return x >= panelX && x <= panelX + panel.width;
     }
 
+    function inPopout(x: real, y: real): bool {
+        if (!popouts.hasCurrent)
+            return false;
+
+        const pop = panels.popoutsWrapper;
+        if (!pop)
+            return false;
+
+        const content = pop.content;
+        const cWidth = Math.max(pop.width, content ? (content.nonAnimWidth || content.implicitWidth) : 0);
+        const cHeight = Math.max(pop.height, content ? (content.nonAnimHeight || content.implicitHeight) : 0);
+
+        // 1. Direct hit on popout content (with 16px safety padding)
+        const pt = pop.mapFromItem(root, x, y);
+        if (pt.x >= -16 && pt.x <= cWidth + 16 && pt.y >= -16 && pt.y <= cHeight + 16)
+            return true;
+
+        // 2. Continuous bridge corridor between the bar edge and the popout
+        const rightOfBar = x >= (bar.implicitWidth - 16);
+        const leftOfPopout = x <= (bar.implicitWidth + cWidth + 32);
+        const inVerticalRange = y >= (pop.y - 32) && y <= (pop.y + cHeight + 32);
+
+        return rightOfBar && leftOfPopout && inVerticalRange;
+    }
+
     function inLeftPanel(panel: Item, x: real, y: real): bool {
-        return x >= bar.implicitWidth + floatingGap + panel.x && x <= bar.implicitWidth + floatingGap + panel.x + panel.width && withinPanelHeight(panel, x, y);
+        return inPopout(x, y);
     }
 
     // Right-edge panels (OSD, powermenu, QS qspanel).
@@ -141,6 +166,11 @@ CustomMouseArea {
 
     propagateComposedEvents: true
     onPressed: event => {
+        if (Visibilities.areaPickerActive) {
+            event.accepted = false;
+            return;
+        }
+
         dragStart = Qt.point(event.x, event.y);
 
         // Click bottom-left corner to toggle launcher
@@ -175,9 +205,14 @@ CustomMouseArea {
 
         // Dismiss popout menus (tray context menu, popouts) when clicking outside
         if (popouts.hasCurrent) {
-            const inPopout = inLeftPanel(panels.popoutsWrapper, event.x, event.y);
-            const inBarArea = event.x < bar.implicitWidth;
-            if (!inPopout && !inBarArea) {
+            const pop = panels.popoutsWrapper;
+            const content = pop ? pop.content : null;
+            const cWidth = Math.max(pop ? pop.width : 0, content ? (content.nonAnimWidth || content.implicitWidth) : 0);
+            const cHeight = Math.max(pop ? pop.height : 0, content ? (content.nonAnimHeight || content.implicitHeight) : 0);
+            const pt = pop ? pop.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            const inPopoutContent = pt.x >= 0 && pt.x <= cWidth && pt.y >= 0 && pt.y <= cHeight;
+
+            if (!inPopoutContent) {
                 popouts.hasCurrent = false;
                 bar.closeTray();
                 event.accepted = false;
@@ -256,6 +291,9 @@ CustomMouseArea {
 
     onContainsMouseChanged: {
         if (!containsMouse) {
+            if (Visibilities.areaPickerActive)
+                return;
+
             // Only hide if not activated by shortcut
             if (!flyoutsShortcutActive) {
                 visibilities.flyouts = false;
@@ -272,7 +310,7 @@ CustomMouseArea {
             if (!bottomPanelShortcutActive)
                 visibilities.bottomPanel = false;
 
-            if (!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) {
+            if (!popouts.currentName.startsWith("traymenu")) {
                 popouts.hasCurrent = false;
                 bar.closeTray();
             }
@@ -283,7 +321,7 @@ CustomMouseArea {
     }
 
     onPositionChanged: event => {
-        if (popouts.isDetached)
+        if (Visibilities.areaPickerActive || popouts.isDetached)
             return;
 
         const x = event.x;
@@ -378,7 +416,7 @@ CustomMouseArea {
         }
 
         // Show/hide qspanel hover peek from the right edge when bottom panel is off
-        const _bottomPanelOff = !(Config.bar.bottomPanel?.enabled ?? true);
+        const _bottomPanelOff = !(Config.bar.bottomPanel && Config.bar.bottomPanel.enabled !== undefined ? Config.bar.bottomPanel.enabled : true);
         if (_bottomPanelOff && !visibilities.qspanel && !qspanelShortcutActive) {
             panels.qspanel.hovered = inRightPanel(panels.qspanel, x, y);
         } else if (!_bottomPanelOff) {
@@ -399,9 +437,14 @@ CustomMouseArea {
         // Show popouts on hover
         if (x < bar.implicitWidth) {
             bar.checkPopout(y);
-        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inLeftPanel(panels.popoutsWrapper, x, y)) {
-            popouts.hasCurrent = false;
-            bar.closeTray();
+        } else if (inPopout(x, y)) {
+            // Mouse is inside or transitioning into the popout menu — keep open!
+        } else {
+            // Tray menus close only when clicked outside or on the icon again
+            if (!popouts.currentName.startsWith("traymenu")) {
+                popouts.hasCurrent = false;
+                bar.closeTray();
+            }
         }
     }
 

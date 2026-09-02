@@ -17,6 +17,12 @@ Item {
 
     implicitWidth: 32
     implicitHeight: 32
+    width: implicitWidth
+    height: implicitHeight
+
+    readonly property bool isMenuOpen: bar && bar.popouts && bar.popouts.hasCurrent && bar.popouts.currentName === `traymenu${itemIndex}`
+    readonly property bool needsAttention: (modelData.status === "NeedsAttention") || (!!modelData.attentionIcon && modelData.attentionIcon !== "")
+    readonly property bool recolour: Config.bar ? Config.bar.tray.recolour : (GlobalConfig.bar.tray.recolour ?? true)
 
     property real itemScale: 1.0
     scale: itemScale
@@ -27,7 +33,7 @@ Item {
         }
     }
 
-    function toggleMenu(): void {
+    function toggleMenu() {
         if (bar && bar.popouts) {
             const menuName = `traymenu${itemIndex}`;
             if (bar.popouts.hasCurrent && bar.popouts.currentName === menuName) {
@@ -42,8 +48,17 @@ Item {
 
     SequentialAnimation {
         id: pressSpring
-        NumberAnimation { target: root; property: "itemScale"; to: 0.88; duration: 80; easing.type: Easing.OutQuad }
-        NumberAnimation { target: root; property: "itemScale"; to: 1.0; duration: 160; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
+        NumberAnimation { target: root; property: "itemScale"; to: 0.92; duration: 70; easing.type: Easing.OutCubic }
+        SpringAnimation { target: root; property: "itemScale"; to: 1.0; spring: 5.0; damping: 0.65 }
+    }
+
+    // Active pill background when its flyout menu is open
+    Rectangle {
+        anchors.fill: parent
+        radius: Tokens.rounding.full
+        color: Colours.palette.m3secondaryContainer
+        opacity: root.isMenuOpen ? 0.85 : 0.0
+        Behavior on opacity { Anim { type: Anim.FastEffects } }
     }
 
     StateLayer {
@@ -51,16 +66,15 @@ Item {
         anchors.fill: parent
         radius: Tokens.rounding.full
         color: Colours.palette.m3onSurfaceVariant
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         cursorShape: Qt.PointingHandCursor
 
         onClicked: mouse => {
             pressSpring.start();
-            if (mouse.button === Qt.LeftButton) {
-                TrayService.activate(root.modelData);
+            if (mouse.button === Qt.LeftButton || mouse.button === Qt.RightButton) {
                 root.toggleMenu();
-            } else if (mouse.button === Qt.RightButton) {
+            } else if (mouse.button === Qt.MiddleButton) {
                 TrayService.secondaryActivate(root.modelData);
-                root.toggleMenu();
             }
         }
     }
@@ -68,15 +82,39 @@ Item {
     IconImage {
         id: icon
         anchors.centerIn: parent
-        width: 22
-        height: 22
+        width: 20
+        height: 20
+        smooth: true
         asynchronous: true
         source: Icons.getTrayIcon(root.modelData.id, root.modelData.icon || root.modelData.attentionIcon)
 
-        layer.enabled: Config.bar.tray.recolour
+        layer.enabled: root.recolour
+        layer.smooth: true
         layer.effect: MultiEffect {
             colorization: 1.0
-            colorizationColor: Colours.palette.m3secondary
+            colorizationColor: root.isMenuOpen ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3secondary
+        }
+    }
+
+    // Attention badge dot
+    Rectangle {
+        id: attentionDot
+        visible: root.needsAttention
+        width: 6
+        height: 6
+        radius: 3
+        color: Colours.palette.m3primary
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 3
+        anchors.rightMargin: 3
+        z: 3
+
+        SequentialAnimation on opacity {
+            running: root.needsAttention
+            loops: Animation.Infinite
+            NumberAnimation { to: 0.3; duration: 600; easing.type: Easing.InOutQuad }
+            NumberAnimation { to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
         }
     }
 
@@ -85,3 +123,4 @@ Item {
         text: root.modelData.tooltip ? (root.modelData.tooltip.text || root.modelData.title || root.modelData.id) : (root.modelData.title || root.modelData.id)
     }
 }
+

@@ -1,5 +1,3 @@
-pragma ComponentBehavior: Bound
-
 import ".."
 import "../ui"
 import "../components"
@@ -19,7 +17,7 @@ Item {
 
     readonly property var sections: [
         { id: "clock", label: qsTr("Clock & Date"), icon: "schedule" },
-        { id: "apps", label: qsTr("Default Apps"), icon: "apps" },
+        { id: "keybinds", label: qsTr("Keybindings"), icon: "keyboard" },
         { id: "media", label: qsTr("Media Controls"), icon: "play_circle" },
         { id: "advanced", label: qsTr("Advanced"), icon: "build" }
     ]

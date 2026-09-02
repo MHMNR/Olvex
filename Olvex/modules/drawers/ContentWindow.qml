@@ -140,7 +140,7 @@ StyledWindow {
         function onContextMenuVisibleChanged(): void { root.pulseShellMotion(); }
     }
 
-    mask: (hasFullscreen || morph.active || notifMorph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher) ? null : regions
+    mask: (hasFullscreen || morph.active || notifMorph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher || panels.popouts.hasCurrent) ? null : regions
 
     Regions {
         id: regions
@@ -566,6 +566,31 @@ StyledWindow {
                     visibilities.wallpaperLauncher = false;
                 }
                 // Always propagate
+                mouse.accepted = false;
+            }
+            onClicked: mouse => {
+                mouse.accepted = false;
+            }
+        }
+
+        // Dismiss layer: closes tray popout menu when clicking outside it
+        MouseArea {
+            anchors.fill: parent
+            enabled: panels.popouts.hasCurrent && !morph.active
+            hoverEnabled: false
+            z: 46
+            propagateComposedEvents: true
+            onPressed: mouse => {
+                const pop = panels.popoutsWrapper;
+                const pt = pop ? pop.mapFromItem(revealContainer, mouse.x, mouse.y) : ({ x: -1, y: -1 });
+                const cWidth = pop ? (pop.content ? (pop.content.nonAnimWidth || pop.content.implicitWidth) : pop.width) : 0;
+                const cHeight = pop ? (pop.content ? (pop.content.nonAnimHeight || pop.content.implicitHeight) : pop.height) : 0;
+                const inPopout = pop && pt.x >= 0 && pt.x <= cWidth && pt.y >= 0 && pt.y <= cHeight;
+
+                if (!inPopout) {
+                    panels.popouts.hasCurrent = false;
+                    bar.closeTray();
+                }
                 mouse.accepted = false;
             }
             onClicked: mouse => {

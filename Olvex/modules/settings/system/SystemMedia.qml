@@ -13,9 +13,16 @@ Item {
     id: root
     
     property Session session
-    property var appJoin
-    property var appSplit
-    property var idxOf
+    property var appJoin: (list) => (list && list.length) ? list.join(" ") : ""
+    property var appSplit: (text) => (text || "").trim() ? (text || "").trim().split(/\s+/) : []
+    property var idxOf: (list, val) => {
+        const v = (val || "").toLowerCase();
+        for (let i = 0; i < (list ? list.length : 0); i++) {
+            if (String(list[i]).toLowerCase() === v)
+                return i;
+        }
+        return 0;
+    }
     
     opacity: 0
     y: 10
@@ -23,8 +30,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2

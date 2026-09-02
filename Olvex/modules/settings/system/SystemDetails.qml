@@ -12,10 +12,10 @@ Item {
     id: root
     
     property Session session
-    property string activeSection: "apps"
+    property string activeSection: "keybinds"
 
     // Helper functions moved from SystemPage.qml
-    function appJoin(list): string {
+    readonly property var appJoin: function(list) {
         if (!list || !list.length)
             return "";
         const parts = [];
@@ -24,14 +24,14 @@ Item {
         return parts.join(" ");
     }
 
-    function appSplit(text: string): var {
+    readonly property var appSplit: function(text) {
         const t = (text || "").trim();
         if (!t)
             return [];
         return t.split(/\s+/);
     }
 
-    function idxOf(list, val) {
+    readonly property var idxOf: function(list, val) {
         const v = (val || "").toLowerCase();
         for (let i = 0; i < list.length; i++) {
             if (String(list[i]).toLowerCase() === v)
@@ -40,52 +40,28 @@ Item {
         return 0;
     }
 
-    StyledFlickable {
+    Loader {
+        id: detailsLoader
         anchors.fill: parent
-        flickableDirection: Flickable.VerticalFlick
-        contentHeight: detailsLoader.height + (Tokens.padding.large * 2)
-        clip: true
-
-        Loader {
-            id: detailsLoader
-            onLoaded: if (item) height = Qt.binding(() => item ? (item["implicitHeight"] || 0) : 0);
-                        anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.topMargin: Tokens.padding.large
-                        
-            source: {
-                switch(root.activeSection) {
-                    case "apps": return "SystemApps.qml";
-                    case "clock": return "SystemClock.qml";
-                    case "media": return "SystemMedia.qml";
-                    case "advanced": return "SystemAdvanced.qml";
-                    default: return "SystemApps.qml";
-                }
+        anchors.margins: Tokens.padding.large
+        
+        onLoaded: {
+            if (item) {
+                if ("session" in item) item.session = root.session;
+                if ("appJoin" in item) item.appJoin = root.appJoin;
+                if ("appSplit" in item) item.appSplit = root.appSplit;
+                if ("idxOf" in item) item.idxOf = root.idxOf;
             }
-            Binding {
-                target: detailsLoader.item
-                property: "session"
-                value: root.session
-                restoreMode: Binding.RestoreBindingOrValue
-            }
-            Binding {
-                target: detailsLoader.item
-                property: "appJoin"
-                value: root.appJoin
-                restoreMode: Binding.RestoreBindingOrValue
-            }
-            Binding {
-                target: detailsLoader.item
-                property: "appSplit"
-                value: root.appSplit
-                restoreMode: Binding.RestoreBindingOrValue
-            }
-            Binding {
-                target: detailsLoader.item
-                property: "idxOf"
-                value: root.idxOf
-                restoreMode: Binding.RestoreBindingOrValue
+        }
+                    
+        source: {
+            switch(root.activeSection) {
+                case "keybinds": return "SystemKeybinds.qml";
+                case "apps": return "SystemKeybinds.qml";
+                case "clock": return "SystemClock.qml";
+                case "media": return "SystemMedia.qml";
+                case "advanced": return "SystemAdvanced.qml";
+                default: return "SystemKeybinds.qml";
             }
         }
     }

@@ -11,22 +11,50 @@ StyledRect {
     readonly property alias layout: layout
     readonly property alias items: items
     readonly property alias expandBtn: expandBtn
-    readonly property alias expandIcon: expandBtn
 
-    readonly property int padding: Config.bar.tray.background ? Tokens.padding.normal : Tokens.padding.small
-    readonly property int spacing: Config.bar.tray.background ? Tokens.spacing.small : 4
+    readonly property bool compactMode: Config.bar ? Config.bar.tray.compact : (GlobalConfig.bar.tray.compact ?? false)
+    readonly property bool trayBackground: Config.bar ? Config.bar.tray.background : (GlobalConfig.bar.tray.background ?? false)
+
+    readonly property int padding: trayBackground ? (compactMode ? 4 : 8) : 2
+    readonly property int spacing: compactMode ? 4 : 6
 
     property var bar: null
+    property var popouts: bar ? bar.popouts : null
 
-    property bool expanded: !Config.bar.tray.compact
+    property bool expanded: !compactMode
+
+    readonly property bool isAnyMenuOpen: {
+        const p = root.popouts || (bar ? bar.popouts : null);
+        return Boolean(p && p.hasCurrent && (p.currentName || "").startsWith("traymenu"));
+    }
+
+    Connections {
+        target: root.popouts || (bar ? bar.popouts : null)
+        function onHasCurrentChanged() {
+            if (root.isAnyMenuOpen) {
+                expandTimer.stop();
+                collapseTimer.stop();
+                root.expanded = true;
+            } else if (root.compactMode && !trayHover.hovered) {
+                collapseTimer.restart();
+            }
+        }
+        function onCurrentNameChanged() {
+            if (root.isAnyMenuOpen) {
+                expandTimer.stop();
+                collapseTimer.stop();
+                root.expanded = true;
+            }
+        }
+    }
 
     readonly property real collapsedSize: Tokens.sizes.bar.innerWidth
     readonly property real contentHeight: {
         if (!TrayService.hasItems) return 0;
-        if (!Config.bar.tray.compact) {
+        if (!compactMode) {
             return layout.implicitHeight + padding * 2;
         }
-        return expanded ? (layout.implicitHeight + 32 + spacing + padding * 2) : collapsedSize;
+        return expanded ? (layout.implicitHeight + 28 + spacing + padding * 2) : collapsedSize;
     }
 
     clip: true
@@ -40,19 +68,12 @@ StyledRect {
     Layout.preferredWidth: width
     Layout.preferredHeight: height
 
-    color: Qt.alpha(Colours.tPalette.m3surfaceContainer, (Config.bar.tray.background && TrayService.hasItems) ? Colours.tPalette.m3surfaceContainer.a : 0)
-    radius: width / 2
-    border.width: 1
-    border.color: hoverArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.35) : Qt.alpha(Colours.palette.m3outlineVariant, 0.12)
-    scale: hoverArea.containsMouse ? 1.03 : 1.0
+    color: trayBackground ? Colours.tPalette.m3surfaceContainer : "transparent"
+    radius: Tokens.rounding.full
+    border.width: trayBackground ? 1 : 0
+    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.14)
 
-    Behavior on scale {
-        Anim {
-            type: Anim.FastSpatial
-        }
-    }
-
-    Behavior on border.color {
+    Behavior on color {
         CAnim {}
     }
 
@@ -62,47 +83,91 @@ StyledRect {
         }
     }
 
-    Behavior on height {
-        Anim {
-            type: Anim.DefaultSpatial
+    HoverHandler {
+        id: trayHover
+        margin: 6
+
+        onHoveredChanged: {
+            if (hovered) {
+                collapseTimer.stop();
+                if (root.compactMode && !root.expanded) {
+                    expandTimer.restart();
+                }
+            } else {
+                expandTimer.stop();
+                if (!Visibilities.areaPickerActive && root.compactMode && root.expanded && !root.isAnyMenuOpen) {
+                    collapseTimer.restart();
+                }
+            }
         }
     }
 
-    MouseArea {
-        id: hoverArea
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.NoButton
+    // Hover dwell filter: 50ms (zero perceptible lag, filters accidental swipes)
+    Timer {
+        id: expandTimer
+        interval: 50
+        onTriggered: {
+            if (root.compactMode && trayHover.hovered) {
+                root.expanded = true;
+            }
+        }
+    }
+
+    // Snappy collapse grace period (prompt response on mouse leave)
+    Timer {
+        id: collapseTimer
+        interval: 120
+        onTriggered: {
+            if (!Visibilities.areaPickerActive && root.compactMode && !trayHover.hovered && !root.isAnyMenuOpen) {
+                root.expanded = false;
+            }
+        }
+    }
+
+    onIsAnyMenuOpenChanged: {
+        if (!Visibilities.areaPickerActive && !isAnyMenuOpen && root.compactMode && !trayHover.hovered) {
+            collapseTimer.restart();
+        }
+    }
+
+    function trayItemAtY(globalY) {
+        if (!items || items.count === 0) return null;
+        for (let i = 0; i < items.count; i++) {
+            const itm = items.itemAt(i);
+            if (!itm) continue;
+            const pt = itm.mapFromItem(null, 0, globalY);
+            if (pt.y >= 0 && pt.y <= itm.height) {
+                return { item: itm, index: i };
+            }
+        }
+        return null;
     }
 
     Column {
         id: layout
 
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: root.padding
-        spacing: Tokens.spacing.small
+        anchors.bottom: root.compactMode ? expandBtn.top : undefined
+        anchors.bottomMargin: root.compactMode ? root.spacing : 0
+        anchors.top: !root.compactMode ? parent.top : undefined
+        anchors.topMargin: !root.compactMode ? root.padding : 0
+        spacing: root.spacing
+        z: 1
 
-        opacity: (!Config.bar.tray.compact || root.expanded) && TrayService.hasItems ? 1 : 0
-        visible: opacity > 0.01
+        opacity: (!root.compactMode || root.expanded) && TrayService.hasItems ? 1 : 0
+        scale: (!root.compactMode || root.expanded) ? 1.0 : 0.88
+        transformOrigin: Item.Bottom
+        visible: TrayService.hasItems
 
-        add: Transition {
+        Behavior on opacity {
             Anim {
-                properties: "scale"
-                from: 0
-                to: 1
-                easing: Tokens.anim.standardDecel
+                type: Anim.DefaultEffects
             }
         }
 
-        move: Transition {
+        Behavior on scale {
             Anim {
-                properties: "scale"
-                to: 1
-                easing: Tokens.anim.standardDecel
-            }
-            Anim {
-                properties: "x,y"
+                type: Anim.DefaultSpatial
             }
         }
 
@@ -116,59 +181,67 @@ StyledRect {
                 bar: root.bar
             }
         }
-
-        Behavior on opacity {
-            Anim {
-                type: Anim.FastEffects
-            }
-        }
     }
 
+    // Clean expand/collapse chevron toggle for compact mode
     Item {
         id: expandBtn
-        visible: Config.bar.tray.compact && TrayService.hasItems
+        visible: root.compactMode && TrayService.hasItems
+        z: 2
 
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: root.expanded ? parent.bottom : undefined
-        anchors.bottomMargin: root.expanded ? root.padding : 0
-        anchors.centerIn: !root.expanded ? parent : undefined
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Math.round((root.collapsedSize - height) / 2)
 
-        width: root.expanded ? 32 : root.collapsedSize
-        height: root.expanded ? 32 : root.collapsedSize
+        width: 28
+        height: 28
 
         property real btnScale: 1.0
         scale: btnScale
 
         SequentialAnimation {
             id: expandSpring
-            NumberAnimation { target: expandBtn; property: "btnScale"; to: 0.88; duration: 80; easing.type: Easing.OutQuad }
-            NumberAnimation { target: expandBtn; property: "btnScale"; to: 1.0; duration: 160; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
+            NumberAnimation { target: expandBtn; property: "btnScale"; to: 0.90; duration: 60; easing.type: Easing.OutQuad }
+            SpringAnimation { target: expandBtn; property: "btnScale"; to: 1.0; spring: 5.0; damping: 0.65 }
         }
 
         StateLayer {
             anchors.fill: parent
-            radius: width / 2
+            radius: Tokens.rounding.full
             color: Colours.palette.m3onSurfaceVariant
             cursorShape: Qt.PointingHandCursor
 
             onClicked: {
+                expandTimer.stop();
+                collapseTimer.stop();
                 expandSpring.start();
                 root.expanded = !root.expanded;
             }
         }
 
-        MaterialIcon {
+        Item {
+            id: arrowWrapper
             anchors.centerIn: parent
-            text: "expand_less"
-            iconPointSize: Tokens.font.size.large
-            color: Colours.palette.m3onSurfaceVariant
+            width: 20
+            height: 20
             rotation: root.expanded ? 180 : 0
 
             Behavior on rotation {
-                Anim {
-                    type: Anim.FastSpatial
+                NumberAnimation {
+                    duration: (Tokens && Tokens.anim && Tokens.anim.durations) ? Tokens.anim.durations.expressiveDefaultSpatial : 350
+                    easing: (Tokens && Tokens.anim) ? Tokens.anim.expressiveDefaultSpatial : Easing.OutCubic
                 }
+            }
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                text: "expand_less"
+                iconPointSize: 18
+                color: Colours.palette.m3onSurfaceVariant
             }
         }
     }
 }
+
+
+

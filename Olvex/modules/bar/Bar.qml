@@ -22,8 +22,8 @@ ColumnLayout {
     readonly property int vPadding: Tokens.padding.large
     readonly property alias osIcon: osIconWrapper
 
-    function expandMediaMorphFromPill(pill: Item, art: Item, controls: Item,
-                                      accent: color, buttonSize: int): void {
+    function expandMediaMorphFromPill(pill, art, controls,
+                                      accent, buttonSize) {
         const morph = root.mediaMorph;
         if (!morph || !pill || pill.width <= 0 || pill.height <= 0)
             return;
@@ -45,7 +45,7 @@ ColumnLayout {
         );
     }
 
-    function expandNotificationMorphFromPill(pill: Item, iconItem: Item, contentItem: Item, notifData: var): void {
+    function expandNotificationMorphFromPill(pill, iconItem, contentItem, notifData) {
         const morph = root.notificationMorph;
         if (!morph || !pill || pill.width <= 0 || pill.height <= 0)
             return;
@@ -70,7 +70,7 @@ ColumnLayout {
             return false;
         for (let i = 0; i < repeater.count; i++) {
             const loader = repeater.itemAt(i);
-            if (loader?.enabled && loader.id === "activeWindow") {
+            if (loader && loader.enabled && loader.id === "activeWindow") {
                 const aw = loader.item;
                 return aw ? (aw.playerActive || aw.isMusicClosing) : false;
             }
@@ -78,24 +78,16 @@ ColumnLayout {
         return false;
     }
 
-    function closeTray(): void {
-        if (!Config.bar.tray.compact)
-            return;
-
-        for (let i = 0; i < repeater.count; i++) {
-            const loader = repeater.itemAt(i);
-            if (!loader?.enabled || loader.id !== "tray")
-                continue;
-            const tray = loader.item;
-            if (tray)
-                tray.expanded = false;
+    function closeTray() {
+        if (popouts.hasCurrent && !popouts.currentName.startsWith("traymenu")) {
+            popouts.hasCurrent = false;
         }
     }
 
-    function checkPopout(y: real): void {
+    function checkPopout(y) {
         const ch = childAt(width / 2, y) as WrappedLoader;
 
-        if (ch?.id !== "tray")
+        if (ch && ch.id !== "tray")
             closeTray();
 
         if (!ch) {
@@ -132,38 +124,18 @@ ColumnLayout {
             } else {
                 popouts.hasCurrent = false;
             }
-        } else if (id === "tray" && Config.bar.popouts.tray) {
-            const tray = ch.item;
-            if (!tray) {
-                popouts.hasCurrent = false;
-                return;
-            }
-            if (!Config.bar.tray.compact || (tray.expanded && !tray.expandIcon.contains(mapToItem(tray.expandIcon, tray.implicitWidth / 2, y)))) {
-                const index = Math.floor(((y - top - tray.padding * 2 + tray.spacing) / tray.layout.implicitHeight) * tray.items.count);
-                const trayItem = tray.items.itemAt(index);
-                if (trayItem) {
-                    popouts.currentName = `traymenu${index}`;
-                    popouts.currentCenter = Qt.binding(() => trayItem.mapToItem(root, 0, trayItem.implicitHeight / 2).y);
-                    popouts.hasCurrent = true;
-                } else {
-                    popouts.hasCurrent = false;
-                }
-            } else {
-                popouts.hasCurrent = false;
-                tray.expanded = true;
-            }
         }
     }
 
-    function handleWheel(y: real, angleDelta: point): void {
+    function handleWheel(y, angleDelta) {
         const ch = childAt(width / 2, y) as WrappedLoader;
-        if (ch?.id === "workspaces" && Config.bar.scrollActions.workspaces) {
+        if (ch && ch.id === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
             const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
-            const specialWs = mon?.lastIpcObject.specialWorkspace.name;
-            if (specialWs?.length > 0)
+            const specialWs = (mon && mon.lastIpcObject && mon.lastIpcObject.specialWorkspace) ? mon.lastIpcObject.specialWorkspace.name : "";
+            if (specialWs && specialWs.length > 0)
                 Hypr.dispatch(`togglespecialworkspace ${specialWs.slice(8)}`);
-            else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
+            else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? (mon && mon.activeWorkspace ? mon.activeWorkspace.id : 1) : Hypr.activeWsId) > 1)
                 Hypr.dispatch(`workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
         } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
             // Volume scroll on top half
@@ -229,9 +201,13 @@ ColumnLayout {
                 roleValue: "tray"
                 delegate: WrappedLoader {
                     visible: !root.fullscreen
-                    sourceComponent: Tray {}
+                    sourceComponent: Tray {
+                        bar: root
+                        popouts: root.popouts
+                    }
                 }
             }
+
             DelegateChoice {
                 roleValue: "clock"
                 delegate: WrappedLoader {
@@ -286,11 +262,11 @@ ColumnLayout {
         required property string id
         required property int index
 
-        function findFirstEnabled(): Item {
+        function findFirstEnabled() {
             const count = repeater.count;
             for (let i = 0; i < count; i++) {
                 const item = repeater.itemAt(i);
-                if (item?.enabled)
+                if (item && item.enabled)
                     return item;
             }
             return null;
