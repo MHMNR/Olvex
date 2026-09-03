@@ -1098,15 +1098,46 @@ Item {
 
                     Item {
                         width: 36; height: 36; anchors.verticalCenter: parent.verticalCenter
+
                         Rectangle {
-                            anchors.fill: parent; radius: width / 2
-                            color: Qt.rgba(1, 1, 1, 0.08); border.color: Qt.rgba(1, 1, 1, 0.15); border.width: 1
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: (Notifs.notClosed.length > 0 && notifHeaderAppIcon.visible) ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.08)
+                            border.color: (Notifs.notClosed.length > 0 && notifHeaderAppIcon.visible) ? "transparent" : Qt.rgba(1, 1, 1, 0.15)
+                            border.width: 1
+                            clip: true
+
+                            ColouredIcon {
+                                id: notifHeaderAppIcon
+                                anchors.fill: parent
+                                anchors.margins: 0
+                                readonly property var topNotif: Notifs.notClosed.length > 0 ? Notifs.notClosed[0] : null
+                                readonly property string notifHeaderIconSource: {
+                                    if (!topNotif) return "";
+                                    let icon = topNotif.appIcon || "";
+                                    let s = icon ? Icons.resolveIcon(icon, "") : "";
+                                    if (!s && topNotif.desktopEntry)
+                                        s = Icons.getAppIcon(topNotif.desktopEntry, "") || Icons.resolveIcon(topNotif.desktopEntry, "");
+                                    if (!s && topNotif.appName)
+                                        s = Icons.getAppIcon(topNotif.appName, "") || Icons.resolveIcon(topNotif.appName, "");
+                                    return s;
+                                }
+                                visible: Notifs.notClosed.length > 0 && notifHeaderIconSource.length > 0
+                                source: notifHeaderIconSource
+                                colour: Qt.rgba(1, 1, 1, 0.85)
+                                layer.enabled: (topNotif && topNotif.appIcon && topNotif.appIcon.endsWith("symbolic")) || String(source).indexOf("symbolic") >= 0
+                            }
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "notifications"
+                                color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.75) : Qt.rgba(1, 1, 1, 0.3)
+                                iconPointSize: 15
+                                fill: 1
+                                visible: !notifHeaderAppIcon.visible
+                            }
                         }
-                        MaterialIcon {
-                            anchors.centerIn: parent; text: "notifications"
-                            color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.75) : Qt.rgba(1, 1, 1, 0.3)
-                            iconPointSize: 15
-                        }
+
                         Rectangle {
                             width: 18; height: 18; radius: 9; color: Colours.current.m3primary
                             anchors.top: parent.top; anchors.right: parent.right
@@ -1178,29 +1209,41 @@ Item {
                                 clip: true
 
                                 Image {
+                                    id: notifItemImg
                                     anchors.fill: parent
-                                    visible: modelData.image.length > 0
-                                    source: modelData.image.length > 0 ? Qt.resolvedUrl(modelData.image) : ""
+                                    visible: modelData.image && modelData.image.length > 0
+                                    source: (modelData.image && modelData.image.length > 0) ? Qt.resolvedUrl(modelData.image) : ""
                                     fillMode: Image.PreserveAspectCrop
                                     asynchronous: true
                                     cache: false
                                 }
 
                                 ColouredIcon {
-                                    anchors.centerIn: parent
-                                    visible: modelData.image.length === 0 && modelData.appIcon.length > 0
-                                    implicitSize: 18
-                                    source: modelData.appIcon.length > 0 ? Icons.resolveIcon(modelData.appIcon, "") : ""
-                                    colour: Qt.rgba(1, 1, 1, 0.7)
-                                    layer.enabled: modelData.appIcon.endsWith("symbolic")
+                                    id: notifItemAppIcon
+                                    anchors.fill: parent
+                                    anchors.margins: 0
+                                    readonly property string resolvedSource: {
+                                        let icon = modelData.appIcon || "";
+                                        let s = icon ? Icons.resolveIcon(icon, "") : "";
+                                        if (!s && modelData.desktopEntry)
+                                            s = Icons.getAppIcon(modelData.desktopEntry, "") || Icons.resolveIcon(modelData.desktopEntry, "");
+                                        if (!s && modelData.appName)
+                                            s = Icons.getAppIcon(modelData.appName, "") || Icons.resolveIcon(modelData.appName, "");
+                                        return s;
+                                    }
+                                    visible: !notifItemImg.visible && resolvedSource.length > 0
+                                    source: resolvedSource
+                                    colour: Qt.rgba(1, 1, 1, 0.85)
+                                    layer.enabled: (modelData.appIcon && modelData.appIcon.endsWith("symbolic")) || String(source).indexOf("symbolic") >= 0
                                 }
 
                                 MaterialIcon {
                                     anchors.centerIn: parent
-                                    visible: modelData.image.length === 0 && modelData.appIcon.length === 0
+                                    visible: !notifItemImg.visible && !notifItemAppIcon.visible
                                     text: "info"
                                     color: Qt.rgba(1, 1, 1, 0.5)
                                     iconPointSize: 14
+                                    fill: 1
                                 }
                             }
                             Column {

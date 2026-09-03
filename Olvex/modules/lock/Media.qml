@@ -96,7 +96,10 @@ Item {
         opacity: root.hasActiveMedia ? 1 : 0
         Behavior on opacity { Anim { type: Anim.DefaultEffects } }
 
-        readonly property point glowCenter: Qt.point(14 + root.artSize / 2, 12 + root.artSize / 2)
+        readonly property point glowCenter: Qt.point(
+            layout.x + upperRow.x + artFrame.x + artFrame.width / 2,
+            layout.y + upperRow.y + artFrame.y + artFrame.height / 2
+        )
 
         Repeater {
             model: [
@@ -186,6 +189,7 @@ Item {
 
         // ── Upper Row: Album Art + (Typography & Transport) ──────────────────
         RowLayout {
+            id: upperRow
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 14

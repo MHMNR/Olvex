@@ -7,6 +7,7 @@ import Quickshell.Services.Notifications
 import Olvex.Config
 import qs.components
 import qs.components.effects
+import qs.components.images
 import qs.services
 import qs.utils
 
@@ -15,15 +16,21 @@ StyledRect {
 
     required property string modelData
 
-    readonly property list<var> notifs: Notifs.list.filter(notif => notif.appName === modelData)
+    readonly property var notifs: Notifs.list.filter(notif => notif.appName === modelData)
     readonly property var props: {
         let img = "";
         let icon = "";
         let hasCritical = false;
         let hasNormal = false;
         for (const n of notifs) {
-            if (!img && n.image.length > 0)
-                img = n.image;
+            if (!img && n.image.length > 0) {
+                const iconName = Icons.iconNameFromUrl(n.image);
+                if (iconName) {
+                    if (!icon) icon = iconName;
+                } else {
+                    img = n.image;
+                }
+            }
             if (!icon && n.appIcon.length > 0)
                 icon = n.appIcon;
             if (n.urgency === NotificationUrgency.Critical)
@@ -41,10 +48,29 @@ StyledRect {
     readonly property string appIcon: props.icon
     readonly property string urgency: props.urgency
 
+    readonly property string resolvedAppIcon: {
+        const top = notifs.length > 0 ? notifs[0] : null;
+        const candidates = [
+            root.appIcon,
+            top ? top.appIcon : "",
+            top ? top.desktopEntry : "",
+            root.modelData
+        ];
+        for (let i = 0; i < candidates.length; i++) {
+            const cand = String(candidates[i] ?? "").trim();
+            if (!cand.length) continue;
+            let path = Icons.resolveIcon(cand, "");
+            if (path.length > 0) return path;
+            path = Icons.getAppIcon(cand, "");
+            if (path.length > 0) return path;
+        }
+        return "";
+    }
+
     property bool expanded
 
-    anchors.left: parent?.left
-    anchors.right: parent?.right
+    anchors.left: parent ? parent.left : undefined
+    anchors.right: parent ? parent.right : undefined
     implicitHeight: content.implicitHeight + Tokens.padding.normal * 2
 
     clip: true
@@ -66,51 +92,47 @@ StyledRect {
             implicitWidth: TokenConfig.sizes.notifs.image
             implicitHeight: TokenConfig.sizes.notifs.image
 
-            Component {
-                id: imageComp
-
-                Image {
-                    source: Qt.resolvedUrl(root.image)
-                    fillMode: Image.PreserveAspectCrop
-                    sourceSize.width: TokenConfig.sizes.notifs.image
-                    sourceSize.height: TokenConfig.sizes.notifs.image
-                    cache: false
-                    asynchronous: true
-                    width: TokenConfig.sizes.notifs.image
-                    height: TokenConfig.sizes.notifs.image
-                }
-            }
-
-            Component {
-                id: appIconComp
-
-                ColouredIcon {
-                    implicitSize: Math.round(TokenConfig.sizes.notifs.image * 0.6)
-                    source: Icons.resolveIcon(root.appIcon, "")
-                    colour: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
-                    layer.enabled: root.appIcon.endsWith("symbolic")
-                }
-            }
-
-            Component {
-                id: materialIconComp
-
-                MaterialIcon {
-                    text: Icons.getNotifIcon(root.notifs[0]?.summary, root.urgency)
-                    color: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
-                    iconPointSize: Tokens.font.size.large
-                }
-            }
-
             StyledClippingRect {
                 anchors.fill: parent
                 color: root.urgency === "critical" ? Colours.palette.m3error : root.urgency === "low" ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 3) : Colours.palette.m3secondaryContainer
                 radius: Tokens.rounding.full
 
-                Loader {
+                // 1. Real photo/bitmap image (not image://icon)
+                Image {
+                    anchors.fill: parent
+                    visible: root.image.length > 0 && !root.image.startsWith("image://icon/")
+                    source: visible ? Qt.resolvedUrl(root.image) : ""
+                    fillMode: Image.PreserveAspectCrop
                     asynchronous: true
+                    cache: false
+                }
+
+                // 2. Full-color or symbolic app icon
+                ColouredIcon {
+                    id: mainAppIcon
+                    anchors.fill: parent
+                    readonly property bool isSymbolic: (root.appIcon && root.appIcon.endsWith("symbolic"))
+                        || (root.resolvedAppIcon.indexOf("symbolic") >= 0)
+                        || (root.resolvedAppIcon.indexOf("status/") >= 0)
+                        || (root.resolvedAppIcon.indexOf("actions/") >= 0)
+                    anchors.margins: isSymbolic ? Math.round(TokenConfig.sizes.notifs.image * 0.22) : 0
+                    visible: (!root.image.length || root.image.startsWith("image://icon/")) && root.resolvedAppIcon.length > 0
+                    source: visible ? root.resolvedAppIcon : ""
+                    colour: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    layer.enabled: isSymbolic
+                }
+
+                // 3. Fallback filled MaterialIcon
+                MaterialIcon {
                     anchors.centerIn: parent
-                    sourceComponent: root.image ? imageComp : root.appIcon ? appIconComp : materialIconComp
+                    visible: (!root.image.length || root.image.startsWith("image://icon/")) && !mainAppIcon.visible
+                    text: {
+                        const s = (root.notifs.length > 0 && root.notifs[0].summary) ? String(root.notifs[0].summary) : "";
+                        return Icons.getNotifIcon(s, root.urgency === "critical" ? 2 : root.urgency === "low" ? 0 : 1);
+                    }
+                    color: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                    iconPointSize: Tokens.font.size.large
+                    fill: 1
                 }
             }
 
