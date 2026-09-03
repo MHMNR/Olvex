@@ -237,7 +237,7 @@ StyledRect {
                 anchors.centerIn: parent
                 text: "expand_less"
                 iconPointSize: 18
-                color: Colours.palette.m3onSurfaceVariant
+                color: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
             }
         }
     }

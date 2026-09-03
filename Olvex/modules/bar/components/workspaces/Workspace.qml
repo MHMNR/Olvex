@@ -58,23 +58,16 @@ Item {
         width: root.collapsedHeight
         height: width
         radius: width / 2
-        color: root.isOccupied ? Colours.palette.m3onSurfaceVariant : "transparent"
+        color: root.isOccupied ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) : "transparent"
         border.width: root.isOccupied ? 0 : 2
-        border.color: Colours.layer(Colours.palette.m3outlineVariant, 2)
+        border.color: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
 
         opacity: root.showDetail ? 0 : 1
-        scale: root.showDetail ? 0.85 : 1
         visible: opacity > 0.01
 
         Behavior on opacity {
             Anim {
                 type: Anim.DefaultEffects
-            }
-        }
-
-        Behavior on scale {
-            Anim {
-                type: Anim.DefaultSpatial
             }
         }
 
@@ -166,18 +159,11 @@ Item {
         spacing: 0
 
         opacity: root.showDetail ? 1 : 0
-        scale: root.showDetail ? 1 : 0.85
         visible: opacity > 0.01
 
         Behavior on opacity {
             Anim {
                 type: Anim.DefaultEffects
-            }
-        }
-
-        Behavior on scale {
-            Anim {
-                type: Anim.DefaultSpatial
             }
         }
 
@@ -235,7 +221,9 @@ Item {
                 radius: width / 2
 
                 visible: labelContainer.isCircleDot
-                color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
+                color: root.isOccupied || root.isCurrent 
+                    ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) 
+                    : (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant)
 
                 Behavior on color {
                     CAnim {}
@@ -253,7 +241,9 @@ Item {
                 visible: !labelContainer.isMaterial && !labelContainer.isCircleDot
                 animate: false
                 text: labelContainer.currentText
-                color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
+                color: root.isOccupied || root.isCurrent 
+                    ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) 
+                    : (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -269,7 +259,9 @@ Item {
                 visible: labelContainer.isMaterial && !labelContainer.isCircleDot
                 animate: false
                 text: labelContainer.currentText
-                color: root.isOccupied || root.isCurrent ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
+                color: root.isOccupied || root.isCurrent 
+                    ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) 
+                    : (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -313,7 +305,7 @@ Item {
 
                         grade: 0
                         text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
-                        color: Colours.palette.m3onSurfaceVariant
+                        color: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
                     }
                 }
             }

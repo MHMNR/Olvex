@@ -141,10 +141,21 @@ Item {
                             if (actionInner.item && actionInner.item.text !== undefined)
                                 actionInner.item.text = "inventory";
                             copyTimer.start();
-                        } else if (action.act?.invoke) {
-                            action.act.invoke();
-                        } else if (!root.notif.resident) {
-                            root.notif.close();
+                        } else {
+                            let invoked = false;
+                            if (typeof action.act?.invoke === "function") {
+                                action.act.invoke();
+                                invoked = true;
+                            } else if (root.notif?.notification?.actions) {
+                                const act = root.notif.notification.actions.find(a => a.identifier === (action.modelData.id || action.modelData.identifier));
+                                if (act && typeof act.invoke === "function") {
+                                    act.invoke();
+                                    invoked = true;
+                                }
+                            }
+                            if (invoked && !root.notif.resident) {
+                                root.notif.close();
+                            }
                         }
                     }
                 }

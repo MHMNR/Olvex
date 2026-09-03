@@ -18,10 +18,10 @@ StyledRect {
     id: root
 
     // ── Theme ──
-    readonly property color colourIdle: Colours.palette.m3onSurfaceVariant
+    readonly property color colourIdle: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
     readonly property color colourActive: Colours.palette.m3primary
     readonly property color colourDanger: Colours.palette.m3error
-    readonly property color colourMuted: Qt.alpha(colourIdle, 0.42)
+    readonly property color colourMuted: Colours.light ? Qt.alpha(colourIdle, 0.65) : Qt.alpha(colourIdle, 0.42)
 
     readonly property alias items: iconColumn
 

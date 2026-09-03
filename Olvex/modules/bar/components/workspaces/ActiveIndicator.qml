@@ -20,44 +20,25 @@ StyledRect {
         return i % Config.bar.workspaces.shown;
     }
 
-    property var _occupiedTrack: mask && mask.parent ? mask.parent.occupied : null
-    property var _expandedTrack: mask && mask.parent ? mask.parent.expanded : null
+    readonly property Workspace activeWsItem: (workspaces && workspaces.count > currentWsIdx && currentWsIdx >= 0)
+        ? (workspaces.itemAt(currentWsIdx) as Workspace) : null
 
-    function getTargetY(idx) {
-        let _ = _occupiedTrack;
-        let _2 = _expandedTrack;
-        if (!workspaces || workspaces.count === 0 || workspaces.count <= idx || idx < 0) return 0;
+    // Live geometry — directly from the ColumnLayout's current frame
+    readonly property real liveY: activeWsItem ? activeWsItem.y : 0
+    readonly property real liveH: activeWsItem ? (activeWsItem.currentHeight > 0 ? activeWsItem.currentHeight : activeWsItem.height) : (Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2)
 
-        let targetY = 0;
-        const firstWs = workspaces.itemAt(0) as Workspace;
-        if (firstWs) {
-            targetY += Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (firstWs.size / 2) - Tokens.padding.small);
-        }
+    // ── Trail mode state ────────────────────────────────────────────
+    property real leading: liveY
+    property real trailing: liveY
+    property real trailSize: liveH
 
-        for (let i = 0; i < idx; i++) {
-            const ws = workspaces.itemAt(i) as Workspace;
-            if (ws) {
-                targetY += ws.size + Tokens.spacing.small;
-            }
-        }
-        return targetY;
-    }
-
-    property real leading: getTargetY(currentWsIdx)
-    property real trailing: getTargetY(currentWsIdx)
-    property real currentSize: {
-        let _ = _occupiedTrack;
-        let _2 = _expandedTrack;
-        return workspaces.count > 0 && currentWsIdx >= 0 && currentWsIdx < workspaces.count ? (workspaces.itemAt(currentWsIdx) ? (workspaces.itemAt(currentWsIdx) as Workspace).size : 0) : 0;
-    }
-    property real offset: Math.min(leading, trailing)
-    property real size: {
-        const s = Math.abs(leading - trailing) + currentSize;
-        if (Config.bar.workspaces.activeTrail && lastWs > currentWsIdx) {
-            return Math.min(getTargetY(lastWs) + (workspaces.itemAt(lastWs) ? (workspaces.itemAt(lastWs) as Workspace).size : 0) - offset, s);
-        }
-        return s;
-    }
+    // ── Non-trail: explicit animation for workspace switches ────────
+    // During expand/collapse, offset/size bind directly to live geometry
+    // with no Behavior (zero lag). On workspace switch, switchAnim
+    // interpolates from old position to new.
+    property bool switching: false
+    property real switchFromY: 0
+    property real switchFromH: 0
 
     property int cWs
     property int lastWs
@@ -65,6 +46,50 @@ StyledRect {
     onCurrentWsIdxChanged: {
         lastWs = cWs;
         cWs = currentWsIdx;
+
+        if (!Config.bar.workspaces.activeTrail) {
+            // Capture current animated values as start point
+            switchFromY = root.y - mask.y;
+            switchFromH = root.height;
+            switching = true;
+            switchAnim.restart();
+        }
+    }
+
+    NumberAnimation {
+        id: switchAnim
+        target: root
+        property: "_switchProgress"
+        from: 0; to: 1
+        duration: Tokens.anim.durations.expressiveDefaultSpatial
+        easing: Tokens.anim.expressiveDefaultSpatial
+        onFinished: root.switching = false
+    }
+
+    property real _switchProgress: 0
+
+    // ── Final offset/size ───────────────────────────────────────────
+    readonly property real offset: {
+        if (Config.bar.workspaces.activeTrail)
+            return Math.min(leading, trailing);
+        if (switching)
+            return switchFromY + (liveY - switchFromY) * _switchProgress;
+        return liveY;
+    }
+
+    readonly property real size: {
+        if (Config.bar.workspaces.activeTrail) {
+            const s = Math.abs(leading - trailing) + trailSize;
+            if (lastWs > currentWsIdx && workspaces.itemAt(lastWs)) {
+                const lastItem = workspaces.itemAt(lastWs) as Workspace;
+                const lastBottom = lastItem ? lastItem.y + (lastItem.currentHeight > 0 ? lastItem.currentHeight : lastItem.height) : 0;
+                return Math.min(lastBottom - offset, s);
+            }
+            return s;
+        }
+        if (switching)
+            return switchFromH + (liveH - switchFromH) * _switchProgress;
+        return liveH;
     }
 
     clip: true
@@ -74,14 +99,14 @@ StyledRect {
     implicitWidth: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
     implicitHeight: size
     radius: Tokens.rounding.full
-    color: Colours.palette.m3primary
+    color: Colours.light ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
 
     Colouriser {
         source: root.mask
-        sourceColor: Colours.palette.m3onSurface
-        colorizationColor: Colours.palette.m3onPrimary
+        sourceColor: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+        colorizationColor: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onPrimary
 
-        y: -parent.offset
+        y: -root.offset
         width: root.mask.width
         height: root.mask.height
         implicitWidth: root.mask.implicitWidth
@@ -104,20 +129,8 @@ StyledRect {
         }
     }
 
-    Behavior on currentSize {
+    Behavior on trailSize {
         enabled: root.Config.bar.workspaces.activeTrail
-
-        EAnim {}
-    }
-
-    Behavior on offset {
-        enabled: !root.Config.bar.workspaces.activeTrail
-
-        EAnim {}
-    }
-
-    Behavior on size {
-        enabled: !root.Config.bar.workspaces.activeTrail
 
         EAnim {}
     }
@@ -126,3 +139,4 @@ StyledRect {
         type: Anim.DefaultSpatial
     }
 }
+

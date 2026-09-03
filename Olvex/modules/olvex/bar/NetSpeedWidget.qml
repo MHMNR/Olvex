@@ -133,7 +133,7 @@ StyledRect {
             height: root.combined ? 0 : 1
             width: 24
             color: root.colour
-            opacity: root.combined ? 0 : 0.2
+            opacity: root.combined ? 0 : (Colours.light ? 0.45 : 0.2)
             visible: !root.combined
         }
 
@@ -192,7 +192,7 @@ StyledRect {
                     text: "arrow_drop_up"
                     iconPointSize: root.fontSize + 2
                     color: root.colour
-                    opacity: NetworkUsage.uploadSpeed > NetworkUsage.downloadSpeed ? 1.0 : 0.4
+                    opacity: NetworkUsage.uploadSpeed > NetworkUsage.downloadSpeed ? 1.0 : (Colours.light ? 0.65 : 0.4)
                     anchors.verticalCenter: parent.verticalCenter
 
                     Behavior on opacity {
@@ -205,7 +205,7 @@ StyledRect {
                     text: "arrow_drop_down"
                     iconPointSize: root.fontSize + 2
                     color: root.colour
-                    opacity: NetworkUsage.downloadSpeed >= NetworkUsage.uploadSpeed ? 1.0 : 0.4
+                    opacity: NetworkUsage.downloadSpeed >= NetworkUsage.uploadSpeed ? 1.0 : (Colours.light ? 0.65 : 0.4)
                     anchors.verticalCenter: parent.verticalCenter
 
                     Behavior on opacity {

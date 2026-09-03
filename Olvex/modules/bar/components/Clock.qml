@@ -62,7 +62,7 @@ StyledRect {
                 width: parent.width * 0.6
                 height: 2
                 radius: 1
-                color: Qt.alpha(root.mutedColour, 0.4)
+                color: Qt.alpha(root.mutedColour, Colours.light ? 0.75 : 0.4)
             }
         }
 

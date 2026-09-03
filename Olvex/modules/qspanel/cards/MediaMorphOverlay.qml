@@ -97,7 +97,7 @@ Item {
     readonly property bool canSeek: Players.active !== null && (Players.active.canSeek ?? false) && (Players.active.positionSupported ?? false)
 
     // ── Art source helpers ─────────────────────────────────────────────────────
-    function updateArtDisplaySource(): void {
+    function updateArtDisplaySource() {
         const url = root.musicArtUrl;
         if (!url) {
             root.artDisplaySource = "";
@@ -160,7 +160,7 @@ Item {
     z: 2000
 
     // ── Layout helpers ─────────────────────────────────────────────────────────
-    function applyLayout(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real): void {
+    function applyLayout(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real) {
         startX = x;
         startY = y;
         startW = w;
@@ -183,7 +183,7 @@ Item {
         musicPill.radius = startRadius;
     }
 
-    function resetDockLayout(): void {
+    function resetDockLayout() {
         docked = false;
         dockLayoutReady = false;
         _lastDockX = -1;
@@ -192,7 +192,7 @@ Item {
         _dockSyncCount = 0;
     }
 
-    function updateDockTarget(x: real, y: real, w: real, h: real, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real): void {
+    function updateDockTarget(x: real, y: real, w: real, h: real, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real) {
         startX = x;
         startY = y;
         startW = w;
@@ -210,7 +210,7 @@ Item {
         realBtnSize = btnSize;
     }
 
-    function syncDock(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real): void {
+    function syncDock(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real) {
         if (root.active)
             return;
         applyLayout(x, y, w, h, color, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
@@ -229,13 +229,13 @@ Item {
             musicPill.state = "compact";
     }
 
-    function start(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real): void {
+    function start(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real) {
         applyLayout(x, y, w, h, color, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
         docked = true;
         expand();
     }
 
-    function expand(): void {
+    function expand() {
         hideTimer.stop();
         expandDeferred.stop();
         closingDown = false;
@@ -259,7 +259,7 @@ Item {
         forceActiveFocus();
     }
 
-    function close(): void {
+    function close() {
         seekPreview = -1;
         closingDown = true;
         if (typeof sourceSelector !== "undefined")
@@ -268,7 +268,7 @@ Item {
         hideTimer.start();
     }
 
-    function syncVisualizerOwner(): void {
+    function syncVisualizerOwner() {
         VisualizerState.request("overlay", 30, root.mediaVisualizerActive);
     }
 
@@ -380,24 +380,8 @@ Item {
         clip: true
         color: "transparent"
 
-        property real morphSquashX: 1.0
-        property real morphSquashY: 1.0
-        property real morphLift: 0.0
         // Crossfades compact visual layer → card visual layer during morph (1=compact, 0=expanded)
         property real compactFade: 1.0
-
-        transform: [
-            Translate {
-                x: root.opensRight ? musicPill.morphLift : -musicPill.morphLift
-                y: 0
-            },
-            Scale {
-                origin.x: root.opensRight ? 0 : musicPill.width
-                origin.y: musicPill.height / 2
-                xScale: musicPill.morphSquashX
-                yScale: musicPill.morphSquashY
-            }
-        ]
 
         layer.enabled: false
         state: "compact"
@@ -735,7 +719,7 @@ Item {
                     readonly property real stopIndicatorSize: 4 // trackStopIndicatorSize: 4dp
                     readonly property real thumbW: dragging ? 4 : (hoverArea.containsMouse ? 5 : 4)
                     readonly property real thumbH: dragging ? 24 : (hoverArea.containsMouse ? 20 : 16)
-                    readonly property bool isPlaying: Players.active?.isPlaying ?? false
+                    readonly property bool isPlaying: Players.active !== null ? (Players.active.isPlaying ?? false) : false
                     readonly property color activeColor: root.playButtonBg
                     property bool dragging: false
 
@@ -1092,25 +1076,25 @@ Item {
                         targets: [musicIcon]
                         properties: "x,y,width,height"
                         duration: root.expandDur
-                        easing: root.spatialEasing
+                        easing: root.spatialEasingDecel
                     }
                     NumberAnimation {
                         targets: [musicIcon]
                         properties: "radius"
                         duration: Math.round(root.expandDur * 0.75)
-                        easing: root.spatialEasing
+                        easing: root.spatialEasingDecel
                     }
                     NumberAnimation {
                         targets: [prevBtnContainer, playBtn, nextBtnContainer]
                         properties: "x,y,width,height"
                         duration: root.expandDur
-                        easing: root.spatialEasing
+                        easing: root.spatialEasingDecel
                     }
                     NumberAnimation {
                         targets: [prevBtnContainer, playBtn, nextBtnContainer]
                         properties: "radius"
                         duration: Math.round(root.expandDur * 0.75)
-                        easing: root.spatialEasing
+                        easing: root.spatialEasingDecel
                     }
                     SequentialAnimation {
                         PauseAnimation {
@@ -1121,71 +1105,23 @@ Item {
                                 targets: [prevBtnContainer, playBtn, nextBtnContainer]
                                 property: "iconSize"
                                 duration: 250
-                                easing: root.spatialEasing
+                                easing: root.spatialEasingDecel
                             }
                             NumberAnimation {
                                 targets: [prevBtnContainer, nextBtnContainer]
                                 property: "skipIconScale"
                                 duration: 250
-                                easing: root.spatialEasing
+                                easing: root.spatialEasingDecel
                             }
                             NumberAnimation {
                                 targets: [prevBtnContainer, nextBtnContainer]
                                 property: "secondaryProgress"
                                 duration: 250
-                                easing: root.spatialEasing
+                                easing: root.spatialEasingDecel
                             }
                         }
                     }
-                    // Morph squash/lift
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.045
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.0
-                            duration: Math.round(root.expandDur * 0.58)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 0.965
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.0
-                            duration: Math.round(root.expandDur * 0.58)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 8
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 0
-                            duration: Math.round(root.expandDur * 0.58)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
+
                     // Compact layer crossfades to card layer simultaneously with bounds morph
                     NumberAnimation {
                         target: musicPill
@@ -1263,83 +1199,36 @@ Item {
                         }
                     }
                     NumberAnimation {
-                        targets: [musicPill, musicIcon]
+                        targets: [musicPill]
                         properties: "x,y,width,height,radius"
                         duration: root.collapseDur
                         easing: root.spatialEasing
                     }
                     NumberAnimation {
-                        targets: [prevBtnContainer, playBtn, nextBtnContainer]
+                        targets: [musicIcon, prevBtnContainer, playBtn, nextBtnContainer]
                         properties: "x,y,width,height,radius"
                         duration: root.collapseDur
-                        easing: root.spatialEasing
+                        easing: Tokens.anim.emphasized
                     }
                     NumberAnimation {
                         targets: [prevBtnContainer, playBtn, nextBtnContainer]
                         property: "iconSize"
                         duration: root.collapseDur
-                        easing: root.spatialEasing
+                        easing: Tokens.anim.emphasized
                     }
                     NumberAnimation {
                         targets: [prevBtnContainer, nextBtnContainer]
                         property: "skipIconScale"
                         duration: root.collapseDur
-                        easing: root.spatialEasing
+                        easing: Tokens.anim.emphasized
                     }
                     NumberAnimation {
                         targets: [prevBtnContainer, nextBtnContainer]
                         property: "secondaryProgress"
                         duration: root.collapseDur
-                        easing: root.spatialEasing
+                        easing: Tokens.anim.emphasized
                     }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.035
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 0.965
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 6
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
+
                 }
             }
         ]
@@ -1691,7 +1580,7 @@ Item {
             }
         }
 
-        function restartMarquee(): void {
+        function restartMarquee() {
             marqueeAnim.stop();
             marqueeRow.scrollX = 0;
             if (needsMarquee && running)

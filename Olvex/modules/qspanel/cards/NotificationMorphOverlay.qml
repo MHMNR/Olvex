@@ -584,11 +584,17 @@ Item {
 
                         delegate: TextButton {
                             required property var modelData
-                            text: modelData.text || modelData.id || qsTr("Action")
+                            text: modelData.text || modelData.identifier || modelData.id || qsTr("Action")
                             type: TextButton.Tonal
                             onClicked: {
-                                if (root.notifData?.notification?.invokeAction) {
-                                    root.notifData.notification.invokeAction(modelData.id);
+                                if (typeof modelData.invoke === "function") {
+                                    modelData.invoke();
+                                } else if (typeof modelData.action?.invoke === "function") {
+                                    modelData.action.invoke();
+                                } else if (root.notifData?.notification?.actions) {
+                                    const act = root.notifData.notification.actions.find(a => a.identifier === (modelData.identifier || modelData.id));
+                                    if (act && typeof act.invoke === "function")
+                                        act.invoke();
                                 }
                                 root.dismiss();
                             }

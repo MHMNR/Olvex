@@ -560,7 +560,17 @@ StyledRect {
                                 id: actionLayer
                                 radius: parent.radius
                                 color: Colours.palette.m3onSurface
-                                onClicked: actionBtn.modelData.invoke()
+                                onClicked: {
+                                    if (typeof actionBtn.modelData.invoke === "function") {
+                                        actionBtn.modelData.invoke();
+                                    } else if (root.modelData?.notification?.actions) {
+                                        const act = root.modelData.notification.actions.find(a => a.identifier === (actionBtn.modelData.identifier || actionBtn.modelData.id));
+                                        if (act && typeof act.invoke === "function")
+                                            act.invoke();
+                                    }
+                                    if (!root.modelData.resident)
+                                        root.modelData.popup = false;
+                                }
                             }
 
                             StyledText {

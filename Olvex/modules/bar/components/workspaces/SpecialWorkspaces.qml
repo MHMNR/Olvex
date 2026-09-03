@@ -173,13 +173,13 @@ Item {
                 y: (view.currentItem?.y ?? 0) - view.contentY
                 implicitHeight: (view.currentItem as SpecialWsDelegate)?.size ?? 0
 
-                color: Colours.palette.m3tertiary
+                color: Colours.light ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary
                 radius: Tokens.rounding.full
 
                 Colouriser {
                     source: view
                     sourceColor: Colours.palette.m3onSurface
-                    colorizationColor: Colours.palette.m3onTertiary
+                    colorizationColor: Colours.light ? Colours.palette.m3onTertiaryContainer : Colours.palette.m3onTertiary
 
                     anchors.horizontalCenter: parent.horizontalCenter
 
@@ -356,7 +356,7 @@ Item {
 
                         grade: 0
                         text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
-                        color: Colours.palette.m3onSurfaceVariant
+                        color: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
                     }
                 }
             }

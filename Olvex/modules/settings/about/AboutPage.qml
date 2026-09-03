@@ -833,12 +833,17 @@ Item {
                                 Layout.preferredWidth: 44
                                 Layout.preferredHeight: 44
                                 radius: Tokens.rounding.full
-                                color: profileArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.25) : Qt.alpha(Colours.palette.m3primary, 0.15)
-                                border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
-                                border.width: 1.5
+                                color: profileArea.containsMouse 
+                                    ? (Colours.light ? Qt.alpha(Colours.palette.m3primary, 0.20) : Qt.alpha(Colours.palette.m3primary, 0.25)) 
+                                    : (Colours.light ? Qt.alpha(Colours.palette.m3primary, 0.12) : Qt.alpha(Colours.palette.m3primary, 0.15))
+                                border.color: Colours.light 
+                                    ? Qt.alpha(Colours.palette.m3outlineVariant, 0.45) 
+                                    : Qt.alpha(Colours.palette.m3primary, 0.35)
+                                border.width: avatarImg.status === Image.Ready ? 1.5 : 0
                                 clip: true
 
                                 Behavior on color { CAnim {} }
+                                Behavior on border.color { CAnim {} }
 
                                 // Circle Mask Source
                                 Item {
@@ -851,7 +856,9 @@ Item {
                                     Rectangle {
                                         anchors.fill: parent
                                         radius: width / 2
-                                        color: "black"
+                                        color: "white"
+                                        antialiasing: true
+                                        smooth: true
                                     }
                                 }
 
@@ -879,6 +886,8 @@ Item {
                                     layer.effect: MultiEffect {
                                         maskEnabled: true
                                         maskSource: avatarMask
+                                        maskSpreadAtMin: 1
+                                        maskThresholdMin: 0.5
                                     }
                                 }
 

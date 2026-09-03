@@ -12,7 +12,7 @@ import qs.utils
 StyledRect {
     id: root
 
-    property color colour: Colours.palette.m3secondary
+    property color colour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3secondary
     readonly property alias items: iconColumn
 
     readonly property var netSpeedConfig: GlobalConfig.bar?.netSpeed ?? null

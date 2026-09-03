@@ -21,7 +21,12 @@ Item {
 
     required property var bar
     required property Brightness.Monitor monitor
-    readonly property var mediaMorph: root.bar?.mediaMorph ?? Players.mediaMorphForScreen(root.bar?.screen?.name ?? "")
+    readonly property var mediaMorph: {
+        if (root.bar && root.bar.mediaMorph)
+            return root.bar.mediaMorph;
+        const screenName = (root.bar && root.bar.screen) ? root.bar.screen.name : "";
+        return Players.mediaMorphForScreen(screenName);
+    }
     property color colour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3primary
 
     readonly property bool hasMusicPlayer: !!Players.active
@@ -31,9 +36,9 @@ Item {
     readonly property bool showMusicPill: true
     // Internal: gates morph, visualizer, accent — needs actual player
     readonly property bool playerActive: hasMusicPlayer
-    readonly property bool mediaMorphOwnsPill: root.playerActive && (root.mediaMorph?.dockLayoutReady ?? false)
-    readonly property bool mediaMorphCollapsing: root.playerActive && (root.mediaMorph?.closingDown ?? false)
-    readonly property bool mediaMorphRendering: root.playerActive && ((root.mediaMorph?.active ?? false) || (root.mediaMorph?.morphAnimating ?? false))
+    readonly property bool mediaMorphOwnsPill: root.playerActive && !!(root.mediaMorph && root.mediaMorph.dockLayoutReady)
+    readonly property bool mediaMorphCollapsing: root.playerActive && !!(root.mediaMorph && root.mediaMorph.closingDown)
+    readonly property bool mediaMorphRendering: root.playerActive && !!(root.mediaMorph && (root.mediaMorph.active || root.mediaMorph.morphAnimating))
     readonly property bool mediaVisualizerWarm: root.playerActive
     readonly property bool mediaVisualizerActive: root.playerActive && root.isMusicPlaying
     readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "pill"
@@ -64,7 +69,7 @@ Item {
     property real _lastMorphDockW: -1
     property real _lastMorphDockH: -1
 
-    function refreshAccentColors(): void {
+    function refreshAccentColors() {
         if (!root.playerActive) {
             root.playButtonBg = Colours.palette.m3primary;
             root.playIconColor = Colours.palette.m3onPrimary;
@@ -79,7 +84,7 @@ Item {
         }
     }
 
-    function queueAccentRefresh(): void {
+    function queueAccentRefresh() {
         if (root._accentRefreshPending)
             return;
         root._accentRefreshPending = true;
@@ -89,7 +94,7 @@ Item {
         });
     }
 
-    function syncBarAccent(): void {
+    function syncBarAccent() {
         if (root._syncingBarAccent)
             return;
         root._syncingBarAccent = true;
@@ -98,7 +103,7 @@ Item {
         root._syncingBarAccent = false;
     }
 
-    function updateBarArtSource(): void {
+    function updateBarArtSource() {
         const url = root.musicArtUrl;
         if (!url) {
             root.barArtSource = "";
@@ -111,8 +116,8 @@ Item {
         root.barArtSource = url + "#olvex-art=" + Players.artReloadNonce;
     }
 
-    function syncMorphDock(immediate: bool): void {
-        if (root.mediaMorph?.active)
+    function syncMorphDock(immediate) {
+        if (root.mediaMorph && root.mediaMorph.active)
             return;
         if (immediate)
             dockSyncDebounce.stop();
@@ -123,7 +128,7 @@ Item {
         applyMorphDock();
     }
 
-    function applyMorphDock(): void {
+    function applyMorphDock() {
         if (!root.mediaMorph || !root.playerActive || root.mediaMorph.active)
             return;
         if (musicPill.width <= 0 || musicPill.height <= 0)
@@ -163,7 +168,7 @@ Item {
         onTriggered: root.mediaVisualizerLoaded = false
     }
 
-    function syncVisualizerOwner(): void {
+    function syncVisualizerOwner() {
         VisualizerState.request("pill", 20, root.mediaVisualizerActive);
     }
 
@@ -172,7 +177,7 @@ Item {
     onXChanged: syncMorphDock(false)
     onYChanged: syncMorphDock(false)
 
-    function kickDockSync(): void {
+    function kickDockSync() {
         if (!root.playerActive || !root.mediaMorph)
             return;
         root._lastMorphDockX = -1;
@@ -183,7 +188,7 @@ Item {
         dockSyncTimer.start();
     }
 
-    function triggerPillExpand(): void {
+    function triggerPillExpand() {
         // No-op without music: skip the press spring and the morph entirely.
         // Otherwise a click on the active-window state would squeeze the pill
         // and try to start a morph that returns early anyway.
@@ -195,12 +200,12 @@ Item {
         root.expandMusicMorph();
     }
 
-    function expandMusicMorph(): void {
+    function expandMusicMorph() {
         if (!root.playerActive)
             return;
 
-        const morph = root.bar?.mediaMorph ?? Players.mediaMorphForScreen(root.bar?.screen?.name ?? "");
-        if (!morph?.start)
+        const morph = (root.bar && root.bar.mediaMorph) ? root.bar.mediaMorph : Players.mediaMorphForScreen((root.bar && root.bar.screen) ? root.bar.screen.name : "");
+        if (!morph || !morph.start)
             return;
 
         dockSyncDebounce.stop();
@@ -253,10 +258,10 @@ Item {
 
     onIsNotificationPushedChanged: {
         if (root.isNotificationPushed && root.playerActive) {
-            const morph = root.bar?.mediaMorph ?? Players.mediaMorphForScreen(root.bar?.screen?.name ?? "");
-            if (morph?.active) {
+            const morph = (root.bar && root.bar.mediaMorph) ? root.bar.mediaMorph : Players.mediaMorphForScreen((root.bar && root.bar.screen) ? root.bar.screen.name : "");
+            if (morph && morph.active) {
                 Qt.callLater(() => {
-                    const anchor = morph.parent ?? morph;
+                    const anchor = morph.parent ? morph.parent : morph;
                     const pos = musicPill.mapToItem(anchor, 0, 0);
                     const artPos = artFrame.mapToItem(anchor, 0, 0);
                     const b1 = prevSkipBtn.mapToItem(anchor, 0, 0);
@@ -371,7 +376,7 @@ Item {
     }
 
     readonly property string windowTitle: {
-        const title = Hypr.activeToplevel?.title;
+        const title = (Hypr.activeToplevel) ? Hypr.activeToplevel.title : "";
         if (!title)
             return qsTr("Desktop");
         if (Config.bar.activeWindow.compact) {
@@ -383,13 +388,19 @@ Item {
     }
 
     readonly property int maxHeight: {
-        const otherModules = (bar?.children ?? []).filter(c => c && c.id && c.item !== this && c.id !== "spacer");
-        const otherHeight = otherModules.reduce((acc, curr) => acc + ((curr?.item?.nonAnimHeight ?? curr?.height) || 0), 0);
-        // Length - 2 cause repeater counts as a child
-        return (bar?.height ?? 0) - otherHeight - (bar?.spacing ?? 0) * (((bar?.children?.length ?? 1) - 1)) - (bar?.vPadding ?? 0) * 2;
+        const barChildren = (bar && bar.children) ? bar.children : [];
+        const otherModules = barChildren.filter(c => c && c.id && c.item !== this && c.id !== "spacer");
+        const otherHeight = otherModules.reduce((acc, curr) => {
+            const h = (curr && curr.item && curr.item.nonAnimHeight) ? curr.item.nonAnimHeight : (curr ? curr.height : 0);
+            return acc + (h || 0);
+        }, 0);
+        const barH = bar ? bar.height : 0;
+        const barSp = bar ? bar.spacing : 0;
+        const barPad = bar ? bar.vPadding : 0;
+        return barH - otherHeight - barSp * Math.max(0, barChildren.length - 1) - barPad * 2;
     }
     readonly property int availableTitleHeight: Math.max(0, root.maxHeight - Tokens.spacing.small * 4)
-    readonly property int preferredTitleHeight: Math.max(64, Math.round((bar?.height ?? 0) * 0.18))
+    readonly property int preferredTitleHeight: Math.max(64, Math.round((bar ? bar.height : 0) * 0.18))
     // Non-music pill is flex-sized by Bar.qml (Layout.fillHeight: true), so
     // the title spans whatever the pill actually rendered, not a calc against
     // the full bar height. 64px floor keeps the title legible if the bar is
@@ -688,7 +699,7 @@ Item {
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "music_note"
-                            color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.4) : root.musicOnAccent
+                            color: root.hasMusicArt ? (Colours.light ? Players.musicOnSurfaceColor : Qt.alpha(Players.musicOnSurfaceColor, 0.4)) : (Colours.light ? Colours.palette.m3onPrimary : root.musicOnAccent)
                             iconPointSize: Tokens.font.size.normal
                             fill: 1
                             visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
@@ -770,7 +781,7 @@ Item {
                     id: icon
                     anchors.horizontalCenter: parent.horizontalCenter
                     animate: true
-                    text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon(Hypr.activeToplevel?.lastIpcObject.class, "desktop_windows")
+                    text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon((Hypr.activeToplevel && Hypr.activeToplevel.lastIpcObject) ? Hypr.activeToplevel.lastIpcObject.class : "", "desktop_windows")
                     color: root.colour
                 }
 
