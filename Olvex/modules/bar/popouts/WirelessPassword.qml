@@ -14,10 +14,11 @@ StyledRect {
     property var network: null
     property bool isClosing: false
     property string failedSsid: ""
+    property bool showPasswordText: false
 
     readonly property bool shouldBeVisible: root.popouts.currentName === "wirelesspassword"
 
-    function triggerFallback(): void {
+    function triggerFallback() {
         const ssidToFallback = NetworkConnection.previousSsid;
         if (ssidToFallback !== "" && (!Nmcli.active || Nmcli.active.ssid !== ssidToFallback)) {
             console.log("WirelessPassword - [HARDENED] Smart Fallback: Attempting recovery to:", ssidToFallback);
@@ -41,7 +42,7 @@ StyledRect {
         }
     }
 
-    function closeDialog(): void {
+    function closeDialog() {
         if (root.isClosing)
             return;
 
@@ -75,6 +76,7 @@ StyledRect {
         // Final reset after a small delay
         Qt.callLater(() => {
             passwordContainer.passwordBuffer = "";
+            root.showPasswordText = false;
             connectButton.connecting = false;
             connectButton.hasError = false;
             connectButton.text = qsTr("Connect");
@@ -188,11 +190,21 @@ StyledRect {
                         }
                     }
 
+                    M3PasswordDots {
+                        anchors.fill: parent
+                        text: hiddenInput.text
+                        dotSize: 20
+                        dotSpacing: 6
+                        hasFocus: hiddenInput.activeFocus
+                        visible: !root.showPasswordText
+                    }
+
                     TextInput {
                         id: hiddenInput
                         anchors.fill: parent
                         verticalAlignment: TextInput.AlignVCenter
-                        color: Colours.palette.m3onSurface
+                        color: root.showPasswordText ? Colours.palette.m3onSurface : "transparent"
+                        cursorVisible: root.showPasswordText
                         font.pixelSize: Math.round(Tokens.font.size.large * 96 / 72)
                         font.family: Tokens.font.family.regular
                         echoMode: TextInput.Normal
@@ -212,6 +224,27 @@ StyledRect {
                                 }
                             }
                         }
+                    }
+                }
+
+                // Show/hide password eye button
+                StyledRect {
+                    implicitWidth: 32
+                    implicitHeight: 32
+                    radius: Tokens.rounding.full
+                    color: "transparent"
+
+                    StateLayer {
+                        radius: parent.radius
+                        color: Colours.palette.m3onSurfaceVariant
+                        onClicked: root.showPasswordText = !root.showPasswordText
+                    }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: root.showPasswordText ? "visibility_off" : "visibility"
+                        iconPointSize: 20
+                        color: root.showPasswordText ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.5)
                     }
                 }
 
@@ -378,7 +411,7 @@ StyledRect {
     // Auto-clear error when user types
     Connections {
         target: hiddenInput
-        function onTextChanged(): void {
+        function onTextChanged() {
             if (connectButton.hasError) {
                 connectButton.hasError = false;
                 connectButton.text = qsTr("Connect");

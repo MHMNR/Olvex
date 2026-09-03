@@ -1,6 +1,4 @@
-
 import QtQuick
-import QtQuick.Layouts
 import Quickshell
 import M3Shapes
 import Olvex.Config
@@ -10,52 +8,24 @@ import qs.services
 Item {
     id: root
 
-    required property Pam pam
-    readonly property alias placeholder: placeholder
-    property string buffer
-
-    Layout.fillWidth: true
-    Layout.fillHeight: true
+    property string text: ""
+    property int dotSize: 20
+    property int dotSpacing: 6
+    property color color: Colours.palette.m3onSurface
+    property color cursorColor: Colours.palette.m3primary
+    property bool showCursor: true
+    property bool hasFocus: false
+    property int alignment: Qt.AlignLeft
 
     clip: true
 
-    Connections {
-        function onBufferChanged() {
-            if (root.pam.buffer.length === 0) {
-                placeholder.animate = true;
-            }
-
-            root.buffer = root.pam.buffer;
+    function resetBlink() {
+        if (cursor) {
             cursor.resetBlink();
         }
-
-        target: root.pam
     }
 
-    StyledText {
-        id: placeholder
-
-        anchors.centerIn: parent
-
-        text: {
-            if (root.pam.isVerifying)
-                return qsTr("Verifying...");
-            if (root.pam.state === "max")
-                return qsTr("You have reached the maximum number of tries");
-            return qsTr("Enter your password");
-        }
-
-        animate: true
-        color: root.pam.isVerifying ? Colours.palette.m3secondary : Colours.palette.m3outline
-        textPointSize: Tokens.font.size.normal
-        font.family: Tokens.font.family.mono
-
-        opacity: root.buffer ? 0 : 1
-
-        Behavior on opacity {
-            Anim {}
-        }
-    }
+    onTextChanged: resetBlink()
 
     ListView {
         id: charList
@@ -65,12 +35,20 @@ Item {
         width: fullWidth
         height: implicitHeight
         implicitWidth: fullWidth
-        implicitHeight: 22
+        implicitHeight: root.dotSize
 
         anchors.verticalCenter: parent.verticalCenter
-        x: fullWidth <= (root.width - 16)
-            ? Math.round((root.width - fullWidth) / 2)
-            : (root.width - fullWidth - 16)
+        x: {
+            if (root.alignment === Qt.AlignHCenter) {
+                return fullWidth <= (root.width - 16)
+                    ? Math.round((root.width - fullWidth) / 2)
+                    : (root.width - fullWidth - 16);
+            } else {
+                return fullWidth <= (root.width - 16)
+                    ? 0
+                    : (root.width - fullWidth - 16);
+            }
+        }
 
         Behavior on x {
             NumberAnimation {
@@ -80,11 +58,11 @@ Item {
         }
 
         orientation: Qt.Horizontal
-        spacing: 6
+        spacing: root.dotSpacing
         interactive: false
 
         model: ScriptModel {
-            values: root.buffer.split("")
+            values: root.text.split("")
         }
 
         delegate: Item {
@@ -125,7 +103,7 @@ Item {
                 anchors.centerIn: parent
                 width: parent.width
                 height: parent.height
-                color: Colours.palette.m3onSurface
+                color: root.color
                 shape: ch.initialShape
                 animationDuration: Tokens.anim.durations.expressiveFastSpatial || 350
                 animationEasing: Tokens.anim.expressiveFastSpatial
@@ -192,17 +170,17 @@ Item {
     Rectangle {
         id: cursor
 
-        readonly property real targetX: root.buffer.length > 0
+        readonly property real targetX: root.text.length > 0
             ? (charList.x + charList.fullWidth + 4)
-            : (placeholder.x - 4)
+            : 0
 
         x: Math.min(Math.max(0, targetX), root.width - width - 2)
         anchors.verticalCenter: parent.verticalCenter
         width: 2
-        height: Math.max(16, charList.implicitHeight * 0.85)
+        height: Math.max(14, charList.implicitHeight * 0.85)
         radius: 1
-        color: Colours.palette.m3primary
-        visible: root.visible && !root.pam.isVerifying
+        color: root.cursorColor
+        visible: root.showCursor && (root.hasFocus || root.text.length > 0)
 
         Behavior on x {
             NumberAnimation {

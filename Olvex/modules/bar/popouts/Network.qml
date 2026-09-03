@@ -561,12 +561,22 @@ ColumnLayout {
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
 
+                                    M3PasswordDots {
+                                        anchors.fill: parent
+                                        text: inlinePassInput.text
+                                        dotSize: 18
+                                        dotSpacing: 5
+                                        hasFocus: inlinePassInput.activeFocus
+                                        visible: !networkItem.showPasswordText
+                                    }
+
                                     TextInput {
                                         id: inlinePassInput
                                         anchors.fill: parent
                                         verticalAlignment: TextInput.AlignVCenter
-                                        echoMode: networkItem.showPasswordText ? TextInput.Normal : TextInput.Password
-                                        color: Colours.palette.m3onSurface
+                                        echoMode: TextInput.Normal
+                                        color: networkItem.showPasswordText ? Colours.palette.m3onSurface : "transparent"
+                                        cursorVisible: networkItem.showPasswordText
                                         font.family: Tokens.font.family.sans
                                         font.pointSize: Tokens.font.size.small
                                         selectByMouse: true

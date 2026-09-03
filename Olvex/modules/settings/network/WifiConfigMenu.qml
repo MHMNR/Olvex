@@ -624,38 +624,52 @@ Item {
                                 anchors.rightMargin: 4
                                 spacing: Tokens.spacing.extraSmall
 
-                                TextInput {
-                                    id: configPassField
+                                Item {
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    echoMode: menu.showPasswordText ? TextInput.Normal : TextInput.Password
-                                    text: menu.savedPassword
-                                    color: Colours.palette.m3onSurface
-                                    font.family: Tokens.font.family.sans
-                                    font.pointSize: Tokens.font.size.small
-                                    selectByMouse: true
-                                    selectionColor: Colours.palette.m3primary
-                                    selectedTextColor: Colours.palette.m3onPrimary
-                                    clip: true
 
-                                    onTextChanged: {
-                                        if (text !== menu.savedPassword) {
-                                            menu.isPasswordEditing = true;
-                                        }
+                                    M3PasswordDots {
+                                        anchors.fill: parent
+                                        text: configPassField.text
+                                        dotSize: 18
+                                        dotSpacing: 5
+                                        hasFocus: configPassField.activeFocus
+                                        visible: !menu.showPasswordText
                                     }
 
-                                    Keys.onReturnPressed: savePassword()
-                                    Keys.onEnterPressed: savePassword()
+                                    TextInput {
+                                        id: configPassField
+                                        anchors.fill: parent
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        echoMode: TextInput.Normal
+                                        text: menu.savedPassword
+                                        color: menu.showPasswordText ? Colours.palette.m3onSurface : "transparent"
+                                        cursorVisible: menu.showPasswordText
+                                        font.family: Tokens.font.family.sans
+                                        font.pointSize: Tokens.font.size.small
+                                        selectByMouse: true
+                                        selectionColor: Colours.palette.m3primary
+                                        selectedTextColor: Colours.palette.m3onPrimary
+                                        clip: true
 
-                                    function savePassword() {
-                                        if (menu.savedProfile && menu.savedProfile.uuid) {
-                                            menu.isSavingPassword = true;
-                                            Nmcli.modifyWifiPassword(menu.savedProfile.uuid, text, res => {
-                                                menu.isSavingPassword = false;
-                                                menu.isPasswordEditing = false;
-                                                menu.savedPassword = text;
-                                            });
+                                        onTextChanged: {
+                                            if (text !== menu.savedPassword) {
+                                                menu.isPasswordEditing = true;
+                                            }
+                                        }
+
+                                        Keys.onReturnPressed: savePassword()
+                                        Keys.onEnterPressed: savePassword()
+
+                                        function savePassword() {
+                                            if (menu.savedProfile && menu.savedProfile.uuid) {
+                                                menu.isSavingPassword = true;
+                                                Nmcli.modifyWifiPassword(menu.savedProfile.uuid, text, res => {
+                                                    menu.isSavingPassword = false;
+                                                    menu.isPasswordEditing = false;
+                                                    menu.savedPassword = text;
+                                                });
+                                            }
                                         }
                                     }
                                 }
