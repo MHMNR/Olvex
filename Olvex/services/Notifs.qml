@@ -13,16 +13,16 @@ import qs.utils
 Singleton {
     id: root
 
-    property list<NotifData> list: []
-    readonly property list<NotifData> notClosed: list.filter(n => !n.closed)
-    readonly property list<NotifData> popups: list.filter(n => n.popup)
+    property var list: []
+    readonly property var notClosed: list.filter(n => n && !n.closed)
+    readonly property var popups: list.filter(n => n && n.popup)
     property alias dnd: props.dnd
 
     // ── Bar Notification Pill State ──
     property NotifData currentBarNotif: null
     property bool barNotifPopping: false
     readonly property bool hasBarNotif: (currentBarNotif !== null && !currentBarNotif.closed) || (barQueue && barQueue.some(n => n && !n.closed)) || barNotifPopping
-    property list<NotifData> barQueue: []
+    property var barQueue: []
     readonly property var allBarNotifs: {
         let res = [];
         if (root.currentBarNotif && !root.currentBarNotif.closed)

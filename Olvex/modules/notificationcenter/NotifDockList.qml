@@ -38,9 +38,9 @@ LazyListView {
         values: {
             const map = new Map();
             for (const n of Notifs.notClosed)
-                map.set(n.appName, null);
+                if (n) map.set(n.appName, null);
             for (const n of Notifs.list)
-                map.set(n.appName, null);
+                if (n) map.set(n.appName, null);
             return [...map.keys()];
         }
     }

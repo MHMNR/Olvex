@@ -20,8 +20,8 @@ StyledRect {
         return i % Config.bar.workspaces.shown;
     }
 
-    property var _occupiedTrack: mask.parent.occupied
-    property bool _expandedTrack: mask.parent.expanded
+    property var _occupiedTrack: mask && mask.parent ? mask.parent.occupied : null
+    property var _expandedTrack: mask && mask.parent ? mask.parent.expanded : null
 
     function getTargetY(idx) {
         let _ = _occupiedTrack;

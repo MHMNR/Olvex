@@ -79,9 +79,9 @@ Item {
                         StyledText {
                             text: qsTr("SYSTEM")
                             color: Colours.palette.m3primary
-                            font.weight: Font.SemiBold
+                            font.weight: Font.DemiBold
                             font.letterSpacing: 0.8
-                            textPointSize: Tokens?.font?.size?.smaller ?? 11
+                            textPointSize: Tokens.font.size.smaller
                         }
                     }
 
@@ -266,19 +266,17 @@ Item {
                                 StyledRect {
                                     implicitWidth: verText.implicitWidth + 14
                                     implicitHeight: 22
-                                    radius: Tokens?.rounding?.full ?? 9999
+                                    radius: Tokens.rounding.full
                                     color: Qt.alpha(Colours.palette.m3primary, 0.12)
-                                    border.color: Qt.alpha(Colours.palette.m3primary, 0.28)
-                                    border.width: 1
 
                                     StyledText {
                                         id: verText
                                         anchors.centerIn: parent
                                         text: "v1.0.0"
                                         color: Colours.palette.m3primary
-                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                        font.family: Tokens.font.family.mono
                                         font.weight: Font.Bold
-                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                        textPointSize: Tokens.font.size.smaller
                                     }
                                 }
 
@@ -287,7 +285,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
                                     font.letterSpacing: 0.1
-                                    textPointSize: Tokens?.font?.size?.small ?? 12
+                                    textPointSize: Tokens.font.size.small
                                 }
                             }
                         }
@@ -322,9 +320,9 @@ Item {
                                 StyledText {
                                     text: qsTr("KERNEL")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -333,7 +331,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -354,9 +352,9 @@ Item {
                                 StyledText {
                                     text: qsTr("SYSTEM HOST")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -365,7 +363,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -386,9 +384,9 @@ Item {
                                 StyledText {
                                     text: qsTr("UPTIME")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -397,7 +395,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -418,9 +416,9 @@ Item {
                                 StyledText {
                                     text: qsTr("SHELL ENVIRONMENT")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -429,7 +427,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -450,9 +448,9 @@ Item {
                                 StyledText {
                                     text: qsTr("WINDOW MANAGER")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -461,7 +459,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -482,9 +480,9 @@ Item {
                                 StyledText {
                                     text: qsTr("FRAMEWORK & TARGET")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -493,7 +491,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -541,9 +539,9 @@ Item {
                             StyledText {
                                 text: qsTr("SPECIFICATIONS")
                                 color: Colours.palette.m3primary
-                                font.weight: Font.SemiBold
+                                font.weight: Font.DemiBold
                                 font.letterSpacing: 0.8
-                                textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                textPointSize: Tokens.font.size.smaller
                             }
                         }
 
@@ -562,9 +560,9 @@ Item {
                                 StyledText {
                                     text: qsTr("CPU")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -573,7 +571,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -594,9 +592,9 @@ Item {
                                 StyledText {
                                     text: qsTr("GPU")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.SemiBold
+                                    font.weight: Font.DemiBold
                                     font.letterSpacing: 0.8
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
 
@@ -607,7 +605,7 @@ Item {
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
-                                textPointSize: Tokens?.font?.size?.normal ?? 13
+                                textPointSize: Tokens.font.size.normal
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -631,9 +629,9 @@ Item {
                                     StyledText {
                                         text: qsTr("RAM")
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.weight: Font.SemiBold
+                                        font.weight: Font.DemiBold
                                         font.letterSpacing: 0.8
-                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                        textPointSize: Tokens.font.size.smaller
                                     }
                                 }
 
@@ -645,15 +643,15 @@ Item {
                                     StyledText {
                                         text: root.memUsedGB.toFixed(1) + " / " + root.memTotalGB.toFixed(1) + " GB"
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                        font.family: Tokens.font.family.mono
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                        textPointSize: Tokens.font.size.smaller
                                     }
 
                                     StyledRect {
                                         implicitWidth: ramBadge.implicitWidth + 12
                                         implicitHeight: 20
-                                        radius: Tokens?.rounding?.full ?? 9999
+                                        radius: Tokens.rounding.full
                                         color: Qt.alpha(Colours.palette.m3primary, 0.14)
 
                                         StyledText {
@@ -661,9 +659,9 @@ Item {
                                             anchors.centerIn: parent
                                             text: root.memPercInt + "%"
                                             color: Colours.palette.m3primary
-                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Bold
-                                            textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                            textPointSize: Tokens.font.size.smaller
                                         }
                                     }
                                 }
@@ -707,9 +705,9 @@ Item {
                                     StyledText {
                                         text: qsTr("STORAGE (Root /)")
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.weight: Font.SemiBold
+                                        font.weight: Font.DemiBold
                                         font.letterSpacing: 0.8
-                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                        textPointSize: Tokens.font.size.smaller
                                     }
                                 }
 
@@ -721,15 +719,15 @@ Item {
                                     StyledText {
                                         text: root.storageUsedGB.toFixed(1) + " / " + root.storageTotalGB.toFixed(1) + " GB"
                                         color: Colours.palette.m3onSurfaceVariant
-                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                        font.family: Tokens.font.family.mono
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                        textPointSize: Tokens.font.size.smaller
                                     }
 
                                     StyledRect {
                                         implicitWidth: storeBadge.implicitWidth + 12
                                         implicitHeight: 20
-                                        radius: Tokens?.rounding?.full ?? 9999
+                                        radius: Tokens.rounding.full
                                         color: Qt.alpha(Colours.palette.m3secondary, 0.14)
 
                                         StyledText {
@@ -737,9 +735,9 @@ Item {
                                             anchors.centerIn: parent
                                             text: root.storagePercInt + "%"
                                             color: Colours.palette.m3secondary
-                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Bold
-                                            textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                            textPointSize: Tokens.font.size.smaller
                                         }
                                     }
                                 }
@@ -799,9 +797,9 @@ Item {
                             StyledText {
                                 text: qsTr("MAINTAINER")
                                 color: Colours.palette.m3primary
-                                font.weight: Font.SemiBold
+                                font.weight: Font.DemiBold
                                 font.letterSpacing: 0.8
-                                textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                textPointSize: Tokens.font.size.smaller
                             }
                         }
 
@@ -813,7 +811,7 @@ Item {
                                 id: profileAvatar
                                 Layout.preferredWidth: 44
                                 Layout.preferredHeight: 44
-                                radius: Tokens?.rounding?.full ?? 9999
+                                radius: Tokens.rounding.full
                                 color: profileArea.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.25) : Qt.alpha(Colours.palette.m3primary, 0.15)
                                 border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
                                 border.width: 1.5
@@ -842,7 +840,7 @@ Item {
                                     text: "M"
                                     color: Colours.palette.m3primary
                                     font.weight: Font.Bold
-                                    textPointSize: Tokens?.font?.size?.large ?? 16
+                                    textPointSize: Tokens.font.size.large
                                     visible: avatarImg.status !== Image.Ready
                                 }
 
@@ -884,7 +882,7 @@ Item {
                                         color: creatorArea.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onSurface
                                         font.weight: Font.Bold
                                         font.letterSpacing: -0.1
-                                        textPointSize: Tokens?.font?.size?.normal ?? 13
+                                        textPointSize: Tokens.font.size.normal
 
                                         Behavior on color { CAnim {} }
 
@@ -900,9 +898,9 @@ Item {
                                     StyledText {
                                         text: "(@MHMNR)"
                                         color: Colours.palette.m3primary
-                                        font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                        font.family: Tokens.font.family.mono
                                         font.weight: Font.Medium
-                                        textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                        textPointSize: Tokens.font.size.smaller
                                     }
                                 }
 
@@ -911,7 +909,7 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
                                     font.letterSpacing: 0.1
-                                    textPointSize: Tokens?.font?.size?.smaller ?? 11
+                                    textPointSize: Tokens.font.size.smaller
                                 }
                             }
                         }
@@ -953,15 +951,15 @@ Item {
                                         StyledText {
                                             text: qsTr("Repository")
                                             color: Colours.palette.m3onSurface
-                                            font.weight: Font.SemiBold
-                                            textPointSize: Tokens?.font?.size?.small ?? 12
+                                            font.weight: Font.DemiBold
+                                            textPointSize: Tokens.font.size.small
                                         }
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex"
                                             color: Colours.palette.m3primary
-                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Medium
-                                            textPointSize: (Tokens?.font?.size?.smaller ?? 11) - 1
+                                            textPointSize: (Tokens.font.size.smaller) - 1
                                         }
                                     }
 
@@ -1015,15 +1013,15 @@ Item {
                                         StyledText {
                                             text: qsTr("Config Directory")
                                             color: Colours.palette.m3onSurface
-                                            font.weight: Font.SemiBold
-                                            textPointSize: Tokens?.font?.size?.small ?? 12
+                                            font.weight: Font.DemiBold
+                                            textPointSize: Tokens.font.size.small
                                         }
                                         StyledText {
                                             text: "~/.config/olvex"
                                             color: Colours.palette.m3tertiary
-                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Medium
-                                            textPointSize: (Tokens?.font?.size?.smaller ?? 11) - 1
+                                            textPointSize: (Tokens.font.size.smaller) - 1
                                         }
                                     }
 
@@ -1077,15 +1075,15 @@ Item {
                                         StyledText {
                                             text: qsTr("Report Issue")
                                             color: Colours.palette.m3onSurface
-                                            font.weight: Font.SemiBold
-                                            textPointSize: Tokens?.font?.size?.small ?? 12
+                                            font.weight: Font.DemiBold
+                                            textPointSize: Tokens.font.size.small
                                         }
                                         StyledText {
                                             text: "github.com/MHMNR/Olvex/issues"
                                             color: Colours.palette.m3error
-                                            font.family: Tokens?.font?.family?.mono ?? "monospace"
+                                            font.family: Tokens.font.family.mono
                                             font.weight: Font.Medium
-                                            textPointSize: (Tokens?.font?.size?.smaller ?? 11) - 1
+                                            textPointSize: (Tokens.font.size.smaller) - 1
                                         }
                                     }
 

@@ -15,13 +15,13 @@ Item {
 
     required property Props props
     required property DrawerVisibilities visibilities
-    readonly property int notifCount: Notifs.list.reduce((acc, n) => n.closed ? acc : acc + 1, 0)
+    readonly property int notifCount: Notifs.list.reduce((acc, n) => (n && !n.closed) ? acc + 1 : acc, 0)
 
     anchors.fill: parent
     implicitHeight: title.implicitHeight + clipRect.anchors.topMargin + (notifCount > 0 ? notifList.implicitHeight : emptyState.implicitHeight)
     anchors.margins: Tokens.padding.normal
 
-    Component.onCompleted: Notifs.list.forEach(n => n.popup = false)
+    Component.onCompleted: Notifs.list.forEach(n => { if (n) n.popup = false; })
 
     Item {
         id: title

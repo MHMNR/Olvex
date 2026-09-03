@@ -18,15 +18,15 @@ StyledRect {
     required property Flickable container
     required property DrawerVisibilities visibilities
 
-    readonly property list<var> notifs: Notifs.list.filter(n => n.appName === modelData)
-    readonly property list<var> activeNotifs: notifs.filter(n => !n.closed)
+    readonly property var notifs: Notifs.list.filter(n => n && n.appName === modelData)
+    readonly property var activeNotifs: notifs.filter(n => n && !n.closed)
     readonly property int notifCount: activeNotifs.length
-    readonly property string image: activeNotifs.find(n => n.image.length > 0)?.image ?? ""
-    readonly property string appIcon: activeNotifs.find(n => n.appIcon.length > 0)?.appIcon ?? ""
+    readonly property string image: activeNotifs.find(n => n && n.image.length > 0)?.image ?? ""
+    readonly property string appIcon: activeNotifs.find(n => n && n.appIcon.length > 0)?.appIcon ?? ""
     readonly property int urgency: {
-        if (activeNotifs.find(n => n.urgency === NotificationUrgency.Critical))
+        if (activeNotifs.find(n => n && n.urgency === NotificationUrgency.Critical))
             return NotificationUrgency.Critical;
-        if (activeNotifs.find(n => n.urgency === NotificationUrgency.Normal))
+        if (activeNotifs.find(n => n && n.urgency === NotificationUrgency.Normal))
             return NotificationUrgency.Normal;
         return NotificationUrgency.Low;
     }
