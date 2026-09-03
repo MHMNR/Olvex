@@ -53,14 +53,9 @@ Item {
         NumberAnimation { target: tile; property: "scale"; to: 1.0; duration: 130; easing.type: Easing.OutQuad }
     }
 
-    // Material 3 Expressive Stagger Pop & Viewport Entry Animation
+    // Material 3 Expressive Stagger Pop on Launcher Open
     readonly property int openStaggerMs: Math.min(index * 14, 220)
     readonly property real openYOffset: 18
-
-    // Viewport visibility relative to GridView scrolling position
-    readonly property real itemViewportY: y - (root.gridView ? root.gridView.contentY : 0)
-    readonly property real itemViewportBottom: itemViewportY + height
-    readonly property bool isInView: !root.gridView || (itemViewportBottom > -4 && itemViewportY < root.gridView.height + 4)
 
     // The entire interactive tile — styled container
     Item {
@@ -69,8 +64,8 @@ Item {
         width: 104
         height: 112
 
-        opacity: (root.revealPending || !root.isInView) ? 0.0 : 1.0
-        scale: (root.revealPending || !root.isInView) ? 0.80 : 1.0
+        opacity: root.revealPending ? 0.0 : 1.0
+        scale: root.revealPending ? 0.80 : 1.0
 
         Behavior on opacity {
             NumberAnimation {
@@ -88,7 +83,7 @@ Item {
         }
 
         transform: Translate {
-            y: root.revealPending ? root.openYOffset : (!root.isInView ? (root.itemViewportY < 0 ? -12 : 12) : 0)
+            y: root.revealPending ? root.openYOffset : 0
 
             Behavior on y {
                 NumberAnimation {

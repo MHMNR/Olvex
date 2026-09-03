@@ -33,6 +33,7 @@ StyledWindow {
     }
 
     name: "drawers"
+    visible: !LockState.locked || LockState.unlocking
     readonly property alias bar: bar
     readonly property alias interactionWrapper: interactions
     readonly property alias visibilities: visibilities
@@ -41,16 +42,16 @@ StyledWindow {
     property var oskWindow: null
 
     readonly property HyprlandMonitor monitor: Hypr.monitorFor(screen)
-    readonly property bool hasSpecialWorkspace: (monitor?.lastIpcObject.specialWorkspace?.name.length ?? 0) > 0
+    readonly property bool hasSpecialWorkspace: (monitor && monitor.lastIpcObject && monitor.lastIpcObject.specialWorkspace && monitor.lastIpcObject.specialWorkspace.name) ? monitor.lastIpcObject.specialWorkspace.name.length > 0 : false
     readonly property bool hasFullscreen: {
         if (hasSpecialWorkspace) {
-            const specialName = monitor?.lastIpcObject.specialWorkspace?.name;
+            const specialName = (monitor && monitor.lastIpcObject && monitor.lastIpcObject.specialWorkspace) ? monitor.lastIpcObject.specialWorkspace.name : "";
             if (!specialName)
                 return false;
             const specialWs = Hypr.workspaces.values.find(ws => ws.name === specialName);
-            return specialWs?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false;
+            return (specialWs && specialWs.toplevels) ? specialWs.toplevels.values.some(t => t.lastIpcObject && t.lastIpcObject.fullscreen > 1) : false;
         }
-        return monitor?.activeWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false;
+        return (monitor && monitor.activeWorkspace && monitor.activeWorkspace.toplevels) ? monitor.activeWorkspace.toplevels.values.some(t => t.lastIpcObject && t.lastIpcObject.fullscreen > 1) : false;
     }
     property real borderThickness: hasFullscreen ? 0 : safeBorder.thickness
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : safeBorder.thickness
@@ -78,13 +79,17 @@ StyledWindow {
         if (focusGrab.active || panels.popouts.isDetached)
             return 0;
 
-        if (monitor?.lastIpcObject.specialWorkspace?.name || monitor?.activeWorkspace.lastIpcObject.windows > 0)
+        const specialWs = (monitor && monitor.lastIpcObject && monitor.lastIpcObject.specialWorkspace) ? monitor.lastIpcObject.specialWorkspace.name : "";
+        const activeWins = (monitor && monitor.activeWorkspace && monitor.activeWorkspace.lastIpcObject) ? monitor.activeWorkspace.lastIpcObject.windows : 0;
+        if (specialWs || activeWins > 0)
             return 0;
 
         const thresholds = [];
-        for (const panel of ["dashboard", "launcher", "powermenu", "notificationcenter", "qspanel"])
-            if (contentItem.Config[panel]?.enabled)
-                thresholds.push(contentItem.Config[panel].dragThreshold ?? 40);
+        for (const panel of ["dashboard", "launcher", "powermenu", "notificationcenter", "qspanel"]) {
+            const p = contentItem.Config[panel];
+            if (p && p.enabled)
+                thresholds.push((p.dragThreshold !== undefined) ? p.dragThreshold : 40);
+        }
         return Math.max(...thresholds);
     }
 

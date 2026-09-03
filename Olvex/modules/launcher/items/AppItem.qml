@@ -21,10 +21,6 @@ Item {
     anchors.left: parent ? parent.left : undefined
     anchors.right: parent ? parent.right : undefined
 
-    readonly property real itemViewportY: y - (ListView.view ? ListView.view.contentY : 0)
-    readonly property real itemViewportBottom: itemViewportY + height
-    readonly property bool isInView: !ListView.view || (itemViewportBottom > -4 && itemViewportY < ListView.view.height + 4)
-
     StateLayer {
         id: stateLayer
         radius: Tokens.rounding.normal
@@ -46,23 +42,6 @@ Item {
         anchors.leftMargin: Tokens.padding.larger
         anchors.rightMargin: Tokens.padding.larger
         anchors.margins: Tokens.padding.smaller
-
-        opacity: root.isInView ? 1.0 : 0.0
-        scale: root.isInView ? 1.0 : 0.92
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 200
-                easing.type: Easing.OutQuad
-            }
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: 200
-                easing.type: Easing.OutQuad
-            }
-        }
 
         Item {
             id: icon

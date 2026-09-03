@@ -13,12 +13,19 @@ ColumnLayout {
     anchors.margins: Tokens.padding.large
     spacing: Tokens.spacing.normal
 
+    property bool activePoll: false
+    Timer {
+        interval: 900
+        running: true
+        onTriggered: root.activePoll = true
+    }
+
     // ── Hidden Ref to trigger service ────────────────────────────────────────
     Item {
         visible: false
         Ref {
             service: SystemUsage
-            active: true
+            active: root.activePoll
         }
     }
 

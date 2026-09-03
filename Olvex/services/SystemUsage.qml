@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Olvex.Config
+import qs.services
 
 Singleton {
     id: root
@@ -92,13 +93,13 @@ Singleton {
                 return inner.split("/")[0].trim();
         }
 
-        const short = cleaned
+        const shortName = cleaned
             .replace(/^AMD\s+/i, "")
             .replace(/^Advanced Micro Devices, Inc\.?\s*/i, "")
             .replace(/\s*Series$/i, "")
             .trim();
 
-        return short !== "" ? short : ("GPU " + index);
+        return shortName !== "" ? shortName : ("GPU " + index);
     }
 
     function syncLegacyGpu() {
@@ -115,7 +116,7 @@ Singleton {
             gpuName = gpus[0].name;
     }
 
-    function mergeGpuTemps(adapterTemps: var) {
+    function mergeGpuTemps(adapterTemps) {
         if (gpus.length === 0 || adapterTemps.length === 0)
             return;
 
@@ -146,7 +147,7 @@ Singleton {
 
     readonly property string hybridGpuScanSh: nvidiaGpuScanSh + "; " + drmGpuScanSh
 
-    function gpuQueryCommand(): var {
+    function gpuQueryCommand() {
         if (gpuType === "GENERIC")
             return ["sh", "-c", drmGpuScanSh];
         if (gpuType === "NVIDIA" && explicitGpuType)
@@ -159,7 +160,7 @@ Singleton {
         gpuUsage.running = true;
     }
 
-    function parseGpuStdout(output: string): void {
+    function parseGpuStdout(output) {
         const list = [];
 
         for (const line of output.trim().split("\n")) {
@@ -241,12 +242,14 @@ Singleton {
             storage.running = true;
     }
 
+    readonly property bool isLocked: (typeof LockState !== "undefined" && LockState) ? (LockState.locked && !LockState.unlocking) : false
+
     Timer {
         id: fastResourceTimer
 
         readonly property int baseInterval: GlobalConfig.dashboard.resourceUpdateInterval
         running: root.refCount > 0
-        interval: Math.max(1000, baseInterval)
+        interval: Math.max(root.isLocked ? 3500 : 1000, baseInterval)
         repeat: true
         triggeredOnStart: true
         onTriggered: root.refreshFast()

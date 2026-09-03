@@ -291,12 +291,14 @@ ColumnLayout {
 
                 property real spin: 0
 
-                NumberAnimation on spin {
-                    from: 360
-                    to: 0
-                    duration: 20000
-                    loops: Animation.Infinite
+                Timer {
+                    id: spinTimer
+                    interval: 33
+                    repeat: true
                     running: root.visible && (!root.lock || (root.lock.contentReady && !root.lock.unlocking)) && !entranceAnim.running && !exitAnim.running
+                    onTriggered: {
+                        avatarHost.spin = (avatarHost.spin <= 0.6) ? 360 : (avatarHost.spin - 0.6);
+                    }
                 }
 
                 // Outer spinning ring

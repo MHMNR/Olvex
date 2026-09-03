@@ -33,8 +33,8 @@ Variants {
 
             anchors.fill: parent
 
-            readonly property bool olvexLiveWallpaperEnabled: GlobalConfig.background?.liveWallpaper?.enabled ?? false
-            readonly property bool olvexPerMonitorWallpaper: GlobalConfig.background?.perMonitorWallpaper ?? false
+            readonly property bool olvexLiveWallpaperEnabled: (GlobalConfig.background && GlobalConfig.background.liveWallpaper) ? GlobalConfig.background.liveWallpaper.enabled : false
+            readonly property bool olvexPerMonitorWallpaper: GlobalConfig.background ? GlobalConfig.background.perMonitorWallpaper : false
 
             Loader {
                 id: wallpaper
@@ -42,7 +42,7 @@ Variants {
                 asynchronous: true
 
                 anchors.fill: parent
-                active: Config.background.wallpaperEnabled
+                active: Config.background.wallpaperEnabled && (!LockState.locked || LockState.unlocking)
 
                 sourceComponent: Olvex.BackgroundWallpaper {
                     screen: win.modelData
@@ -51,15 +51,15 @@ Variants {
                     Connections {
                         target: Wallpapers
 
-                        function onActualCurrentChanged(): void {
+                        function onActualCurrentChanged() {
                             source = Wallpapers.getMonitorWallpaper(win.modelData.name);
                         }
 
-                        function onMonitorWallpapersChanged(): void {
+                        function onMonitorWallpapersChanged() {
                             source = Wallpapers.getMonitorWallpaper(win.modelData.name);
                         }
 
-                        function onPerMonitorWallpaperChanged(): void {
+                        function onPerMonitorWallpaperChanged() {
                             source = Wallpapers.getMonitorWallpaper(win.modelData.name);
                         }
                     }

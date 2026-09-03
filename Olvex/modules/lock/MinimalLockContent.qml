@@ -77,12 +77,8 @@ Item {
     readonly property int stagger: 70    // ms between each component
     readonly property int dur: 850        // slide duration
     readonly property int exitDur: 650   // exit duration
-    // Full screen dimensions, not fixed px — a fixed 500/200px offset wasn't
-    // always enough to fully clear wide/tall screens, so the slide looked
-    // like it "stuck" once the animation reached its end value while the
-    // element was still partly on-screen.
-    readonly property int offset: root.screen ? root.screen.width : 500    // off-screen start for horizontal
-    readonly property int vOffset: root.screen ? root.screen.height : 200  // off-screen start for vertical
+    readonly property int offset: 500    // px off-screen start for horizontal (matches Content.qml)
+    readonly property int vOffset: 120   // px off-screen start for vertical top/bottom bars
 
     Connections {
         target: root.lock
@@ -1397,12 +1393,14 @@ Item {
                         // the visualizer to stay within budget on a 144Hz iGPU.
                         property real spin: 0
 
-                        NumberAnimation on spin {
-                            from: 360
-                            to: 0
-                            duration: 20000
-                            loops: Animation.Infinite
-                            running: root.visible
+                        Timer {
+                            id: spinTimer
+                            interval: 33
+                            repeat: true
+                            running: root.visible && (!root.lock || (root.lock.contentReady && !root.lock.unlocking)) && !entranceAnim.running && !exitAnim.running
+                            onTriggered: {
+                                avatarHost.spin = (avatarHost.spin <= 0.6) ? 360 : (avatarHost.spin - 0.6);
+                            }
                         }
 
                         // Spinning 12-sided ring
