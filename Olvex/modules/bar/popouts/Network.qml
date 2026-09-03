@@ -41,10 +41,8 @@ ColumnLayout {
         });
     }
 
-    // Dismiss inline password field when clicking empty space
-    TapHandler {
-        enabled: root.editingSsid !== ""
-        onTapped: {
+    function dismissEditing() {
+        if (root.editingSsid !== "") {
             const ssidToClean = root.editingSsid;
             root.editingSsid = "";
             if (ssidToClean && !Nmcli.hasSavedProfile(ssidToClean)) {
@@ -53,6 +51,12 @@ ColumnLayout {
                 });
             }
         }
+    }
+
+    // Dismiss inline password field when clicking empty space
+    TapHandler {
+        enabled: root.editingSsid !== ""
+        onTapped: root.dismissEditing()
         gesturePolicy: TapHandler.ReleaseWithinBounds
     }
 
@@ -283,6 +287,13 @@ ColumnLayout {
 
             ScrollBar.vertical: ScrollBar {
                 policy: wifiContent.implicitHeight > wifiScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                z: -1
+                enabled: root.editingSsid !== ""
+                onClicked: root.dismissEditing()
             }
 
             ColumnLayout {
@@ -682,13 +693,13 @@ ColumnLayout {
                             }
                         }
 
-                        // Background StateLayer for clicking the entire row (when not editing)
+                        // Background StateLayer for clicking the entire row
                         StateLayer {
                             anchors.fill: parent
                             color: Colours.palette.m3onSurface
                             preventStealing: false
-                            interactive: !networkItem.isEditing && !networkItem.isConnecting
-                            disabled: networkItem.isEditing || networkItem.isConnecting || !Nmcli.wifiEnabled
+                            interactive: !networkItem.isConnecting
+                            disabled: networkItem.isConnecting || !Nmcli.wifiEnabled
 
                             onClicked: {
                                 if (root.editingSsid !== "") {

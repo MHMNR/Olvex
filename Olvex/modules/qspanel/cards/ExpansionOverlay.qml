@@ -24,6 +24,15 @@ Item {
     property var passwordNetwork: null
     readonly property bool needsKeyboard: dummyPopoutState.currentName === "wirelesspassword"
 
+    function dismissWifiPassword() {
+        if (dummyPopoutState.currentName === "wirelesspassword") {
+            dummyPopoutState.currentName = "network";
+        }
+        if (contentLoader.item && typeof contentLoader.item.dismissEditing === "function") {
+            contentLoader.item.dismissEditing();
+        }
+    }
+
     // ── Tile hiding ──────────────────────────────────────────────────────────
     // Tile stays hidden the ENTIRE time the overlay is visible.
     // Overlay always looks like the tile at collapsed state → seamless swap.
@@ -158,6 +167,7 @@ Item {
 
         onClicked: (mouse) => {
             mouse.accepted = true;
+            root.dismissWifiPassword();
             // Only collapse if clicked OUTSIDE the card
             const cardRect = card.mapToItem(root, 0, 0, card.width, card.height);
             if (mouse.x < cardRect.x || mouse.x > cardRect.x + cardRect.width ||
@@ -170,6 +180,12 @@ Item {
     // ── Card ─────────────────────────────────────────────────────────────────
     StyledRect {
         id: card
+
+        MouseArea {
+            anchors.fill: parent
+            z: -1
+            onClicked: root.dismissWifiPassword()
+        }
 
         // Collapsed default — bound to SAVED position so collapse returns exactly here
         x: root.savedStartPoint.x
