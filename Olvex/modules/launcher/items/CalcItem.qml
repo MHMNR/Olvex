@@ -11,12 +11,33 @@ Item {
 
     required property var list
     required property int index
-    readonly property bool isCurrent: list.currentIndex === index
-    readonly property string math: list.search.text.slice(`${GlobalConfig.launcher.actionPrefix}calc `.length)
+    property var visibilities: null
+    readonly property bool isCurrent: list ? list.currentIndex === index : false
+    readonly property string math: {
+        const text = (list && list.search && list.search.text) ? list.search.text.trim() : "";
+        const prefix = GlobalConfig.launcher.actionPrefix;
+        if (prefix && text.startsWith(`${prefix}calc `))
+            return text.slice(`${prefix}calc `.length).trim();
+        if (text.startsWith("calc "))
+            return text.slice(5).trim();
+        if (text.startsWith("="))
+            return text.slice(1).trim();
+        return text;
+    }
 
-    function onClicked(): void {
-        Quickshell.execDetached(["wl-copy", Qalculator.rawResult]);
-        root.list.visibilities.launcher = false;
+    function closeLauncher() {
+        if (visibilities)
+            visibilities.launcher = false;
+        else if (list && list.visibilities)
+            list.visibilities.launcher = false;
+    }
+
+    function onClicked() {
+        if (Qalculator.rawResult)
+            Quickshell.execDetached(["wl-copy", Qalculator.rawResult]);
+        else if (Qalculator.result)
+            Quickshell.execDetached(["wl-copy", Qalculator.result]);
+        closeLauncher();
     }
 
     onMathChanged: {
@@ -26,8 +47,8 @@ Item {
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
-    anchors.left: parent?.left
-    anchors.right: parent?.right
+    anchors.left: parent ? parent.left : undefined
+    anchors.right: parent ? parent.right : undefined
 
     StateLayer {
         radius: Tokens.rounding.normal
@@ -44,7 +65,6 @@ Item {
 
         MaterialIcon {
             text: "function"
-            // removed font.pointSize to avoid point/pixel conflict warnings
             Layout.alignment: Qt.AlignVCenter
             color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
         }
@@ -82,8 +102,8 @@ Item {
                 id: stateLayer
 
                 onClicked: {
-                    Quickshell.execDetached(["app2unit", "--", ...Config.general.apps.terminal, "fish", "-C", `exec qalc -i '${root.math}'`]);
-                    root.list.visibilities.launcher = false;
+                    Quickshell.execDetached(["app2unit", "--", ...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, "qalc", "-i", root.math]);
+                    root.closeLauncher();
                 }
 
                 color: Colours.palette.m3onTertiary

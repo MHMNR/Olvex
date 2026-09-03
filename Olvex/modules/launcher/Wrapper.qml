@@ -12,8 +12,20 @@ Item {
     required property DrawerVisibilities visibilities
     required property var panels
 
+    property bool warmedUp: false
+
+    Timer {
+        id: prewarmTimer
+        interval: 500
+        running: true
+        repeat: false
+        onTriggered: {
+            root.warmedUp = true;
+        }
+    }
+
     readonly property bool shouldBeActive: visibilities.launcher && Config.launcher.enabled
-    readonly property bool contentActive: root.shouldBeActive || teardownGrace.running
+    readonly property bool contentActive: root.shouldBeActive || root.warmedUp || teardownGrace.running
 
     readonly property real maxHeight: {
         let max = screen.height - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
@@ -48,7 +60,7 @@ Item {
     property real cachedImplicitWidth: 630
     readonly property bool closingAnimationActive: !shouldBeActive && teardownGrace.running
 
-    function syncCachedSize(): void {
+    function syncCachedSize() {
         if (content.implicitHeight > 0)
             cachedImplicitHeight = content.implicitHeight;
         if (content.implicitWidth > 0)
@@ -60,8 +72,8 @@ Item {
 
         interval: Tokens.anim.durations.large + 100
         onTriggered: {
-            if (!root.shouldBeActive)
-                content.item?.suspendLists?.();
+            if (!root.shouldBeActive && content.item && content.item.suspendLists)
+                content.item.suspendLists();
         }
     }
 
@@ -69,7 +81,8 @@ Item {
         if (shouldBeActive) {
             teardownGrace.stop();
             Qt.callLater(() => {
-                content.item?.resumeLists?.();
+                if (content.item && content.item.resumeLists)
+                    content.item.resumeLists();
             });
         } else {
             teardownGrace.restart();
@@ -77,19 +90,24 @@ Item {
     }
 
     function navigateUp() {
-        content.item?.navigateUp?.();
+        if (content.item && content.item.navigateUp)
+            content.item.navigateUp();
     }
     function navigateDown() {
-        content.item?.navigateDown?.();
+        if (content.item && content.item.navigateDown)
+            content.item.navigateDown();
     }
     function navigateLeft() {
-        content.item?.navigateLeft?.();
+        if (content.item && content.item.navigateLeft)
+            content.item.navigateLeft();
     }
     function navigateRight() {
-        content.item?.navigateRight?.();
+        if (content.item && content.item.navigateRight)
+            content.item.navigateRight();
     }
     function navigateEnter() {
-        content.item?.navigateEnter?.();
+        if (content.item && content.item.navigateEnter)
+            content.item.navigateEnter();
     }
 
     visible: offsetScale < 1

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Widgets
 import Olvex.Config
 import qs.components
+import qs.components.effects
 import qs.services
 import qs.utils
 import qs.modules.launcher.services
@@ -17,8 +18,12 @@ Item {
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
-    anchors.left: parent?.left
-    anchors.right: parent?.right
+    anchors.left: parent ? parent.left : undefined
+    anchors.right: parent ? parent.right : undefined
+
+    readonly property real itemViewportY: y - (ListView.view ? ListView.view.contentY : 0)
+    readonly property real itemViewportBottom: itemViewportY + height
+    readonly property bool isInView: !ListView.view || (itemViewportBottom > -4 && itemViewportY < ListView.view.height + 4)
 
     StateLayer {
         id: stateLayer
@@ -36,26 +41,59 @@ Item {
     }
 
     Item {
+        id: body
         anchors.fill: parent
         anchors.leftMargin: Tokens.padding.larger
         anchors.rightMargin: Tokens.padding.larger
         anchors.margins: Tokens.padding.smaller
 
-        Rectangle {
+        opacity: root.isInView ? 1.0 : 0.0
+        scale: root.isInView ? 1.0 : 0.92
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 200
+                easing.type: Easing.OutQuad
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: 200
+                easing.type: Easing.OutQuad
+            }
+        }
+
+        Item {
             id: icon
             width: 36
             height: 36
-            radius: 8
-            color: Colours.layer(Colours.palette.m3surfaceVariant, 0.5)
-            border.color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-            border.width: 1
             anchors.verticalCenter: parent.verticalCenter
 
-            IconImage {
-                asynchronous: true
-                source: Icons.resolveIcon(root.modelData?.icon || "", "image-missing")
+            MaterialShape {
                 anchors.fill: parent
-                anchors.margins: 5
+                implicitSize: parent.width
+                shape: MaterialShape.Square
+                color: Colours.layer(Colours.palette.m3surfaceVariant, 0.4)
+            }
+
+            IconImage {
+                id: appIcon
+                asynchronous: true
+                smooth: true
+                mipmap: true
+                source: root.modelData ? Icons.resolveApp(root.modelData) : ""
+                anchors.fill: parent
+                anchors.margins: 4
+            }
+
+            StyledText {
+                anchors.centerIn: parent
+                visible: !appIcon.source || appIcon.status === Image.Error || appIcon.status === Image.Null
+                text: root.modelData && root.modelData.name ? root.modelData.name.charAt(0).toUpperCase() : "?"
+                font.weight: Font.DemiBold
+                textPointSize: Tokens.font.size.normal
+                color: Colours.palette.m3primary
             }
         }
 
@@ -70,7 +108,7 @@ Item {
             StyledText {
                 id: name
 
-                text: root.modelData?.name ?? ""
+                text: root.modelData ? (root.modelData.name || "") : ""
                 // use pixelSize elsewhere; remove pointSize to avoid "Both point size and pixel size set" warning
                 color: Colours.light ? "#000000" : "#ffffff"
             }
@@ -78,7 +116,7 @@ Item {
             StyledText {
                 id: comment
 
-                text: (root.modelData?.comment || root.modelData?.genericName || root.modelData?.name) ?? ""
+                text: root.modelData ? (root.modelData.comment || root.modelData.genericName || root.modelData.name || "") : ""
                 textPointSize: Tokens.font.size.small
                 color: Colours.palette.m3outline
 

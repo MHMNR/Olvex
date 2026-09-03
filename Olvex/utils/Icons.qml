@@ -108,7 +108,7 @@ Singleton {
     // - regex: A regex to match against the name (takes priority over name)
     // - flags: The regex flags (only used if regex is set)
     // - icon: The icon to use
-    function matchIconConfig(name: string, iconConfig: var): bool {
+    function matchIconConfig(name: string, iconConfig: variant): bool {
         if (!iconConfig.icon)
             return false;
 
@@ -124,13 +124,73 @@ Singleton {
     }
 
     function getAppIcon(name: string, fallback: string): string {
-        const icon = DesktopEntries.heuristicLookup(name)?.icon;
+        const entry = DesktopEntries.heuristicLookup(name);
+        const icon = entry ? entry.icon : "";
         if (fallback !== "undefined")
             return resolveIcon(icon, fallback);
         return resolveIcon(icon, "");
     }
 
-    function getNotificationIcon(notif: var, fallback = ""): string {
+    function resolveApp(entry, fallback) {
+        const fb = (typeof fallback === "string" && fallback.length > 0) ? fallback : "application-x-executable";
+        if (!entry)
+            return resolveIcon(fb, "application-x-executable");
+
+        // 1. Direct explicit icon
+        const icon = entry.icon ? String(entry.icon).trim() : "";
+        if (icon.length > 0) {
+            let res = resolveIcon(icon, "");
+            if (res)
+                return res;
+        }
+
+        // 2. Desktop ID (e.g. org.gnome.Calculator.desktop or org.gnome.Calculator)
+        if (entry.id) {
+            let idClean = String(entry.id).replace(/\.desktop$/i, "").trim();
+            if (idClean.length > 0 && idClean !== icon) {
+                let res = resolveIcon(idClean, "");
+                if (res)
+                    return res;
+
+                if (idClean.includes(".")) {
+                    let parts = idClean.split(".");
+                    let lastPart = parts[parts.length - 1];
+                    if (lastPart.length > 0) {
+                        let res2 = resolveIcon(lastPart, "");
+                        if (res2)
+                            return res2;
+                    }
+                }
+            }
+        }
+
+        // 3. Name (lowercase simplified)
+        if (entry.name) {
+            let nameClean = String(entry.name).toLowerCase().replace(/[^a-z0-9-_]/g, "").trim();
+            if (nameClean.length > 0) {
+                let res = resolveIcon(nameClean, "");
+                if (res)
+                    return res;
+            }
+        }
+
+        // 4. Category icon if any match
+        if (entry.categories && Array.isArray(entry.categories)) {
+            for (let i = 0; i < entry.categories.length; i++) {
+                let cat = entry.categories[i];
+                if (categoryIcons.hasOwnProperty(cat)) {
+                    let catIcon = resolveIcon(categoryIcons[cat], "");
+                    if (catIcon)
+                        return catIcon;
+                }
+            }
+        }
+
+        // 5. Standard executable / fallback icon
+        return resolveIcon(fb, "application-x-executable");
+    }
+
+    function getNotificationIcon(notif, fallback) {
         if (!notif) return "";
         
         const fb = (typeof fallback === "string" && fallback.length > 0) ? fallback : "application-x-executable";
@@ -184,7 +244,7 @@ Singleton {
         return path && path.endsWith("/") ? path : path + "/";
     }
 
-    function _addIconSearchDir(dirs: var, seen: var, dir: string): void {
+    function _addIconSearchDir(dirs, seen, dir) {
         if (!dir || seen[dir] || !CUtils.fileExists(dir))
             return;
 
@@ -192,7 +252,7 @@ Singleton {
         dirs.push(dir);
     }
 
-    function _getIconSearchDirs(): var {
+    function _getIconSearchDirs() {
         if (_iconSearchDirs.length > 0)
             return _iconSearchDirs;
 
@@ -275,7 +335,7 @@ Singleton {
             let manual = name ? _manualIcon(name) : "";
             if (manual)
                 return manual;
-            return s;
+            return "";
         }
         if (s.startsWith("/") || s.startsWith("file://") || s.startsWith("~"))
             return _fileIconUrl(s);
@@ -312,13 +372,13 @@ Singleton {
     }
 
     function iconNameFromUrl(url: string): string {
-        const s = String(url ?? "");
+        const s = String(url ? url : "");
         if (s.startsWith("image://icon/"))
             return s.slice("image://icon/".length).split("?")[0];
         return "";
     }
 
-    function _addIconName(names: var, seen: var, name: string): void {
+    function _addIconName(names, seen, name) {
         if (!name || seen[name])
             return;
 
@@ -326,7 +386,7 @@ Singleton {
         names.push(name);
     }
 
-    function _iconNameVariants(icon: string): var {
+    function _iconNameVariants(icon: string) {
         const names = [];
         const seen = ({});
 
@@ -412,7 +472,8 @@ Singleton {
             if (matchIconConfig(name, iconConfig))
                 return iconConfig.icon;
 
-        const categories = DesktopEntries.heuristicLookup(name)?.categories;
+        const entry = DesktopEntries.heuristicLookup(name);
+        const categories = entry ? entry.categories : null;
 
         if (categories)
             for (const [key, value] of Object.entries(categoryIcons))

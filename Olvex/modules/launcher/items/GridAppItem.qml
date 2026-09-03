@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
 import qs.components
+import qs.components.effects
 import qs.modules.launcher.services
 import qs.services
 import qs.utils
@@ -18,7 +19,6 @@ Item {
     required property GridView gridView
     required property int revealEpoch
     required property bool revealPending
-    required property real scrollVelocity
     required property int index
 
     signal contextMenuRequested(sourceItem: Item)
@@ -32,111 +32,103 @@ Item {
         root.visibilities.launcher = false;
     }
 
-    readonly property int jellyRow: Math.floor(index / 5)
-    readonly property real jellyY: {
-        if (Math.abs(scrollVelocity) < 0.4)
-            return 0;
-
-        const factor = 0.62 - Math.min(jellyRow, 3) * 0.11;
-        const raw = -scrollVelocity * factor;
-        return Math.max(-26, Math.min(26, raw));
-    }
-    readonly property int openYOffset: 28
-    property real tileYOffset: 0
-    readonly property int openStaggerMs: {
-        const row = Math.floor(index / 5);
-        const col = index % 5;
-        return Math.min(row, 3) * 24 + col * 8;
-    }
-    readonly property var m3Emphasized: [0.05, 0.7, 0.1, 1.0, 1, 1]
-    readonly property bool isCurrent: gridView.currentIndex === index
-    readonly property bool isFavourite: modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, modelData.id)
-
+    // GridView delegate sizing
     implicitWidth: 110
     implicitHeight: 120
-    transform: Translate {
-        y: root.tileYOffset
-    }
+    width: 110
+    height: 120
 
-    onRevealEpochChanged: {
-        if (revealEpoch <= 0) {
-            tileYOffset = 0;
-            return;
-        }
+    readonly property bool isSelected: gridView.currentIndex === index
+    readonly property bool isHovered: mouseArea.containsMouse
+    readonly property bool isFavourite: root.modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.id)
 
-        tileYOffset = openYOffset;
-        openPop.restart();
-    }
-    onRevealPendingChanged: {
-        if (!revealPending) {
-            tileYOffset = 0;
-            return;
-        }
-
-        openPop.stop();
-        tileYOffset = openYOffset;
-    }
-    onModelDataChanged: {
-        tileYOffset = 0;
+    onIsSelectedChanged: {
+        if (isSelected && !revealPending)
+            scaleBounce.restart();
     }
 
     SequentialAnimation {
-        id: openPop
-
-        PauseAnimation {
-            duration: root.openStaggerMs
-        }
-
-        ParallelAnimation {
-            NumberAnimation {
-                target: root
-                property: "tileYOffset"
-                to: 0
-                duration: 400
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: root.m3Emphasized
-            }
-
-        }
-
+        id: scaleBounce
+        NumberAnimation { target: tile; property: "scale"; to: 1.05; duration: 90; easing.type: Easing.OutQuad }
+        NumberAnimation { target: tile; property: "scale"; to: 1.0; duration: 130; easing.type: Easing.OutQuad }
     }
 
-    MouseArea {
-        id: mouseArea
+    // Material 3 Expressive Stagger Pop & Viewport Entry Animation
+    readonly property int openStaggerMs: Math.min(index * 14, 220)
+    readonly property real openYOffset: 18
 
-        anchors.fill: parent
-        hoverEnabled: true
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        cursorShape: Qt.PointingHandCursor
-        onContainsMouseChanged: {
-            if (containsMouse) {
-                root.mouseActivated(root);
-                gridView.currentIndex = index;
-                gridView.hoveredItem = root;
-            } else if (gridView.hoveredItem === root) {
-                gridView.hoveredItem = null;
-            }
-        }
-        onClicked: (mouse) => {
-            if (mouse.button === Qt.RightButton) {
-                root.contextMenuRequested(mainContainer);
-                return;
-            }
-            iconClickAnim.start();
-            Apps.launch(root.modelData);
-            root.visibilities.launcher = false;
-        }
-    }
+    // Viewport visibility relative to GridView scrolling position
+    readonly property real itemViewportY: y - (root.gridView ? root.gridView.contentY : 0)
+    readonly property real itemViewportBottom: itemViewportY + height
+    readonly property bool isInView: !root.gridView || (itemViewportBottom > -4 && itemViewportY < root.gridView.height + 4)
 
+    // The entire interactive tile — styled container
     Item {
-        id: mainContainer
+        id: tile
+        anchors.centerIn: parent
+        width: 104
+        height: 112
 
-        anchors.fill: parent
-        anchors.margins: 4
+        opacity: (root.revealPending || !root.isInView) ? 0.0 : 1.0
+        scale: (root.revealPending || !root.isInView) ? 0.80 : 1.0
 
-        Rectangle {
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 220
+                easing.type: Easing.OutQuad
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: 240
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.12
+            }
+        }
+
+        transform: Translate {
+            y: root.revealPending ? root.openYOffset : (!root.isInView ? (root.itemViewportY < 0 ? -12 : 12) : 0)
+
+            Behavior on y {
+                NumberAnimation {
+                    duration: 220
+                    easing.type: Easing.OutQuad
+                }
+            }
+        }
+
+        StateLayer {
+            id: stateLayer
+            radius: Tokens.rounding.normal
+            color: Colours.palette.m3onSurface
             anchors.fill: parent
-            radius: 16
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: mouse => {
+                if (mouse.button === Qt.RightButton) {
+                    root.contextMenuRequested(stateLayer);
+                } else {
+                    root.select();
+                }
+            }
+        }
+
+        MouseArea {
+            id: mouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+
+            onEntered: {
+                root.mouseActivated(root);
+            }
+        }
+
+        // Selected / Focused / Hovered background pill
+        StyledRect {
+            id: focusPill
+            anchors.fill: parent
+            radius: Tokens.rounding.normal
             color: "transparent"
         }
 
@@ -175,35 +167,39 @@ Item {
 
             }
 
-            Item {
-                id: iconClip
-
+            MaterialShape {
                 anchors.fill: parent
-
-                MaterialShape {
-                    implicitSize: parent.width
-                    shape: MaterialShape.Square
-                    color: Colours.layer(Colours.palette.m3surfaceVariant, 0.5)
-                }
-
-                IconImage {
-                    id: appIcon
-
-                    asynchronous: true
-                    source: Icons.resolveIcon(root.modelData?.icon || "", "image-missing")
-                    anchors.fill: parent
-                    anchors.margins: 7
-                }
-
+                implicitSize: parent.width
+                shape: MaterialShape.Square
+                color: Colours.layer(Colours.palette.m3surfaceVariant, 0.4)
             }
 
+            IconImage {
+                id: appIcon
+
+                asynchronous: true
+                smooth: true
+                mipmap: true
+                source: root.modelData ? Icons.resolveApp(root.modelData) : ""
+                anchors.fill: parent
+                anchors.margins: 7
+            }
+
+            StyledText {
+                anchors.centerIn: parent
+                visible: !appIcon.source || appIcon.status === Image.Error || appIcon.status === Image.Null
+                text: root.modelData && root.modelData.name ? root.modelData.name.charAt(0).toUpperCase() : "?"
+                font.weight: Font.DemiBold
+                textPointSize: Tokens.font.size.large
+                color: Colours.palette.m3primary
+            }
         }
 
         StyledText {
             id: name
 
             text: root.modelData && root.modelData.name ? root.modelData.name : ""
-            font.weight: mouseArea.containsMouse ? Font.DemiBold : Font.Normal
+            font.weight: Font.Normal
             color: mouseArea.containsMouse ? (Colours.light ? "#000000" : "#ffffff") : Qt.alpha(Colours.light ? "#000000" : "#ffffff", 0.7)
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
@@ -236,10 +232,6 @@ Item {
                 anchors.centerIn: parent
             }
 
-        }
-
-        transform: Translate {
-            y: root.jellyY
         }
 
     }

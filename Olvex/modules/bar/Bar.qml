@@ -354,7 +354,9 @@ ColumnLayout {
 
             anchors.centerIn: parent
             asynchronous: true
-            sourceComponent: OsIcon {}
+            sourceComponent: OsIcon {
+                visibilities: root.visibilities
+            }
         }
     }
 }

@@ -20,8 +20,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens ? Tokens.anim.durations.slow : 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens ? Tokens.anim.durations.slow : 400; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -48,85 +48,15 @@ Item {
                 }
             }
         }
-        
-        SettingRow {
-            title: qsTr("Show on hover")
-            description: qsTr("Open when hovering its edge")
-            divider: true
-            StyledSwitch {
-                checked: Config.launcher.showOnHover ?? false
-                onToggled: {
-                    GlobalConfig.launcher.showOnHover = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Vim keybinds")
-            description: qsTr("Navigate results with h/j/k/l")
-            divider: true
-            StyledSwitch {
-                checked: GlobalConfig.launcher.vimKeybinds ?? false
-                onToggled: {
-                    GlobalConfig.launcher.vimKeybinds = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
+
         SettingRow {
             title: qsTr("Enable dangerous actions")
             description: qsTr("Allow shutdown / reboot from search")
-            divider: true
+            divider: false
             StyledSwitch {
                 checked: GlobalConfig.launcher.enableDangerousActions ?? true
                 onToggled: {
                     GlobalConfig.launcher.enableDangerousActions = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Max results")
-            description: qsTr("Number of results shown at once")
-            divider: true
-            CustomSpinBox {
-                value: Config.launcher.maxShown ?? 8
-                min: 3
-                max: 20
-                step: 1
-                onValueModified: v => {
-                    GlobalConfig.launcher.maxShown = v;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Action prefix")
-            description: qsTr("Character that triggers action search")
-            divider: true
-            StyledTextField {
-                width: 90
-                text: GlobalConfig.launcher.actionPrefix || ">"
-                onEditingFinished: {
-                    GlobalConfig.launcher.actionPrefix = text;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Special prefix")
-            description: qsTr("Character that triggers special commands")
-            divider: false
-            StyledTextField {
-                width: 90
-                text: GlobalConfig.launcher.specialPrefix || "@"
-                onEditingFinished: {
-                    GlobalConfig.launcher.specialPrefix = text;
                     GlobalConfig.save();
                 }
             }

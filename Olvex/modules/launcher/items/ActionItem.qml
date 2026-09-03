@@ -14,12 +14,15 @@ Item {
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
-    anchors.left: parent?.left
-    anchors.right: parent?.right
+    anchors.left: parent ? parent.left : undefined
+    anchors.right: parent ? parent.right : undefined
 
     StateLayer {
         radius: Tokens.rounding.normal
-        onClicked: root.modelData?.onClicked(root.list)
+        onClicked: {
+            if (root.modelData && root.modelData.onClicked)
+                root.modelData.onClicked(root.list);
+        }
     }
 
     Item {
@@ -31,7 +34,7 @@ Item {
         MaterialIcon {
             id: icon
 
-            text: root.modelData?.icon ?? ""
+            text: root.modelData ? (root.modelData.icon || "") : ""
             iconPointSize: Tokens.font.size.extraLarge
             color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
 
@@ -49,7 +52,7 @@ Item {
             StyledText {
                 id: name
 
-                text: root.modelData?.name ?? ""
+                text: root.modelData ? (root.modelData.name || "") : ""
                 textPointSize: Tokens.font.size.normal
                 color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                 font.weight: isCurrent ? Font.DemiBold : Font.Normal
@@ -58,7 +61,7 @@ Item {
             StyledText {
                 id: desc
 
-                text: root.modelData?.desc ?? ""
+                text: root.modelData ? (root.modelData.desc || "") : ""
                 textPointSize: Tokens.font.size.small
                 color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3outline
 

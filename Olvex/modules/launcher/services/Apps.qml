@@ -10,17 +10,19 @@ Searcher {
 
     property var _allAppsCache: []
 
-    function warmCatalog(): void {
+    onCatalogChanged: warmCatalog()
+
+    function warmCatalog() {
         if (_allAppsCache.length === 0)
             _allAppsCache = query("").map(e => e.entry);
     }
 
-    function invalidateCatalog(): void {
+    function invalidateCatalog() {
         _allAppsCache = [];
         warmCatalog();
     }
 
-    function launch(entry: DesktopEntry): void {
+    function launch(entry) {
         if (!entry) return;
         appDb.incrementFrequency(entry.id);
 
@@ -43,38 +45,38 @@ Searcher {
         if (weightsChanged) weights = newWeights;
     }
 
-    function search(search: string): list<var> {
+    function search(text) {
         const prefix = GlobalConfig.launcher.specialPrefix;
 
-        if (search.startsWith(`${prefix}i `)) {
+        if (text.startsWith(`${prefix}i `)) {
             setKeysAndWeights(["id", "name"], [0.9, 0.1]);
-        } else if (search.startsWith(`${prefix}c `)) {
+        } else if (text.startsWith(`${prefix}c `)) {
             setKeysAndWeights(["categories", "name"], [0.9, 0.1]);
-        } else if (search.startsWith(`${prefix}d `)) {
+        } else if (text.startsWith(`${prefix}d `)) {
             setKeysAndWeights(["comment", "name"], [0.9, 0.1]);
-        } else if (search.startsWith(`${prefix}e `)) {
+        } else if (text.startsWith(`${prefix}e `)) {
             setKeysAndWeights(["execString", "name"], [0.9, 0.1]);
-        } else if (search.startsWith(`${prefix}w `)) {
+        } else if (text.startsWith(`${prefix}w `)) {
             setKeysAndWeights(["startupClass", "name"], [0.9, 0.1]);
-        } else if (search.startsWith(`${prefix}g `)) {
+        } else if (text.startsWith(`${prefix}g `)) {
             setKeysAndWeights(["genericName", "name"], [0.9, 0.1]);
-        } else if (search.startsWith(`${prefix}k `)) {
+        } else if (text.startsWith(`${prefix}k `)) {
             setKeysAndWeights(["keywords", "name"], [0.9, 0.1]);
         } else {
             setKeysAndWeights(["name"], [1]);
 
-            if (!search.startsWith(`${prefix}t `)) {
-                return query(search).map(e => e.entry);
+            if (!text.startsWith(`${prefix}t `)) {
+                return query(text).map(e => e.entry);
             }
         }
 
-        const results = query(search.slice(prefix.length + 2)).map(e => e.entry);
-        if (search.startsWith(`${prefix}t `))
+        const results = query(text.slice(prefix.length + 2)).map(e => e.entry);
+        if (text.startsWith(`${prefix}t `))
             return results.filter(a => a.runInTerminal);
         return results;
     }
 
-    function selector(item: var): string {
+    function selector(item) {
         return keys.map(k => item[k]).join(" ");
     }
 

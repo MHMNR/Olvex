@@ -27,15 +27,115 @@ Item {
     readonly property int appsVisibleRows: 4
     readonly property int appsPaneHeight: appsVisibleRows * appsRowHeight + 10
 
+    function isMathExpression(str) {
+        if (!str || str.length === 0) return false;
+        const t = str.trim();
+        const prefix = GlobalConfig.launcher.actionPrefix;
+        if (prefix && t.startsWith(`${prefix}calc `)) return true;
+        if (t.startsWith("calc ") || t.startsWith("=")) return true;
+
+        if (/^(sin|cos|tan|asin|acos|atan|sqrt|cbrt|log|ln|exp|abs|floor|ceil|round)\s*\(.+\)$/i.test(t))
+            return true;
+
+        if (/^\d+(\.\d+)?\s*[a-zA-Z\$\€\£\¥\%\°]+\s+(to|in|as)\s+[a-zA-Z\$\€\£\¥\%\°]+$/i.test(t))
+            return true;
+
+        if (/^\d+(\.\d+)?\s*%\s*(of|on|\*|\+|\-)\s*\d+(\.\d+)?$/i.test(t))
+            return true;
+
+        const hasOperator = /[\+\-\*\/\^\%\=]/.test(t);
+        const hasDigits = /\d/.test(t);
+        if (hasOperator && hasDigits && /^[0-9\.\s\+\-\*\/\^\%\(\)\,\=]+$/.test(t)) {
+            const opCount = (t.match(/[\+\-\*\/\^\%\=]/g) || []).length;
+            if (opCount > 0 && !/^[a-zA-Z]/.test(t))
+                return true;
+        }
+
+        return false;
+    }
+
+    function isTerminalCommand(str) {
+        if (!str || str.length === 0) return false;
+        const t = str.trim();
+        if (t.startsWith("$") || t.startsWith("!") || t.startsWith(":") || t.startsWith("term ") || t.startsWith("run ") || t.startsWith("exec ") || t.startsWith("sh "))
+            return true;
+        return false;
+    }
+
+    function getTerminalCommand(str) {
+        if (!str) return "";
+        let t = str.trim();
+        if (t.startsWith("$ ") || t.startsWith("! ") || t.startsWith(": "))
+            return t.slice(2).trim();
+        if (t.startsWith("$") || t.startsWith("!"))
+            return t.slice(1).trim();
+        if (t.startsWith("term ") || t.startsWith("exec "))
+            return t.slice(5).trim();
+        if (t.startsWith("run ") || t.startsWith("sh "))
+            return t.slice(4).trim();
+        return t;
+    }
+
+    function getCommandActionItems(cmd) {
+        if (!cmd || cmd.length === 0)
+            return [];
+        return [
+            {
+                name: qsTr("Run '%1' in terminal").arg(cmd),
+                desc: qsTr("Launch in default terminal"),
+                icon: "terminal",
+                onClicked: function(list) {
+                    list.visibilities.launcher = false;
+                    Quickshell.execDetached({
+                        command: ["app2unit", "--", ...GlobalConfig.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, "sh", "-c", `${cmd}; exec $SHELL`]
+                    });
+                }
+            },
+            {
+                name: qsTr("Run '%1' in background").arg(cmd),
+                desc: qsTr("Execute command directly via shell"),
+                icon: "play_arrow",
+                onClicked: function(list) {
+                    list.visibilities.launcher = false;
+                    Quickshell.execDetached({
+                        command: ["sh", "-c", cmd]
+                    });
+                }
+            },
+            {
+                name: qsTr("Copy command '%1'").arg(cmd),
+                desc: qsTr("Copy text to clipboard"),
+                icon: "content_copy",
+                onClicked: function(list) {
+                    Quickshell.execDetached(["wl-copy", cmd]);
+                    list.visibilities.launcher = false;
+                }
+            }
+        ];
+    }
+
     readonly property string state: {
         const text = search.text;
         const prefix = GlobalConfig.launcher.actionPrefix;
-        if (text.startsWith(prefix)) {
+
+        if (isMathExpression(text))
+            return "calc";
+
+        if (isTerminalCommand(text))
+            return "command";
+
+        if (prefix && text.startsWith(prefix)) {
             for (const action of ["calc", "scheme", "variant"])
                 if (text.startsWith(`${prefix}${action} `))
                     return action;
 
             return "actions";
+        }
+
+        if (text.trim().length > 0) {
+            const apps = Apps.search(text);
+            if (apps.length === 0)
+                return "command";
         }
 
         return "apps";
@@ -60,11 +160,12 @@ Item {
 
     // Reactive model — auto-updates on search text change and sorting
     readonly property var rawModelValues: {
-        if (state === "apps") return Apps.search(search.text);
-        if (state === "actions") return Actions.query(search.text);
         if (state === "calc") return [0];
+        if (state === "command") return getCommandActionItems(getTerminalCommand(search.text));
+        if (state === "actions") return Actions.query(search.text);
         if (state === "scheme") return Schemes.query(search.text);
         if (state === "variant") return M3Variants.query(search.text);
+        if (state === "apps") return Apps.search(search.text);
         return [];
     }
 
@@ -165,6 +266,7 @@ Item {
             target = Math.min(maxScroll, itemBot - appGrid.height + 4);
         }
         if (target < 0) return;
+        bounceBackSpring.stop();
         smoothScrollAnim.stop();
         smoothScrollAnim.from = appGrid.contentY;
         smoothScrollAnim.to = target;
@@ -179,38 +281,21 @@ Item {
     function playOpenReveal() {
         if (root.state !== "apps" || !root.visibilities.launcher)
             return;
-        jellySpring.stop();
+        bounceBackSpring.stop();
+        smoothScrollAnim.stop();
         revealDelay.stop();
         revealPending = true;
         keyboardHighlightActive = false;
-        scrollVelocity = 0;
-        scrollJellyActive = false;
         revealDelay.restart();
-    }
-
-    property bool scrollJellyActive: false
-    property real scrollVelocity: 0
-    property real lastContentY: 0
-
-    function bumpScrollVelocity(impulse) {
-        if (!root.scrollJellyActive)
-            return;
-        scrollVelocity = Math.max(-72, Math.min(72, scrollVelocity + impulse));
-        jellySpring.stop();
-        jellySpring.from = scrollVelocity;
-        jellySpring.to = 0;
-        jellySpring.start();
     }
 
     function suspend() {
         smoothScrollAnim.stop();
-        jellySpring.stop();
+        bounceBackSpring.stop();
+        touchpadReleaseTimer.stop();
         revealDelay.stop();
         revealPending = false;
         keyboardHighlightActive = false;
-        scrollVelocity = 0;
-        scrollJellyActive = false;
-        lastContentY = 0;
         appGrid.contentY = 0;
         appGrid.currentIndex = 0;
         actionList.currentIndex = 0;
@@ -236,58 +321,59 @@ Item {
         }
     }
 
+    // Material 3 Expressive Smooth and Bouncy Momentum Scroll
     NumberAnimation {
         id: smoothScrollAnim
         target: appGrid
         property: "contentY"
         duration: 260
         easing.type: Easing.OutCubic
+
+        onStopped: root.checkOverscrollBounds()
+    }
+
+    // Elastic Overscroll Rebound Spring
+    SpringAnimation {
+        id: bounceBackSpring
+        target: appGrid
+        property: "contentY"
+        spring: 4.8
+        damping: 0.70
+        epsilon: 0.15
+    }
+
+    Timer {
+        id: touchpadReleaseTimer
+        interval: 85
+        repeat: false
+        onTriggered: root.checkOverscrollBounds()
+    }
+
+    function checkOverscrollBounds() {
+        const maxScroll = Math.max(0, appGrid.contentHeight - appGrid.height);
+        if (appGrid.contentY < 0) {
+            smoothScrollAnim.stop();
+            bounceBackSpring.stop();
+            bounceBackSpring.from = appGrid.contentY;
+            bounceBackSpring.to = 0;
+            bounceBackSpring.start();
+        } else if (appGrid.contentY > maxScroll) {
+            smoothScrollAnim.stop();
+            bounceBackSpring.stop();
+            bounceBackSpring.from = appGrid.contentY;
+            bounceBackSpring.to = maxScroll;
+            bounceBackSpring.start();
+        }
     }
 
     Timer {
         id: revealDelay
 
-        interval: 120
+        interval: 16
         repeat: false
         onTriggered: {
             root.revealPending = false;
             root.revealEpoch++;
-        }
-    }
-
-    SpringAnimation {
-        id: jellySpring
-        target: root
-        property: "scrollVelocity"
-        to: 0
-        spring: 3.4
-        damping: 0.72
-        epsilon: 0.04
-
-        onStopped: root.scrollJellyActive = false
-    }
-
-    Connections {
-        target: appGrid
-        enabled: appGrid.visible
-        ignoreUnknownSignals: true
-
-        function onContentYChanged() {
-            if (!root.scrollJellyActive)
-                return;
-            const dy = appGrid.contentY - root.lastContentY;
-            root.lastContentY = appGrid.contentY;
-            if (Math.abs(dy) < 0.05)
-                return;
-            root.bumpScrollVelocity(Math.max(-72, Math.min(72, dy * 5.0)));
-        }
-
-        function onMovementStarted() {
-            root.scrollJellyActive = true;
-        }
-
-        function onFlickStarted() {
-            root.scrollJellyActive = true;
         }
     }
 
@@ -637,25 +723,46 @@ Item {
                     if (!delta)
                         return;
 
-                    root.scrollJellyActive = true;
-                    root.lastContentY = appGrid.contentY;
-
                     const maxScroll = Math.max(0, appGrid.contentHeight - appGrid.height);
                     const isDiscrete = Math.abs(delta) >= 120;
                     const direction = delta > 0 ? -1 : 1;
-                    const step = isDiscrete ? root.appsRowHeight : Math.max(18, Math.abs(delta) * 0.65);
-                    const currentY = smoothScrollAnim.running ? smoothScrollAnim.to : appGrid.contentY;
-                    const rawTarget = currentY + direction * step;
-                    const targetY = Math.max(0, Math.min(maxScroll, rawTarget));
 
                     if (isDiscrete) {
+                        bounceBackSpring.stop();
+                        touchpadReleaseTimer.stop();
+
+                        const step = root.appsRowHeight;
+                        const base = smoothScrollAnim.running ? smoothScrollAnim.to : appGrid.contentY;
+                        let nextTarget = base + direction * step;
+
+                        // Allow elastic overscroll bounce up to 36px past edge limits
+                        const maxOvershoot = 36;
+                        if (nextTarget < -maxOvershoot) {
+                            nextTarget = -maxOvershoot;
+                        } else if (nextTarget > maxScroll + maxOvershoot) {
+                            nextTarget = maxScroll + maxOvershoot;
+                        }
+
                         smoothScrollAnim.stop();
                         smoothScrollAnim.from = appGrid.contentY;
-                        smoothScrollAnim.to = targetY;
+                        smoothScrollAnim.to = nextTarget;
                         smoothScrollAnim.start();
                     } else {
+                        // Smooth pixel touchpad scrolling with elastic edge resistance
                         smoothScrollAnim.stop();
-                        appGrid.contentY = targetY;
+                        bounceBackSpring.stop();
+
+                        const dy = -delta * 0.65;
+                        let newY = appGrid.contentY + dy;
+
+                        if (newY < 0) {
+                            newY = appGrid.contentY + dy * 0.35;
+                        } else if (newY > maxScroll) {
+                            newY = appGrid.contentY + dy * 0.35;
+                        }
+
+                        appGrid.contentY = newY;
+                        touchpadReleaseTimer.restart();
                     }
 
                     event.accepted = true;
@@ -688,14 +795,13 @@ Item {
             height: 112
             radius: 16
             color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-            border.color: Qt.alpha(Colours.palette.m3onSurface, root.keyboardHighlightActive ? 0.22 : 0.12)
-            border.width: 1
+            border.width: 0
             x: markerX
             y: markerY
             opacity: active ? 1 : 0
             enabled: false
 
-            function retarget(animate: bool): void {
+            function retarget(animate) {
                 const item = targetItem;
                 if (!item)
                     return;
@@ -723,13 +829,13 @@ Item {
 
             Connections {
                 target: appGrid
-                function onCurrentIndexChanged(): void {
+                function onCurrentIndexChanged() {
                     gridFocusMarker.retarget(true);
                 }
-                function onHoveredItemChanged(): void {
+                function onHoveredItemChanged() {
                     gridFocusMarker.retarget(true);
                 }
-                function onContentYChanged(): void {
+                function onContentYChanged() {
                     // Stick to item while scrolling — no spring lag
                     gridFocusMarker.retarget(false);
                 }
@@ -737,10 +843,10 @@ Item {
 
             Connections {
                 target: root
-                function onKeyboardHighlightActiveChanged(): void {
+                function onKeyboardHighlightActiveChanged() {
                     gridFocusMarker.retarget(true);
                 }
-                function onRevealPendingChanged(): void {
+                function onRevealPendingChanged() {
                     if (!root.revealPending && gridFocusMarker.targetItem)
                         gridFocusMarker.retarget(false);
                 }
@@ -784,7 +890,6 @@ Item {
             gridView: appGrid
             revealEpoch: root.revealEpoch
             revealPending: root.revealPending
-            scrollVelocity: root.scrollVelocity
 
             onMouseActivated: item => root.showMouseHighlight(item)
 
@@ -877,7 +982,7 @@ Item {
             opacity: active ? 1 : 0
             enabled: false
 
-            function retarget(animate: bool): void {
+            function retarget(animate) {
                 const item = targetItem;
                 if (!item)
                     return;
@@ -904,20 +1009,20 @@ Item {
 
             Connections {
                 target: actionList
-                function onCurrentIndexChanged(): void {
+                function onCurrentIndexChanged() {
                     listFocusMarker.retarget(true);
                 }
-                function onContentYChanged(): void {
+                function onContentYChanged() {
                     listFocusMarker.retarget(false);
                 }
-                function onCountChanged(): void {
+                function onCountChanged() {
                     listFocusMarker.retarget(false);
                 }
             }
 
             Connections {
                 target: actionListHost
-                function onVisibleChanged(): void {
+                function onVisibleChanged() {
                     if (actionListHost.visible)
                         listFocusMarker.retarget(false);
                     else
@@ -954,6 +1059,9 @@ Item {
         StyledListView {
             id: actionList
 
+            property var search: root.search
+            property var visibilities: root.visibilities
+
             anchors.fill: parent
             z: 1
             clip: true
@@ -962,7 +1070,7 @@ Item {
             model: root.state !== "apps" ? root.modelValues : null
 
             delegate: {
-                if (root.state === "actions")
+                if (root.state === "actions" || root.state === "command")
                     return actionItem;
                 if (root.state === "calc")
                     return calcItem;
@@ -986,12 +1094,17 @@ Item {
 
     Component {
         id: actionItem
-        ActionItem { list: actionList }
+        ActionItem {
+            list: actionList
+        }
     }
 
     Component {
         id: calcItem
-        CalcItem { list: actionList }
+        CalcItem {
+            list: actionList
+            visibilities: root.visibilities
+        }
     }
 
     Component {

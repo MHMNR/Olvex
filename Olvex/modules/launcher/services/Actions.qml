@@ -10,7 +10,7 @@ import qs.utils
 Searcher {
     id: root
 
-    function transformSearch(search: string): string {
+    function transformSearch(search) {
         return search.slice(GlobalConfig.launcher.actionPrefix.length);
     }
 
@@ -30,11 +30,11 @@ Searcher {
         readonly property string name: modelData.name ?? qsTr("Unnamed")
         readonly property string desc: modelData.description ?? qsTr("No description")
         readonly property string icon: modelData.icon ?? "help_outline"
-        readonly property list<string> command: modelData.command ?? []
+        readonly property var command: modelData.command ?? []
         readonly property bool enabled: modelData.enabled ?? true
         readonly property bool dangerous: modelData.dangerous ?? false
 
-        function onClicked(list: AppList): void {
+        function onClicked(list) {
             if (command.length === 0)
                 return;
 

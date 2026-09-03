@@ -17,29 +17,32 @@ Item {
     readonly property int rounding: Tokens.rounding.large
     readonly property bool launcherVisible: root.visibilities.launcher
 
-    function navigateUp() { list.currentList?.decrementCurrentIndex?.(); }
-    function navigateDown() { list.currentList?.incrementCurrentIndex?.(); }
+    function navigateUp() {
+        if (list.currentList && list.currentList.decrementCurrentIndex)
+            list.currentList.decrementCurrentIndex();
+    }
+    function navigateDown() {
+        if (list.currentList && list.currentList.incrementCurrentIndex)
+            list.currentList.incrementCurrentIndex();
+    }
     function navigateLeft() {
-        if (list.currentList?.moveLeft) {
+        if (list.currentList && list.currentList.moveLeft)
             list.currentList.moveLeft();
-        }
     }
     function navigateRight() {
-        if (list.currentList?.moveRight) {
+        if (list.currentList && list.currentList.moveRight)
             list.currentList.moveRight();
-        }
     }
     function navigateEnter() {
-        if (list.currentList?.count > 0) {
-            list.currentList?.currentItem?.select();
-        }
+        if (list.currentList && list.currentList.count > 0 && list.currentList.currentItem && list.currentList.currentItem.select)
+            list.currentList.currentItem.select();
     }
 
-    function suspendLists(): void {
+    function suspendLists() {
         list.suspendLists();
     }
 
-    function resumeLists(): void {
+    function resumeLists() {
         list.resumeLists();
     }
 
@@ -116,32 +119,55 @@ Item {
             topPadding: Tokens.padding.larger
             bottomPadding: Tokens.padding.larger
 
-            placeholderText: qsTr("Type \"%1\" for commands").arg(GlobalConfig.launcher.actionPrefix)
+            placeholderText: qsTr("Search apps, math, terminal commands...")
 
             onAccepted: {
-                const currentItem = list.currentList?.currentItem;
-                if (currentItem) {
-                    if (text.startsWith(GlobalConfig.launcher.actionPrefix)) {
-                        if (text.startsWith(`${GlobalConfig.launcher.actionPrefix}calc `))
-                            currentItem.onClicked();
-                        else
-                            currentItem.modelData.onClicked(list.currentList);
-                    } else {
-                        Apps.launch(currentItem.modelData);
-                        root.visibilities.launcher = false;
-                        Visibilities.launcherInterrupted = true;
-                    }
+                const curList = list.currentList;
+                if (!curList) return;
+                const cur = curList.currentItem;
+                if (!cur) return;
+
+                if (curList.state === "calc") {
+                    if (cur.onClicked)
+                        cur.onClicked();
+                    else if (cur.select)
+                        cur.select();
+                    return;
+                }
+
+                if (cur.modelData && cur.modelData.onClicked) {
+                    cur.modelData.onClicked(curList);
+                    return;
+                }
+
+                if (cur.modelData && cur.modelData.id) {
+                    Apps.launch(cur.modelData);
+                    root.visibilities.launcher = false;
+                    Visibilities.launcherInterrupted = true;
+                    return;
+                }
+
+                if (cur.select) {
+                    cur.select();
                 }
             }
 
             Keys.priority: Keys.BeforeItem
             Keys.onUpPressed: {
-                list.currentList?.showKeyboardHighlight?.();
-                list.currentList?.decrementCurrentIndex();
+                if (list.currentList) {
+                    if (list.currentList.showKeyboardHighlight)
+                        list.currentList.showKeyboardHighlight();
+                    if (list.currentList.decrementCurrentIndex)
+                        list.currentList.decrementCurrentIndex();
+                }
             }
             Keys.onDownPressed: {
-                list.currentList?.showKeyboardHighlight?.();
-                list.currentList?.incrementCurrentIndex();
+                if (list.currentList) {
+                    if (list.currentList.showKeyboardHighlight)
+                        list.currentList.showKeyboardHighlight();
+                    if (list.currentList.incrementCurrentIndex)
+                        list.currentList.incrementCurrentIndex();
+                }
             }
             Keys.onEscapePressed: {
                 root.visibilities.launcher = false;
@@ -150,21 +176,43 @@ Item {
 
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Left) {
-                    list.currentList?.showKeyboardHighlight?.();
-                    list.currentList?.moveLeft?.();
+                    if (list.currentList) {
+                        if (list.currentList.showKeyboardHighlight)
+                            list.currentList.showKeyboardHighlight();
+                        if (list.currentList.moveLeft)
+                            list.currentList.moveLeft();
+                    }
                     event.accepted = true;
                     return;
                 }
                 if (event.key === Qt.Key_Right) {
-                    list.currentList?.showKeyboardHighlight?.();
-                    list.currentList?.moveRight?.();
+                    if (list.currentList) {
+                        if (list.currentList.showKeyboardHighlight)
+                            list.currentList.showKeyboardHighlight();
+                        if (list.currentList.moveRight)
+                            list.currentList.moveRight();
+                    }
                     event.accepted = true;
                     return;
                 }
 
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                    if (list.currentList?.count > 0) {
-                        list.currentList?.currentItem?.select();
+                    const curList = list.currentList;
+                    if (curList && curList.count > 0) {
+                        const cur = curList.currentItem;
+                        if (cur) {
+                            if (curList.state === "calc" && cur.onClicked) {
+                                cur.onClicked();
+                            } else if (cur.modelData && cur.modelData.onClicked) {
+                                cur.modelData.onClicked(curList);
+                            } else if (cur.select) {
+                                cur.select();
+                            } else if (cur.modelData && cur.modelData.id) {
+                                Apps.launch(cur.modelData);
+                                root.visibilities.launcher = false;
+                                Visibilities.launcherInterrupted = true;
+                            }
+                        }
                     }
                     event.accepted = true;
                 }
@@ -174,17 +222,21 @@ Item {
 
                 if (event.modifiers & Qt.ControlModifier) {
                     if (event.key === Qt.Key_J || event.key === Qt.Key_N) {
-                        list.currentList?.incrementCurrentIndex();
+                        if (list.currentList && list.currentList.incrementCurrentIndex)
+                            list.currentList.incrementCurrentIndex();
                         event.accepted = true;
                     } else if (event.key === Qt.Key_K || event.key === Qt.Key_P) {
-                        list.currentList?.decrementCurrentIndex();
+                        if (list.currentList && list.currentList.decrementCurrentIndex)
+                            list.currentList.decrementCurrentIndex();
                         event.accepted = true;
                     }
                 } else if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && (event.modifiers & Qt.ShiftModifier))) {
-                    list.currentList?.decrementCurrentIndex();
+                    if (list.currentList && list.currentList.decrementCurrentIndex)
+                        list.currentList.decrementCurrentIndex();
                     event.accepted = true;
                 } else if (event.key === Qt.Key_Tab) {
-                    list.currentList?.incrementCurrentIndex();
+                    if (list.currentList && list.currentList.incrementCurrentIndex)
+                        list.currentList.incrementCurrentIndex();
                     event.accepted = true;
                 }
             }
@@ -207,7 +259,7 @@ Item {
             }
 
             Connections {
-                function onLauncherChanged(): void {
+                function onLauncherChanged() {
                     if (!root.visibilities.launcher) {
                         search.text = "";
                         focusTimer.stop();
@@ -224,7 +276,7 @@ Item {
                     }
                 }
 
-                function onPowermenuChanged(): void {
+                function onPowermenuChanged() {
                     if (!root.visibilities.powermenu && root.launcherVisible) {
                         search.forceActiveFocus();
                         if (!search.activeFocus) {
@@ -234,7 +286,7 @@ Item {
                     }
                 }
 
-                function onLauncherSearchTextChanged(): void {
+                function onLauncherSearchTextChanged() {
                     if (root.visibilities.launcherSearchText) {
                         search.text = root.visibilities.launcherSearchText;
                         root.visibilities.launcherSearchText = "";

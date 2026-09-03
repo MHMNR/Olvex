@@ -18,19 +18,21 @@ Item {
     required property int rounding
 
     readonly property int appsPaneHeight: Math.min(maxHeight, 490)
-    readonly property var currentList: appList.item
+    readonly property var currentList: appList
 
-    function suspendLists(): void {
-        appList.item?.suspend?.();
+    function suspendLists() {
+        if (appList.suspend)
+            appList.suspend();
     }
 
-    function resumeLists(): void {
-        appList.item?.resume?.();
+    function resumeLists() {
+        if (appList.resume)
+            appList.resume();
     }
 
     Connections {
         target: visibilities
-        function onLauncherChanged(): void {
+        function onLauncherChanged() {
             if (visibilities.launcher)
                 resumeLists();
         }
@@ -40,7 +42,7 @@ Item {
     anchors.right: parent.right
     anchors.bottom: parent.bottom
 
-    implicitWidth: appList.item?.implicitWidth ?? 590
+    implicitWidth: appList.implicitWidth ?? 590
     implicitHeight: appsPaneHeight
 
     width: implicitWidth
@@ -48,25 +50,19 @@ Item {
 
     clip: true
 
-    Loader {
+    AppList {
         id: appList
 
-        active: true
-        visible: true
-
         anchors.fill: parent
-
-        sourceComponent: AppList {
-            search: root.search
-            visibilities: root.visibilities
-            panels: root.panels
-        }
+        search: root.search
+        visibilities: root.visibilities
+        panels: root.panels
     }
 
     Item {
         id: empty
 
-        visible: root.currentList?.count === 0
+        visible: root.currentList ? root.currentList.count === 0 : false
         opacity: visible ? 1 : 0
 
         implicitWidth: row.implicitWidth + Tokens.padding.large * 2

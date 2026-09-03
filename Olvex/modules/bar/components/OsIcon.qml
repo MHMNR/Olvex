@@ -8,6 +8,9 @@ import qs.utils
 Item {
     id: root
 
+    property DrawerVisibilities visibilities: null
+    readonly property bool isLauncherOpen: visibilities ? visibilities.launcher : (Visibilities.getForActive() ? Visibilities.getForActive().launcher : false)
+
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: Tokens.sizes.bar.innerWidth
 
@@ -19,13 +22,13 @@ Item {
     Rectangle {
         id: bgContainer
         anchors.fill: parent
-        radius: pressed ? 11 : width / 2
-        color: Colours.layer(Colours.palette.m3surfaceVariant, 0.5)
+        radius: isLauncherOpen ? 11 : (pressed ? 10 : (hovered ? 13 : width / 2))
+        color: isLauncherOpen ? Colours.palette.m3primary : (pressed ? Colours.layer(Colours.palette.m3surfaceVariant, 0.8) : (hovered ? Colours.layer(Colours.palette.m3surfaceVariant, 0.65) : Colours.layer(Colours.palette.m3surfaceVariant, 0.5)))
         border.color: "transparent"
         border.width: 0
 
         // Premium shrink-on-click and bounce-on-hover interaction animations
-        scale: hovered ? 1.08 : 1.0
+        scale: pressed ? 0.90 : (hovered ? 1.08 : (isLauncherOpen ? 1.04 : 1.0))
 
         Behavior on radius {
             Anim { type: Anim.FastSpatial }
@@ -46,11 +49,15 @@ Item {
         MouseArea {
             id: mouseArea
             anchors.fill: parent
+            anchors.bottomMargin: -Tokens.padding.large
+            anchors.leftMargin: -Tokens.padding.large
+            anchors.rightMargin: -Tokens.padding.large
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: {
-                const visibilities = Visibilities.getForActive();
-                visibilities.launcher = !visibilities.launcher;
+                const v = root.visibilities ?? Visibilities.getForActive();
+                if (v)
+                    v.launcher = !v.launcher;
             }
         }
 
@@ -76,7 +83,10 @@ Item {
         ColouredIcon {
             source: SysInfo.osLogo
             implicitSize: Math.round(Tokens.font.size.large * 1.2)
-            colour: Colours.palette.m3tertiary
+            colour: root.isLauncherOpen ? Colours.palette.m3onPrimary : Colours.palette.m3tertiary
+            Behavior on colour {
+                ColorAnimation { duration: 150 }
+            }
         }
     }
 }
