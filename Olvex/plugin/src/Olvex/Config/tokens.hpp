@@ -33,12 +33,12 @@ public:
         , m_standard({ 0.2, 0.0, 0.0, 1.0, 1.0, 1.0 })
         , m_standardAccel({ 0.3, 0.0, 1.0, 1.0, 1.0, 1.0 })
         , m_standardDecel({ 0.0, 0.0, 0.2, 1.0, 1.0, 1.0 })
-        , m_expressiveFastSpatial({ 0.42, 1.4, 0.21, 0.98, 1.0, 1.0 })
-        , m_expressiveDefaultSpatial({ 0.38, 1.2, 0.22, 1.0, 1.0, 1.0 })
-        , m_expressiveSlowSpatial({ 0.39, 1.15, 0.35, 1.0, 1.0, 1.0 })
-        , m_expressiveFastEffects({ 0.2, 0.0, 0.0, 1.0, 1.0, 1.0 })
-        , m_expressiveDefaultEffects({ 0.2, 0.0, 0.0, 1.0, 1.0, 1.0 })
-        , m_expressiveSlowEffects({ 0.2, 0.0, 0.0, 1.0, 1.0, 1.0 }) {}
+        , m_expressiveFastSpatial({ 0.42, 1.67, 0.21, 0.90, 1.0, 1.0 })
+        , m_expressiveDefaultSpatial({ 0.38, 1.21, 0.22, 1.00, 1.0, 1.0 })
+        , m_expressiveSlowSpatial({ 0.39, 1.29, 0.35, 0.98, 1.0, 1.0 })
+        , m_expressiveFastEffects({ 0.31, 0.94, 0.34, 1.00, 1.0, 1.0 })
+        , m_expressiveDefaultEffects({ 0.34, 0.80, 0.34, 1.00, 1.0, 1.0 })
+        , m_expressiveSlowEffects({ 0.34, 0.88, 0.34, 1.00, 1.0, 1.0 }) {}
 };
 
 class RoundingTokens : public ConfigObject {

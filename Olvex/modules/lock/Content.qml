@@ -47,16 +47,24 @@ RowLayout {
 
         radius: Tokens.rounding.large
 
-        color: bgColor
+        color: Qt.alpha(bgColor, root.elementOpacity)
+        Behavior on color {
+            ColorAnimation {
+                duration: Tokens.anim.durations.normal
+                easing: Tokens.anim.emphasizedDecel
+            }
+        }
 
         scale: 1.0
 
         antialiasing: true
+        layer.enabled: root.isTransitioning
+        layer.smooth: true
 
         Elevation {
             anchors.fill: parent
             radius: parent.radius
-            opacity: parent.opacity
+            opacity: root.elementOpacity
             z: -1
             level: card.elevationLevel
             visible: card.elevationLevel > 0
@@ -71,10 +79,11 @@ RowLayout {
     }
 
     // ── Chain-reaction stagger controller ────────────────────────────────────
-    // Left cards: L1 → L2 → L3 → L4, each 70ms apart from left
-    // Right cards: R1 → R2, starting 40ms after L1, 70ms apart from right
+    // Left cards: L1 → L2 → L3 → L4, each 45ms apart from left
+    // Right cards: R1 → R2, starting 30ms after L1, 45ms apart from right
     // Exit is reverse: R2 → R1 → L4 → L3 → L2 → L1
 
+    readonly property bool isTransitioning: entranceAnim.running || exitAnim.running
     readonly property int stagger: 70    // ms between each card
     readonly property int dur: 850        // slide duration per card
     readonly property int exitDur: 650   // exit duration per card
@@ -82,10 +91,10 @@ RowLayout {
 
     Connections {
         target: root.lock
-        function onContentReadyChanged(): void {
+        function onContentReadyChanged() {
             if (root.lock.contentReady) entranceAnim.start()
         }
-        function onUnlockingChanged(): void {
+        function onUnlockingChanged() {
             if (root.lock.unlocking) {
                 entranceAnim.stop()
                 exitAnim.start()
@@ -163,6 +172,14 @@ RowLayout {
         }
     }
 
+    // ── Settings → Lock → Element opacity ────────────────────────────────────
+    readonly property real elementOpacity: {
+        const v = GlobalConfig.lock.minimalOpacity;
+        if (v === undefined || v === null || Number.isNaN(v))
+            return 1;
+        return Math.max(0.05, Math.min(1, v));
+    }
+
     // ── Left column ──────────────────────────────────────────────────────────
     ColumnLayout {
         id: leftColumn
@@ -175,10 +192,6 @@ RowLayout {
         LockCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            // Grown to absorb the height the music card gave up when its
-            // internal spacing was tightened (was 160-ish, now hugs its
-            // content closer to the visualizer) — keeps the column's total
-            // height the same instead of leaving a gap.
             Layout.preferredHeight: 145
             transform: Translate { id: l1Trans; x: -500 }
             WeatherInfo { id: weather; rootHeight: root.height }
@@ -195,13 +208,9 @@ RowLayout {
         LockCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            // Direct px, same as the other cards — edit this number directly
-            // to change the music card's height.
-            Layout.preferredHeight: 123
+            Layout.preferredHeight: 138
             bgColor: Players.musicSurfaceColor
             elevationLevel: 3
-            border.width: 1
-            border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.14)
             transform: Translate { id: l3Trans; x: -500 }
             Media { id: media; lock: root.lock }
         }

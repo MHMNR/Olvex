@@ -45,12 +45,13 @@ WlSessionLockSurface {
         scale: 1.0
 
         layer.enabled: GlobalConfig.lock.blurBackground || GlobalConfig.lock.dimWallpaper
+        layer.smooth: true
         layer.effect: MultiEffect {
             id: wallEffect
             autoPaddingEnabled: false
             blurEnabled: GlobalConfig.lock.blurBackground
             blur: GlobalConfig.lock.blurBackground ? 1.0 : 0.0
-            blurMax: 48
+            blurMax: 32
             
             // Premium acrylic glass tweaks
             saturation: GlobalConfig.lock.blurBackground ? -0.15 : 0.0
@@ -85,19 +86,19 @@ WlSessionLockSurface {
         easing.type: Easing.InCubic
     }
 
-    function useCardFallback(): void {
+    function useCardFallback() {
         if (effectiveStyle !== "card")
             effectiveStyle = "card";
     }
 
     Connections {
         target: root.lock
-        function onUnlock(): void { unlockAnim.start() }
+        function onUnlock() { unlockAnim.start() }
     }
 
     Connections {
         target: GlobalConfig.lock
-        function onStyleChanged(): void { root.effectiveStyle = root.configuredStyle }
+        function onStyleChanged() { root.effectiveStyle = root.configuredStyle }
     }
 
     // ── EXIT: fire wallpaper zoom-out, wait for cards+zoom to finish, unlock ──
@@ -175,7 +176,7 @@ WlSessionLockSurface {
                     // In minimal style statusBar is invisible, so this infinite blink
                     // would otherwise keep the animation driver awake for nothing.
                     SequentialAnimation on opacity {
-                        running: root.lock.locked && statusBar.visible; loops: Animation.Infinite
+                        running: root.lock.locked && statusBar.visible && root.contentReady && !root.unlocking; loops: Animation.Infinite
                         NumberAnimation { to: 0.3; duration: 800 }
                         NumberAnimation { to: 1.0; duration: 800 }
                     }

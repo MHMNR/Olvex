@@ -76,7 +76,7 @@ Item {
         implicitSize: control.shapeSize
         antialiasing: true
         smooth: true
-        shapeRotation: control.emphasized ? 90 : 0
+        rotation: control.emphasized ? 90 : 0
         shape: control.emphasized ? (control.isPauseIcon ? MaterialShape.Bun : MaterialShape.Arrow) : (control.clickMorphActive ? control.clickMorphShape : (control.secondaryMix > 0.02 ? control.secondaryShape : MaterialShape.Pill))
         color: control.containerTone
         strokeColor: control.strokeColor

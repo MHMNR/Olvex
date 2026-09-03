@@ -103,15 +103,11 @@ Item {
             root.artDisplaySource = "";
             return;
         }
-        if (root.artIsLocal) {
-            root.artDisplaySource = "";
-            Qt.callLater(() => {
-                if (root.musicArtUrl === url)
-                    root.artDisplaySource = url;
-            });
-            return;
-        }
-        root.artDisplaySource = url + "#olvex-art=" + Players.artReloadNonce;
+        root.artDisplaySource = "";
+        Qt.callLater(() => {
+            if (root.musicArtUrl === url)
+                root.artDisplaySource = url + "#olvex-art=" + Players.artReloadNonce;
+        });
     }
 
     function lengthStr(length: real): string {
@@ -293,6 +289,9 @@ Item {
     Connections {
         target: Players
         function onCurrentArtUrlChanged() {
+            root.updateArtDisplaySource();
+        }
+        function onCurrentTrackKeyChanged() {
             root.updateArtDisplaySource();
         }
         function onArtReloadNonceChanged() {
@@ -551,7 +550,7 @@ Item {
                 source: root.artDisplaySource
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-                cache: !root.artIsLocal
+                cache: false
                 // Fixed at the largest (expanded) art size the card ever displays at —
                 // sourceSize must NOT track the live animated width/height, or the
                 // decoder re-samples the source on every frame of the expand/collapse
@@ -761,8 +760,8 @@ Item {
                             }
                         }
 
-                        Anim on waveProgress {
-                            running: waveIndicator.amplitudeMultiplier > 0 && expandedContent.opacity > 0.01 && !LockState.locked
+                        NumberAnimation on waveProgress {
+                            running: waveIndicator.amplitudeMultiplier > 0.001 && expandedContent.opacity > 0.01 && !LockState.locked
                             from: 0
                             to: 1
                             duration: 1400
@@ -1060,66 +1059,28 @@ Item {
                     // Container bounds travel — full expand duration (Layer 1)
                     NumberAnimation {
                         targets: [musicPill]
-                        properties: "x,y,width,height"
+                        properties: "x,y,width,height,radius"
                         duration: root.expandDur
                         easing: root.spatialEasing
                     }
-                    // Shape mask completes at 75% of expand (Container Transform shapeMaskProgressThresholds 0→0.75)
+                    // Shared elements (art, buttons) travel in full unison with container
                     NumberAnimation {
-                        targets: [musicPill]
-                        properties: "radius"
-                        duration: Math.round(root.expandDur * 0.75)
+                        targets: [musicIcon]
+                        properties: "x,y,width,height,radius"
+                        duration: root.expandDur
                         easing: root.spatialEasing
                     }
-                    // Shared elements (art, buttons) travel full duration
-                    NumberAnimation {
-                        targets: [musicIcon]
-                        properties: "x,y,width,height"
-                        duration: root.expandDur
-                        easing: root.spatialEasingDecel
-                    }
-                    NumberAnimation {
-                        targets: [musicIcon]
-                        properties: "radius"
-                        duration: Math.round(root.expandDur * 0.75)
-                        easing: root.spatialEasingDecel
-                    }
                     NumberAnimation {
                         targets: [prevBtnContainer, playBtn, nextBtnContainer]
-                        properties: "x,y,width,height"
+                        properties: "x,y,width,height,radius,iconSize"
                         duration: root.expandDur
-                        easing: root.spatialEasingDecel
+                        easing: root.spatialEasing
                     }
                     NumberAnimation {
-                        targets: [prevBtnContainer, playBtn, nextBtnContainer]
-                        properties: "radius"
-                        duration: Math.round(root.expandDur * 0.75)
-                        easing: root.spatialEasingDecel
-                    }
-                    SequentialAnimation {
-                        PauseAnimation {
-                            duration: 60
-                        }
-                        ParallelAnimation {
-                            NumberAnimation {
-                                targets: [prevBtnContainer, playBtn, nextBtnContainer]
-                                property: "iconSize"
-                                duration: 250
-                                easing: root.spatialEasingDecel
-                            }
-                            NumberAnimation {
-                                targets: [prevBtnContainer, nextBtnContainer]
-                                property: "skipIconScale"
-                                duration: 250
-                                easing: root.spatialEasingDecel
-                            }
-                            NumberAnimation {
-                                targets: [prevBtnContainer, nextBtnContainer]
-                                property: "secondaryProgress"
-                                duration: 250
-                                easing: root.spatialEasingDecel
-                            }
-                        }
+                        targets: [prevBtnContainer, nextBtnContainer]
+                        properties: "skipIconScale,secondaryProgress"
+                        duration: root.expandDur
+                        easing: root.spatialEasing
                     }
 
                     // Compact layer crossfades to card layer simultaneously with bounds morph
@@ -1206,27 +1167,15 @@ Item {
                     }
                     NumberAnimation {
                         targets: [musicIcon, prevBtnContainer, playBtn, nextBtnContainer]
-                        properties: "x,y,width,height,radius"
+                        properties: "x,y,width,height,radius,iconSize"
                         duration: root.collapseDur
-                        easing: Tokens.anim.emphasized
-                    }
-                    NumberAnimation {
-                        targets: [prevBtnContainer, playBtn, nextBtnContainer]
-                        property: "iconSize"
-                        duration: root.collapseDur
-                        easing: Tokens.anim.emphasized
+                        easing: root.spatialEasing
                     }
                     NumberAnimation {
                         targets: [prevBtnContainer, nextBtnContainer]
-                        property: "skipIconScale"
+                        properties: "skipIconScale,secondaryProgress"
                         duration: root.collapseDur
-                        easing: Tokens.anim.emphasized
-                    }
-                    NumberAnimation {
-                        targets: [prevBtnContainer, nextBtnContainer]
-                        property: "secondaryProgress"
-                        duration: root.collapseDur
-                        easing: Tokens.anim.emphasized
+                        easing: root.spatialEasing
                     }
 
                 }

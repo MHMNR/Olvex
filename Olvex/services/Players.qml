@@ -228,6 +228,10 @@ Singleton {
             return "";
         // MPRIS/browser sources sometimes emit https:/host (single slash).
         u = u.replace(/^(https?):\/([^/])/i, "$1://$2");
+        if (u.startsWith("/"))
+            u = "file://" + u;
+        else if (/^file:\/([^\/])/i.test(u))
+            u = u.replace(/^file:\//i, "file:///");
         return u;
     }
 
@@ -323,7 +327,7 @@ Singleton {
             root.currentTrackKey = key;
             changed = true;
         }
-        if (url !== root.currentArtUrl && (key !== root.currentTrackKey || !root.currentArtUrl)) {
+        if (url !== root.currentArtUrl) {
             root.currentArtUrl = url;
             changed = true;
         }

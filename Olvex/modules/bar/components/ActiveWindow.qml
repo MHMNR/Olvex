@@ -109,11 +109,11 @@ Item {
             root.barArtSource = "";
             return;
         }
-        if (root.barArtIsLocal) {
-            root.barArtSource = url;
-            return;
-        }
-        root.barArtSource = url + "#olvex-art=" + Players.artReloadNonce;
+        root.barArtSource = "";
+        Qt.callLater(() => {
+            if (root.musicArtUrl === url)
+                root.barArtSource = url + "#olvex-art=" + Players.artReloadNonce;
+        });
     }
 
     function syncMorphDock(immediate) {
@@ -309,6 +309,7 @@ Item {
             root.syncBarAccent();
         }
         function onCurrentTrackKeyChanged() {
+            root.updateBarArtSource();
             // Defer until next event loop tick so currentArtUrl has time to settle
             // before setArtUrl() runs analysis. Without this, analysis fires on the
             // OLD artUrl but with the NEW trackKey — wrong image, wrong color.
@@ -681,8 +682,8 @@ Item {
                             source: root.barArtSource
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
-                            cache: !root.barArtIsLocal
-                            sourceSize: Qt.size(width, height)
+                            cache: false
+                            sourceSize: Qt.size(root.musicArtSize, root.musicArtSize)
                             opacity: status === Image.Ready && source !== "" ? 1 : 0
                             onStatusChanged: {
                                 if (status === Image.Ready)

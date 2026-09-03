@@ -12,7 +12,7 @@ Item {
     required property var occupied
     required property int groupOffset
 
-    property list<var> pills: []
+    property var pills: []
 
     onOccupiedChanged: {
         if (!occupied)
@@ -63,7 +63,7 @@ Item {
 
             anchors.horizontalCenter: root.horizontalCenter
 
-            y: (start?.y ?? 0) - 1
+            y: (start ? start.y : 0) - 1
             implicitWidth: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2 + 2
             implicitHeight: start && end ? end.y + end.size - start.y + 2 : 0
 

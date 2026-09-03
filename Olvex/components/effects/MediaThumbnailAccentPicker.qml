@@ -4,13 +4,19 @@ import Olvex
 import Olvex.Config
 import qs.services
 import qs.utils
-import "MediaAccentMapper.js" as AccentMap
 
 // Single ImageAnalyser pipeline: album-art → dominantColour → vibrantAccent (visualizer) + playButtonFill (play bg).
 Item {
     id: root
 
     enabled: true
+
+    ImageAnalyser {
+        id: accentAnalyser
+
+        profile: "albumArt"
+        rescaleSize: 128
+    }
 
     property string artUrl: ""
     property bool accentReady: false
@@ -19,7 +25,7 @@ Item {
     property string trackKey: ""
     property color visualizerAccent: "#4F378A"
     property color playButtonBg: "#CFBCFF"
-    property color playIconColor: AccentMap.playIconOnFill(Colours.light, playButtonBg)
+    property color playIconColor: Colours.light ? Qt.rgba(0, 0, 0, 0.92) : Qt.rgba(1, 1, 1, 0.94)
     property color surfaceColor: Colours.palette.m3surfaceContainerHigh
     property color onSurfaceColor: Colours.palette.m3onSurface
 
@@ -39,18 +45,18 @@ Item {
 
     readonly property bool hasArt: root.artUrl !== ""
 
-    function syncSystemDefaults(): void {
+    function syncSystemDefaults() {
         if (root.accentReady)
             return;
         root.visualizerAccent = Colours.palette.m3primaryContainer;
         root.playButtonBg = Colours.palette.m3primary;
-        root.playIconColor = AccentMap.playIconOnFill(Colours.light, root.playButtonBg);
+        root.playIconColor = accentAnalyser.playIconOnFill(Colours.light, root.playButtonBg);
         root.surfaceColor = Colours.palette.m3surfaceContainerHigh;
         root.onSurfaceColor = Colours.palette.m3onSurface;
         root._notifyAccentColors();
     }
 
-    function _notifyAccentColors(): void {
+    function _notifyAccentColors() {
         if (root._accentNotifyPending)
             return;
         root._accentNotifyPending = true;
@@ -65,11 +71,11 @@ Item {
         return url || "";
     }
 
-    function normalizedArtUrl(url: string): string {
+    function normalizedArtUrl(url) {
         return Players.normalizeMediaArtUrl(url);
     }
 
-    function resetPending(): void {
+    function resetPending() {
         root._pendingVisualizer = null;
         root._pendingPlayBg = null;
         root._pendingPlayIcon = null;
@@ -77,11 +83,11 @@ Item {
         root._pendingOnSurface = null;
     }
 
-    function applySystemFallback(): void {
+    function applySystemFallback() {
         Players.clearLiveAccent();
         root.visualizerAccent = Colours.palette.m3primaryContainer;
         root.playButtonBg = Colours.palette.m3primary;
-        root.playIconColor = AccentMap.playIconOnFill(Colours.light, root.playButtonBg);
+        root.playIconColor = accentAnalyser.playIconOnFill(Colours.light, root.playButtonBg);
         root.surfaceColor = Colours.palette.m3surfaceContainerHigh;
         root.onSurfaceColor = Colours.palette.m3onSurface;
         root.accentReady = false;
@@ -92,7 +98,7 @@ Item {
 
     property bool _publishing: false
 
-    function publishAccent(url: string): void {
+    function publishAccent(url) {
         if (root._publishing)
             return;
         root._publishing = true;
@@ -100,7 +106,7 @@ Item {
         root._publishing = false;
     }
 
-    function applyCachedPreview(url: string, cached: var): void {
+    function applyCachedPreview(url, cached) {
         root.visualizerAccent = cached.visualizer;
         root.playButtonBg = cached.playButtonBg;
         root.playIconColor = cached.playIconColor;
@@ -121,24 +127,24 @@ Item {
         root._notifyAccentColors();
     }
 
-    function lookupTrackCache(url: string): var {
+    function lookupTrackCache(url) {
         if (!url)
             return null;
         const hit = Players.getMediaAccent(url);
-        if (!hit?.visualizer || !hit?.playButtonBg)
+        if (!hit || !hit.visualizer || !hit.playButtonBg)
             return null;
         const rawBg = typeof hit.playButtonBg === "string" ? Qt.color(hit.playButtonBg) : hit.playButtonBg;
-        const playBg = AccentMap.playButtonFill(rawBg, Colours.light) ?? rawBg;
+        const playBg = accentAnalyser.playButtonFill(rawBg, Colours.light) || rawBg;
         return {
             visualizer: typeof hit.visualizer === "string" ? Qt.color(hit.visualizer) : hit.visualizer,
             playButtonBg: playBg,
-            playIconColor: AccentMap.playIconOnFill(Colours.light, playBg),
-            surfaceColor: AccentMap.surfaceColor(rawBg, Colours.light) || Colours.palette.m3surfaceContainerHigh,
-            onSurfaceColor: AccentMap.onSurfaceColor(Colours.light)
+            playIconColor: accentAnalyser.playIconOnFill(Colours.light, playBg),
+            surfaceColor: accentAnalyser.surfaceColor(rawBg, Colours.light) || Colours.palette.m3surfaceContainerHigh,
+            onSurfaceColor: accentAnalyser.onSurfaceColor(Colours.light)
         };
     }
 
-    function restoreCachedPreview(url: string): bool {
+    function restoreCachedPreview(url) {
         if (!url || root.accentReady || root._cacheRestoreInFlight)
             return false;
         const cached = root.lookupTrackCache(url);
@@ -150,28 +156,28 @@ Item {
         return true;
     }
 
-    function schedulePrimaryPick(): void {
+    function schedulePrimaryPick() {
         // Obsolete: entirely replaced by ImageAnalyser
     }
 
-    function isVisibleAccent(c: color): bool {
+    function isVisibleAccent(c) {
         return c && c.a > 0 && c.hslLightness > 0.02;
     }
 
-    function onSeedReady(): void {
+    function onSeedReady() {
         // Discard stale results — if artUrl changed while analysis was in flight, ignore
         if (root._pendingAnalysisUrl && root._pendingAnalysisUrl !== root.artUrl)
             return;
         const seed = accentAnalyser.dominantColour;
-        const vis = AccentMap.vibrantAccent(seed);
-        const fill = AccentMap.playButtonFill(seed, Colours.light);
+        const vis = accentAnalyser.vibrantAccent(seed);
+        const fill = accentAnalyser.playButtonFill(seed, Colours.light);
         if (!vis || !fill)
             return;
         root._pendingVisualizer = vis;
         root._pendingPlayBg = fill;
-        root._pendingPlayIcon = AccentMap.playIconOnFill(Colours.light, fill);
-        root._pendingSurface = AccentMap.surfaceColor(seed, Colours.light);
-        root._pendingOnSurface = AccentMap.onSurfaceColor(Colours.light);
+        root._pendingPlayIcon = accentAnalyser.playIconOnFill(Colours.light, fill);
+        root._pendingSurface = accentAnalyser.surfaceColor(seed, Colours.light);
+        root._pendingOnSurface = accentAnalyser.onSurfaceColor(Colours.light);
 
         root.visualizerAccent = vis;
         root.playButtonBg = fill;
@@ -183,7 +189,7 @@ Item {
         root.tryCommit();
     }
 
-    function tryCommit(): void {
+    function tryCommit() {
         if (!root.artUrl)
             return;
 
@@ -217,7 +223,7 @@ Item {
         root._notifyAccentColors();
     }
 
-    function setArtUrl(url: string): void {
+    function setArtUrl(url) {
         if (root._settingArtUrl)
             return;
         root._settingArtUrl = true;
@@ -270,36 +276,55 @@ Item {
         root._settingArtUrl = false;
     }
 
-    function probeReady(): bool {
+    function probeReady() {
         return accentProbe.status === Image.Ready && accentProbe.source !== "";
     }
 
-    function configureAnalyser(): void {
-        accentAnalyser.source = "";
-        accentAnalyser.sourceItem = accentProbe;
+    function configureAnalyser() {
+        const rawUrl = root.artSourceUrl;
+        if (!rawUrl)
+            return;
+        const isLocal = rawUrl.startsWith("file://") || rawUrl.startsWith("/");
+        if (isLocal) {
+            let path = rawUrl;
+            if (path.startsWith("file://"))
+                path = Players.stripArtDisplayUrl(path);
+            else if (path.includes("#"))
+                path = path.split("#")[0];
+            accentAnalyser.sourceItem = null;
+            accentAnalyser.source = path;
+        } else {
+            accentAnalyser.source = "";
+            accentAnalyser.sourceItem = accentProbe;
+        }
     }
 
-    function scheduleAnalysis(): void {
+    function scheduleAnalysis() {
         if (!root.artUrl)
             return;
         root._pendingAnalysisUrl = root.artUrl;
         root.configureAnalyser();
-        if (root.probeReady()) {
+        const rawUrl = root.artSourceUrl;
+        const isLocal = rawUrl.startsWith("file://") || rawUrl.startsWith("/");
+        if (isLocal) {
+            accentAnalyser.requestUpdate();
+        } else if (root.probeReady()) {
             accentAnalyser.requestUpdate();
         }
-        // If probe not ready yet, onStatusChanged will call scheduleAnalysis again once loaded.
         accentRetryTimer.restart();
     }
 
-    function commitFromAnalyser(): void {
-        if (root.artSourceUrl === "" && !root.probeReady())
-            return;
+    function commitFromAnalyser() {
         root.onSeedReady();
     }
 
     Image {
         id: accentProbe
-        visible: false
+        width: 128
+        height: 128
+        sourceSize: Qt.size(128, 128)
+        opacity: 0.001
+        visible: true
         source: root.artSourceUrl
         asynchronous: true
         cache: false
@@ -308,13 +333,6 @@ Item {
             if (status === Image.Ready && !root.accentReady)
                 root.scheduleAnalysis();
         }
-    }
-
-    ImageAnalyser {
-        id: accentAnalyser
-
-        profile: "albumArt"
-        rescaleSize: 128
     }
 
     Timer {

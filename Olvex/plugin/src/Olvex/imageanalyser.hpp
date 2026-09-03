@@ -44,6 +44,12 @@ public:
     Q_INVOKABLE void requestUpdate();
     Q_INVOKABLE void cancel();
 
+    Q_INVOKABLE QColor vibrantAccent(const QColor& seed) const;
+    Q_INVOKABLE QColor surfaceColor(const QColor& seed, bool isLight = false) const;
+    Q_INVOKABLE QColor onSurfaceColor(bool isLight = false) const;
+    Q_INVOKABLE QColor playButtonFill(const QColor& primary, bool isLight = false) const;
+    Q_INVOKABLE QColor playIconOnFill(bool isLight, const QColor& fill) const;
+
 signals:
     void sourceChanged();
     void sourceItemChanged();

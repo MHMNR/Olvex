@@ -73,6 +73,7 @@ Item {
     }
 
     // ── Chain-reaction stagger controller ────────────────────────────────────
+    readonly property bool isTransitioning: entranceAnim.running || exitAnim.running
     readonly property int stagger: 70    // ms between each component
     readonly property int dur: 850        // slide duration
     readonly property int exitDur: 650   // exit duration
@@ -85,10 +86,10 @@ Item {
 
     Connections {
         target: root.lock
-        function onContentReadyChanged(): void {
+        function onContentReadyChanged() {
             if (root.lock.contentReady) entranceAnim.start()
         }
-        function onUnlockingChanged(): void {
+        function onUnlockingChanged() {
             if (root.lock.unlocking) {
                 entranceAnim.stop()
                 exitAnim.start()
@@ -170,14 +171,9 @@ Item {
         implicitWidth: topBarRow.implicitWidth
         implicitHeight: 48
         clip: false
-        opacity: root.elementOpacity
+        layer.enabled: root.isTransitioning
+        layer.smooth: true
         transform: Translate { id: topBarTrans; y: -root.vOffset }
-
-        Behavior on opacity {
-            Anim {
-                type: Anim.DefaultEffects
-            }
-        }
 
         Row {
             id: topBarRow
@@ -242,9 +238,9 @@ Item {
                 readonly property real _screenHz: Screen.refreshRate > 0 ? Screen.refreshRate : 60
                 readonly property int visualizerFrameInterval: Math.max(1, Math.round(1000 / musicPill._screenHz))
 
-                // M3 emphasized spatial spline — see olvex-m3-expressive skill §2
-                readonly property var spatialEasing: [0.2, 0.0, 0.0, 1.0, 1, 1]
-                readonly property int boundsDur: 400
+                // M3 Expressive default spatial spline — official M3 Expressive motion spec
+                readonly property var spatialEasing: [0.38, 1.21, 0.22, 1.00, 1.0, 1.0]
+                readonly property int boundsDur: Tokens.anim.durations.expressiveDefaultSpatial || 500
 
                 readonly property int compactW: 168
                 readonly property int compactH: 48
@@ -350,7 +346,7 @@ Item {
                     }
                 ]
 
-                function syncVisualizerOwner(): void {
+                function syncVisualizerOwner() {
                     VisualizerState.request("lockPill", 40, musicPill.isPlaying);
                 }
 
@@ -398,12 +394,13 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: Players.musicSurfaceColor
+                        color: Qt.alpha(Players.musicSurfaceColor, root.elementOpacity)
+                        Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
 
                         Rectangle {
                             anchors.fill: parent
                             radius: musicPill.expanded ? 28 : 24
-                            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
+                            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08 * root.elementOpacity)
                         }
                     }
 
@@ -734,8 +731,8 @@ Item {
                                 }
                             }
 
-                            Anim on waveProgress {
-                                running: waveIndicator.amplitudeMultiplier > 0 && LockState.locked
+                            NumberAnimation on waveProgress {
+                                running: waveIndicator.amplitudeMultiplier > 0.001
                                 from: 0
                                 to: 1
                                 duration: 1400
@@ -868,7 +865,8 @@ Item {
                 radius: height / 2
                 
                 // Sleek Material Card Background
-                color: Colours.palette.m3surfaceContainerHigh
+                color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
+                Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
 
                 Row {
                     id: statsRow
@@ -1069,7 +1067,8 @@ Item {
                 anchors.topMargin: 0
                 clip: true
 
-                color: Colours.palette.m3surfaceContainerHigh
+                color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
+                Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
                 property bool expanded: false
 
                 width: expanded ? 340 : (notifHeaderRow.width + 16)
@@ -1252,13 +1251,6 @@ Item {
         }
 
         spacing: 0
-        opacity: root.elementOpacity
-
-        Behavior on opacity {
-            Anim {
-                type: Anim.DefaultEffects
-            }
-        }
 
         // Clock + Date block (left half)
         Item {
@@ -1366,6 +1358,8 @@ Item {
         Item {
             Layout.preferredWidth: 360
             Layout.fillHeight: true
+            layer.enabled: root.isTransitioning
+            layer.smooth: true
             transform: Translate { id: authTrans; x: root.offset }
 
             Item {
@@ -1377,7 +1371,8 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: 24
-                    color: Colours.palette.m3surfaceContainerHigh
+                    color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
+                    Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
                 }
 
                 Column {
@@ -1526,53 +1521,36 @@ Item {
                     }
 
                     // Password input row
-                    Rectangle {
+                    StyledRect {
                         id: inputRow
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: parent.width
-                        height: pwdLayout.implicitHeight + 20
-                        radius: height / 2
-                        color: Qt.alpha(Colours.palette.m3onSurface, 0.06)
-                        border.color: root.activeFocus
-                            ? Colours.palette.m3primary
-                            : Qt.alpha(Colours.palette.m3outline, 0.3)
-                        border.width: root.activeFocus ? 2 : 1
+                        implicitHeight: pwdLayout.implicitHeight + Tokens.padding.small * 2
+                        radius: Tokens.rounding.full
+                        color: passInputHover.hovered
+                            ? Qt.alpha(Colours.palette.m3onSurface, 0.15)
+                            : Qt.alpha(Colours.palette.m3onSurface, 0.12)
 
-                        scale: 1.0
-
-                        Behavior on border.color { ColorAnimation { duration: 200 } }
-                        Behavior on border.width { NumberAnimation { duration: 150 } }
-                        Behavior on scale {
-                            NumberAnimation { duration: 120; easing.type: Easing.OutBack }
+                        HoverHandler {
+                            id: passInputHover
                         }
 
-                        TapHandler {
-                            onTapped: {
-                                root.forceActiveFocus();
-                                inputRow.scale = 0.97;
-                                pulseBack.restart();
-                            }
-                        }
-
-                        Timer {
-                            id: pulseBack
-                            interval: 120
-                            onTriggered: inputRow.scale = 1.0
+                        StateLayer {
+                            onClicked: root.forceActiveFocus()
+                            hoverEnabled: false
+                            cursorShape: Qt.IBeamCursor
                         }
 
                         RowLayout {
                             id: pwdLayout
                             anchors.fill: parent
-                            anchors.leftMargin: 18
-                            anchors.rightMargin: 8
-                            anchors.topMargin: 10
-                            anchors.bottomMargin: 10
-                            spacing: 8
+                            anchors.margins: Tokens.padding.small
+                            spacing: Tokens.spacing.normal
 
                             // Fingerprint / lock icon + spinner
                             Item {
-                                implicitWidth: fprintIcon.implicitWidth + 8
-                                implicitHeight: fprintIcon.implicitHeight
+                                implicitWidth: implicitHeight
+                                implicitHeight: fprintIcon.implicitHeight + Tokens.padding.small * 2
 
                                 MaterialIcon {
                                     id: fprintIcon
@@ -1588,14 +1566,17 @@ Item {
                                     color: root.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries
                                         ? Colours.palette.m3error
                                         : Colours.palette.m3onSurfaceVariant
-                                    iconPointSize: Tokens.font.size.normal
                                     opacity: root.pam.isVerifying ? 0 : 1
                                     Behavior on opacity { Anim {} }
                                 }
 
-                                CircularIndicator {
-                                    anchors.fill: parent
-                                    running: root.pam.isVerifying
+                                LoadingIndicator {
+                                    anchors.centerIn: parent
+                                    implicitSize: fprintIcon.implicitHeight
+                                    color: Colours.palette.m3primary
+                                    animated: root.pam.isVerifying
+                                    opacity: root.pam.isVerifying ? 1 : 0
+                                    Behavior on opacity { Anim {} }
                                 }
                             }
 
@@ -1606,18 +1587,15 @@ Item {
                             }
 
                             // Submit arrow button
-                            Rectangle {
-                                implicitWidth: 38
-                                implicitHeight: 38
-                                radius: 19
+                            StyledRect {
+                                implicitWidth: implicitHeight
+                                implicitHeight: enterIcon.implicitHeight + Tokens.padding.small * 2
+                                radius: Tokens.rounding.full
                                 color: root.pam.buffer
                                     ? Colours.palette.m3primary
                                     : Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
-                                Behavior on color { ColorAnimation { duration: 200 } }
-
                                 StateLayer {
-                                    radius: parent.radius
                                     color: root.pam.buffer
                                         ? Colours.palette.m3onPrimary
                                         : Colours.palette.m3onSurface
@@ -1625,13 +1603,13 @@ Item {
                                 }
 
                                 MaterialIcon {
+                                    id: enterIcon
                                     anchors.centerIn: parent
                                     text: "arrow_forward"
                                     color: root.pam.buffer
                                         ? Colours.palette.m3onPrimary
                                         : Colours.palette.m3onSurfaceVariant
-                                    iconPointSize: Tokens.font.size.normal
-                                    font.weight: Font.Medium
+                                    font.weight: 500
                                 }
                             }
                         }
@@ -1639,7 +1617,7 @@ Item {
 
                     // PAM flash message (errors)
                     Connections {
-                        function onFlashMsg(): void {
+                        function onFlashMsg() {
                             flashAnim.restart();
                         }
                         target: root.pam
@@ -1666,19 +1644,15 @@ Item {
 
         implicitWidth: actRow.implicitWidth + 32
         implicitHeight: actRow.implicitHeight + 20
-        opacity: root.elementOpacity
+        layer.enabled: root.isTransitioning
+        layer.smooth: true
         transform: Translate { id: bottomBarTrans; y: root.vOffset }
-
-        Behavior on opacity {
-            Anim {
-                type: Anim.DefaultEffects
-            }
-        }
 
         Rectangle {
             anchors.fill: parent
             radius: height / 2
-            color: Colours.palette.m3surfaceContainerHigh
+            color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
+            Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
         }
 
         RowLayout {
@@ -1766,7 +1740,7 @@ Item {
     component ActionBtn: Item {
         required property string icon
         required property string label
-        required property list<string> command
+        required property var command
 
         implicitWidth: hov.hovered ? row.implicitWidth + 36 : 52
         implicitHeight: 52
@@ -1952,7 +1926,7 @@ Item {
             }
         }
 
-        function restartMarquee(): void {
+        function restartMarquee() {
             marqueeAnim.stop();
             marqueeRow.scrollX = 0;
             if (needsMarquee && running)

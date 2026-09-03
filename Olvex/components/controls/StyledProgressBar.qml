@@ -42,7 +42,7 @@ ProgressBar {
         return start >= end ? Qt.point(0, 0) : Qt.point(start, end);
     }
 
-    function updateIAnimState(): void {
+    function updateIAnimState() {
         if (indeterminate) {
             manager.completeEndProgress = 0;
             indeterminateAnimState = StyledProgressBar.Running;
@@ -222,7 +222,7 @@ ProgressBar {
         fullLength: parent.width
         color: root.fgColour
 
-        Anim on waveProgress {
+        NumberAnimation on waveProgress {
             running: true
             paused: wave.amplitudeMultiplier === 0 || root.wavePaused
             from: 0

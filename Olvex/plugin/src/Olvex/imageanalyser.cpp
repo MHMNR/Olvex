@@ -70,7 +70,71 @@ double scoreAlbumArtPixel(int h, int s, int l, double colourCount) {
     return score;
 }
 
+bool isValidSeed(const QColor& seed) {
+    return seed.isValid() && seed.alphaF() > 0.0f && seed.lightnessF() > 0.02f;
+}
+
+double relativeLuminance(const QColor& c) {
+    if (!isValidSeed(c)) {
+        return 0.0;
+    }
+    auto channel = [](double v) {
+        return v <= 0.03928 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
+    };
+    return channel(static_cast<double>(c.redF())) * 0.2126 +
+           channel(static_cast<double>(c.greenF())) * 0.7152 +
+           channel(static_cast<double>(c.blueF())) * 0.0722;
+}
+
 } // namespace
+
+QColor ImageAnalyser::vibrantAccent(const QColor& seed) const {
+    if (!isValidSeed(seed)) {
+        return QColor();
+    }
+    const float hue = seed.hslHueF();
+    float sat = std::min(0.96f, std::max(0.58f, seed.hslSaturationF() * 1.45f + 0.22f));
+    float lit = std::min(0.80f, std::max(0.44f, seed.lightnessF() * 1.25f + 0.20f));
+
+    if (seed.hslSaturationF() < 0.14f) {
+        sat = 0.64f;
+        lit = 0.54f;
+    }
+
+    return QColor::fromHslF(hue < 0.0f ? 0.0f : hue, sat, lit, 1.0f);
+}
+
+QColor ImageAnalyser::surfaceColor(const QColor& seed, bool isLight) const {
+    if (!isValidSeed(seed)) {
+        return QColor();
+    }
+    const float hue = seed.hslHueF();
+    const float sat = std::min(0.20f, seed.hslSaturationF() * 0.4f);
+    const float lit = isLight ? 0.94f : 0.12f;
+
+    return QColor::fromHslF(hue < 0.0f ? 0.0f : hue, sat, lit, 1.0f);
+}
+
+QColor ImageAnalyser::onSurfaceColor(bool isLight) const {
+    return isLight ? QColor::fromRgbF(0.0f, 0.0f, 0.0f, 0.90f) : QColor::fromRgbF(1.0f, 1.0f, 1.0f, 0.90f);
+}
+
+QColor ImageAnalyser::playButtonFill(const QColor& primary, bool isLight) const {
+    if (!isValidSeed(primary)) {
+        return QColor();
+    }
+    const float sat = std::min(1.0f, primary.hslSaturationF() * 1.22f + 0.08f);
+    const float lit = isLight ? std::min(0.35f, primary.lightnessF()) : std::max(0.82f, primary.lightnessF());
+    const float hue = primary.hslHueF();
+    return QColor::fromHslF(hue < 0.0f ? 0.0f : hue, sat, lit, primary.alphaF());
+}
+
+QColor ImageAnalyser::playIconOnFill(bool isLight, const QColor& fill) const {
+    if (isValidSeed(fill)) {
+        return relativeLuminance(fill) > 0.48 ? QColor::fromRgbF(0.0f, 0.0f, 0.0f, 0.92f) : QColor::fromRgbF(1.0f, 1.0f, 1.0f, 0.94f);
+    }
+    return isLight ? QColor::fromRgbF(1.0f, 1.0f, 1.0f, 0.92f) : QColor::fromRgbF(0.0f, 0.0f, 0.0f, 0.92f);
+}
 
 ImageAnalyser::ImageAnalyser(QObject* parent)
     : QObject(parent)
@@ -265,6 +329,9 @@ void ImageAnalyser::update() {
     } else {
         m_futureWatcher->setFuture(QtConcurrent::run([=, this](QPromise<AnalyseResult>& promise) {
             QString path = m_source;
+            if (path.contains(QLatin1Char('#'))) {
+                path = path.section(QLatin1Char('#'), 0, 0);
+            }
             if (path.startsWith(QLatin1String("file://"))) {
                 path = QUrl(path).toLocalFile();
             }

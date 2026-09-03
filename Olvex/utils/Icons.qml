@@ -386,7 +386,7 @@ Singleton {
         names.push(name);
     }
 
-    function _iconNameVariants(icon: string) {
+    function _iconNameVariants(icon) {
         const names = [];
         const seen = ({});
 

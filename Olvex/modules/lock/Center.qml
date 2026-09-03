@@ -15,7 +15,7 @@ ColumnLayout {
     id: root
 
     required property var lock
-    readonly property real centerScale: Math.min(1, (lock.screen?.height ?? 1440) / 1440)
+    readonly property real centerScale: Math.min(1, (lock && lock.screen ? lock.screen.height : 1440) / 1440)
     readonly property int centerWidth: Tokens.sizes.lock.centerWidth * centerScale
 
     Layout.preferredWidth: centerWidth
@@ -27,10 +27,10 @@ ColumnLayout {
     // ── Entrance/Exit Animations ─────────────────────────────────────────────
     Connections {
         target: root.lock
-        function onContentReadyChanged(): void {
+        function onContentReadyChanged() {
             if (root.lock.contentReady) entranceAnim.start()
         }
-        function onUnlockingChanged(): void {
+        function onUnlockingChanged() {
             if (root.lock.unlocking) {
                 entranceAnim.stop()
                 exitAnim.restart()
@@ -92,7 +92,8 @@ ColumnLayout {
 
         transform: Translate { id: clockTrans; y: -800 }
 
-        layer.enabled: true
+        layer.enabled: !entranceAnim.running && !exitAnim.running
+        layer.smooth: true
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: Colours.palette.m3shadow
@@ -245,8 +246,15 @@ ColumnLayout {
         }
     }
 
-    // ── Auth Card (Bottom Aligned) ──────────────────────────────────────────
-    Rectangle {
+    readonly property real elementOpacity: {
+        const v = GlobalConfig.lock.minimalOpacity;
+        if (v === undefined || v === null || Number.isNaN(v))
+            return 1;
+        return Math.max(0.05, Math.min(1, v));
+    }
+
+    // ── Center Card ───────────────────────────────────────────────────────────
+    StyledRect {
         id: authCard
         Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
         Layout.bottomMargin: 0
@@ -257,7 +265,13 @@ ColumnLayout {
         implicitHeight: authContent.implicitHeight + Tokens.padding.large * 2
         
         radius: Tokens.rounding.large
-        color: Colours.palette.m3surfaceContainerHigh
+        color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
+        Behavior on color {
+            ColorAnimation {
+                duration: Tokens.anim.durations.normal
+                easing: Tokens.anim.emphasizedDecel
+            }
+        }
         
         ColumnLayout {
             id: authContent
@@ -268,8 +282,12 @@ ColumnLayout {
             Item {
                 id: avatarHost
                 Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 100
+                Layout.preferredHeight: 100
                 implicitWidth: 100
                 implicitHeight: 100
+                width: 100
+                height: 100
 
                 property real spin: 0
 
@@ -278,7 +296,7 @@ ColumnLayout {
                     to: 0
                     duration: 20000
                     loops: Animation.Infinite
-                    running: LockState.locked && root.visible
+                    running: root.visible && (!root.lock || (root.lock.contentReady && !root.lock.unlocking)) && !entranceAnim.running && !exitAnim.running
                 }
 
                 // Outer spinning ring
@@ -349,11 +367,18 @@ ColumnLayout {
             }
 
             StyledRect {
+                id: passInputContainer
                 Layout.alignment: Qt.AlignHCenter
                 implicitWidth: 300
                 implicitHeight: input.implicitHeight + Tokens.padding.small * 2
-                color: Qt.alpha(Colours.current.m3surfaceContainerLowest, 0.6) // Darker, more distinct shade
+                color: passInputHover.hovered
+                    ? Qt.alpha(Colours.palette.m3onSurface, 0.15)
+                    : Qt.alpha(Colours.palette.m3onSurface, 0.12)
                 radius: Tokens.rounding.full
+
+                HoverHandler {
+                    id: passInputHover
+                }
 
                 StateLayer {
                     onClicked: parent.forceActiveFocus()
@@ -387,9 +412,13 @@ ColumnLayout {
                             Behavior on opacity { Anim {} }
                         }
 
-                        CircularIndicator {
-                            anchors.fill: parent
-                            running: root.lock.pam.isVerifying
+                        LoadingIndicator {
+                            anchors.centerIn: parent
+                            implicitSize: fprintIcon.implicitHeight
+                            color: Colours.palette.m3primary
+                            animated: root.lock.pam.isVerifying
+                            opacity: root.lock.pam.isVerifying ? 1 : 0
+                            Behavior on opacity { Anim {} }
                         }
                     }
 

@@ -91,8 +91,6 @@ ColumnLayout {
             implicitHeight: 26
             radius: Tokens.rounding.small
             color: Qt.alpha(Colours.palette.m3tertiary, 0.12)
-            border.color: Qt.alpha(Colours.palette.m3tertiary, 0.25)
-            border.width: 1
 
             RowLayout {
                 anchors.centerIn: parent
@@ -119,8 +117,6 @@ ColumnLayout {
             implicitHeight: 26
             radius: Tokens.rounding.small
             color: Qt.alpha(Colours.palette.m3secondary, 0.12)
-            border.color: Qt.alpha(Colours.palette.m3secondary, 0.25)
-            border.width: 1
 
             RowLayout {
                 anchors.centerIn: parent
@@ -147,8 +143,6 @@ ColumnLayout {
             implicitHeight: 26
             radius: Tokens.rounding.small
             color: Qt.alpha(Colours.palette.m3primary, 0.12)
-            border.color: Qt.alpha(Colours.palette.m3primary, 0.25)
-            border.width: 1
 
             RowLayout {
                 anchors.centerIn: parent
@@ -175,8 +169,6 @@ ColumnLayout {
             implicitHeight: 26
             radius: Tokens.rounding.small
             color: Qt.alpha(Colours.palette.m3secondary, 0.12)
-            border.color: Qt.alpha(Colours.palette.m3secondary, 0.25)
-            border.width: 1
 
             RowLayout {
                 anchors.centerIn: parent

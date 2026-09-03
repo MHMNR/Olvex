@@ -78,8 +78,8 @@ ColumnLayout {
         }
         
         SettingRow {
-            title: qsTr("Element opacity")
-            description: qsTr("Opacity of minimal-style elements")
+            title: qsTr("Background opacity")
+            description: qsTr("Card and pill background opacity")
             divider: false
             StyledSlider {
                 implicitWidth: 220
@@ -108,18 +108,6 @@ ColumnLayout {
                 checked: GlobalConfig.lock.showOnStartup
                 onToggled: {
                     GlobalConfig.lock.showOnStartup = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Recolor logo")
-            description: qsTr("Tint the lock-screen logo to the theme")
-            StyledSwitch {
-                checked: GlobalConfig.lock.recolourLogo
-                onToggled: {
-                    GlobalConfig.lock.recolourLogo = checked;
                     GlobalConfig.save();
                 }
             }
