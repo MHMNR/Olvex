@@ -48,6 +48,7 @@ Item {
     readonly property alias qspanel: qspanel
     readonly property alias toasts: toasts
     readonly property alias bottomPanel: bottomPanel
+    readonly property alias contextMenuContainer: menuContainer
 
     readonly property alias pinnedLayout: layout
 
@@ -113,6 +114,7 @@ Item {
     // Context menu state - for root-level popup menu
     property string contextMenuAppId: ""
     property bool contextMenuVisible: false
+    property bool contextMenuCanAnimateMove: false
     property real contextMenuX: 0
     property real contextMenuY: 0
     property var contextMenuWindows: []  // List of running windows for this app
@@ -128,6 +130,9 @@ Item {
             hideContextMenu();
             return;
         }
+
+        const isSwitching = contextMenuVisible && menuContainer.opacity > 0.8;
+        contextMenuCanAnimateMove = isSwitching;
 
         // Cancel any pending fade-out timer to allow smooth morphing
         menuFadeOutTimer.stop();
@@ -161,15 +166,16 @@ Item {
         }
 
         // Y will be calculated dynamically in menuContainer based on its height
-        contextMenuX = mx;
-        contextMenuY = 0;  // Not used, will calculate in binding
         contextMenuWindows = windows;
         contextMenuAppId = appId;
+        contextMenuX = mx;
+        contextMenuY = 0;  // Not used, will calculate in binding
         contextMenuVisible = true;
     }
 
     function hideContextMenu() {
         contextMenuVisible = false;
+        contextMenuCanAnimateMove = false;
         contextMenuHoveredItem = null;
         // Delay clearing the data so animation can complete
         menuFadeOutTimer.restart();
@@ -884,6 +890,9 @@ Item {
                                 property bool isPressing: false
 
                                 onPressed: mouse => {
+                                    if (root.contextMenuVisible && mouse.button === Qt.LeftButton) {
+                                        root.hideContextMenu();
+                                    }
                                     if (mouse.button === Qt.LeftButton) {
                                         isPressing = true;
                                         pinnedState.startDrag(appId, index, appWrapper.x + mouse.x, appWrapper.y + mouse.y);
@@ -963,6 +972,11 @@ Item {
         visible: root.contextMenuVisible
         anchors.fill: parent
         z: 9999
+        acceptedButtons: Qt.AllButtons
+        onPressed: mouse => {
+            root.hideContextMenu();
+            mouse.accepted = false;
+        }
         onClicked: root.hideContextMenu()
     }
 
@@ -970,11 +984,11 @@ Item {
     Elevation {
         id: menuContainer
         x: root.contextMenuX
-        y: root.height + root.bottomMargin - 80 - implicitHeight - 8
+        y: bottomPanel.y - implicitHeight - 8
         radius: Tokens.rounding.normal
         level: 2
         z: 10000
-        visible: root.contextMenuVisible
+        visible: root.contextMenuVisible || opacity > 0
 
         implicitWidth: root.contextMenuWidth
         implicitHeight: Math.min(menuCol.implicitHeight + Tokens.padding.normal * 2, 350)
@@ -1001,6 +1015,7 @@ Item {
         }
 
         Behavior on x {
+            enabled: root.contextMenuCanAnimateMove
             NumberAnimation {
                 duration: 250
                 easing.type: Easing.BezierSpline
@@ -1009,6 +1024,7 @@ Item {
         }
 
         Behavior on y {
+            enabled: root.contextMenuCanAnimateMove
             NumberAnimation {
                 duration: 250
                 easing.type: Easing.BezierSpline

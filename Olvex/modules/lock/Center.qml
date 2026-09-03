@@ -109,8 +109,6 @@ ColumnLayout {
             implicitHeight: dateRow.implicitHeight + (10 * root.centerScale)
             radius: Tokens.rounding.full
             color: Qt.alpha(Colours.palette.m3primary, 0.14)
-            border.color: Qt.alpha(Colours.palette.m3primary, 0.3)
-            border.width: 1
 
             RowLayout {
                 id: dateRow
@@ -188,8 +186,6 @@ ColumnLayout {
                     implicitHeight: amPmText.implicitHeight + (4 * root.centerScale)
                     radius: Tokens.rounding.small
                     color: Qt.alpha(Colours.palette.m3primary, 0.16)
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
-                    border.width: 1
 
                     StyledText {
                         id: amPmText

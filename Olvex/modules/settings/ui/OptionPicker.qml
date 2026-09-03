@@ -23,13 +23,35 @@ Item {
     property bool menuOnTop: false
     property real menuMaxHeight: 320
     property bool expanded: false
+    property bool searchable: count > 10
+    property string searchQuery: ""
+
+    property var filteredModel: {
+        if (!root.model) return [];
+        if (!root.searchQuery) {
+            let res = [];
+            for (let i = 0; i < root.model.length; i++) res.push({ val: root.model[i], orig: i });
+            return res;
+        }
+        const q = root.searchQuery.toLowerCase();
+        let res = [];
+        for (let i = 0; i < root.model.length; i++) {
+            if (root.labelOf(i).toLowerCase().includes(q)) {
+                res.push({ val: root.model[i], orig: i });
+            }
+        }
+        return res;
+    }
 
     signal selected(int index)
 
     readonly property int count: model ? model.length : 0
     readonly property real rowHeight: 36
-    readonly property bool animating: morphState !== "closed"
+    readonly property bool animating: morphState !== "closed" || closeGrace.running
     property string morphState: "closed" // "closed", "open"
+
+    readonly property int morphDuration: Tokens?.anim?.durations?.expressiveDefaultSpatial ?? 450
+    readonly property var morphEasing: Tokens?.anim?.expressiveDefaultSpatial
 
     implicitWidth: face.implicitWidth
     implicitHeight: face.implicitHeight
@@ -132,8 +154,8 @@ Item {
     // Geometric calculations based on the watcher
     readonly property point mappedPos: {
         watcher.transform; // Trigger reactivity
-        if (!root.overlayParent || !face) return Qt.point(0, 0);
-        return face.mapToItem(root.overlayParent, 0, 0);
+        if (!root.overlayParent) return Qt.point(0, 0);
+        return root.mapToItem(root.overlayParent, 0, 0);
     }
     readonly property real currentX: mappedPos.x
     readonly property real currentY: mappedPos.y
@@ -158,7 +180,7 @@ Item {
             : ((belowY + targetH > maxOverlayH - 8) ? aboveY : belowY);
     }
 
-    // ── Static Button (Placeholder) ──
+    // ── Static Button (Placeholder in Layout) ──
     StyledRect {
         id: face
         anchors.fill: parent
@@ -172,10 +194,15 @@ Item {
 
         StateLayer {
             radius: parent.radius
-            color: Colours.palette.m3onPrimary
+            color: Colours.palette.m3surface
             onClicked: {
+                root.searchQuery = "";
                 root.expanded = true;
                 root.morphState = "open";
+                
+                if (root.searchable && typeof searchField !== "undefined") {
+                    searchField.forceActiveFocus();
+                }
                 
                 // Align scroll position
                 const maxContentY = Math.max(0, (root.count * root.rowHeight) - (root.targetH - Tokens.padding.small * 2));
@@ -202,9 +229,10 @@ Item {
                     anchors.centerIn: parent
                     visible: !faceRow.isMat
                     text: faceRow.currentPrev
-                    color: Colours.palette.m3onPrimary
-                    textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.smaller ?? 11)
+                    color: Colours.palette.m3surface
+                    textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.small ?? 11)
                     font.weight: Font.Medium
+                    font.family: Tokens?.font?.family?.sans ?? "sans-serif"
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -213,7 +241,7 @@ Item {
                     anchors.centerIn: parent
                     visible: faceRow.isMat
                     text: faceRow.currentPrev
-                    color: Colours.palette.m3onPrimary
+                    color: Colours.palette.m3surface
                     iconPointSize: Tokens.font.size.normal
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
@@ -230,9 +258,10 @@ Item {
                     id: faceText
                     anchors.centerIn: parent
                     text: root.labelOf(root.currentIndex)
-                    color: Colours.palette.m3onPrimary
+                    color: Colours.palette.m3surface
                     textPointSize: Tokens.font.size.small
                     font.weight: Font.Medium
+                    font.family: Tokens?.font?.family?.sans ?? "sans-serif"
                     verticalAlignment: Text.AlignVCenter
                     
                     SequentialAnimation on x {
@@ -256,7 +285,7 @@ Item {
             MaterialIcon {
                 Layout.alignment: Qt.AlignVCenter
                 text: "expand_more"
-                color: Colours.palette.m3onPrimary
+                color: Colours.palette.m3surface
                 iconPointSize: Tokens.font.size.normal
                 opacity: 0.85
                 verticalAlignment: Text.AlignVCenter
@@ -278,7 +307,7 @@ Item {
         onWheel: event => event.accepted = true
     }
 
-    // True M3 Expressive Shared Element Morph
+    // True M3 Expressive Shared Element Container Morph
     Rectangle {
         id: morphContainer
         parent: root.overlayParent
@@ -288,10 +317,10 @@ Item {
 
         Timer {
             id: closeGrace
-            interval: 500 // Keeps container alive while physics settle
+            interval: root.morphDuration + 60
         }
 
-        // M3 Physics Bounds
+        // M3 Physics Bounds - Smooth Emphasized Deceleration Curve
         x: root.morphState === "open" ? root.targetX : root.currentX
         y: root.morphState === "open" ? root.targetY : root.currentY
         width: root.morphState === "open" ? root.targetW : root.startW
@@ -306,110 +335,97 @@ Item {
 
         // Background Crossfade
         color: root.morphState === "open" ? Colours.palette.m3surfaceContainerLow : Colours.palette.m3primary
-        Behavior on color { ColorAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+        Behavior on color { ColorAnimation { duration: root.morphDuration; easing: root.morphEasing } }
         
         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
         border.width: root.morphState === "open" ? 1 : 0
-        Behavior on border.width { NumberAnimation { duration: 250 } }
+        Behavior on border.width { NumberAnimation { duration: root.morphDuration } }
 
-        // ── Traveling Active Item ──
-        Rectangle {
-            id: travelingPill
-            
-            // In closed state, fills the button. In open state, positions at the active row.
-            x: root.morphState === "open" ? Tokens.padding.small : 0
-            y: root.morphState === "open" ? (Tokens.padding.small + root.currentIndex * root.rowHeight - list.contentY) : 0
-            width: root.morphState === "open" ? (root.targetW - Tokens.padding.small * 2) : root.startW
+        // ── Outgoing Button Face (Fades out smoothly when opening) ──
+        Item {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            width: root.startW
             height: root.startH
-            radius: root.morphState === "open" ? Tokens.rounding.small : (root.startH / 2)
-            
-            color: root.morphState === "open" ? Colours.palette.m3primary : "transparent"
-            Behavior on color { ColorAnimation { duration: 250 } }
+            opacity: root.morphState === "open" ? 0 : 1
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
 
-            Behavior on x { Anim { type: Anim.DefaultSpatial } }
-            Behavior on y { Anim { type: Anim.DefaultSpatial } }
-            Behavior on width { Anim { type: Anim.DefaultSpatial } }
-            // Height is constant, no behavior needed
-            Behavior on radius { Anim { type: Anim.DefaultSpatial } }
+            RowLayout {
+                anchors.centerIn: parent
+                spacing: Tokens.spacing.small
 
-            // Absolute positioning for flawless M3 Shared Element text glide
-            readonly property string currentPrev: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.previewOf(root.model[root.currentIndex]) : ""
-            readonly property bool isMat: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.isMaterialPreview(root.model[root.currentIndex]) : false
-            readonly property real prevStartW: currentPrev.length > 0 ? (20 + Tokens.spacing.small) : 0
-            readonly property real textStartW: travelingText.width
-            readonly property real iconStartW: travelingIcon.width
-            readonly property real totalStartW: prevStartW + textStartW + Tokens.spacing.small + iconStartW
-            readonly property real contentStartX: (root.startW - totalStartW) / 2
+                Item {
+                    visible: morphPrev.length > 0
+                    Layout.preferredWidth: visible ? 20 : 0
+                    Layout.preferredHeight: 20
+                    Layout.alignment: Qt.AlignVCenter
 
-            Item {
-                id: travelingPreview
-                visible: travelingPill.currentPrev.length > 0
-                x: root.morphState === "open" ? Tokens.padding.normal : travelingPill.contentStartX
-                anchors.verticalCenter: parent.verticalCenter
-                width: 20
-                height: 20
+                    readonly property string morphPrev: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.previewOf(root.model[root.currentIndex]) : ""
+                    readonly property bool isMat: root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length ? root.isMaterialPreview(root.model[root.currentIndex]) : false
 
-                Behavior on x { Anim { type: Anim.DefaultSpatial } }
+                    StyledText {
+                        anchors.centerIn: parent
+                        visible: !parent.isMat
+                        text: parent.morphPrev
+                        color: Colours.palette.m3surface
+                        textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.small ?? 11)
+                        font.weight: Font.Medium
+                        font.family: Tokens?.font?.family?.sans ?? "sans-serif"
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter
+                    }
 
-                StyledText {
-                    anchors.centerIn: parent
-                    visible: !travelingPill.isMat
-                    text: travelingPill.currentPrev
-                    color: Colours.palette.m3onPrimary
-                    textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.smaller ?? 11)
-                    font.weight: Font.Medium
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        visible: parent.isMat
+                        text: parent.morphPrev
+                        color: Colours.palette.m3surface
+                        iconPointSize: Tokens.font.size.normal
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                Item {
+                    Layout.preferredWidth: Math.min(morphText.implicitWidth, 160)
+                    Layout.preferredHeight: morphText.implicitHeight
+                    Layout.alignment: Qt.AlignVCenter
+                    clip: true
+
+                    StyledText {
+                        id: morphText
+                        anchors.centerIn: parent
+                        text: root.labelOf(root.currentIndex)
+                        color: Colours.palette.m3surface
+                        textPointSize: Tokens.font.size.small
+                        font.weight: Font.Medium
+                        font.family: Tokens?.font?.family?.sans ?? "sans-serif"
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
 
                 MaterialIcon {
-                    anchors.centerIn: parent
-                    visible: travelingPill.isMat
-                    text: travelingPill.currentPrev
-                    color: Colours.palette.m3onPrimary
+                    Layout.alignment: Qt.AlignVCenter
+                    text: "expand_more"
+                    color: Colours.palette.m3surface
                     iconPointSize: Tokens.font.size.normal
                     verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
                 }
-            }
-
-            StyledText {
-                id: travelingText
-                x: root.morphState === "open" ? (Tokens.padding.normal + travelingPill.prevStartW) : (travelingPill.contentStartX + travelingPill.prevStartW)
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.labelOf(root.currentIndex)
-                color: Colours.palette.m3onPrimary
-                textPointSize: Tokens.font.size.small
-                font.weight: root.morphState === "open" ? Font.DemiBold : Font.Medium
-                elide: Text.ElideRight
-                width: Math.min(implicitWidth, 160)
-                verticalAlignment: Text.AlignVCenter
-                
-                Behavior on x { Anim { type: Anim.DefaultSpatial } }
-            }
-
-            MaterialIcon {
-                id: travelingIcon
-                x: root.morphState === "open" ? root.targetW : (parent.contentStartX + travelingText.width + Tokens.spacing.small)
-                anchors.verticalCenter: parent.verticalCenter
-                text: "expand_more"
-                color: Colours.palette.m3onPrimary
-                iconPointSize: Tokens.font.size.normal
-                opacity: root.morphState === "open" ? 0 : 0.85
-                verticalAlignment: Text.AlignVCenter
-                
-                Behavior on x { Anim { type: Anim.DefaultSpatial } }
-                Behavior on opacity { NumberAnimation { duration: 150 } }
             }
         }
 
-        // ── List Items (Fade in/out) ──
+        // ── Incoming Dropdown Content (Fades in smoothly when opening) ──
         Item {
-            anchors.fill: parent
-            anchors.margins: Tokens.padding.small
-            z: 3
+            anchors.top: parent.top
+            anchors.topMargin: Tokens.padding.small
+            anchors.left: parent.left
+            anchors.leftMargin: Tokens.padding.small
+            width: root.targetW - Tokens.padding.small * 2
+            height: root.targetH - Tokens.padding.small * 2
             opacity: root.morphState === "open" ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
             WheelHandler {
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
@@ -420,17 +436,38 @@ Item {
                 }
             }
 
+            StyledTextField {
+                id: searchField
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: root.searchable ? Tokens.padding.small : 0
+                visible: root.searchable
+                height: visible ? implicitHeight : 0
+                placeholderText: qsTr("Search...")
+                text: root.searchQuery
+                onTextChanged: {
+                    if (text !== root.searchQuery) {
+                        root.searchQuery = text;
+                    }
+                }
+            }
+
             StyledListView {
                 id: list
-                anchors.fill: parent
+                anchors.top: root.searchable ? searchField.bottom : parent.top
+                anchors.topMargin: root.searchable ? Tokens.spacing.small : 0
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
                 clip: true
-                model: root.model
+                model: root.filteredModel
                 spacing: 0
                 boundsBehavior: Flickable.StopAtBounds
                 focus: root.expanded
                 keyNavigationEnabled: true
                 highlightFollowsCurrentItem: false
-                currentIndex: root.currentIndex
+                currentIndex: -1
 
                 StyledScrollBar.vertical: StyledScrollBar {
                     flickable: list
@@ -447,26 +484,42 @@ Item {
                     y: list.hoveredIndex * root.rowHeight
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
                     radius: Tokens.rounding.small
-                    opacity: list.hoveredIndex >= 0 && list.hoveredIndex !== root.currentIndex ? 1 : 0
+                    opacity: {
+                        if (list.hoveredIndex < 0 || !root.filteredModel || list.hoveredIndex >= root.filteredModel.length) return 0;
+                        const item = root.filteredModel[list.hoveredIndex];
+                        const orig = (typeof item === "object" && item !== null && "orig" in item) ? item.orig : list.hoveredIndex;
+                        return orig !== root.currentIndex ? 1 : 0;
+                    }
                     visible: opacity > 0
                     
                     Behavior on y { Anim { type: Anim.DefaultSpatial } }
                     Behavior on opacity { NumberAnimation { duration: 150 } }
                 }
+
                 delegate: Item {
                     id: row
                     required property var modelData
                     required property int index
-                    readonly property bool active: index === root.currentIndex
-                    readonly property string label: root.displayName(modelData)
+                    readonly property int originalIndex: (typeof modelData === "object" && modelData !== null && "orig" in modelData) ? modelData.orig : index
+                    readonly property var origModelData: (typeof modelData === "object" && modelData !== null && "val" in modelData) ? modelData.val : modelData
+                    readonly property bool active: originalIndex === root.currentIndex
+                    readonly property string label: root.displayName(origModelData)
                     readonly property bool previewAsFont: {
-                        const s = (modelData === undefined || modelData === null) ? "" : String(modelData);
+                        const s = (origModelData === undefined || origModelData === null) ? "" : String(origModelData);
                         return s.length > 0 && s === row.label;
                     }
 
                     width: list.width
                     implicitHeight: root.rowHeight
                     height: implicitHeight
+
+                    // Applied indicator marker - EXACTLY list.width, NEVER resizes
+                    Rectangle {
+                        anchors.fill: parent
+                        color: Colours.palette.m3primary
+                        radius: Tokens.rounding.small
+                        visible: row.active
+                    }
 
                     RowLayout {
                         anchors.left: parent.left
@@ -482,16 +535,17 @@ Item {
                             Layout.preferredHeight: 20
                             Layout.alignment: Qt.AlignVCenter
 
-                            readonly property string rowPrev: root.previewOf(row.modelData)
-                            readonly property bool isMat: root.isMaterialPreview(row.modelData)
+                            readonly property string rowPrev: root.previewOf(row.origModelData)
+                            readonly property bool isMat: root.isMaterialPreview(row.origModelData)
 
                             StyledText {
                                 anchors.centerIn: parent
                                 visible: !parent.isMat
                                 text: parent.rowPrev
-                                opacity: row.active ? 0 : 1
-                                color: Colours.palette.m3onSurface
-                                textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.smaller ?? 11)
+                                color: row.active ? Colours.palette.m3surface : Colours.palette.m3onSurface
+                                textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.small ?? 11)
+                                font.weight: Font.Medium
+                                font.family: Tokens?.font?.family?.sans ?? "sans-serif"
                                 verticalAlignment: Text.AlignVCenter
                                 horizontalAlignment: Text.AlignHCenter
                             }
@@ -500,8 +554,7 @@ Item {
                                 anchors.centerIn: parent
                                 visible: parent.isMat
                                 text: parent.rowPrev
-                                opacity: row.active ? 0 : 1
-                                color: Colours.palette.m3onSurface
+                                color: row.active ? Colours.palette.m3surface : Colours.palette.m3onSurface
                                 iconPointSize: Tokens.font.size.normal
                                 verticalAlignment: Text.AlignVCenter
                                 horizontalAlignment: Text.AlignHCenter
@@ -518,14 +571,14 @@ Item {
                                 id: rowText
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: row.label
-                                opacity: row.active ? 0 : 1 // Active label is drawn by travelingPill
-                                color: Colours.palette.m3onSurface
-                                font.family: row.previewAsFont ? String(row.modelData) : (Tokens?.font?.family?.sans ?? "sans-serif")
-                                textPointSize: Tokens.font.size.smaller
+                                color: row.active ? Colours.palette.m3surface : Colours.palette.m3onSurface
+                                font.weight: Font.Medium
+                                font.family: row.previewAsFont ? String(row.origModelData) : (Tokens?.font?.family?.sans ?? "sans-serif")
+                                textPointSize: Tokens.font.size.small
                                 
                                 SequentialAnimation on x {
                                     loops: Animation.Infinite
-                                    running: Boolean(parent) && rowText.implicitWidth > (parent ? parent.width : 0) && root.expanded && opacity > 0
+                                    running: Boolean(parent) && rowText.implicitWidth > (parent ? parent.width : 0) && root.expanded && root.morphState === "open" && !closeGrace.running
                                     PauseAnimation { duration: 1500 }
                                     NumberAnimation {
                                         from: 0
@@ -554,7 +607,7 @@ Item {
                         onPositionChanged: {
                             if (list.hoveredIndex !== row.index) list.hoveredIndex = row.index;
                         }
-                        onClicked: root.pick(row.index)
+                        onClicked: root.pick(row.originalIndex)
                     }
                 }
             }

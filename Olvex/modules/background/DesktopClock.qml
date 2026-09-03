@@ -13,10 +13,10 @@ Item {
     required property real absX
     required property real absY
 
-    property real clockScale: Config.background.desktopClock.scale
-    readonly property bool bgEnabled: Config.background.desktopClock.background.enabled
-    readonly property bool blurEnabled: bgEnabled && Config.background.desktopClock.background.blur && !GameMode.enabled
-    readonly property bool invertColors: Config.background.desktopClock.invertColors
+    property real clockScale: Config.background && Config.background.desktopClock ? Config.background.desktopClock.scale : 1.0
+    readonly property bool bgEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.enabled)
+    readonly property bool blurEnabled: bgEnabled && Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.blur) && !GameMode.enabled
+    readonly property bool invertColors: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.invertColors)
     readonly property bool useLightSet: Colours.light ? !invertColors : invertColors
     readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
     readonly property color safeSecondary: useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
@@ -30,12 +30,12 @@ Item {
         id: clockContainer
         anchors.fill: parent
 
-        layer.enabled: Config.background.desktopClock.shadow.enabled
+        layer.enabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow && Config.background.desktopClock.shadow.enabled)
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: Colours.palette.m3shadow
-            shadowOpacity: Config.background.desktopClock.shadow.opacity
-            shadowBlur: Config.background.desktopClock.shadow.blur
+            shadowOpacity: Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow ? Config.background.desktopClock.shadow.opacity : 0.7
+            shadowBlur: Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow ? Config.background.desktopClock.shadow.blur : 0.4
         }
 
         Loader {
@@ -65,7 +65,7 @@ Item {
             visible: root.bgEnabled
             anchors.fill: parent
             radius: Tokens.rounding.large * root.clockScale
-            opacity: Config.background.desktopClock.background.opacity
+            opacity: Config.background && Config.background.desktopClock && Config.background.desktopClock.background ? Config.background.desktopClock.background.opacity : 0.7
             color: Colours.palette.m3surfaceContainerLow
             border.color: Colours.palette.m3outlineVariant
             border.width: 1
@@ -86,8 +86,6 @@ Item {
                 implicitHeight: dateRow.implicitHeight + (8 * root.clockScale)
                 radius: Tokens.rounding.full
                 color: Qt.alpha(root.safePrimary, 0.12)
-                border.color: Qt.alpha(root.safePrimary, 0.25)
-                border.width: 1
 
                 RowLayout {
                     id: dateRow
@@ -162,8 +160,6 @@ Item {
                         implicitHeight: amPmText.implicitHeight + (4 * root.clockScale)
                         radius: Tokens.rounding.small
                         color: Qt.alpha(root.safeSecondary, 0.15)
-                        border.color: Qt.alpha(root.safeSecondary, 0.3)
-                        border.width: 1
 
                         StyledText {
                             id: amPmText

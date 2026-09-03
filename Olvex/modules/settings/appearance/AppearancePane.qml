@@ -37,18 +37,18 @@ Item {
     property real borderThickness: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness ?? 1
     property bool borderFloating: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).floating ?? true
 
-    property bool desktopClockEnabled: Config.background.desktopClock.enabled ?? false
-    property real desktopClockScale: Config.background.desktopClock.scale ?? 1
-    property string desktopClockPosition: Config.background.desktopClock.position ?? "bottom-right"
-    property bool desktopClockShadowEnabled: Config.background.desktopClock.shadow.enabled ?? true
-    property real desktopClockShadowOpacity: Config.background.desktopClock.shadow.opacity ?? 0.7
-    property real desktopClockShadowBlur: Config.background.desktopClock.shadow.blur ?? 0.4
-    property bool desktopClockBackgroundEnabled: Config.background.desktopClock.background.enabled ?? false
-    property real desktopClockBackgroundOpacity: Config.background.desktopClock.background.opacity ?? 0.7
-    property bool desktopClockBackgroundBlur: Config.background.desktopClock.background.blur ?? false
-    property bool desktopClockInvertColors: Config.background.desktopClock.invertColors ?? false
-    property bool backgroundEnabled: Config.background.enabled ?? true
-    property bool wallpaperEnabled: Config.background.wallpaperEnabled ?? true
+    property bool desktopClockEnabled: GlobalConfig.background?.desktopClock?.enabled ?? false
+    property real desktopClockScale: GlobalConfig.background?.desktopClock?.scale ?? 1
+    property string desktopClockPosition: GlobalConfig.background?.desktopClock?.position ?? "bottom-right"
+    property bool desktopClockShadowEnabled: GlobalConfig.background?.desktopClock?.shadow?.enabled ?? true
+    property real desktopClockShadowOpacity: GlobalConfig.background?.desktopClock?.shadow?.opacity ?? 0.7
+    property real desktopClockShadowBlur: GlobalConfig.background?.desktopClock?.shadow?.blur ?? 0.4
+    property bool desktopClockBackgroundEnabled: GlobalConfig.background?.desktopClock?.background?.enabled ?? false
+    property real desktopClockBackgroundOpacity: GlobalConfig.background?.desktopClock?.background?.opacity ?? 0.7
+    property bool desktopClockBackgroundBlur: GlobalConfig.background?.desktopClock?.background?.blur ?? false
+    property bool desktopClockInvertColors: GlobalConfig.background?.desktopClock?.invertColors ?? false
+    property bool backgroundEnabled: GlobalConfig.background?.enabled ?? true
+    property bool wallpaperEnabled: GlobalConfig.background?.wallpaperEnabled ?? true
     property bool perMonitorWallpaper: GlobalConfig.background?.perMonitorWallpaper ?? false
     property bool liveWallpaperEnabled: GlobalConfig.background?.liveWallpaper?.enabled ?? false
     property bool liveWallpaperMuted: GlobalConfig.background?.liveWallpaper?.muted ?? true
@@ -82,19 +82,22 @@ Item {
         GlobalConfig.appearance.transparency.base = root.transparencyBase;
         GlobalConfig.appearance.transparency.layers = root.transparencyLayers;
 
-        GlobalConfig.background.desktopClock.enabled = root.desktopClockEnabled;
-        GlobalConfig.background.enabled = root.backgroundEnabled;
-        GlobalConfig.background.desktopClock.scale = root.desktopClockScale;
-        GlobalConfig.background.desktopClock.position = root.desktopClockPosition;
-        GlobalConfig.background.desktopClock.shadow.enabled = root.desktopClockShadowEnabled;
-        GlobalConfig.background.desktopClock.shadow.opacity = root.desktopClockShadowOpacity;
-        GlobalConfig.background.desktopClock.shadow.blur = root.desktopClockShadowBlur;
-        GlobalConfig.background.desktopClock.background.enabled = root.desktopClockBackgroundEnabled;
-        GlobalConfig.background.desktopClock.background.opacity = root.desktopClockBackgroundOpacity;
-        GlobalConfig.background.desktopClock.background.blur = root.desktopClockBackgroundBlur;
-        GlobalConfig.background.desktopClock.invertColors = root.desktopClockInvertColors;
-
-        GlobalConfig.background.wallpaperEnabled = root.wallpaperEnabled;
+        if (GlobalConfig.background?.desktopClock) {
+            GlobalConfig.background.desktopClock.enabled = root.desktopClockEnabled;
+            GlobalConfig.background.desktopClock.scale = root.desktopClockScale;
+            GlobalConfig.background.desktopClock.position = root.desktopClockPosition;
+            GlobalConfig.background.desktopClock.shadow.enabled = root.desktopClockShadowEnabled;
+            GlobalConfig.background.desktopClock.shadow.opacity = root.desktopClockShadowOpacity;
+            GlobalConfig.background.desktopClock.shadow.blur = root.desktopClockShadowBlur;
+            GlobalConfig.background.desktopClock.background.enabled = root.desktopClockBackgroundEnabled;
+            GlobalConfig.background.desktopClock.background.opacity = root.desktopClockBackgroundOpacity;
+            GlobalConfig.background.desktopClock.background.blur = root.desktopClockBackgroundBlur;
+            GlobalConfig.background.desktopClock.invertColors = root.desktopClockInvertColors;
+        }
+        if (GlobalConfig.background) {
+            GlobalConfig.background.enabled = root.backgroundEnabled;
+            GlobalConfig.background.wallpaperEnabled = root.wallpaperEnabled;
+        }
         if (GlobalConfig.background) {
             GlobalConfig.background.perMonitorWallpaper = root.perMonitorWallpaper;
 

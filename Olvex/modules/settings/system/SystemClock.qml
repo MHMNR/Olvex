@@ -8,6 +8,8 @@ import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
+import Quickshell
+import Quickshell.Io
 
 Item {
     id: root
@@ -22,6 +24,46 @@ Item {
                 return i;
         }
         return 0;
+    }
+
+    property string currentTz: ""
+    property var timezones: []
+    
+    Process {
+        id: tzListProc
+        running: true
+        command: ["bash", "-c", "timedatectl list-timezones"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim() !== "") {
+                    root.timezones = text.trim().split("\n").filter(t => t.length > 0);
+                }
+            }
+        }
+    }
+    Process {
+        id: tzProc
+        running: true
+        command: ["bash", "-c", "timedatectl show --property=Timezone --value"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim() !== "") {
+                    root.currentTz = text.trim();
+                }
+            }
+        }
+    }
+    
+    Process {
+        id: tzSetProc
+        onExited: {
+            if (exitCode === 0) {
+                tzProc.running = true;
+            } else {
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "critical", qsTr("Timezone Error"), qsTr("Invalid timezone or permission denied.")]);
+                tzProc.running = true;
+            }
+        }
     }
     
     opacity: 0
@@ -79,6 +121,27 @@ Item {
                 onSelected: i => {
                     GlobalConfig.services.useFahrenheit = i === 1;
                     GlobalConfig.save();
+                }
+            }
+        }
+        
+        SettingRow {
+            title: qsTr("Timezone")
+            description: qsTr("System timezone (e.g. Asia/Dhaka or America/New_York)")
+            divider: true
+            OptionPicker {
+                id: tzPicker
+                menuMaxHeight: 360
+                model: root.timezones
+                currentIndex: {
+                    const cur = root.currentTz || "";
+                    return root.idxOf(tzPicker.model, cur);
+                }
+                onSelected: i => {
+                    if (tzPicker.model && tzPicker.model[i]) {
+                        tzSetProc.command = ["timedatectl", "set-timezone", tzPicker.model[i]];
+                        tzSetProc.running = true;
+                    }
                 }
             }
         }

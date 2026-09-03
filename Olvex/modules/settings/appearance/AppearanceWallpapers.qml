@@ -23,7 +23,7 @@ ColumnLayout {
     
     property string wallpaperMode: Wallpapers.isVideoPath(Wallpapers.actualCurrent) ? "live" : "static"
     readonly property var transitionTypes: ["fade", "wipe", "disc", "stripes", "iris", "pixelate", "portal", "random"]
-    readonly property var clockPositions: ["center", "top-left", "top-right", "bottom-left", "bottom-right"]
+    readonly property var clockPositions: ["middle-center", "top-left", "top-center", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-center", "bottom-right"]
 
     function idxOf(list, val) {
         for (let i = 0; i < list.length; i++) {
@@ -248,10 +248,12 @@ ColumnLayout {
             title: qsTr("Show desktop clock")
             description: qsTr("Draw the time over the wallpaper")
             StyledSwitch {
-                checked: GlobalConfig.background.clock?.enabled ?? false
+                checked: GlobalConfig.background?.desktopClock?.enabled ?? false
                 onToggled: {
-                    GlobalConfig.background.clock.enabled = checked;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background?.desktopClock) {
+                        GlobalConfig.background.desktopClock.enabled = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -261,10 +263,12 @@ ColumnLayout {
             description: qsTr("Where the clock is anchored")
             OptionPicker {
                 model: root.clockPositions
-                currentIndex: root.idxOf(root.clockPositions, GlobalConfig.background.clock?.position || "center")
+                currentIndex: root.idxOf(root.clockPositions, GlobalConfig.background?.desktopClock?.position || "bottom-right")
                 onSelected: i => {
-                    GlobalConfig.background.clock.position = root.clockPositions[i];
-                    GlobalConfig.save();
+                    if (GlobalConfig.background?.desktopClock) {
+                        GlobalConfig.background.desktopClock.position = root.clockPositions[i];
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -276,10 +280,12 @@ ColumnLayout {
                 width: 220
                 from: 0.5
                 to: 3.0
-                value: GlobalConfig.background.clock?.scale ?? 1.0
+                value: GlobalConfig.background?.desktopClock?.scale ?? 1.0
                 onMoved: {
-                    GlobalConfig.background.clock.scale = value;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background?.desktopClock) {
+                        GlobalConfig.background.desktopClock.scale = value;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -289,10 +295,12 @@ ColumnLayout {
             description: qsTr("Force dark text instead of light")
             divider: false
             StyledSwitch {
-                checked: GlobalConfig.background.clock?.invertColor ?? false
+                checked: GlobalConfig.background?.desktopClock?.invertColors ?? false
                 onToggled: {
-                    GlobalConfig.background.clock.invertColor = checked;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background?.desktopClock) {
+                        GlobalConfig.background.desktopClock.invertColors = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }

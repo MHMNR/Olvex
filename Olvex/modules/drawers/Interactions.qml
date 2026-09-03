@@ -171,6 +171,19 @@ CustomMouseArea {
             return;
         }
 
+        // Dismiss bottom panel app context menu when clicking outside it
+        if (panels.contextMenuVisible) {
+            const menu = panels.contextMenuContainer;
+            const pt = menu ? menu.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            const inMenu = menu && pt.x >= 0 && pt.x <= menu.width && pt.y >= 0 && pt.y <= menu.height;
+
+            if (!inMenu) {
+                panels.hideContextMenu();
+                event.accepted = false;
+                return;
+            }
+        }
+
         dragStart = Qt.point(event.x, event.y);
 
         // Click bottom-left corner to toggle launcher

@@ -5,23 +5,29 @@ if(NOT DEFINED VERSION)
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         OUTPUT_VARIABLE VERSION
         OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
     )
 
+    if("${VERSION}" STREQUAL "" AND EXISTS "${CMAKE_SOURCE_DIR}/version.json")
+        file(READ "${CMAKE_SOURCE_DIR}/version.json" _VERSION_JSON)
+        string(REGEX MATCH "\"version\"[ \t]*:[ \t]*\"([^\"]+)\"" _ ${_VERSION_JSON})
+        set(VERSION "${CMAKE_MATCH_1}")
+    endif()
+
     if("${VERSION}" STREQUAL "")
-        message(WARNING "VERSION is not set and failed to get from git; falling back to 0.0.0")
-        set(VERSION "0.0.0")
+        set(VERSION "1.0.0")
     endif()
 endif()
 
 if(NOT DEFINED GIT_REVISION)
-    execute_process(COMMAND git rev-parse HEAD
+    execute_process(COMMAND git rev-parse --short HEAD
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         OUTPUT_VARIABLE GIT_REVISION
         OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
     )
 
     if("${GIT_REVISION}" STREQUAL "")
-        message(WARNING "GIT_REVISION is not set and failed to get from git; falling back to unknown")
         set(GIT_REVISION "unknown")
     endif()
 endif()

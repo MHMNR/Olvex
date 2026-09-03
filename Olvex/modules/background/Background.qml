@@ -83,7 +83,7 @@ Variants {
             readonly property real _panelOffset: (_bottomMode === "always" || _bottomMode === "smarthide") ? 40 : 0
             readonly property real _baseMargin: Tokens.padding.large * 2
 
-            readonly property bool _isBottom: Config.background.desktopClock.position.startsWith("bottom")
+            readonly property bool _isBottom: (Config.background.desktopClock.position || "").startsWith("bottom")
             
             anchors.bottomMargin: _baseMargin
 
@@ -135,6 +135,15 @@ Variants {
                         target: clockLoader
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
+                    }
+                },
+                State {
+                    name: "center"
+
+                    AnchorChanges {
+                        target: clockLoader
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.horizontalCenter: parent.horizontalCenter
                     }
                 },
                 State {

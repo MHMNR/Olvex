@@ -272,7 +272,7 @@ Item {
                                     StyledText {
                                         id: verText
                                         anchors.centerIn: parent
-                                        text: "v1.0.0"
+                                        text: Version.versionString
                                         color: Colours.palette.m3primary
                                         font.family: Tokens.font.family.mono
                                         font.weight: Font.Bold
@@ -280,8 +280,29 @@ Item {
                                     }
                                 }
 
+                                Loader {
+                                    active: Boolean(Version.commit)
+                                    visible: active
+                                    sourceComponent: StyledRect {
+                                        implicitWidth: commitText.implicitWidth + 12
+                                        implicitHeight: 22
+                                        radius: Tokens.rounding.full
+                                        color: Qt.alpha(Colours.palette.m3secondary, 0.12)
+
+                                        StyledText {
+                                            id: commitText
+                                            anchors.centerIn: parent
+                                            text: Version.commit
+                                            color: Colours.palette.m3secondary
+                                            font.family: Tokens.font.family.mono
+                                            font.weight: Font.Medium
+                                            textPointSize: Tokens.font.size.smaller
+                                        }
+                                    }
+                                }
+
                                 StyledText {
-                                    text: qsTr("Rolling Release")
+                                    text: Version.channel + (Version.branch ? (" (" + Version.branch + ")") : "")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
                                     font.letterSpacing: 0.1
