@@ -564,6 +564,12 @@ Singleton {
     }
 
     Connections {
+        target: GlobalConfig
+        function onLoaded() { root.requestReloadHyprRules() }
+        function onSaved() { root.requestReloadHyprRules() }
+    }
+
+    Connections {
         target: Hypr
         function onConfigReloaded() { root.reloadHyprRules() }
     }

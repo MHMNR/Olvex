@@ -235,7 +235,14 @@ class AppearanceTransparency : public ConfigObject {
 
 public:
     explicit AppearanceTransparency(QObject* parent = nullptr)
-        : ConfigObject(parent) {}
+        : ConfigObject(parent) {
+        markPropertyLoaded(QStringLiteral("enabled"));
+        markPropertyLoaded(QStringLiteral("blur"));
+        markPropertyLoaded(QStringLiteral("base"));
+        markPropertyLoaded(QStringLiteral("layers"));
+        markPropertyLoaded(QStringLiteral("blurRadius"));
+        markPropertyLoaded(QStringLiteral("blurPasses"));
+    }
 };
 
 class AppearanceConfig : public ConfigObject {

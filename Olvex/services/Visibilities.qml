@@ -13,17 +13,16 @@ Singleton {
     property bool shellMotionActive: false
     property bool areaPickerActive: false
 
-    property bool bottomPanelDockBackground: bpSettings.dockBackground
+    property alias bottomPanelDockBackground: bpSettings.dockBackground
 
-    QC.Settings {
+    PersistentProperties {
         id: bpSettings
-        category: "BottomPanel"
+        reloadableId: "bottomPanelSettings"
         property bool dockBackground: true
     }
 
     function setBottomPanelDockBackground(val) {
         bpSettings.dockBackground = val;
-        bottomPanelDockBackground = val;
     }
 
     function pulseShellMotion(duration) {

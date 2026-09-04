@@ -135,7 +135,6 @@ Item {
             GlobalConfig.border.rounding = root.borderRounding;
             GlobalConfig.border.thickness = root.borderThickness;
             GlobalConfig.border.floating = root.borderFloating;
-            GlobalConfig.save();
         }
         if (GlobalConfig.lock) {
             GlobalConfig.lock.style = root.lockStyle;
@@ -144,8 +143,8 @@ Item {
             GlobalConfig.lock.dimWallpaper = root.lockDimWallpaper;
             GlobalConfig.lock.cardBlur = root.lockCardBlur;
             GlobalConfig.lock.blurRadius = root.lockBlurRadius;
-            GlobalConfig.save();
         }
+        GlobalConfig.save();
     }
 
     anchors.fill: parent
