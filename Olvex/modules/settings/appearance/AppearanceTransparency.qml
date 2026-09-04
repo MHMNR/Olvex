@@ -37,6 +37,18 @@ ColumnLayout {
         }
 
         SettingRow {
+            title: qsTr("Enable blur")
+            description: qsTr("Blur background behind translucent surfaces")
+            StyledSwitch {
+                checked: GlobalConfig.appearance.transparency.blur
+                onToggled: {
+                    GlobalConfig.appearance.transparency.blur = checked;
+                    GlobalConfig.save();
+                }
+            }
+        }
+
+        SettingRow {
             title: qsTr("Base opacity")
             description: qsTr("Opacity of panel backgrounds")
             StyledSlider {

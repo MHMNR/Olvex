@@ -41,9 +41,11 @@ Singleton {
     readonly property bool transparencyEnabled: Tokens.transparency.enabled
     readonly property real transparencyBase: Math.max(0.01, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
     readonly property real transparencyLayers: Tokens.transparency.layers
+    readonly property bool transparencyBlur: Tokens.transparency.blur
     onTransparencyEnabledChanged: root.requestReloadHyprRules()
     onTransparencyBaseChanged: root.requestReloadHyprRules()
     onTransparencyLayersChanged: root.requestReloadHyprRules()
+    onTransparencyBlurChanged: root.requestReloadHyprRules()
 
     // ── Wallpaper luminance ─────────────────────────
     readonly property real wallLuminance: analyser.luminance
@@ -424,9 +426,10 @@ Singleton {
         const str = "keyword layerrule %1 %2, match:namespace %3";
         const namespaces = ["olvex-drawers", "quickshell:osk"];
         const messages = [];
+        const shouldBlur = transparencyEnabled && transparencyBlur;
         const ignoreAlpha = transparencyEnabled ? Math.max(0.005, transparencyBase * 0.7) : 1.0;
         namespaces.forEach(ns => {
-            messages.push(str.arg("blur").arg(transparencyEnabled ? 1 : 0).arg(ns));
+            messages.push(str.arg("blur").arg(shouldBlur ? 1 : 0).arg(ns));
             messages.push(str.arg("ignore_alpha").arg(ignoreAlpha.toFixed(3)).arg(ns));
         });
         Hypr.extras.batchMessage(messages);
@@ -519,6 +522,7 @@ Singleton {
         function onEnabledChanged() { root.requestReloadHyprRules() }
         function onBaseChanged() { root.requestReloadHyprRules() }
         function onLayersChanged() { root.requestReloadHyprRules() }
+        function onBlurChanged() { root.requestReloadHyprRules() }
     }
 
     Connections {
@@ -526,6 +530,7 @@ Singleton {
         function onEnabledChanged() { root.requestReloadHyprRules() }
         function onBaseChanged() { root.requestReloadHyprRules() }
         function onLayersChanged() { root.requestReloadHyprRules() }
+        function onBlurChanged() { root.requestReloadHyprRules() }
     }
 
     Connections {

@@ -29,6 +29,15 @@ CollapsibleSection {
         }
     }
 
+    SwitchRow {
+        label: qsTr("Blur enabled")
+        checked: rootPane.transparencyBlur
+        onToggled: checked => {
+            rootPane.transparencyBlur = checked;
+            rootPane.saveConfig();
+        }
+    }
+
     SectionContainer {
         contentSpacing: Tokens.spacing.normal
 

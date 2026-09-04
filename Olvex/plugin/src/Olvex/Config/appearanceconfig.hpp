@@ -227,6 +227,7 @@ class AppearanceTransparency : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_GLOBAL_PROPERTY(bool, enabled, false)
+    CONFIG_GLOBAL_PROPERTY(bool, blur, true)
     CONFIG_GLOBAL_PROPERTY(qreal, base, 0.85)
     CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.4)
 
