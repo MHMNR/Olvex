@@ -16,19 +16,81 @@ Singleton {
     property string osLogo: ""
     property bool isDefaultLogo: true
     property string kernel: ""
+    property string arch: "x86_64"
+    property string hostName: "localhost"
+    property string hyprVersion: ""
 
     property string uptime
-    readonly property string user: Quickshell.env("USER")
-    readonly property string wm: Quickshell.env("XDG_CURRENT_DESKTOP") || Quickshell.env("XDG_SESSION_DESKTOP")
-    readonly property string shell: Quickshell.env("SHELL").split("/").pop()
+    readonly property string user: Quickshell.env("USER") || "user"
+    readonly property string wm: Quickshell.env("XDG_CURRENT_DESKTOP") || Quickshell.env("XDG_SESSION_DESKTOP") || "Hyprland"
+    readonly property string shellRaw: Quickshell.env("SHELL").split("/").pop() || "fish"
+    readonly property string shell: {
+        const s = shellRaw.toLowerCase();
+        if (s === "fish") return "Fish";
+        if (s === "zsh") return "Zsh";
+        if (s === "bash") return "Bash";
+        if (s === "nushell" || s === "nu") return "Nu";
+        return s ? (s.charAt(0).toUpperCase() + s.slice(1)) : "Shell";
+    }
+
+    readonly property string kernelFormatted: {
+        if (!kernel) return "Linux";
+        return kernel.startsWith("Linux") ? kernel : ("Linux " + kernel);
+    }
+
+    readonly property string osDisplay: {
+        const name = osPrettyName || osName || "Linux";
+        return arch ? (name + " (" + arch + ")") : name;
+    }
+
+    readonly property string hostDisplay: {
+        return (user || "user") + "@" + (hostName || "localhost");
+    }
+
+    readonly property string wmDisplay: {
+        const w = wm || "Hyprland";
+        const ver = hyprVersion ? (" " + hyprVersion) : "";
+        return w + ver + " · Wayland";
+    }
+
+    readonly property string frameworkDisplay: {
+        const qtVer = (typeof Qt !== "undefined" && Qt.version) ? Qt.version : "6.9";
+        return "Qt " + qtVer + " · QML · Hyprland IPC";
+    }
 
     FileView {
         id: fileKernel
         path: "/proc/version"
         onLoaded: {
             // "Linux version 6.9.4-zen1-1-zen (linux-zen@archlinux) ..."
-            const match = text().match(/Linux version (\S+)/);
+            const txt = text();
+            const match = txt.match(/Linux version (\S+)/);
             if (match) root.kernel = match[1];
+            if (txt.includes("x86_64")) root.arch = "x86_64";
+            else if (txt.includes("aarch64") || txt.includes("arm64")) root.arch = "aarch64";
+            else if (txt.includes("arm")) root.arch = "arm";
+        }
+    }
+
+    FileView {
+        id: fileHostname
+        path: "/proc/sys/kernel/hostname"
+        onLoaded: {
+            const h = text().trim();
+            if (h) root.hostName = h;
+        }
+    }
+
+    Process {
+        id: hyprVerProc
+        running: true
+        command: ["hyprctl", "version"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (!text) return;
+                const m = text.match(/Hyprland\s+([0-9.]+)/i);
+                if (m && m[1]) root.hyprVersion = "v" + m[1];
+            }
         }
     }
 

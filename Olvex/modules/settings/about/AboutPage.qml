@@ -326,7 +326,39 @@ Item {
                         columnSpacing: 24
                         rowSpacing: 14
 
-                        // Item 1: KERNEL
+                        // Item 1: OPERATING SYSTEM
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 3
+
+                            RowLayout {
+                                spacing: 6
+                                MaterialIcon {
+                                    text: "desktop_windows"
+                                    color: Colours.palette.m3primary
+                                    iconPointSize: 13
+                                }
+                                StyledText {
+                                    text: qsTr("OPERATING SYSTEM")
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    font.weight: Font.DemiBold
+                                    font.letterSpacing: 0.8
+                                    textPointSize: Tokens.font.size.smaller
+                                }
+                            }
+
+                            StyledText {
+                                text: SysInfo.osDisplay || "Arch Linux (x86_64)"
+                                color: Colours.palette.m3onSurface
+                                font.weight: Font.Medium
+                                font.letterSpacing: -0.1
+                                textPointSize: Tokens.font.size.normal
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                        }
+
+                        // Item 2: KERNEL
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 3
@@ -348,39 +380,7 @@ Item {
                             }
 
                             StyledText {
-                                text: SysInfo.kernel || "Linux"
-                                color: Colours.palette.m3onSurface
-                                font.weight: Font.Medium
-                                font.letterSpacing: -0.1
-                                textPointSize: Tokens.font.size.normal
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
-                            }
-                        }
-
-                        // Item 2: SYSTEM HOST
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 3
-
-                            RowLayout {
-                                spacing: 6
-                                MaterialIcon {
-                                    text: "badge"
-                                    color: Colours.palette.m3primary
-                                    iconPointSize: 13
-                                }
-                                StyledText {
-                                    text: qsTr("SYSTEM HOST")
-                                    color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.DemiBold
-                                    font.letterSpacing: 0.8
-                                    textPointSize: Tokens.font.size.smaller
-                                }
-                            }
-
-                            StyledText {
-                                text: (SysInfo.user || "user") + "@" + (SysInfo.osPrettyName || "linux")
+                                text: SysInfo.kernelFormatted || (SysInfo.kernel ? ("Linux " + SysInfo.kernel) : "Linux")
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
@@ -412,7 +412,7 @@ Item {
                             }
 
                             StyledText {
-                                text: SysInfo.uptime || "2 days, 14 hours"
+                                text: SysInfo.uptime || "0m"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
@@ -444,7 +444,7 @@ Item {
                             }
 
                             StyledText {
-                                text: (SysInfo.shell || "fish").toUpperCase() + " · Quickshell"
+                                text: SysInfo.shell + " · Quickshell"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
@@ -476,7 +476,7 @@ Item {
                             }
 
                             StyledText {
-                                text: (SysInfo.wm || "Hyprland") + " · Wayland"
+                                text: SysInfo.wmDisplay || "Hyprland · Wayland"
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
@@ -508,7 +508,7 @@ Item {
                             }
 
                             StyledText {
-                                text: "Qt 6.7 · QML · Hyprland IPC"
+                                text: SysInfo.frameworkDisplay || ("Qt " + (typeof Qt !== "undefined" && Qt.version ? Qt.version : "6.9") + " · QML · Hyprland IPC")
                                 color: Colours.palette.m3onSurface
                                 font.weight: Font.Medium
                                 font.letterSpacing: -0.1
