@@ -797,10 +797,11 @@ Description=Hyprland Wayland Compositor Session
 Documentation=https://wiki.hyprland.org
 After=graphical-session-pre.target
 BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
 
 [Service]
-Type=notify
-ExecStart=/bin/sh -c 'exec start-hyprland 2>/dev/null || exec Hyprland'
+Type=simple
+ExecStart=/usr/bin/start-hyprland
 Restart=on-failure
 RestartSec=1
 StandardOutput=journal
@@ -816,28 +817,44 @@ EOF
     # Inject tty1 trigger into shell profile to attach display/seat on login
     local trigger_bash='
 # Autostart Hyprland service on tty1
-if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-    systemctl --user start hyprland.service 2>/dev/null || exec start-hyprland 2>/dev/null || exec Hyprland
+if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && [ -z "$HYPRLAND_INSTANCE_SIGNATURE" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    if ! pgrep -x Hyprland >/dev/null && ! systemctl --user is-active --quiet hyprland.service; then
+        systemctl --user start hyprland.service
+    fi
 fi
 '
     local trigger_fish='
 # Autostart Hyprland service on tty1
 if status is-login
-    if test -z "$DISPLAY" -a (tty) = "/dev/tty1"
-        systemctl --user start hyprland.service 2>/dev/null; or exec start-hyprland 2>/dev/null; or exec Hyprland
+    if test -z "$DISPLAY" -a -z "$WAYLAND_DISPLAY" -a -z "$HYPRLAND_INSTANCE_SIGNATURE" -a (tty) = "/dev/tty1"
+        if not pgrep -x Hyprland >/dev/null; and not systemctl --user is-active --quiet hyprland.service
+            systemctl --user start hyprland.service
+        end
     end
 end
 '
 
-    if [[ ! -f "${HOME}/.bash_profile" ]] || ! grep -q "hyprland.service" "${HOME}/.bash_profile" 2>/dev/null; then
-        echo "$trigger_bash" >> "${HOME}/.bash_profile"
+    # Clean old trigger and inject updated guard in bash profile
+    if [[ -f "${HOME}/.bash_profile" ]]; then
+        sed -i '/# Autostart Hyprland/,/fi/d' "${HOME}/.bash_profile" 2>/dev/null || true
     fi
+    echo "$trigger_bash" >> "${HOME}/.bash_profile"
 
+    # Clean old trigger and inject updated guard in fish profile
     if command -v fish &>/dev/null; then
         mkdir -p "${HOME}/.config/fish"
-        if [[ ! -f "${HOME}/.config/fish/config.fish" ]] || ! grep -q "hyprland.service" "${HOME}/.config/fish/config.fish" 2>/dev/null; then
-            echo "$trigger_fish" >> "${HOME}/.config/fish/config.fish"
+        if [[ -f "${HOME}/.config/fish/config.fish" ]]; then
+            python3 -c '
+from pathlib import Path
+import os, re
+p = Path(os.path.expanduser("~/.config/fish/config.fish"))
+if p.exists():
+    t = p.read_text()
+    t = re.sub(r"# Autostart Hyprland.*?end\s*\nend", "", t, flags=re.DOTALL)
+    p.write_text(t.rstrip() + "\n")
+' 2>/dev/null || true
         fi
+        echo "$trigger_fish" >> "${HOME}/.config/fish/config.fish"
     fi
 
     log_success "Hyprland service & autologin configured."
