@@ -42,10 +42,26 @@ Singleton {
     readonly property real transparencyBase: Math.max(0.01, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
     readonly property real transparencyLayers: Tokens.transparency.layers
     readonly property bool transparencyBlur: Tokens.transparency.blur
+    property int customBlurRadius: -1
+    property int customBlurPasses: -1
+    readonly property int transparencyBlurRadius: customBlurRadius > 0 ? customBlurRadius : (Tokens.transparency.blurRadius ?? (GlobalConfig.appearance.transparency.blurRadius ? GlobalConfig.appearance.transparency.blurRadius : 8))
+    readonly property int transparencyBlurPasses: customBlurPasses > 0 ? customBlurPasses : (Tokens.transparency.blurPasses ?? (GlobalConfig.appearance.transparency.blurPasses ? GlobalConfig.appearance.transparency.blurPasses : 2))
     onTransparencyEnabledChanged: root.requestReloadHyprRules()
     onTransparencyBaseChanged: root.requestReloadHyprRules()
     onTransparencyLayersChanged: root.requestReloadHyprRules()
     onTransparencyBlurChanged: root.requestReloadHyprRules()
+    onTransparencyBlurRadiusChanged: root.requestReloadHyprRules()
+    onTransparencyBlurPassesChanged: root.requestReloadHyprRules()
+
+    function setBlurRadius(radius) {
+        customBlurRadius = Math.max(1, Math.min(30, Math.round(radius)));
+        root.requestReloadHyprRules();
+    }
+
+    function setBlurPasses(passes) {
+        customBlurPasses = Math.max(1, Math.min(5, Math.round(passes)));
+        root.requestReloadHyprRules();
+    }
 
     // ── Wallpaper luminance ─────────────────────────
     readonly property real wallLuminance: analyser.luminance
@@ -432,6 +448,12 @@ Singleton {
             messages.push(str.arg("blur").arg(shouldBlur ? 1 : 0).arg(ns));
             messages.push(str.arg("ignore_alpha").arg(ignoreAlpha.toFixed(3)).arg(ns));
         });
+        if (shouldBlur) {
+            const size = Math.max(1, Math.min(30, transparencyBlurRadius));
+            const passes = Math.max(1, Math.min(5, transparencyBlurPasses));
+            messages.push("keyword decoration:blur:size " + size);
+            messages.push("keyword decoration:blur:passes " + passes);
+        }
         Hypr.extras.batchMessage(messages);
     }
 

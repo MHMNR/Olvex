@@ -253,8 +253,10 @@ ColumnLayout {
         return Math.max(0.05, Math.min(1, v));
     }
 
+    readonly property bool blurActive: (GlobalConfig.appearance.transparency.blur !== false) && (GlobalConfig.lock.cardBlur !== false) && !!(root.lock && root.lock.blurredWallpaper)
+
     // ── Center Card ───────────────────────────────────────────────────────────
-    StyledRect {
+    Rectangle {
         id: authCard
         Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
         Layout.bottomMargin: 0
@@ -265,11 +267,49 @@ ColumnLayout {
         implicitHeight: authContent.implicitHeight + Tokens.padding.large * 2
         
         radius: Tokens.rounding.large
-        color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
-        Behavior on color {
-            ColorAnimation {
-                duration: Tokens.anim.durations.normal
-                easing: Tokens.anim.emphasizedDecel
+        color: "transparent"
+        
+        // ── Backdrop blur plate ──────────────────────────────────────────────
+        StyledClippingRect {
+            id: blurPlate
+            anchors.fill: parent
+            radius: authCard.radius
+            visible: root.blurActive
+
+            ShaderEffectSource {
+                id: backdropSample
+                anchors.fill: parent
+                sourceItem: root.blurActive ? root.lock.blurredWallpaper : null
+                sourceRect: {
+                    if (!root.blurActive || !root.lock || !root.lock.rootItem)
+                        return Qt.rect(0, 0, 0, 0);
+                    // Dynamically bind to authTrans.y + authCard x/y for frame-by-frame realtime UV tracking
+                    const _track = authTrans.y + authCard.x + authCard.y;
+                    const pt = authCard.mapToItem(root.lock.rootItem, 0, 0);
+                    if (!pt || pt.x === undefined || pt.y === undefined || Number.isNaN(pt.x) || Number.isNaN(pt.y))
+                        return Qt.rect(0, 0, 0, 0);
+                    return Qt.rect(Math.max(0, pt.x), Math.max(0, pt.y), authCard.width, authCard.height);
+                }
+                live: true
+                smooth: true
+            }
+        }
+
+        // ── M3 Tint & Surface Overlay ────────────────────────────────────────
+        Rectangle {
+            id: tintPlate
+            anchors.fill: parent
+            radius: authCard.radius
+            color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
+            border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+            border.width: root.blurActive ? 1 : 0
+            antialiasing: true
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Tokens.anim.durations.normal
+                    easing: Tokens.anim.emphasizedDecel
+                }
             }
         }
         

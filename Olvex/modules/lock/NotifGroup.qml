@@ -92,10 +92,16 @@ StyledRect {
             implicitWidth: TokenConfig.sizes.notifs.image
             implicitHeight: TokenConfig.sizes.notifs.image
 
-            StyledClippingRect {
+            Item {
                 anchors.fill: parent
-                color: root.urgency === "critical" ? Colours.palette.m3error : root.urgency === "low" ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 3) : Colours.palette.m3secondaryContainer
-                radius: Tokens.rounding.full
+                layer.enabled: true
+                layer.smooth: true
+                layer.effect: CircleMask {}
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: root.urgency === "critical" ? Colours.palette.m3error : root.urgency === "low" ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 3) : Colours.palette.m3secondaryContainer
+                }
 
                 // 1. Real photo/bitmap image (not image://icon)
                 Image {
@@ -142,19 +148,28 @@ StyledRect {
                 anchors.bottom: parent.bottom
                 active: root.appIcon && root.image
 
-                sourceComponent: StyledRect {
+                sourceComponent: Item {
                     implicitWidth: Tokens.sizes.notifs.badge
                     implicitHeight: Tokens.sizes.notifs.badge
 
-                    color: root.urgency === "critical" ? Colours.palette.m3error : root.urgency === "low" ? Colours.palette.m3surfaceContainerHighest : Colours.palette.m3secondaryContainer
-                    radius: Tokens.rounding.full
+                    Item {
+                        anchors.fill: parent
+                        layer.enabled: true
+                        layer.smooth: true
+                        layer.effect: CircleMask {}
 
-                    ColouredIcon {
-                        anchors.centerIn: parent
-                        implicitSize: Math.round(Tokens.sizes.notifs.badge * 0.6)
-                        source: Icons.resolveIcon(root.appIcon, "")
-                        colour: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
-                        layer.enabled: root.appIcon.endsWith("symbolic")
+                        Rectangle {
+                            anchors.fill: parent
+                            color: root.urgency === "critical" ? Colours.palette.m3error : root.urgency === "low" ? Colours.palette.m3surfaceContainerHighest : Colours.palette.m3secondaryContainer
+                        }
+
+                        ColouredIcon {
+                            anchors.centerIn: parent
+                            implicitSize: Math.round(Tokens.sizes.notifs.badge * 0.6)
+                            source: Icons.resolveIcon(root.appIcon, "")
+                            colour: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+                            layer.enabled: root.appIcon.endsWith("symbolic")
+                        }
                     }
                 }
             }
@@ -181,7 +196,7 @@ StyledRect {
 
                 StyledText {
                     animate: true
-                    text: root.notifs[0]?.timeStr ?? ""
+                    text: (root.notifs.length > 0 && root.notifs[0].timeStr) ? root.notifs[0].timeStr : ""
                     color: Colours.palette.m3outline
                     textPointSize: Tokens.font.size.small
                 }

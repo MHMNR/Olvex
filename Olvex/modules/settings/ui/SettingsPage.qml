@@ -157,6 +157,19 @@ Item {
             y: Tokens.padding.large
             width: parent.width - Tokens.padding.large * 4
             spacing: Tokens.spacing.large
+
+            opacity: 0.0
+            transform: Translate { id: contentTrans; y: 20 }
+
+            Component.onCompleted: {
+                revealAnim.start();
+            }
+
+            ParallelAnimation {
+                id: revealAnim
+                NumberAnimation { target: contentCol; property: "opacity"; to: 1.0; duration: 400; easing.type: Easing.OutCubic }
+                NumberAnimation { target: contentTrans; property: "y"; to: 0; duration: 400; easing.type: Easing.OutCubic }
+            }
         }
     }
 

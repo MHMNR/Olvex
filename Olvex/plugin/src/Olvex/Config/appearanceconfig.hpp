@@ -230,6 +230,8 @@ class AppearanceTransparency : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(bool, blur, true)
     CONFIG_GLOBAL_PROPERTY(qreal, base, 0.85)
     CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.4)
+    CONFIG_GLOBAL_PROPERTY(int, blurRadius, 8)
+    CONFIG_GLOBAL_PROPERTY(int, blurPasses, 2)
 
 public:
     explicit AppearanceTransparency(QObject* parent = nullptr)

@@ -25,6 +25,18 @@ ColumnLayout {
     property string installPath: ""
     property string pendingFontName: ""
     spacing: Tokens.spacing.large
+    opacity: 0.0
+    transform: Translate { y: 20; id: yTrans }
+
+    Component.onCompleted: {
+        revealAnim.start();
+    }
+
+    ParallelAnimation {
+        id: revealAnim
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: yTrans; property: "y"; to: 0; duration: 400; easing.type: Easing.OutCubic }
+    }
 
     function idxOf(list, val) {
         for (let i = 0; i < list.length; i++) {

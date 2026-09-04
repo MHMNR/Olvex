@@ -40,6 +40,59 @@ CollapsibleSection {
 
     SectionContainer {
         contentSpacing: Tokens.spacing.normal
+        visible: rootPane.transparencyBlur
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Blur radius")
+            value: rootPane.transparencyBlurRadius
+            from: 1
+            to: 30
+            suffix: "px"
+            validator: IntValidator {
+                bottom: 1
+                top: 30
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                rootPane.transparencyBlurRadius = Math.round(newValue);
+                rootPane.saveConfig();
+                Colours.setBlurRadius(newValue);
+            }
+        }
+    }
+
+    SectionContainer {
+        contentSpacing: Tokens.spacing.normal
+        visible: rootPane.transparencyBlur
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Blur intensity")
+            value: rootPane.transparencyBlurPasses
+            from: 1
+            to: 5
+            validator: IntValidator {
+                bottom: 1
+                top: 5
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                rootPane.transparencyBlurPasses = Math.round(newValue);
+                rootPane.saveConfig();
+                Colours.setBlurPasses(newValue);
+            }
+        }
+    }
+
+    SectionContainer {
+        contentSpacing: Tokens.spacing.normal
 
         SliderInput {
             Layout.fillWidth: true

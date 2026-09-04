@@ -87,15 +87,6 @@ Item {
             }
         }
 
-        layer.enabled: root.props.expansionActive !== ""
-        layer.effect: MultiEffect {
-            blurEnabled: true
-            blur: root.props.expansionActive !== "" ? root.props.expansionBgBlur : 0
-            blurMax: 64
-
-            Behavior on blur { Anim {} }
-        }
-
         Behavior on opacity { Anim {} }
         opacity: root.props.expansionActive !== "" ? root.props.expansionBgOpacity : 1
     }

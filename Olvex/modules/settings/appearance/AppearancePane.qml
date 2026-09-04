@@ -32,6 +32,8 @@ Item {
     property real spacingScale: Config.appearance.spacing.scale ?? 1
     property bool transparencyEnabled: GlobalConfig.appearance.transparency.enabled ?? false
     property bool transparencyBlur: GlobalConfig.appearance.transparency.blur ?? true
+    property int transparencyBlurRadius: GlobalConfig.appearance.transparency.blurRadius ?? 8
+    property int transparencyBlurPasses: GlobalConfig.appearance.transparency.blurPasses ?? 2
     property real transparencyBase: GlobalConfig.appearance.transparency.base ?? 0.85
     property real transparencyLayers: GlobalConfig.appearance.transparency.layers ?? 0.4
     property real borderRounding: ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).rounding ?? 1
@@ -83,8 +85,12 @@ Item {
 
         GlobalConfig.appearance.transparency.enabled = root.transparencyEnabled;
         GlobalConfig.appearance.transparency.blur = root.transparencyBlur;
+        GlobalConfig.appearance.transparency.blurRadius = root.transparencyBlurRadius;
+        GlobalConfig.appearance.transparency.blurPasses = root.transparencyBlurPasses;
         GlobalConfig.appearance.transparency.base = root.transparencyBase;
         GlobalConfig.appearance.transparency.layers = root.transparencyLayers;
+        Colours.setBlurRadius(root.transparencyBlurRadius);
+        Colours.setBlurPasses(root.transparencyBlurPasses);
 
         if (GlobalConfig.background?.desktopClock) {
             GlobalConfig.background.desktopClock.enabled = root.desktopClockEnabled;
