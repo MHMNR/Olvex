@@ -1,8 +1,14 @@
+pragma ComponentBehavior: Bound
 
+
+import "../.."
+import "../../ui"
+import "../../components"
+import "../../../../components"
+import "../../../../components/controls"
+import "../../../../components/containers"
 import QtQuick
 import Olvex.Config
-import qs.components.containers
-import qs.components.controls
 import qs.services
 
 CollapsibleSection {
@@ -42,5 +48,17 @@ CollapsibleSection {
             GlobalConfig.save();
             Colours.setMode(nextMode);
         }
+    }
+
+    SwitchRow {
+        label: qsTr("Night light (Gammastep)")
+        checked: NightLight.enabled
+        onToggled: NightLight.enabled = checked
+    }
+
+    SwitchRow {
+        label: qsTr("Auto schedule (Geoclue)")
+        checked: NightLight.autoSchedule
+        onToggled: NightLight.autoSchedule = checked
     }
 }

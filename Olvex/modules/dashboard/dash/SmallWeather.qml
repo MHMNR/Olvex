@@ -62,8 +62,6 @@ Item {
             Layout.preferredHeight: 38
             radius: Tokens.rounding.small
             color: Colours.tileFill
-            border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
 
             RowLayout {
                 anchors.fill: parent
@@ -238,8 +236,6 @@ Item {
 
         radius: root.insetPanelRadius
         color: Colours.tileFill
-        border.width: 1
-        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
 
         function dayLabel(day: var): string {
             if (!day)

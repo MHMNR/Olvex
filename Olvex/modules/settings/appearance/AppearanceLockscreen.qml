@@ -64,6 +64,34 @@ ColumnLayout {
                 }
             }
         }
+
+        SettingRow {
+            title: qsTr("Glass blur")
+            description: qsTr("Frosted glass effect on lock cards and elements")
+            StyledSwitch {
+                checked: GlobalConfig.lock.cardBlur
+                onToggled: {
+                    GlobalConfig.lock.cardBlur = checked;
+                    GlobalConfig.save();
+                }
+            }
+        }
+
+        SettingRow {
+            title: qsTr("Blur radius")
+            description: qsTr("Intensity and radius of the blur effect")
+            StyledSlider {
+                implicitWidth: 220
+                from: 8
+                to: 80
+                stepSize: 2
+                value: GlobalConfig.lock.blurRadius || 48
+                onMoved: {
+                    GlobalConfig.lock.blurRadius = Math.round(value);
+                    GlobalConfig.save();
+                }
+            }
+        }
         
         SettingRow {
             title: qsTr("Dim wallpaper")

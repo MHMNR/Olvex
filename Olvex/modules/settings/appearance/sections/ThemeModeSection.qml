@@ -8,6 +8,7 @@ import "../../../../components"
 import "../../../../components/controls"
 import "../../../../components/containers"
 import QtQuick
+import QtQuick.Layouts
 import Olvex.Config
 import qs.services
 
@@ -47,6 +48,42 @@ CollapsibleSection {
             GlobalConfig.appearance.themeMode = nextMode;
             GlobalConfig.save();
             Colours.setMode(nextMode);
+        }
+    }
+
+    SwitchRow {
+        label: qsTr("Night light")
+        checked: NightLight.enabled
+        onToggled: NightLight.enabled = checked
+    }
+
+    SwitchRow {
+        label: qsTr("Auto schedule")
+        checked: NightLight.autoSchedule
+        onToggled: NightLight.autoSchedule = checked
+    }
+
+    SectionContainer {
+        contentSpacing: Tokens.spacing.normal
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Color temperature")
+            value: NightLight.temperature
+            from: 2500
+            to: 6500
+            suffix: "K"
+            validator: IntValidator {
+                bottom: 2500
+                top: 6500
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                NightLight.temperature = Math.round(newValue);
+            }
         }
     }
 }

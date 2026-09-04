@@ -44,18 +44,23 @@ RowLayout {
         // Elevation child below, gated off entirely when level is 0 so the
         // other 5 cards pay zero cost for it.
         property int elevationLevel: 0
+        property real slideOffset: 0
 
         radius: Tokens.rounding.large
 
-        color: Qt.alpha(bgColor, root.elementOpacity)
-        Behavior on color {
-            ColorAnimation {
+        // Base rectangle is transparent so the blurred backdrop plate shows through
+        color: "transparent"
+
+        readonly property bool blurEnabled: (GlobalConfig.appearance.transparency.blur !== false) && (GlobalConfig.lock.cardBlur !== false) && !!(root.lock && root.lock.blurredWallpaper)
+
+        scale: 1.0
+
+        Behavior on scale {
+            NumberAnimation {
                 duration: Tokens.anim.durations.normal
                 easing: Tokens.anim.emphasizedDecel
             }
         }
-
-        scale: 1.0
 
         antialiasing: true
         layer.enabled: root.isTransitioning
@@ -63,11 +68,55 @@ RowLayout {
 
         Elevation {
             anchors.fill: parent
-            radius: parent.radius
+            radius: card.radius
             opacity: root.elementOpacity
             z: -1
             level: card.elevationLevel
             visible: card.elevationLevel > 0
+        }
+
+        // ── Backdrop blur plate ──────────────────────────────────────────────
+        StyledClippingRect {
+            id: blurPlate
+            anchors.fill: parent
+            radius: card.radius
+            visible: card.blurEnabled
+
+            ShaderEffectSource {
+                id: backdropSample
+                anchors.fill: parent
+                sourceItem: card.blurEnabled ? root.lock.blurredWallpaper : null
+                sourceRect: {
+                    if (!card.blurEnabled || !root.lock || !root.lock.rootItem)
+                        return Qt.rect(0, 0, 0, 0);
+                    // Dynamically bind to slideOffset + card x/y for frame-by-frame realtime UV tracking
+                    const _track = card.slideOffset + card.x + card.y;
+                    const pt = card.mapToItem(root.lock.rootItem, 0, 0);
+                    if (!pt || pt.x === undefined || pt.y === undefined || Number.isNaN(pt.x) || Number.isNaN(pt.y))
+                        return Qt.rect(0, 0, 0, 0);
+                    return Qt.rect(Math.max(0, pt.x), Math.max(0, pt.y), card.width, card.height);
+                }
+                live: true
+                smooth: true
+            }
+        }
+
+        // ── M3 Tint & Surface Overlay ────────────────────────────────────────
+        Rectangle {
+            id: tintPlate
+            anchors.fill: parent
+            radius: card.radius
+            color: Qt.alpha(card.bgColor, card.blurEnabled ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
+            border.color: card.blurEnabled ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+            border.width: card.blurEnabled ? 1 : 0
+            antialiasing: true
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Tokens.anim.durations.normal
+                    easing: Tokens.anim.emphasizedDecel
+                }
+            }
         }
 
         HoverHandler { id: cardHover }
@@ -193,6 +242,7 @@ RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredHeight: 145
+            slideOffset: l1Trans.x
             transform: Translate { id: l1Trans; x: -500 }
             WeatherInfo { id: weather; rootHeight: root.height }
         }
@@ -201,6 +251,7 @@ RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredHeight: 140
+            slideOffset: l2Trans.x
             transform: Translate { id: l2Trans; x: -500 }
             Fetch { id: fetchId }
         }
@@ -211,6 +262,7 @@ RowLayout {
             Layout.preferredHeight: 138
             bgColor: Players.musicSurfaceColor
             elevationLevel: 3
+            slideOffset: l3Trans.x
             transform: Translate { id: l3Trans; x: -500 }
             Media { id: media; lock: root.lock }
         }
@@ -219,6 +271,7 @@ RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredHeight: 130
+            slideOffset: l4Trans.x
             transform: Translate { id: l4Trans; x: -500 }
             PowerSession { id: powerSession }
         }
@@ -250,6 +303,7 @@ RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredHeight: 300
+            slideOffset: r1Trans.x
             transform: Translate { id: r1Trans; x: 500 }
             Resources { id: resources }
         }
@@ -258,6 +312,7 @@ RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredHeight: 230
+            slideOffset: r2Trans.x
             transform: Translate { id: r2Trans; x: 500 }
             NotifDock { id: notifDock; lock: root.lock }
         }

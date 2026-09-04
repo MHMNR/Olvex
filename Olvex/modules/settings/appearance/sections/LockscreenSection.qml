@@ -52,6 +52,15 @@ CollapsibleSection {
     }
 
     SwitchRow {
+        label: qsTr("Glass blur")
+        checked: rootPane.lockCardBlur
+        onToggled: {
+            rootPane.lockCardBlur = checked;
+            rootPane.saveConfig();
+        }
+    }
+
+    SwitchRow {
         label: qsTr("Blur background")
         checked: rootPane.lockBlurBackground
         onToggled: {
@@ -71,6 +80,27 @@ CollapsibleSection {
 
     SectionContainer {
         contentSpacing: Tokens.spacing.normal
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Blur radius")
+            value: rootPane.lockBlurRadius
+            from: 8
+            to: 80
+            suffix: "px"
+            validator: IntValidator {
+                bottom: 8
+                top: 80
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                rootPane.lockBlurRadius = Math.round(newValue);
+                rootPane.saveConfig();
+            }
+        }
 
         SliderInput {
             Layout.fillWidth: true

@@ -19,19 +19,29 @@ StyledRect {
     property bool isPanelVisible: true
     property int staggerIndex: 0
     readonly property bool isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
-
-    // Perspective Kinetic Bloom Animation (Opening Only)
-    // Delay the animation slightly to allow Qt Quick to compile shaders on the first open
     property bool _ready: false
+
     Timer {
-        interval: 50
-        running: root.isPanelVisible && !root._ready
+        id: readyTimer
+        interval: 16
+        running: false
+        repeat: false
         onTriggered: root._ready = true
     }
-    Connections {
-        target: root
-        function onIsPanelVisibleChanged() {
-            if (!root.isPanelVisible) root._ready = false;
+
+    Component.onCompleted: {
+        if (root.isPanelVisible) {
+            root._ready = false;
+            readyTimer.restart();
+        }
+    }
+
+    onIsPanelVisibleChanged: {
+        if (root.isPanelVisible) {
+            root._ready = false;
+            readyTimer.restart();
+        } else {
+            root._ready = false;
         }
     }
 
@@ -40,15 +50,15 @@ StyledRect {
     transform: [
         Translate {
             id: trans
-            x: -20
-            y: root.isLowPower ? 0 : 20
+            x: root.isLowPower ? 0 : -8
+            y: root.isLowPower ? 0 : 16
         },
         Scale {
             id: scale
             origin.x: root.width / 2
             origin.y: root.height / 2
-            xScale: root.isLowPower ? 1.0 : 0.8
-            yScale: root.isLowPower ? 1.0 : 1.1
+            xScale: root.isLowPower ? 1.0 : 0.90
+            yScale: root.isLowPower ? 1.0 : 0.90
         }
     ]
 
@@ -56,8 +66,8 @@ StyledRect {
         State {
             name: "hidden"
             PropertyChanges { target: root; opacity: 0.01 }
-            PropertyChanges { target: trans; x: -20; y: root.isLowPower ? 0 : 20 }
-            PropertyChanges { target: scale; xScale: root.isLowPower ? 1.0 : 0.8; yScale: root.isLowPower ? 1.0 : 1.1 }
+            PropertyChanges { target: trans; x: root.isLowPower ? 0 : -8; y: root.isLowPower ? 0 : 16 }
+            PropertyChanges { target: scale; xScale: root.isLowPower ? 1.0 : 0.90; yScale: root.isLowPower ? 1.0 : 0.90 }
         },
         State {
             name: "visible"
@@ -78,11 +88,11 @@ StyledRect {
         SequentialAnimation {
             PauseAnimation { duration: root.isLowPower ? 0 : root.staggerIndex }
             ParallelAnimation {
-                NumberAnimation { target: root; property: "opacity"; duration: root.isLowPower ? 150 : 400; easing.type: Easing.OutCubic }
-                NumberAnimation { target: trans; properties: "x,y"; duration: root.isLowPower ? 200 : 900; easing.type: Easing.OutExpo }
+                NumberAnimation { target: root; property: "opacity"; duration: root.isLowPower ? 120 : 280; easing.type: Easing.OutCubic }
+                NumberAnimation { target: trans; properties: "x,y"; duration: root.isLowPower ? 150 : 420; easing.type: Easing.OutCubic }
                 NumberAnimation { 
-                    target: scale; properties: "xScale,yScale"; duration: root.isLowPower ? 200 : 1000; 
-                    easing.type: Easing.OutExpo
+                    target: scale; properties: "xScale,yScale"; duration: root.isLowPower ? 150 : 450; 
+                    easing.type: Easing.OutCubic
                 }
             }
         }

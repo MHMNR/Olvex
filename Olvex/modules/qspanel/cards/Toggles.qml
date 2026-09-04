@@ -67,7 +67,7 @@ StyledRect {
     function toggleStagger(toggleId: string): int {
         for (let i = 0; i < root.quickToggles.length; i++) {
             if (root.quickToggles[i].id === toggleId)
-                return i * 50;
+                return i * 35;
         }
         return 0;
     }
@@ -316,29 +316,42 @@ StyledRect {
                     border.width: 0
                     radius: Tokens.rounding.full
 
-                    // === Kinetic bloom animation (same as QuickToggleTile) ===
-                    // Delay the animation slightly to allow Qt Quick to compile shaders on the first open
+                    readonly property bool isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
+                    property bool isPanelVisible: root.visibilities.qspanel
                     property bool _ready: false
+
                     Timer {
-                        interval: 50
-                        running: root.visibilities.qspanel && !powerProfilePill._ready
+                        id: ppReadyTimer
+                        interval: 16
+                        running: false
+                        repeat: false
                         onTriggered: powerProfilePill._ready = true
                     }
-                    Connections {
-                        target: root.visibilities
-                        function onQspanelChanged() {
-                            if (!root.visibilities.qspanel) powerProfilePill._ready = false;
+
+                    Component.onCompleted: {
+                        if (powerProfilePill.isPanelVisible) {
+                            powerProfilePill._ready = false;
+                            ppReadyTimer.restart();
                         }
                     }
-                    readonly property bool isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
-                    state: (root.visibilities.qspanel && _ready) ? "visible" : "hidden"
+
+                    onIsPanelVisibleChanged: {
+                        if (powerProfilePill.isPanelVisible) {
+                            powerProfilePill._ready = false;
+                            ppReadyTimer.restart();
+                        } else {
+                            powerProfilePill._ready = false;
+                        }
+                    }
+
+                    state: (isPanelVisible && _ready) ? "visible" : "hidden"
 
                     states: [
                         State {
                             name: "hidden"
                             PropertyChanges { target: powerProfilePill; opacity: 0.01 }
-                            PropertyChanges { target: ppTrans; x: -20; y: 20 }
-                            PropertyChanges { target: ppScale; xScale: 0.8; yScale: 1.1 }
+                            PropertyChanges { target: ppTrans; x: powerProfilePill.isLowPower ? 0 : -8; y: powerProfilePill.isLowPower ? 0 : 16 }
+                            PropertyChanges { target: ppScale; xScale: powerProfilePill.isLowPower ? 1.0 : 0.90; yScale: powerProfilePill.isLowPower ? 1.0 : 0.90 }
                         },
                         State {
                             name: "visible"
@@ -351,18 +364,18 @@ StyledRect {
                     transitions: Transition {
                         from: "hidden"; to: "visible"
                         SequentialAnimation {
-                            PauseAnimation { duration: powerProfilePill.isLowPower ? 0 : 400 }
+                            PauseAnimation { duration: powerProfilePill.isLowPower ? 0 : 100 }
                             ParallelAnimation {
-                                NumberAnimation { target: powerProfilePill; property: "opacity"; duration: powerProfilePill.isLowPower ? 150 : 400; easing.type: Easing.OutCubic }
-                                NumberAnimation { target: ppTrans; properties: "x,y"; duration: powerProfilePill.isLowPower ? 200 : 900; easing.type: Easing.OutExpo }
-                                NumberAnimation { target: ppScale; properties: "xScale,yScale"; duration: powerProfilePill.isLowPower ? 200 : 1000; easing.type: Easing.OutExpo }
+                                NumberAnimation { target: powerProfilePill; property: "opacity"; duration: powerProfilePill.isLowPower ? 120 : 280; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: ppTrans; properties: "x,y"; duration: powerProfilePill.isLowPower ? 150 : 420; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: ppScale; properties: "xScale,yScale"; duration: powerProfilePill.isLowPower ? 150 : 450; easing.type: Easing.OutCubic }
                             }
                         }
                     }
 
                     transform: [
-                        Translate { id: ppTrans; x: -20; y: 20 },
-                        Scale { id: ppScale; origin.x: powerProfilePill.width / 2; origin.y: powerProfilePill.height / 2; xScale: 0.8; yScale: 1.1 }
+                        Translate { id: ppTrans; x: powerProfilePill.isLowPower ? 0 : -8; y: powerProfilePill.isLowPower ? 0 : 16 },
+                        Scale { id: ppScale; origin.x: powerProfilePill.width / 2; origin.y: powerProfilePill.height / 2; xScale: 0.90; yScale: 0.90 }
                     ]
                     // === End animation ===
 
@@ -436,35 +449,47 @@ StyledRect {
                     // Required properties so it acts exactly like a tile for ExpansionOverlay!
                     property bool checked: true
                     property bool isExpanding: root.props.expansionActive === "displayprojection" || (root.props.isTransitioning && root.props.expansionSourceItem === displayProjectionPill)
-                    opacity: isExpanding ? 0 : 1
 
-                    // === Kinetic bloom animation (same as QuickToggleTile) ===
-                    // Delay the animation slightly to allow Qt Quick to compile shaders on the first open
+                    readonly property bool _isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
+                    property bool isPanelVisible: root.visibilities.qspanel
                     property bool _ready: false
+
                     Timer {
-                        interval: 50
-                        running: root.visibilities.qspanel && !displayProjectionPill._ready
+                        id: dpReadyTimer
+                        interval: 16
+                        running: false
+                        repeat: false
                         onTriggered: displayProjectionPill._ready = true
                     }
-                    Connections {
-                        target: root.visibilities
-                        function onQspanelChanged() {
-                            if (!root.visibilities.qspanel) displayProjectionPill._ready = false;
+
+                    Component.onCompleted: {
+                        if (displayProjectionPill.isPanelVisible) {
+                            displayProjectionPill._ready = false;
+                            dpReadyTimer.restart();
                         }
                     }
-                    readonly property bool _isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
-                    state: isExpanding ? "expanding" : ((root.visibilities.qspanel && _ready) ? "visible" : "hidden")
+
+                    onIsPanelVisibleChanged: {
+                        if (displayProjectionPill.isPanelVisible) {
+                            displayProjectionPill._ready = false;
+                            dpReadyTimer.restart();
+                        } else {
+                            displayProjectionPill._ready = false;
+                        }
+                    }
+
+                    state: isExpanding ? "expanding" : ((isPanelVisible && _ready) ? "visible" : "hidden")
 
                     states: [
                         State {
                             name: "hidden"
                             PropertyChanges { target: displayProjectionPill; opacity: 0.01 }
-                            PropertyChanges { target: dpTrans; x: -20; y: 20 }
-                            PropertyChanges { target: dpScale; xScale: 0.8; yScale: 1.1 }
+                            PropertyChanges { target: dpTrans; x: displayProjectionPill._isLowPower ? 0 : -8; y: displayProjectionPill._isLowPower ? 0 : 16 }
+                            PropertyChanges { target: dpScale; xScale: displayProjectionPill._isLowPower ? 1.0 : 0.90; yScale: displayProjectionPill._isLowPower ? 1.0 : 0.90 }
                         },
                         State {
                             name: "visible"
-                            PropertyChanges { target: displayProjectionPill; opacity: isExpanding ? 0 : 1 }
+                            PropertyChanges { target: displayProjectionPill; opacity: 1 }
                             PropertyChanges { target: dpTrans; x: 0; y: 0 }
                             PropertyChanges { target: dpScale; xScale: 1.0; yScale: 1.0 }
                         },
@@ -479,18 +504,18 @@ StyledRect {
                     transitions: Transition {
                         from: "hidden"; to: "visible"
                         SequentialAnimation {
-                            PauseAnimation { duration: displayProjectionPill._isLowPower ? 0 : 450 }
+                            PauseAnimation { duration: displayProjectionPill._isLowPower ? 0 : 140 }
                             ParallelAnimation {
-                                NumberAnimation { target: displayProjectionPill; property: "opacity"; duration: displayProjectionPill._isLowPower ? 150 : 400; easing.type: Easing.OutCubic }
-                                NumberAnimation { target: dpTrans; properties: "x,y"; duration: displayProjectionPill._isLowPower ? 200 : 900; easing.type: Easing.OutExpo }
-                                NumberAnimation { target: dpScale; properties: "xScale,yScale"; duration: displayProjectionPill._isLowPower ? 200 : 1000; easing.type: Easing.OutExpo }
+                                NumberAnimation { target: displayProjectionPill; property: "opacity"; duration: displayProjectionPill._isLowPower ? 120 : 280; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: dpTrans; properties: "x,y"; duration: displayProjectionPill._isLowPower ? 150 : 420; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: dpScale; properties: "xScale,yScale"; duration: displayProjectionPill._isLowPower ? 150 : 450; easing.type: Easing.OutCubic }
                             }
                         }
                     }
 
                     transform: [
-                        Translate { id: dpTrans; x: -20; y: 20 },
-                        Scale { id: dpScale; origin.x: displayProjectionPill.width / 2; origin.y: displayProjectionPill.height / 2; xScale: 0.8; yScale: 1.1 }
+                        Translate { id: dpTrans; x: displayProjectionPill._isLowPower ? 0 : -8; y: displayProjectionPill._isLowPower ? 0 : 16 },
+                        Scale { id: dpScale; origin.x: displayProjectionPill.width / 2; origin.y: displayProjectionPill.height / 2; xScale: 0.90; yScale: 0.90 }
                     ]
                     // === End animation ===
 

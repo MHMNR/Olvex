@@ -44,6 +44,8 @@ Item {
         return Math.max(0.05, Math.min(1, v));
     }
 
+    readonly property bool blurActive: (GlobalConfig.appearance.transparency.blur !== false) && (GlobalConfig.lock.cardBlur !== false) && !!(root.lock && root.lock.blurredWallpaper)
+
     function formatSpeed(bps: real): string {
         if (bps <= 0) return "0 B/s";
         const mbs = bps / (1024 * 1024);
@@ -51,6 +53,35 @@ Item {
         const kbs = bps / 1024;
         if (kbs >= 1) return kbs.toFixed(1) + " KB/s";
         return bps.toFixed(0) + " B/s";
+    }
+
+    // ── Reusable Minimal Glass Plate ─────────────────────────────────────────
+    component MinimalBlurPlate : StyledClippingRect {
+        id: plate
+        required property Item targetItem
+        property real plateRadius: targetItem ? targetItem.radius : 24
+        property real motionOffset: targetItem ? targetItem.motionOffset : 0
+        readonly property bool blurActive: root.blurActive
+
+        anchors.fill: parent
+        radius: plateRadius
+        visible: blurActive
+
+        ShaderEffectSource {
+            anchors.fill: parent
+            sourceItem: plate.blurActive ? root.lock.blurredWallpaper : null
+            sourceRect: {
+                if (!plate.blurActive || !root.lock || !root.lock.rootItem || !plate.targetItem)
+                    return Qt.rect(0, 0, 0, 0);
+                const _track = plate.motionOffset + plate.targetItem.x + plate.targetItem.y;
+                const pt = plate.targetItem.mapToItem(root.lock.rootItem, 0, 0);
+                if (!pt || pt.x === undefined || pt.y === undefined || Number.isNaN(pt.x) || Number.isNaN(pt.y))
+                    return Qt.rect(0, 0, 0, 0);
+                return Qt.rect(Math.max(0, pt.x), Math.max(0, pt.y), plate.targetItem.width, plate.targetItem.height);
+            }
+            live: true
+            smooth: true
+        }
     }
 
     focus: true
@@ -192,6 +223,7 @@ Item {
                 z: 10
                 anchors.top: parent.top
                 anchors.topMargin: 0
+                property real motionOffset: topBarTrans.y
 
                 property bool expanded: false
                 property real pillScale: 1.0
@@ -388,9 +420,16 @@ Item {
                     radius: 24 // animated via musicPill's states/transitions above
                     color: "transparent"
 
+                    MinimalBlurPlate {
+                        targetItem: musicPill
+                        plateRadius: pillSurface.radius
+                    }
+
                     Rectangle {
                         anchors.fill: parent
-                        color: Qt.alpha(Players.musicSurfaceColor, root.elementOpacity)
+                        color: Qt.alpha(Players.musicSurfaceColor, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.65) : root.elementOpacity)
+                        border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+                        border.width: root.blurActive ? 1 : 0
                         Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
 
                         Rectangle {
@@ -859,10 +898,23 @@ Item {
                 implicitWidth: statsRow.implicitWidth + 48
                 implicitHeight: 48
                 radius: height / 2
+                property real motionOffset: topBarTrans.y
                 
-                // Sleek Material Card Background
-                color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
-                Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
+                color: "transparent"
+
+                MinimalBlurPlate {
+                    targetItem: systemPill
+                    plateRadius: systemPill.radius
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: systemPill.radius
+                    color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
+                    border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+                    border.width: root.blurActive ? 1 : 0
+                    Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
+                }
 
                 Row {
                     id: statsRow
@@ -1062,14 +1114,28 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: 0
                 clip: true
+                property real motionOffset: topBarTrans.y
 
-                color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
-                Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
+                color: "transparent"
                 property bool expanded: false
 
                 width: expanded ? 340 : (notifHeaderRow.width + 16)
                 height: expanded ? Math.min(320, Math.max(120, Notifs.notClosed.length * 66 + 64)) : 48
                 radius: expanded ? 28 : 24
+
+                MinimalBlurPlate {
+                    targetItem: notifPill
+                    plateRadius: notifPill.radius
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: notifPill.radius
+                    color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
+                    border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+                    border.width: root.blurActive ? 1 : 0
+                    Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
+                }
 
                 // Same curve as musicPill — M3 emphasized spatial spline, not the
                 // old OutBack overshoot bounce.
@@ -1402,15 +1468,25 @@ Item {
             transform: Translate { id: authTrans; x: root.offset }
 
             Item {
+                id: authCardBox
                 anchors.centerIn: parent
                 width: 360
                 implicitHeight: authCol.implicitHeight + 64
+                property real radius: 24
+                property real motionOffset: authTrans.x
+
+                MinimalBlurPlate {
+                    targetItem: authCardBox
+                    plateRadius: authCardBox.radius
+                }
 
                 // Sleek Material Card Background
                 Rectangle {
                     anchors.fill: parent
-                    radius: 24
-                    color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
+                    radius: authCardBox.radius
+                    color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
+                    border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+                    border.width: root.blurActive ? 1 : 0
                     Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
                 }
 
@@ -1688,11 +1764,20 @@ Item {
         layer.enabled: root.isTransitioning
         layer.smooth: true
         transform: Translate { id: bottomBarTrans; y: root.vOffset }
+        property real radius: height / 2
+        property real motionOffset: bottomBarTrans.y
+
+        MinimalBlurPlate {
+            targetItem: bottomBar
+            plateRadius: bottomBar.radius
+        }
 
         Rectangle {
             anchors.fill: parent
-            radius: height / 2
-            color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.elementOpacity)
+            radius: bottomBar.radius
+            color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
+            border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+            border.width: root.blurActive ? 1 : 0
             Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
         }
 

@@ -75,8 +75,6 @@ Item {
             Layout.preferredHeight: 38
             radius: Tokens.rounding.small
             color: Colours.tileFill
-            border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.28)
 
             RowLayout {
                 anchors.fill: parent

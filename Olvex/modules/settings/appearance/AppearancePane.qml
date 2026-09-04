@@ -65,6 +65,8 @@ Item {
     property real lockMinimalOpacity: GlobalConfig.lock?.minimalOpacity ?? 1.0
     property bool lockBlurBackground: GlobalConfig.lock?.blurBackground ?? true
     property bool lockDimWallpaper: GlobalConfig.lock?.dimWallpaper ?? false
+    property bool lockCardBlur: GlobalConfig.lock?.cardBlur ?? true
+    property int lockBlurRadius: GlobalConfig.lock?.blurRadius ?? 48
     property string wallpaperMode: "static"
 
     function saveConfig() {
@@ -134,6 +136,9 @@ Item {
             GlobalConfig.lock.minimalOpacity = root.lockMinimalOpacity;
             GlobalConfig.lock.blurBackground = root.lockBlurBackground;
             GlobalConfig.lock.dimWallpaper = root.lockDimWallpaper;
+            GlobalConfig.lock.cardBlur = root.lockCardBlur;
+            GlobalConfig.lock.blurRadius = root.lockBlurRadius;
+            GlobalConfig.save();
         }
     }
 

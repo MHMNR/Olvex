@@ -17,6 +17,8 @@ class LockConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(double, minimalOpacity, 1.0)
     CONFIG_GLOBAL_PROPERTY(bool, blurBackground, true)
     CONFIG_GLOBAL_PROPERTY(bool, dimWallpaper, false)
+    CONFIG_GLOBAL_PROPERTY(bool, cardBlur, true)
+    CONFIG_GLOBAL_PROPERTY(int, blurRadius, 48)
 
 public:
     explicit LockConfig(QObject* parent = nullptr)

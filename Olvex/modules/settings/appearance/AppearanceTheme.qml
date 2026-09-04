@@ -148,4 +148,45 @@ ColumnLayout {
             }
         }
     }
+
+    Section {
+        Layout.fillWidth: true
+        title: qsTr("Night light")
+        description: qsTr("Reduce blue light and eye strain")
+        icon: "nights_stay"
+
+        SettingRow {
+            title: qsTr("Night light")
+            description: qsTr("Warm display color temperature")
+            divider: true
+            StyledSwitch {
+                checked: NightLight.enabled
+                onToggled: NightLight.enabled = checked
+            }
+        }
+
+        SettingRow {
+            title: qsTr("Automatic schedule")
+            description: qsTr("Transition smoothly with sunset and sunrise")
+            divider: true
+            StyledSwitch {
+                checked: NightLight.autoSchedule
+                onToggled: NightLight.autoSchedule = checked
+            }
+        }
+
+        SettingRow {
+            title: qsTr("Color temperature")
+            description: qsTr("Display warmth: %1K").arg(NightLight.temperature)
+            divider: false
+            StyledSlider {
+                implicitWidth: 220
+                from: 2500
+                to: 6500
+                stepSize: 100
+                value: NightLight.temperature
+                onMoved: NightLight.temperature = Math.round(value)
+            }
+        }
+    }
 }

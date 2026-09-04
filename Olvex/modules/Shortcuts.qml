@@ -202,8 +202,11 @@ Scope {
     }
 
     IpcHandler {
-        function open(): void {
-            WindowFactory.create();
+        function open(page: string, section: string): void {
+            const props = {};
+            if (page) props.active = page;
+            if (section) props.activeSection = section;
+            WindowFactory.create(null, props);
         }
 
         target: "settings"

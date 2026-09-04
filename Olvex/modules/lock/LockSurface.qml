@@ -52,7 +52,7 @@ WlSessionLockSurface {
             autoPaddingEnabled: false
             blurEnabled: GlobalConfig.lock.blurBackground
             blur: GlobalConfig.lock.blurBackground ? 1.0 : 0.0
-            blurMax: 32
+            blurMax: Math.max(1, Math.min(100, GlobalConfig.lock.blurRadius || 32))
             
             // Premium acrylic glass tweaks
             saturation: GlobalConfig.lock.blurBackground ? -0.15 : 0.0
@@ -63,12 +63,57 @@ WlSessionLockSurface {
         }
     }
 
+    // ── Shared Card Backdrop Blur Buffer ────────────────────────────────────
+    // Downsampled 2x + single-pass MultiEffect for zero frame drops on iGPU/dGPU.
+    // Idle GPU cost is 0% when using static wallpaper.
+    readonly property bool cardBlurActive: (GlobalConfig.appearance.transparency.blur !== false) && (GlobalConfig.lock.cardBlur !== false) && !GlobalConfig.lock.blurBackground
+    readonly property bool wallpaperLive: wallpaper.liveWallpaperActive
+
+    ShaderEffectSource {
+        id: cardBlurSource
+        anchors.fill: parent
+        sourceItem: root.cardBlurActive ? wallpaper : null
+        live: root.cardBlurActive
+        visible: false
+        textureSize: Qt.size(Math.max(1, Math.round(width / 2)), Math.max(1, Math.round(height / 2)))
+        smooth: true
+    }
+
+    MultiEffect {
+        id: cardBlurEffect
+        anchors.fill: parent
+        source: cardBlurSource
+        visible: root.cardBlurActive
+        z: -99
+        autoPaddingEnabled: false
+        blurEnabled: root.cardBlurActive
+        blur: 1.0
+        blurMax: Math.max(1, Math.min(100, GlobalConfig.lock.blurRadius || 48))
+        saturation: -0.12
+        contrast: 0.05
+    }
+
+    // Blurred wallpaper exposed to cards: if wallpaper is already blurred, use it directly.
+    // Otherwise use cardBlurEffect if card blur is active.
+    readonly property Item blurredWallpaper: GlobalConfig.lock.blurBackground ? wallpaper : (root.cardBlurActive ? cardBlurEffect : null)
+    readonly property alias rootItem: lockContent
+
+    Connections {
+        target: wallpaper
+        function onSourceChanged() {
+            if (root.cardBlurActive)
+                cardBlurSource.scheduleUpdate();
+        }
+    }
+
     // ── Appear instantly, signal inner slides, fade in backdrop ───────────────
     Component.onCompleted: {
         lockContent.opacity = 1
         statusBar.opacity = 1
         root.contentReady = true
         backdropFadeIn.start()
+        if (root.cardBlurActive)
+            cardBlurSource.scheduleUpdate()
     }
 
     NumberAnimation {

@@ -1,8 +1,15 @@
+pragma ComponentBehavior: Bound
 
+
+import "../.."
+import "../../ui"
+import "../../components"
+import "../../../../components"
+import "../../../../components/controls"
+import "../../../../components/containers"
 import QtQuick
+import QtQuick.Layouts
 import Olvex.Config
-import qs.components.containers
-import qs.components.controls
 
 CollapsibleSection {
     id: root
@@ -43,5 +50,77 @@ CollapsibleSection {
             rootPane.saveConfig();
         }
     }
-}
 
+    SwitchRow {
+        label: qsTr("Glass blur")
+        checked: rootPane.lockCardBlur
+        onToggled: {
+            rootPane.lockCardBlur = checked;
+            rootPane.saveConfig();
+        }
+    }
+
+    SwitchRow {
+        label: qsTr("Blur background")
+        checked: rootPane.lockBlurBackground
+        onToggled: {
+            rootPane.lockBlurBackground = checked;
+            rootPane.saveConfig();
+        }
+    }
+
+    SwitchRow {
+        label: qsTr("Dim wallpaper")
+        checked: rootPane.lockDimWallpaper
+        onToggled: {
+            rootPane.lockDimWallpaper = checked;
+            rootPane.saveConfig();
+        }
+    }
+
+    SectionContainer {
+        contentSpacing: Tokens.spacing.normal
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Blur radius")
+            value: rootPane.lockBlurRadius
+            from: 8
+            to: 80
+            suffix: "px"
+            validator: IntValidator {
+                bottom: 8
+                top: 80
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                rootPane.lockBlurRadius = Math.round(newValue);
+                rootPane.saveConfig();
+            }
+        }
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Elements opacity")
+            value: rootPane.lockMinimalOpacity * 100
+            from: 0
+            to: 100
+            suffix: "%"
+            validator: IntValidator {
+                bottom: 0
+                top: 100
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                rootPane.lockMinimalOpacity = newValue / 100;
+                rootPane.saveConfig();
+            }
+        }
+    }
+}
