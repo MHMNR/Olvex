@@ -14,7 +14,7 @@ Item {
     id: root
 
     required property var bar
-    clip: true
+    clip: false
 
     readonly property bool hasNotif: Notifs.hasBarNotif
     readonly property var currentNotif: Notifs.currentBarNotif
@@ -24,6 +24,15 @@ Item {
         return Notifs.barQueue.filter(n => n && !n.closed && n !== root.currentNotif);
     }
     readonly property int notifCount: (root.hasNotif ? 1 : 0) + olderNotifs.length
+
+    onHasNotifChanged: {
+        if (hasNotif) {
+            entryPushAnim.restart();
+        } else {
+            entryPushAnim.stop();
+            entryPushOffset = 0;
+        }
+    }
 
     ListModel {
         id: olderCirclesModel
@@ -59,6 +68,8 @@ Item {
     readonly property int pillWidth: 48
     readonly property real pillRadius: pillWidth / 2
 
+    readonly property int pillMorphDuration: 430
+
     readonly property real olderCirclesHeight: {
         const len = olderCirclesModel.count;
         if (len === 0) return 0;
@@ -68,8 +79,8 @@ Item {
     property real currentOlderCirclesHeight: olderCirclesHeight
     Behavior on currentOlderCirclesHeight {
         NumberAnimation {
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
     }
 
@@ -77,8 +88,8 @@ Item {
     property real currentOlderCirclesSpacing: targetOlderCirclesSpacing
     Behavior on currentOlderCirclesSpacing {
         NumberAnimation {
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
     }
 
@@ -93,7 +104,10 @@ Item {
     implicitHeight: root.hasNotif ? (160 + olderNotifs.length * (pillWidth + Tokens.spacing.small)) : 0
 
     Behavior on implicitHeight {
-        Anim { type: Anim.DefaultSpatial }
+        NumberAnimation {
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
     }
 
     Layout.preferredWidth: pillWidth
@@ -105,6 +119,42 @@ Item {
         if (root.bar && typeof root.bar.expandNotificationMorphFromPill === "function") {
             root.bar.expandNotificationMorphFromPill(sourceItem, iconItem, null, notifData);
         }
+    }
+
+    property real entryPushOffset: 0
+
+    SequentialAnimation {
+        id: entryPushAnim
+        NumberAnimation {
+            target: root
+            property: "entryPushOffset"
+            from: 0
+            to: 15
+            duration: Math.round(root.pillMorphDuration * 0.4)
+            easing: Tokens.anim.emphasizedDecel
+        }
+        NumberAnimation {
+            target: root
+            property: "entryPushOffset"
+            from: 15
+            to: 0
+            duration: Math.round(root.pillMorphDuration * 0.6)
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+    }
+
+    readonly property real upwardPush: {
+        let push = entryPushOffset;
+        if (incomingPill && incomingPill.visible) {
+            const incY = incomingPill.useBottomEdge ? (incomingPill.targetBottomEdge - incomingPill.height) : incomingPill.y;
+            if (incY < 0) {
+                push = Math.max(push, -incY);
+            }
+        }
+        if (shrinkingPill && shrinkingPill.visible && shrinkingPill.y < 0) {
+            push = Math.max(push, -shrinkingPill.y * shrinkingPill.opacity);
+        }
+        return push;
     }
 
     // ── Transition animation properties ──
@@ -150,6 +200,7 @@ Item {
                 pushExpandHAnim.to = targetTopH;
                 
                 pushDownAnim.restart();
+                entryPushAnim.restart();
             }
         }
 
@@ -204,50 +255,50 @@ Item {
             id: pushShrinkYAnim
             target: shrinkingPill
             property: "y"
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             id: pushShrinkHAnim
             target: shrinkingPill
             property: "height"
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             target: shrinkingPill
             property: "textAlpha"
             to: 0.0
-            duration: Math.round(Tokens.anim.durations.expressiveDefaultSpatial * 0.35)
-            easing: Tokens.anim.expressiveFastSpatial
+            duration: Math.round(root.pillMorphDuration * 0.35)
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
 
         NumberAnimation {
             id: pushExpandHAnim
             target: incomingPill
             property: "height"
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             target: incomingPill
             property: "opacity"
             to: 1.0
-            duration: Math.round(Tokens.anim.durations.expressiveDefaultSpatial * 0.4)
-            easing: Tokens.anim.expressiveFastSpatial
+            duration: Math.round(root.pillMorphDuration * 0.4)
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             target: incomingPill
             property: "textAlpha"
             to: 1.0
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
             easing: Tokens.anim.emphasizedDecel
         }
         NumberAnimation {
             target: incomingPill
             property: "scale"
             to: 1.0
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
             easing: Tokens.anim.emphasizedDecel
         }
 
@@ -265,22 +316,22 @@ Item {
             id: popShrinkOpacityAnim
             target: shrinkingPill
             property: "opacity"
-            duration: Math.round(Tokens.anim.durations.expressiveDefaultSpatial * 0.4)
-            easing: Tokens.anim.expressiveFastSpatial
+            duration: Math.round(root.pillMorphDuration * 0.4)
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             id: popShrinkYAnim
             target: shrinkingPill
             property: "y"
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             id: popShrinkScaleAnim
             target: shrinkingPill
             property: "scale"
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
 
 
@@ -288,14 +339,14 @@ Item {
             id: popExpandHAnim
             target: incomingPill
             property: "height"
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing: Tokens.anim.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             target: incomingPill
             property: "textAlpha"
             to: 1.0
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
+            duration: root.pillMorphDuration
             easing: Tokens.anim.emphasizedDecel
         }
 
@@ -456,8 +507,8 @@ Item {
                 
                 Behavior on currentStackOffset {
                     NumberAnimation {
-                        duration: Tokens.anim.durations.expressiveDefaultSpatial
-                        easing: Tokens.anim.expressiveDefaultSpatial
+                        duration: root.pillMorphDuration
+                        easing: Tokens.anim.expressiveSubtleSpatial
                     }
                 }
 
@@ -533,6 +584,10 @@ Item {
         visible: !root.isPushingDown && !root.isPoppingUp && root.hasNotif
         opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && root.currentNotif && Notifs.activeMorphNotif.id === root.currentNotif.id) ? 0 : 1
         z: 2
+
+        transform: Translate {
+            y: -root.entryPushOffset
+        }
 
         Behavior on color {
             CAnim {

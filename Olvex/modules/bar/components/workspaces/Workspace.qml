@@ -38,22 +38,161 @@ Item {
     readonly property int size: (showDetail && (isCurrent || hasWindows)) ? detailHeight : collapsedHeight
     readonly property real currentHeight: Layout.preferredHeight
 
+    readonly property bool isExpandedState: root.showDetail && (root.isCurrent || root.hasWindows)
+
+    readonly property real targetTopMargin: index === 0 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (size / 2) - Tokens.padding.small) : 0
+    readonly property real targetBottomMargin: index === Config.bar.workspaces.shown - 1 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (size / 2) - Tokens.padding.small) : 0
+
     Layout.alignment: Qt.AlignHCenter
     Layout.preferredHeight: size
-    Layout.topMargin: index === 0 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (Layout.preferredHeight / 2) - Tokens.padding.small) : 0
-    Layout.bottomMargin: index === Config.bar.workspaces.shown - 1 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (Layout.preferredHeight / 2) - Tokens.padding.small) : 0
+    Layout.topMargin: targetTopMargin
+    Layout.bottomMargin: targetBottomMargin
     implicitWidth: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
     Layout.preferredWidth: implicitWidth
     width: implicitWidth
+    implicitHeight: Layout.preferredHeight
+    height: Layout.preferredHeight
 
     Behavior on Layout.preferredHeight {
         Anim {
-            type: Anim.DefaultSpatial
+            type: Anim.FastSpatial
         }
     }
 
+    Behavior on Layout.topMargin {
+        Anim {
+            type: Anim.FastSpatial
+        }
+    }
+
+    Behavior on Layout.bottomMargin {
+        Anim {
+            type: Anim.FastSpatial
+        }
+    }
+
+    state: isExpandedState ? "expanded" : "collapsed"
+
+    states: [
+        State {
+            name: "expanded"
+            PropertyChanges {
+                target: collapsedDot
+                opacity: 0
+                scale: 0.6
+            }
+            PropertyChanges {
+                target: detailCol
+                opacity: 1
+                scale: 1.0
+            }
+            PropertyChanges {
+                target: detailTrans
+                y: 0
+            }
+        },
+        State {
+            name: "collapsed"
+            PropertyChanges {
+                target: collapsedDot
+                opacity: 1
+                scale: 1.0
+            }
+            PropertyChanges {
+                target: detailCol
+                opacity: 0
+                scale: 0.85
+            }
+            PropertyChanges {
+                target: detailTrans
+                y: 6
+            }
+        }
+    ]
+
+    transitions: [
+        Transition {
+            from: "collapsed"; to: "expanded"
+            ParallelAnimation {
+                NumberAnimation {
+                    target: collapsedDot
+                    properties: "opacity,scale"
+                    duration: 90
+                    easing.type: Easing.OutCubic
+                }
+                SequentialAnimation {
+                    PauseAnimation { duration: 60 }
+                    ParallelAnimation {
+                        NumberAnimation {
+                            target: detailCol
+                            property: "opacity"
+                            duration: Math.max(120, Tokens.anim.durations.expressiveFastSpatial - 50)
+                            easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: detailCol
+                            property: "scale"
+                            duration: Math.max(120, Tokens.anim.durations.expressiveFastSpatial - 50)
+                            easing: Tokens.anim.emphasizedDecel
+                        }
+                        NumberAnimation {
+                            target: detailTrans
+                            property: "y"
+                            duration: Math.max(120, Tokens.anim.durations.expressiveFastSpatial - 50)
+                            easing: Tokens.anim.emphasizedDecel
+                        }
+                    }
+                }
+            }
+        },
+        Transition {
+            from: "expanded"; to: "collapsed"
+            ParallelAnimation {
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: detailCol
+                        property: "opacity"
+                        duration: 90
+                        easing.type: Easing.InQuad
+                    }
+                    NumberAnimation {
+                        target: detailCol
+                        property: "scale"
+                        duration: 90
+                        easing.type: Easing.InQuad
+                    }
+                    NumberAnimation {
+                        target: detailTrans
+                        property: "y"
+                        duration: 90
+                        easing.type: Easing.InQuad
+                    }
+                }
+                SequentialAnimation {
+                    PauseAnimation { duration: 60 }
+                    ParallelAnimation {
+                        NumberAnimation {
+                            target: collapsedDot
+                            property: "opacity"
+                            duration: Math.max(120, Tokens.anim.durations.expressiveDefaultSpatial - 60)
+                            easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: collapsedDot
+                            property: "scale"
+                            duration: Math.max(120, Tokens.anim.durations.expressiveDefaultSpatial - 60)
+                            easing: Tokens.anim.emphasizedDecel
+                        }
+                    }
+                }
+            }
+        }
+    ]
+
     // ── Collapsed: occupied dot or empty ring ───────────────────────
     Rectangle {
+        id: collapsedDot
+
         anchors.centerIn: parent
         width: root.collapsedHeight
         height: width
@@ -62,14 +201,9 @@ Item {
         border.width: root.isOccupied ? 0 : 2
         border.color: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
 
-        opacity: root.showDetail ? 0 : 1
-        visible: opacity > 0.01
-
-        Behavior on opacity {
-            Anim {
-                type: Anim.DefaultEffects
-            }
-        }
+        opacity: isExpandedState ? 0 : 1
+        scale: isExpandedState ? 0.6 : 1.0
+        visible: opacity > 0.005
 
         Behavior on color {
             CAnim {}
@@ -158,13 +292,13 @@ Item {
         width: root.width
         spacing: 0
 
-        opacity: root.showDetail ? 1 : 0
-        visible: opacity > 0.01
+        opacity: isExpandedState ? 1 : 0
+        scale: isExpandedState ? 1.0 : 0.85
+        visible: opacity > 0.005
 
-        Behavior on opacity {
-            Anim {
-                type: Anim.DefaultEffects
-            }
+        transform: Translate {
+            id: detailTrans
+            y: isExpandedState ? 0 : 6
         }
 
         Item {
@@ -284,6 +418,24 @@ Item {
             sourceComponent: Column {
                 spacing: 0
                 width: root.width
+
+                add: Transition {
+                    NumberAnimation {
+                        properties: "scale,opacity"
+                        from: 0
+                        to: 1
+                        duration: Tokens.anim.durations.small
+                        easing: Tokens.anim.standardDecel
+                    }
+                }
+
+                move: Transition {
+                    NumberAnimation {
+                        properties: "x,y"
+                        duration: Tokens.anim.durations.small
+                        easing: Tokens.anim.standardDecel
+                    }
+                }
 
                 Repeater {
                     model: ScriptModel {

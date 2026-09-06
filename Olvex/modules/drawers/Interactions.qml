@@ -169,6 +169,19 @@ CustomMouseArea {
             return;
         }
 
+        // Dismiss bottom panel overflow flyout when clicking outside it
+        if (panels.overflowFlyoutVisible) {
+            const flyout = panels.overflowFlyoutContainer;
+            const pt = flyout ? flyout.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            const inFlyout = flyout && pt.x >= 0 && pt.x <= flyout.width && pt.y >= 0 && pt.y <= flyout.height;
+
+            if (!inFlyout) {
+                panels.overflowFlyoutVisible = false;
+                event.accepted = false;
+                return;
+            }
+        }
+
         // Dismiss bottom panel app context menu when clicking outside it
         if (panels.contextMenuVisible) {
             const menu = panels.contextMenuContainer;

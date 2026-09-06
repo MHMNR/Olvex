@@ -8,6 +8,7 @@ import Quickshell.Hyprland
 import Olvex.Config
 import Olvex.Services
 import qs.components
+import qs.components.containers
 import qs.components.effects
 import qs.components.controls as Controls
 import qs.services
@@ -49,6 +50,7 @@ Item {
     readonly property alias toasts: toasts
     readonly property alias bottomPanel: bottomPanel
     readonly property alias contextMenuContainer: menuContainer
+    readonly property alias overflowFlyoutContainer: overflowFlyout
 
     readonly property alias pinnedLayout: layout
 
@@ -57,10 +59,16 @@ Item {
 
     readonly property bool powermenuVisible: powermenu.visible
 
+    property bool overflowFlyoutVisible: false
+    property Item overflowHoveredItem: null
+
     // Focus to receive key events
     focus: true
     Keys.onEscapePressed: {
-        if (contextMenuVisible) {
+        if (overflowFlyoutVisible) {
+            overflowFlyoutVisible = false;
+            event.accepted = true;
+        } else if (contextMenuVisible) {
             hideContextMenu();
             event.accepted = true;
         } else if (visibilities.wallpaperLauncher) {
@@ -324,8 +332,8 @@ Item {
             return false;
         if (visibilities.powermenu)
             return false;
-        // Force panel visible when context menu is open (suppress autohide)
-        if (contextMenuVisible)
+        // Force panel visible when context menu or overflow flyout is open/animating (suppress autohide)
+        if (contextMenuVisible || overflowFlyoutVisible || (overflowFlyoutContainer && overflowFlyoutContainer.isMorphAnimating))
             return true;
         if (bottomPanelMode === "smarthide") {
             // If a window overlaps the bottom 80px, react like autohide (hover to show)
@@ -518,6 +526,10 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: mouse => {
+                    if (root.overflowFlyoutVisible) {
+                        root.overflowFlyoutVisible = false;
+                        return;
+                    }
                     if (root.contextMenuVisible) {
                         root.hideContextMenu();
                         return;
@@ -542,9 +554,9 @@ Item {
             Rectangle {
                 id: dockContainer
                 anchors.centerIn: parent
-                height: 70
+                height: Math.max(50, Math.round(layout.itemSize + 18))
                 width: layout.width + 20
-                radius: 20
+                radius: Math.round(height * (20 / 70))
                 visible: pinnedModel.count > 0
 
                 readonly property bool showBg: root.bottomPanelDockBg
@@ -554,6 +566,8 @@ Item {
 
                 Behavior on color { CAnim {} }
                 Behavior on border.color { CAnim {} }
+                Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                Behavior on radius { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                 Rectangle {
                     anchors.fill: parent
@@ -566,15 +580,85 @@ Item {
                     Behavior on border.color { CAnim {} }
                 }
 
-                // Manual positioning container for drag-and-drop
+                // Manual positioning container for drag-and-drop with Auto-Shrink & Overflow
                 Item {
                     id: layout
                     anchors.centerIn: parent
-                    width: {
-                        const c = pinnedModel.count;
-                        return c * 52 + Math.max(0, c - 1) * 12;
+
+                    readonly property real maxAvailableWidth: Math.max(280, (root.screen ? root.screen.width : 1920) - 160)
+
+                    readonly property var dockMetrics: {
+                        const total = pinnedModel.count;
+                        if (total <= 0) {
+                            return { itemSize: 52, itemSpacing: 12, slotStep: 64, visibleCount: 0, hasOverflow: false, overflowCount: 0, totalWidth: 0 };
+                        }
+                        const defaultSize = 52;
+                        const defaultSpacing = 12;
+                        const minSize = 36;
+                        const shrinkSpacing = 8;
+                        const maxW = layout.maxAvailableWidth;
+
+                        const stdWidth = total * defaultSize + (total - 1) * defaultSpacing;
+                        if (stdWidth <= maxW) {
+                            return {
+                                itemSize: defaultSize,
+                                itemSpacing: defaultSpacing,
+                                slotStep: defaultSize + defaultSpacing,
+                                visibleCount: total,
+                                hasOverflow: false,
+                                overflowCount: 0,
+                                totalWidth: stdWidth
+                            };
+                        }
+
+                        // Try auto-shrinking all items down to minSize
+                        const candidateSize = (maxW - (total - 1) * shrinkSpacing) / total;
+                        if (candidateSize >= minSize) {
+                            const sz = Math.max(minSize, Math.min(defaultSize, Math.floor(candidateSize)));
+                            const sp = shrinkSpacing;
+                            const w = total * sz + (total - 1) * sp;
+                            return {
+                                itemSize: sz,
+                                itemSpacing: sp,
+                                slotStep: sz + sp,
+                                visibleCount: total,
+                                hasOverflow: false,
+                                overflowCount: 0,
+                                totalWidth: w
+                            };
+                        }
+
+                        // Overflow mode: fix size at minSize, calculate how many visible slots + 1 overflow button fit
+                        const sz = minSize;
+                        const sp = shrinkSpacing;
+                        const step = sz + sp;
+                        // (vis + 1) * sz + vis * sp <= maxW => vis <= (maxW - sz) / step
+                        const maxVisible = Math.max(1, Math.min(total - 1, Math.floor((maxW - sz) / step)));
+                        const overflowCount = total - maxVisible;
+                        const w = (maxVisible + 1) * sz + maxVisible * sp;
+
+                        return {
+                            itemSize: sz,
+                            itemSpacing: sp,
+                            slotStep: step,
+                            visibleCount: maxVisible,
+                            hasOverflow: true,
+                            overflowCount: overflowCount,
+                            totalWidth: w
+                        };
                     }
-                    height: 58
+
+                    readonly property real itemSize: dockMetrics.itemSize
+                    readonly property real itemSpacing: dockMetrics.itemSpacing
+                    readonly property real slotStep: dockMetrics.slotStep
+                    readonly property int visibleCount: dockMetrics.visibleCount
+                    readonly property bool hasOverflow: dockMetrics.hasOverflow
+                    readonly property int overflowCount: dockMetrics.overflowCount
+
+                    width: dockMetrics.totalWidth
+                    height: layout.itemSize + 6
+
+                    Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                     ListModel { id: pinnedModel }
 
@@ -626,7 +710,7 @@ Item {
                                 if (Math.sqrt(dx*dx + dy*dy) > dragThreshold) isDragging = true;
                             }
                             if (isDragging)
-                                hoverTargetSlot = Math.max(0, Math.min(pinnedModel.count - 1, Math.round((mouseX - layout.x) / 64)));
+                                hoverTargetSlot = Math.max(0, Math.min(layout.visibleCount - 1, Math.round((mouseX - layout.x) / layout.slotStep)));
                         }
                         function endDrag() {
                             if (isDragging && draggedOriginalIndex !== hoverTargetSlot) {
@@ -647,17 +731,18 @@ Item {
                             draggedAppId = ""; draggedOriginalIndex = -1; hoverTargetSlot = -1; isDragging = false;
                         }
                         function getTargetX(currentIndex) {
+                            const step = layout.slotStep;
                             if (isDragging) {
-                                if (currentIndex === draggedOriginalIndex) return hoverTargetSlot * 64;
+                                if (currentIndex === draggedOriginalIndex) return hoverTargetSlot * step;
                                 if (draggedOriginalIndex < hoverTargetSlot) {
                                     if (currentIndex > draggedOriginalIndex && currentIndex <= hoverTargetSlot)
-                                        return (currentIndex - 1) * 64;
+                                        return (currentIndex - 1) * step;
                                 } else {
                                     if (currentIndex < draggedOriginalIndex && currentIndex >= hoverTargetSlot)
-                                        return (currentIndex + 1) * 64;
+                                        return (currentIndex + 1) * step;
                                 }
                             }
-                            return currentIndex * 64;
+                            return currentIndex * step;
                         }
                     }
 
@@ -686,11 +771,15 @@ Item {
                         color: Colours.layer(Colours.palette.m3surfaceVariant, 0.8)
                         border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         border.width: 1
-                        width: 52; height: 52; radius: 12
+                        width: layout.itemSize
+                        height: layout.itemSize
+                        radius: Math.round(layout.itemSize * (12 / 52))
                         x: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.x : 0
-                        y: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.y + 3 : 0
+                        y: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.y + (pinnedState.hoveredAppIcon.height - height) / 2 : 0
                         Behavior on x { enabled: pinnedHoverHighlight.opacity > 0; SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
                         Behavior on y { enabled: pinnedHoverHighlight.opacity > 0; SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
+                        Behavior on width { SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
+                        Behavior on height { SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
                         Behavior on opacity { NumberAnimation { duration: 150 } }
                     }
 
@@ -717,8 +806,9 @@ Item {
                                 cachedIcon = Icons.resolveIcon(entry?.icon || "", "image-missing");
                             }
 
-                            width: 52
-                            height: 52 + 6
+                            visible: index < layout.visibleCount
+                            width: layout.itemSize
+                            height: layout.itemSize + 6
 
                             property int runningInstances: 0
 
@@ -757,7 +847,7 @@ Item {
                             }
 
                             x: pinnedState.getTargetX(index)
-                            y: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? -12 : 0
+                            y: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? -12 : (layout.height - height) / 2
                             z: pinnedState.draggedAppId === appId ? 100 : 0
 
                             Behavior on x { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
@@ -766,10 +856,11 @@ Item {
                             Rectangle {
                                 id: iconBg
                                 objectName: "iconBg"
-                                anchors.centerIn: parent
-                                width: 52
-                                height: 52
-                                radius: 12
+                                anchors.top: parent.top
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: layout.itemSize
+                                height: layout.itemSize
+                                radius: Math.round(layout.itemSize * (12 / 52))
                                 smooth: false
                                 antialiasing: true
 
@@ -808,7 +899,7 @@ Item {
                                     asynchronous: true
                                     source: appWrapper.cachedIcon
                                     anchors.fill: parent
-                                    anchors.margins: 6
+                                    anchors.margins: Math.max(3, Math.round(layout.itemSize * (6 / 52)))
                                     smooth: true
 
                                     scale: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? 1.15
@@ -835,9 +926,9 @@ Item {
                                 // Running instances indicator bar
                                 Item {
                                     anchors.top: iconBg.bottom
-                                    anchors.topMargin: -4
+                                    anchors.topMargin: 2
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 52
+                                    width: layout.itemSize
                                     height: appWrapper.runningInstances > 0 ? 3 : 0
                                     visible: appWrapper.runningInstances > 0
 
@@ -849,7 +940,7 @@ Item {
                                         Repeater {
                                             model: appWrapper.runningInstances
                                             Rectangle {
-                                                width: (52 - (appWrapper.runningInstances > 1 ? (appWrapper.runningInstances - 1) : 0)) / appWrapper.runningInstances
+                                                width: (layout.itemSize - (appWrapper.runningInstances > 1 ? (appWrapper.runningInstances - 1) : 0)) / appWrapper.runningInstances
                                                 height: 3; radius: 1.5
                                                 color: Colours.palette.m3primary
                                                 Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
@@ -871,6 +962,9 @@ Item {
                                 onPressed: mouse => {
                                     if (root.contextMenuVisible && mouse.button === Qt.LeftButton) {
                                         root.hideContextMenu();
+                                    }
+                                    if (root.overflowFlyoutVisible) {
+                                        root.overflowFlyoutVisible = false;
                                     }
                                     if (mouse.button === Qt.LeftButton) {
                                         isPressing = true;
@@ -939,10 +1033,582 @@ Item {
                             }
                         }
                     }
+                    // Overflow Button on Dock
+                    Item {
+                        id: overflowBtn
+                        visible: layout.hasOverflow
+                        width: layout.itemSize
+                        height: layout.itemSize + 6
+                        x: layout.visibleCount * layout.slotStep
+                        y: (layout.height - height) / 2
+                        z: 10
+
+                        Behavior on x {
+                            enabled: pinnedState.isDragging
+                            SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 }
+                        }
+
+                        Rectangle {
+                            id: overflowIconBg
+                            objectName: "overflowIconBg"
+                            anchors.top: parent.top
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: layout.itemSize
+                            height: layout.itemSize
+                            radius: Math.round(layout.itemSize * (12 / 52))
+                            color: overflowArea.containsMouse
+                                ? Colours.layer(Colours.palette.m3surfaceVariant, 0.8)
+                                : Colours.layer(Colours.palette.m3surfaceVariant, 0.35)
+                            border.color: overflowArea.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : "transparent"
+                            border.width: 1
+
+                            scale: overflowArea.containsMouse ? 1.1 : 1.0
+                            opacity: (root.overflowFlyoutVisible || overflowFlyout.shouldBeVisible) ? 0 : 1
+
+                            Behavior on scale { SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 } }
+                            Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "more_horiz"
+                                iconPointSize: Math.max(14, Math.round(layout.itemSize * (20 / 52)))
+                                color: overflowArea.containsMouse
+                                    ? Colours.palette.m3primary
+                                    : Colours.palette.m3onSurface
+                            }
+
+                            // Badge count
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.topMargin: -2
+                                anchors.rightMargin: -2
+                                width: Math.max(16, badgeText.implicitWidth + 6)
+                                height: 16
+                                radius: 8
+                                color: Colours.palette.m3primary
+                                visible: layout.overflowCount > 0
+
+                                StyledText {
+                                    id: badgeText
+                                    anchors.centerIn: parent
+                                    text: "+" + layout.overflowCount
+                                    color: Colours.palette.m3onPrimary
+                                    textPointSize: 8
+                                    font.weight: Font.Bold
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: overflowArea
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (root.contextMenuVisible)
+                                    root.hideContextMenu();
+                                if (overflowBtn) {
+                                    const pt = overflowBtn.mapToItem(root, 0, 0);
+                                    overflowFlyout.savedStartPoint = Qt.point(Math.round(pt.x), Math.round(pt.y));
+                                    overflowFlyout.savedStartSize = Qt.size(layout.itemSize, layout.itemSize);
+                                    overflowFlyout.savedStartRadius = Math.round(layout.itemSize * (12 / 52));
+                                }
+                                root.overflowFlyoutVisible = !root.overflowFlyoutVisible;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Global backdrop to close overflow flyout when clicking outside
+    MouseArea {
+        id: overflowDismissBackdrop
+        visible: root.overflowFlyoutVisible
+        anchors.fill: parent
+        z: 9997
+        acceptedButtons: Qt.AllButtons
+        onPressed: {
+            root.overflowFlyoutVisible = false;
+        }
+    }
+
+    // ── More Apps Container Transform Overlay ─────────────────────────────────
+    Item {
+        id: overflowFlyout
+
+        readonly property point currentBtnPoint: {
+            if (!layout.hasOverflow || !overflowBtn) return Qt.point(0, 0);
+            const _ = bottomPanel.x + bottomPanel.y + dockContainer.x + dockContainer.y + layout.x + layout.y + overflowBtn.x + overflowBtn.y;
+            const pt = overflowBtn.mapToItem(root, 0, 0);
+            return Qt.point(Math.round(pt.x), Math.round(pt.y));
+        }
+
+        property point savedStartPoint: currentBtnPoint
+        property size savedStartSize: Qt.size(layout.itemSize, layout.itemSize)
+        property real savedStartRadius: Tokens.rounding.small
+        property real radius: savedStartRadius
+
+        readonly property int overflowItemCount: layout.hasOverflow ? (pinnedModel.count - layout.visibleCount) : 0
+        readonly property real endW: 260
+        readonly property real endH: Math.min(overflowItemCount * 40 + 58, 380)
+        readonly property real endX: {
+            const minMargin = 8;
+            const maxMargin = root.width - endW - minMargin;
+            const btnX = (currentBtnPoint.x > 0) ? currentBtnPoint.x : (savedStartPoint.x > 0 ? savedStartPoint.x : currentBtnPoint.x);
+            let mx = btnX + savedStartSize.width / 2 - endW / 2;
+            return Math.max(minMargin, Math.min(mx, maxMargin));
+        }
+        readonly property real endY: bottomPanel.y - endH - 10
+        readonly property real endR: Tokens.rounding.large
+
+        readonly property bool isMorphAnimating: expandTransition.running || collapseTransition.running
+        readonly property bool shouldBeVisible: root.overflowFlyoutVisible || isMorphAnimating
+        visible: shouldBeVisible && layout.hasOverflow
+        z: 9998
+
+        // Start at collapsed position by default
+        x: (currentBtnPoint.x > 0) ? currentBtnPoint.x : savedStartPoint.x
+        y: (currentBtnPoint.y > 0) ? currentBtnPoint.y : savedStartPoint.y
+        width: savedStartSize.width
+        height: savedStartSize.height
+
+        state: root.overflowFlyoutVisible ? "expanded" : "collapsed"
+
+        states: [
+            State {
+                name: "expanded"
+                PropertyChanges {
+                    target: overflowFlyout
+                    x: overflowFlyout.endX
+                    y: overflowFlyout.endY
+                    width: overflowFlyout.endW
+                    height: overflowFlyout.endH
+                    radius: overflowFlyout.endR
+                }
+                PropertyChanges {
+                    target: overflowSurface
+                    color: Colours.layer(Colours.palette.m3surfaceVariant, 0.25)
+                }
+                PropertyChanges {
+                    target: collapsedContent
+                    opacity: 0
+                }
+                PropertyChanges {
+                    target: expandedContent
+                    opacity: 1
+                }
+            },
+            State {
+                name: "collapsed"
+                PropertyChanges {
+                    target: overflowFlyout
+                    x: (overflowFlyout.currentBtnPoint.x > 0) ? overflowFlyout.currentBtnPoint.x : overflowFlyout.savedStartPoint.x
+                    y: (overflowFlyout.currentBtnPoint.y > 0) ? overflowFlyout.currentBtnPoint.y : overflowFlyout.savedStartPoint.y
+                    width: overflowFlyout.savedStartSize.width
+                    height: overflowFlyout.savedStartSize.height
+                    radius: overflowFlyout.savedStartRadius
+                }
+                PropertyChanges {
+                    target: overflowSurface
+                    color: overflowArea.containsMouse
+                        ? Colours.layer(Colours.palette.m3surfaceVariant, 0.45)
+                        : Colours.layer(Colours.palette.m3surfaceVariant, 0.25)
+                }
+                PropertyChanges {
+                    target: collapsedContent
+                    opacity: 1
+                }
+                PropertyChanges {
+                    target: expandedContent
+                    opacity: 0
+                }
+            }
+        ]
+
+        transitions: [
+            Transition {
+                id: expandTransition
+                from: "collapsed"; to: "expanded"
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: overflowFlyout
+                        properties: "x,y,width,height,radius"
+                        duration: 320
+                        easing: Tokens.anim.expressiveDefaultSpatial
+                    }
+                    ColorAnimation {
+                        target: overflowSurface
+                        properties: "color"
+                        duration: 320
+                    }
+                    NumberAnimation {
+                        target: collapsedContent
+                        property: "opacity"
+                        to: 0
+                        duration: 80
+                        easing.type: Easing.OutCubic
+                    }
+                    SequentialAnimation {
+                        PauseAnimation { duration: 60 }
+                        ParallelAnimation {
+                            NumberAnimation {
+                                target: expandedContent
+                                property: "opacity"
+                                to: 1
+                                duration: 240
+                                easing.type: Easing.OutCubic
+                            }
+                            NumberAnimation {
+                                target: flyoutLayout
+                                property: "y"
+                                from: 8
+                                to: 0
+                                duration: 240
+                                easing: Tokens.anim.emphasizedDecel
+                            }
+                        }
+                    }
+                }
+            },
+            Transition {
+                id: collapseTransition
+                from: "expanded"; to: "collapsed"
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: overflowFlyout
+                        properties: "x,y,width,height,radius"
+                        duration: 320
+                        easing: Tokens.anim.expressiveDefaultSpatial
+                    }
+                    ColorAnimation {
+                        target: overflowSurface
+                        properties: "color"
+                        duration: 320
+                    }
+                    NumberAnimation {
+                        target: expandedContent
+                        property: "opacity"
+                        to: 0
+                        duration: 80
+                        easing.type: Easing.InQuad
+                    }
+                    NumberAnimation {
+                        target: flyoutLayout
+                        property: "y"
+                        to: 6
+                        duration: 80
+                        easing.type: Easing.InQuad
+                    }
+                    SequentialAnimation {
+                        PauseAnimation { duration: 60 }
+                        NumberAnimation {
+                            target: collapsedContent
+                            property: "opacity"
+                            to: 1
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
+            }
+        ]
+
+        Connections {
+            target: root
+            function onOverflowFlyoutVisibleChanged() {
+                if (overflowBtn) {
+                    const pt = overflowBtn.mapToItem(root, 0, 0);
+                    overflowFlyout.savedStartPoint = Qt.point(Math.round(pt.x), Math.round(pt.y));
+                    overflowFlyout.savedStartSize = Qt.size(layout.itemSize, layout.itemSize);
+                    overflowFlyout.savedStartRadius = Tokens.rounding.small;
+                }
+            }
+        }
+
+
+        Rectangle {
+            id: overflowSurface
+            anchors.fill: parent
+            radius: overflowFlyout.radius
+            clip: expandedContent.visible && expandedContent.opacity > 0.05
+            color: Colours.layer(Colours.palette.m3surfaceVariant, 0.25)
+            antialiasing: true
+            smooth: true
+
+            // Collapsed button content (crossfades out on expand)
+            Item {
+                id: collapsedContent
+                anchors.fill: parent
+                opacity: 1
+                visible: opacity > 0
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "more_horiz"
+                    iconPointSize: Math.max(14, Math.round(layout.itemSize * (20 / 52)))
+                    color: overflowArea.containsMouse
+                        ? Colours.palette.m3primary
+                        : Colours.palette.m3onSurface
+                }
+
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.topMargin: -2
+                    anchors.rightMargin: -2
+                    width: Math.max(16, badgeTextCollapsed.implicitWidth + 6)
+                    height: 16
+                    radius: 8
+                    color: Colours.palette.m3primary
+                    visible: layout.overflowCount > 0
+
+                    StyledText {
+                        id: badgeTextCollapsed
+                        anchors.centerIn: parent
+                        text: "+" + layout.overflowCount
+                        color: Colours.palette.m3onPrimary
+                        textPointSize: 8
+                        font.weight: Font.Bold
+                    }
                 }
             }
 
+            // Expanded flyout card content (crossfades in on expand)
+            Item {
+                id: expandedContent
+                width: overflowFlyout.endW
+                height: overflowFlyout.endH
+                anchors.top: parent.top
+                anchors.left: parent.left
+                opacity: 0
+                visible: opacity > 0
 
+                ColumnLayout {
+                    id: flyoutLayout
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 6
+
+                    // Header
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 24
+                        Layout.leftMargin: 4
+                        Layout.rightMargin: 4
+                        spacing: 8
+
+                        MaterialIcon {
+                            text: "apps"
+                            iconPointSize: 14
+                            color: Colours.palette.m3primary
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: qsTr("More Pinned Apps")
+                            textPointSize: Tokens.font.size.small
+                            font.weight: Font.DemiBold
+                            color: Colours.palette.m3onSurface
+                        }
+
+                        StyledText {
+                            text: String(layout.overflowCount)
+                            textPointSize: Tokens.font.size.smaller
+                            font.weight: Font.Bold
+                            color: Colours.palette.m3primary
+                        }
+                    }
+
+                    // Divider
+                    StyledRect {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: Qt.alpha(Colours.palette.m3outline, 0.2)
+                    }
+
+                    // Scrollable list of overflow items with sliding hover marker
+                    Item {
+                        id: listContainer
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+
+                        // Sliding hover highlight marker
+                        StyledRect {
+                            id: overflowHoverHighlight
+                            readonly property Item target: root.overflowHoveredItem
+                            readonly property real _scroll: overflowScroll.contentY
+
+                            z: 0
+                            visible: target !== null && root.overflowFlyoutVisible
+                            opacity: visible ? 0.08 : 0
+                            color: Colours.palette.m3onSurface
+                            radius: Tokens.rounding.small
+
+                            x: {
+                                const _ = _scroll;
+                                return target ? target.mapToItem(listContainer, 0, 0).x : 0;
+                            }
+                            y: {
+                                const _ = _scroll;
+                                return target ? target.mapToItem(listContainer, 0, 0).y : 0;
+                            }
+                            width: target ? target.width : 0
+                            height: target ? target.height : 0
+
+                            Behavior on x {
+                                enabled: overflowHoverHighlight.opacity > 0
+                                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                            }
+                            Behavior on y {
+                                enabled: overflowHoverHighlight.opacity > 0
+                                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                            }
+                            Behavior on width {
+                                enabled: overflowHoverHighlight.opacity > 0
+                                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                            }
+                            Behavior on height {
+                                enabled: overflowHoverHighlight.opacity > 0
+                                SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                            }
+                            Behavior on opacity {
+                                NumberAnimation { duration: 150 }
+                            }
+                        }
+
+                        StyledFlickable {
+                            id: overflowScroll
+                            anchors.fill: parent
+                            contentHeight: overflowCol.implicitHeight
+                            contentWidth: width
+                            flickableDirection: Flickable.VerticalFlick
+                            edgeFades: false
+                            smoothWheel: true
+
+                            Column {
+                                id: overflowCol
+                                width: overflowScroll.width
+                                spacing: 2
+
+                                Repeater {
+                                    model: layout.hasOverflow ? (pinnedModel.count - layout.visibleCount) : 0
+
+                                    Item {
+                                        id: overflowRow
+                                        required property int index
+                                        readonly property int realIndex: layout.visibleCount + index
+                                        readonly property string appId: realIndex < pinnedModel.count ? pinnedModel.get(realIndex).appId : ""
+                                        readonly property var entry: {
+                                            if (!appId) return undefined;
+                                            const apps = DesktopEntries.applications.values;
+                                            for (let i = 0; i < apps.length; i++) {
+                                                if (apps[i].id === appId) return apps[i];
+                                            }
+                                            return undefined;
+                                        }
+                                        readonly property string cachedIcon: Icons.resolveIcon(entry?.icon || "", "image-missing")
+
+                                        property int runningInstances: 0
+
+                                        function updateRunningCount() {
+                                            if (!appId) { runningInstances = 0; return; }
+                                            const toplevels = Hypr.toplevels?.values ?? [];
+                                            let count = 0;
+                                            for (let i = 0; i < toplevels.length; i++) {
+                                                const ipc = toplevels[i].lastIpcObject;
+                                                if (ipc && ipc.class === appId) count++;
+                                            }
+                                            runningInstances = count;
+                                        }
+
+                                        Connections {
+                                            target: Hypr
+                                            function onToplevelUpdateCounterChanged() { overflowRow.updateRunningCount(); }
+                                        }
+
+                                        Component.onCompleted: updateRunningCount()
+
+                                        width: overflowCol.width
+                                        implicitHeight: 38
+                                        height: implicitHeight
+
+                                        StateLayer {
+                                            id: overflowRowState
+                                            anchors.fill: parent
+                                            radius: Tokens.rounding.small
+                                            color: Colours.palette.m3onSurface
+                                            showHoverBackground: false
+                                            hoverEnabled: false
+                                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                            onClicked: mouse => {
+                                                if (mouse.button === Qt.LeftButton) {
+                                                    if (overflowRow.entry) {
+                                                        LauncherServices.Apps.launch(overflowRow.entry);
+                                                        root.overflowFlyoutVisible = false;
+                                                        root.visibilities.bottomPanel = false;
+                                                    }
+                                                } else if (mouse.button === Qt.RightButton) {
+                                                    root.overflowFlyoutVisible = false;
+                                                    root.showContextMenu(overflowRow.appId, overflowRow);
+                                                }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            acceptedButtons: Qt.NoButton
+                                            onContainsMouseChanged: {
+                                                if (containsMouse)
+                                                    root.overflowHoveredItem = overflowRow;
+                                                else if (root.overflowHoveredItem === overflowRow)
+                                                    root.overflowHoveredItem = null;
+                                            }
+                                        }
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 8
+                                            anchors.rightMargin: 8
+                                            spacing: 10
+
+                                            IconImage {
+                                                Layout.preferredWidth: 24
+                                                Layout.preferredHeight: 24
+                                                asynchronous: true
+                                                source: overflowRow.cachedIcon
+                                                smooth: true
+                                            }
+
+                                            StyledText {
+                                                Layout.fillWidth: true
+                                                text: overflowRow.entry ? (overflowRow.entry.name || overflowRow.appId) : overflowRow.appId
+                                                textPointSize: Tokens.font.size.small
+                                                color: Colours.palette.m3onSurface
+                                                elide: Text.ElideRight
+                                            }
+
+                                            // Running instances indicator dot
+                                            Rectangle {
+                                                visible: overflowRow.runningInstances > 0
+                                                Layout.preferredWidth: 6
+                                                Layout.preferredHeight: 6
+                                                radius: 3
+                                                color: Colours.palette.m3primary
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

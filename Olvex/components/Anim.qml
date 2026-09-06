@@ -14,6 +14,7 @@ NumberAnimation {
         FastSpatial,
         DefaultSpatial,
         SlowSpatial,
+        SubtleSpatial,
         FastEffects,
         DefaultEffects,
         SlowEffects
@@ -31,6 +32,8 @@ NumberAnimation {
             return Tokens.anim.durations.expressiveDefaultSpatial;
         if (type === Anim.SlowSpatial)
             return Tokens.anim.durations.expressiveSlowSpatial;
+        if (type === Anim.SubtleSpatial)
+            return 430; // Matches MediaMorphOverlay 430ms morph duration
         if (type === Anim.FastEffects)
             return Tokens.anim.durations.expressiveFastEffects;
         if (type === Anim.DefaultEffects)
@@ -49,6 +52,8 @@ NumberAnimation {
             return Tokens.anim.expressiveDefaultSpatial;
         if (type === Anim.SlowSpatial)
             return Tokens.anim.expressiveSlowSpatial;
+        if (type === Anim.SubtleSpatial)
+            return Tokens.anim.expressiveSubtleSpatial;
         if (type === Anim.FastEffects)
             return Tokens.anim.expressiveFastEffects;
         if (type === Anim.DefaultEffects)

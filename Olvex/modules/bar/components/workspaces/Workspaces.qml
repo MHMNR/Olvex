@@ -82,13 +82,25 @@ StyledClippingRect {
 
     property real blur: onSpecial ? 1 : 0
 
+    property var bar: null
+    readonly property real pushOffset: {
+        const p = (root.bar && typeof root.bar.workspacePush === "number") ? root.bar.workspacePush : 0;
+        return Math.max(0, p);
+    }
+
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: layout.implicitHeight + Tokens.padding.small * 2
+    Layout.preferredWidth: implicitWidth
+    Layout.preferredHeight: implicitHeight
+    width: implicitWidth
+    height: implicitHeight
 
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
 
-
+    transform: Translate {
+        y: -root.pushOffset
+    }
 
     MouseArea {
         id: hoverArea

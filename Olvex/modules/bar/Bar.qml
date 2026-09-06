@@ -17,6 +17,7 @@ ColumnLayout {
     required property DrawerVisibilities visibilities
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
+    property real workspacePush: 0
     property var mediaMorph
     property var notificationMorph
     readonly property int vPadding: Tokens.padding.large
@@ -174,6 +175,7 @@ ColumnLayout {
                 roleValue: "workspaces"
                 delegate: WrappedLoader {
                     sourceComponent: Workspaces {
+                        bar: root
                         screen: root.screen
                         fullscreen: root.fullscreen
                     }
@@ -189,7 +191,7 @@ ColumnLayout {
                     // hands it whatever's left, and compresses it when the
                     // workspace pill above expands — pills below stay put.
                     Layout.fillHeight: true
-                    Layout.minimumHeight: item ? (item.isNotificationPushed ? (item.musicPillWidth * 2 + Tokens.spacing.small) : 64) : 64
+                    Layout.minimumHeight: 64
                     Layout.maximumHeight: item ? item.animatedMaxHeight : 0
                     sourceComponent: ActiveWindow {
                         bar: root

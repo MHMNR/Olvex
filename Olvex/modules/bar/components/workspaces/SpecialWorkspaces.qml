@@ -191,13 +191,13 @@ Item {
 
                 Behavior on y {
                     Anim {
-                        type: Anim.Emphasized
+                        type: Anim.DefaultSpatial
                     }
                 }
 
                 Behavior on implicitHeight {
                     Anim {
-                        type: Anim.Emphasized
+                        type: Anim.DefaultSpatial
                     }
                 }
             }

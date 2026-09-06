@@ -431,7 +431,31 @@ Item {
     implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
 
     implicitHeight: icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
+    
+    // Dynamically tracks the visual overshoot push into adjacent items
+    readonly property real upwardPush: {
+        if (root.isNotificationPushed && notifPill) {
+            return (typeof notifPill.upwardPush === "number") ? notifPill.upwardPush : 0;
+        }
+        if (musicPill) {
+            const topY = root.height - musicPill.height - musicPill.anchors.bottomMargin;
+            if (topY < 0) {
+                return -topY;
+            }
+        }
+        return 0;
+    }
+
+    Binding {
+        target: root.bar
+        property: "workspacePush"
+        value: root.upwardPush
+        when: root.bar !== null
+    }
+
     property real animatedMaxHeight: root.maxHeight
+
+    // Using Anim.SubtleSpatial instead of manual easing properties
 
     states: [
         State {
@@ -466,9 +490,8 @@ Item {
     transitions: [
         Transition {
             enabled: root.isLoaded
-            // No AnchorAnimation needed — anchor itself never changes, only bottomMargin & height
-            Anim { targets: [musicPill]; properties: "height,anchors.bottomMargin"; type: Anim.DefaultSpatial }
-            Anim { targets: [icon]; properties: "y"; type: Anim.DefaultSpatial }
+            Anim { targets: [musicPill]; properties: "height,anchors.bottomMargin"; type: Anim.SubtleSpatial }
+            Anim { targets: [icon]; properties: "y"; type: Anim.SubtleSpatial }
         }
     ]
 
@@ -497,7 +520,7 @@ Item {
         visible: opacity > 0.01
 
         Behavior on anchors.bottomMargin {
-            Anim { type: Anim.DefaultSpatial }
+            Anim { type: Anim.SubtleSpatial }
         }
     }
 
@@ -523,7 +546,7 @@ Item {
         width: root.playerActive ? root.musicPillWidth : parent.width
 
         Behavior on radius {
-            Anim { type: Anim.DefaultSpatial }
+            Anim { type: Anim.SubtleSpatial }
         }
 
         property real pillAlpha: 1
@@ -655,7 +678,7 @@ Item {
                     height: root.musicArtSize
 
                     Behavior on y {
-                        Anim { type: Anim.DefaultSpatial }
+                        Anim { type: Anim.SubtleSpatial }
                     }
 
                     // Ambient glow moved to StyledClippingRect at musicPill level
@@ -748,7 +771,7 @@ Item {
                     transform: Translate {
                         y: root.isNotificationPushed ? 18 : 0
                         Behavior on y {
-                            Anim { type: Anim.DefaultSpatial }
+                            Anim { type: Anim.SubtleSpatial }
                         }
                     }
 

@@ -24,6 +24,7 @@ class AnimTokens : public QObject {
     Q_PROPERTY(QEasingCurve expressiveFastSpatial READ expressiveFastSpatial NOTIFY curvesChanged)
     Q_PROPERTY(QEasingCurve expressiveDefaultSpatial READ expressiveDefaultSpatial NOTIFY curvesChanged)
     Q_PROPERTY(QEasingCurve expressiveSlowSpatial READ expressiveSlowSpatial NOTIFY curvesChanged)
+    Q_PROPERTY(QEasingCurve expressiveSubtleSpatial READ expressiveSubtleSpatial NOTIFY curvesChanged)
     Q_PROPERTY(QEasingCurve expressiveFastEffects READ expressiveFastEffects NOTIFY curvesChanged)
     Q_PROPERTY(QEasingCurve expressiveDefaultEffects READ expressiveDefaultEffects NOTIFY curvesChanged)
     Q_PROPERTY(QEasingCurve expressiveSlowEffects READ expressiveSlowEffects NOTIFY curvesChanged)
@@ -45,6 +46,7 @@ public:
     [[nodiscard]] QEasingCurve expressiveFastSpatial() const;
     [[nodiscard]] QEasingCurve expressiveDefaultSpatial() const;
     [[nodiscard]] QEasingCurve expressiveSlowSpatial() const;
+    [[nodiscard]] QEasingCurve expressiveSubtleSpatial() const;
     [[nodiscard]] QEasingCurve expressiveFastEffects() const;
     [[nodiscard]] QEasingCurve expressiveDefaultEffects() const;
     [[nodiscard]] QEasingCurve expressiveSlowEffects() const;
@@ -70,6 +72,7 @@ private:
     QEasingCurve m_expressiveFastSpatial;
     QEasingCurve m_expressiveDefaultSpatial;
     QEasingCurve m_expressiveSlowSpatial;
+    QEasingCurve m_expressiveSubtleSpatial;
     QEasingCurve m_expressiveFastEffects;
     QEasingCurve m_expressiveDefaultEffects;
     QEasingCurve m_expressiveSlowEffects;

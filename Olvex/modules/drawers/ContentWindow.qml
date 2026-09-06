@@ -57,8 +57,7 @@ StyledWindow {
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : safeBorder.thickness
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
-    readonly property bool shellMotionActive: shellMotionGrace.running
-    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (shellMotionActive || morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible)
+    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
 
     property real bottomBorderHeight: {
         if (hasFullscreen)
@@ -143,9 +142,10 @@ StyledWindow {
         target: panels
 
         function onContextMenuVisibleChanged(): void { root.pulseShellMotion(); }
+        function onOverflowFlyoutVisibleChanged(): void { root.pulseShellMotion(); }
     }
 
-    mask: (hasFullscreen || morph.active || notifMorph.active || panels.contextMenuVisible || visibilities.launcher || visibilities.wallpaperLauncher || panels.popouts.hasCurrent) ? null : regions
+    mask: (hasFullscreen || morph.active || notifMorph.active || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating) || visibilities.launcher || visibilities.wallpaperLauncher || panels.popouts.hasCurrent) ? null : regions
 
     Regions {
         id: regions
@@ -348,6 +348,15 @@ StyledWindow {
 
                 panel: panels.popoutsWrapper
                 deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.08 : 0.05
+            }
+
+            PanelBg {
+                id: overflowFlyoutBg
+
+                panel: panels.overflowFlyoutContainer
+                group: drawerGroup
+                deformAmount: 0.05
+                radius: Tokens.rounding.large
             }
         }
     }
