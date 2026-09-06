@@ -15,9 +15,6 @@ Item {
     readonly property bool isCurrent: list ? list.currentIndex === index : false
     readonly property string math: {
         const text = (list && list.search && list.search.text) ? list.search.text.trim() : "";
-        const prefix = GlobalConfig.launcher.actionPrefix;
-        if (prefix && text.startsWith(`${prefix}calc `))
-            return text.slice(`${prefix}calc `.length).trim();
         if (text.startsWith("calc "))
             return text.slice(5).trim();
         if (text.startsWith("="))

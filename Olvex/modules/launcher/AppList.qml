@@ -30,8 +30,6 @@ Item {
     function isMathExpression(str) {
         if (!str || str.length === 0) return false;
         const t = str.trim();
-        const prefix = GlobalConfig.launcher.actionPrefix;
-        if (prefix && t.startsWith(`${prefix}calc `)) return true;
         if (t.startsWith("calc ") || t.startsWith("=")) return true;
 
         if (/^(sin|cos|tan|asin|acos|atan|sqrt|cbrt|log|ln|exp|abs|floor|ceil|round)\s*\(.+\)$/i.test(t))
@@ -116,21 +114,12 @@ Item {
 
     readonly property string state: {
         const text = search.text;
-        const prefix = GlobalConfig.launcher.actionPrefix;
 
         if (isMathExpression(text))
             return "calc";
 
         if (isTerminalCommand(text))
             return "command";
-
-        if (prefix && text.startsWith(prefix)) {
-            for (const action of ["calc", "scheme", "variant"])
-                if (text.startsWith(`${prefix}${action} `))
-                    return action;
-
-            return "actions";
-        }
 
         if (text.trim().length > 0) {
             const apps = Apps.search(text);
@@ -162,7 +151,6 @@ Item {
     readonly property var rawModelValues: {
         if (state === "calc") return [0];
         if (state === "command") return getCommandActionItems(getTerminalCommand(search.text));
-        if (state === "actions") return Actions.query(search.text);
         if (state === "scheme") return Schemes.query(search.text);
         if (state === "variant") return M3Variants.query(search.text);
         if (state === "apps") return Apps.search(search.text);
@@ -1070,7 +1058,7 @@ Item {
             model: root.state !== "apps" ? root.modelValues : null
 
             delegate: {
-                if (root.state === "actions" || root.state === "command")
+                if (root.state === "command")
                     return actionItem;
                 if (root.state === "calc")
                     return calcItem;

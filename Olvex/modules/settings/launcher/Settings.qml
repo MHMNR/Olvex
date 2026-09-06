@@ -104,12 +104,6 @@ ColumnLayout {
             label: qsTr("Special prefix")
             value: GlobalConfig.launcher.specialPrefix || qsTr("None")
         }
-
-        PropertyRow {
-            showTopMargin: true
-            label: qsTr("Action prefix")
-            value: GlobalConfig.launcher.actionPrefix || qsTr("None")
-        }
     }
 
     SectionHeader {
@@ -124,14 +118,6 @@ ColumnLayout {
             checked: GlobalConfig.launcher.useFuzzy.apps
             toggle.onToggled: {
                 GlobalConfig.launcher.useFuzzy.apps = checked;
-            }
-        }
-
-        ToggleRow {
-            label: qsTr("Actions")
-            checked: GlobalConfig.launcher.useFuzzy.actions
-            toggle.onToggled: {
-                GlobalConfig.launcher.useFuzzy.actions = checked;
             }
         }
 
