@@ -466,23 +466,6 @@ Item {
         anchors.right: parent.right
     }
 
-    // Corner click triggers:
-    // Bottom-left corner: click to toggle launcher
-    MouseArea {
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        width: 60
-        height: 60
-        visible: Config.launcher.enabled
-        z: 30
-
-        onClicked: {
-            root.visibilities.launcher = !root.visibilities.launcher;
-        }
-    }
-
-
-
     Toasts.Toasts {
         id: toasts
 
@@ -531,20 +514,12 @@ Item {
             anchors.fill: parent
             color: "transparent"
 
-            // Dismiss QS panel and clipboard if clicking empty space in the bottom panel
+            // Dismiss open drawers when clicking empty space in the bottom panel
             MouseArea {
                 anchors.fill: parent
                 onClicked: mouse => {
                     if (root.contextMenuVisible) {
                         root.hideContextMenu();
-                        return;
-                    }
-                    if (mouse.x <= 80) {
-                        root.visibilities.launcher = !root.visibilities.launcher;
-                        return;
-                    }
-                    if (mouse.x >= width - 80) {
-                        root.visibilities.qspanel = !root.visibilities.qspanel;
                         return;
                     }
                     if (root.visibilities.launcher) {

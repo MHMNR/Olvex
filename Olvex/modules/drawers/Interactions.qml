@@ -121,11 +121,10 @@ CustomMouseArea {
         return y <= Math.max(4, safeBorder.thickness + floatingGap);
     }
 
-    // Bottom-left corner hot zone (launcher trigger)
+    // Bottom-left corner hot zone (launcher trigger) - strictly confined to bar width and bottom edge
     function inBottomLeftCorner(x: real, y: real): bool {
-        const edgeH = Math.max(60, safeBorder.thickness + floatingGap + 30);
-        const edgeW = Math.max(60, bar.implicitWidth + 30);
-        return x <= edgeW && y >= height - edgeH;
+        const edgeH = Math.max(4, safeBorder.thickness + floatingGap);
+        return x <= bar.clampedWidth && y >= height - edgeH;
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
@@ -382,19 +381,21 @@ CustomMouseArea {
 
         // Show launcher on hover, or show/hide on drag if hover is disabled
         if (Config.launcher.showOnHover) {
-            const inLauncherArea = inBottomPanel(panels.launcher, x, y);
+            const inLauncherArea = inBottomLeftCorner(x, y);
             if (!visibilities.launcher && inLauncherArea && !root.launcherHoverDisabled) {
                 visibilities.launcher = true;
             } else if (!inLauncherArea && root.launcherHoverDisabled) {
                 root.launcherHoverDisabled = false;
             }
-        } else if (!visibilities.wallpaperLauncher && !wallpaperShortcutActive
-                && pressed && inBottomPanel(panels.launcher, dragStart.x, dragStart.y)
-                && withinPanelWidth(panels.launcher, x, y)) {
-            if (dragY < -Config.launcher.dragThreshold)
-                visibilities.launcher = true;
-            else if (dragY > Config.launcher.dragThreshold)
-                visibilities.launcher = false;
+        } else if (!visibilities.wallpaperLauncher && !wallpaperShortcutActive && pressed) {
+            if (!visibilities.launcher && inBottomLeftCorner(dragStart.x, dragStart.y)) {
+                if (dragY < -Config.launcher.dragThreshold)
+                    visibilities.launcher = true;
+            } else if (visibilities.launcher && inBottomPanel(panels.launcher, dragStart.x, dragStart.y)
+                    && withinPanelWidth(panels.launcher, x, y)) {
+                if (dragY > Config.launcher.dragThreshold)
+                    visibilities.launcher = false;
+            }
         }
 
         if (visibilities.wallpaperLauncher && inBottomPanel(panels.wallpaperSelector, x, y))

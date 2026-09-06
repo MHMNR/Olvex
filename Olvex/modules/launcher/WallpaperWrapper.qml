@@ -113,7 +113,7 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: root.padding
                 text: "wallpaper_slideshow"
-                color: wallpaperSearch.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                color: wallpaperSearch.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurface
 
                 Behavior on color { CAnim {} }
             }
@@ -122,6 +122,10 @@ Item {
                 id: wallpaperSearch
 
                 background: null
+                color: Colours.palette.m3onSurface
+                placeholderTextColor: Colours.palette.m3onSurfaceVariant
+                selectedTextColor: Colours.palette.m3onPrimary
+                selectionColor: Colours.palette.m3primary
 
                 anchors.left:        searchIcon.right
                 anchors.right:       clearIcon.left

@@ -9,7 +9,7 @@ TextField {
     id: root
 
     color: Colours.palette.m3onSurface
-    placeholderTextColor: Colours.palette.m3outline
+    placeholderTextColor: Colours.palette.m3onSurfaceVariant
     font.family: Tokens.font.family.sans
     font.pixelSize: Math.max(10, Math.round(Tokens.font.size.smaller * 96 / 72))
     renderType: echoMode === TextField.Password ? TextField.QtRendering : TextField.NativeRendering

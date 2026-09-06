@@ -49,9 +49,6 @@ Item {
         MouseArea {
             id: mouseArea
             anchors.fill: parent
-            anchors.bottomMargin: -Tokens.padding.large
-            anchors.leftMargin: -Tokens.padding.large
-            anchors.rightMargin: -Tokens.padding.large
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: {

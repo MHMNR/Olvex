@@ -101,7 +101,7 @@ Item {
             anchors.leftMargin: root.padding
 
             text: "search"
-            color: search.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            color: search.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurface
 
             Behavior on color { CAnim {} }
         }
@@ -110,6 +110,10 @@ Item {
             id: search
 
             background: null
+            color: Colours.palette.m3onSurface
+            placeholderTextColor: Colours.palette.m3onSurfaceVariant
+            selectedTextColor: Colours.palette.m3onPrimary
+            selectionColor: Colours.palette.m3primary
 
             anchors.left: searchIcon.right
             anchors.right: clearIcon.left

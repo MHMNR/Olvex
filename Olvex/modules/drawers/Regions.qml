@@ -104,11 +104,11 @@ Region {
     }
 
     Region {
-        // Bottom-left corner hot zone (Launcher trigger)
+        // Bottom-left corner hot zone (Launcher trigger) - strictly confined to bar width and bottom edge
         x: 0
-        y: root.win.height - 60
-        width: Math.max(60, root.bar.clampedWidth + 20)
-        height: 60
+        y: root.win.height - Math.max(4, root.clampedThickness)
+        width: root.bar.clampedWidth
+        height: Math.max(4, root.clampedThickness)
         intersection: Intersection.Subtract
     }
 
