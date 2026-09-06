@@ -522,6 +522,10 @@ Item {
                         root.hideContextMenu();
                         return;
                     }
+                    if (mouse.x >= width - 12 && mouse.y >= height - 12) {
+                        root.visibilities.qspanel = !root.visibilities.qspanel;
+                        return;
+                    }
                     if (root.visibilities.launcher) {
                         root.visibilities.launcher = false;
                         return;

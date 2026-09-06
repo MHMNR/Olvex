@@ -127,6 +127,12 @@ CustomMouseArea {
         return x <= bar.clampedWidth && y >= height - edgeH;
     }
 
+    // Bottom-right corner hot zone (QS panel trigger) - tight corner target
+    function inBottomRightCorner(x: real, y: real): bool {
+        const cornerSize = Math.max(12, safeBorder.thickness + floatingGap);
+        return x >= width - cornerSize && y >= height - cornerSize;
+    }
+
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         if (!withinPanelWidth(panel, x, y))
             return false;
@@ -181,6 +187,15 @@ CustomMouseArea {
         // Click bottom-left corner to toggle launcher
         if (inBottomLeftCorner(event.x, event.y)) {
             visibilities.launcher = !visibilities.launcher;
+            event.accepted = true;
+            return;
+        }
+
+        // Click bottom-right corner to toggle QS panel
+        if (inBottomRightCorner(event.x, event.y)) {
+            visibilities.qspanel = !visibilities.qspanel;
+            if (visibilities.qspanel)
+                qspanelShortcutActive = true;
             event.accepted = true;
             return;
         }
