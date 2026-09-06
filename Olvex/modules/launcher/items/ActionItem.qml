@@ -19,6 +19,7 @@ Item {
 
     StateLayer {
         radius: Tokens.rounding.normal
+        showHoverBackground: false
         onClicked: {
             if (root.modelData && root.modelData.onClicked)
                 root.modelData.onClicked(root.list);

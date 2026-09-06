@@ -39,7 +39,7 @@ Item {
     height: 120
 
     readonly property bool isSelected: gridView.currentIndex === index
-    readonly property bool isHovered: mouseArea.containsMouse
+    readonly property bool isHovered: gridView.hoveredItem === root
     readonly property bool isFavourite: root.modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.id)
 
     onIsSelectedChanged: {
@@ -97,10 +97,12 @@ Item {
             id: stateLayer
             radius: Tokens.rounding.normal
             color: Colours.palette.m3onSurface
+            showHoverBackground: false
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: mouse => {
                 if (mouse.button === Qt.RightButton) {
+                    root.mouseActivated(root);
                     root.contextMenuRequested(stateLayer);
                 } else {
                     root.select();
@@ -116,6 +118,10 @@ Item {
 
             onEntered: {
                 root.mouseActivated(root);
+            }
+            onExited: {
+                if (gridView.hoveredItem === root)
+                    gridView.hoveredItem = null;
             }
         }
 
@@ -135,7 +141,7 @@ Item {
             anchors.top: parent.top
             anchors.topMargin: 12
             anchors.horizontalCenter: parent.horizontalCenter
-            scale: mouseArea.containsMouse ? 1.06 : 1
+            scale: (root.isHovered || root.isSelected) ? 1.06 : 1
 
             SequentialAnimation {
                 id: iconClickAnim
@@ -195,7 +201,7 @@ Item {
 
             text: root.modelData && root.modelData.name ? root.modelData.name : ""
             font.weight: Font.Normal
-            color: mouseArea.containsMouse ? (Colours.light ? "#000000" : "#ffffff") : Qt.alpha(Colours.light ? "#000000" : "#ffffff", 0.7)
+            color: (root.isHovered || root.isSelected) ? (Colours.light ? "#000000" : "#ffffff") : Qt.alpha(Colours.light ? "#000000" : "#ffffff", 0.7)
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             maximumLineCount: 2

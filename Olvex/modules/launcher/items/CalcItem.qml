@@ -49,6 +49,7 @@ Item {
 
     StateLayer {
         radius: Tokens.rounding.normal
+        showHoverBackground: false
         onClicked: root.onClicked()
     }
 

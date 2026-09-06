@@ -24,6 +24,7 @@ Item {
     StateLayer {
         id: stateLayer
         radius: Tokens.rounding.normal
+        showHoverBackground: false
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
         onClicked: mouse => {
