@@ -289,6 +289,20 @@ Item {
         }
     }
 
+    Connections {
+        target: Colours
+        function onLightChanged() {
+            root.queueAccentRefresh();
+        }
+    }
+
+    Connections {
+        target: GlobalConfig.appearance
+        function onThemeModeChanged() {
+            root.queueAccentRefresh();
+        }
+    }
+
     Component.onCompleted: {
         root.updateBarArtSource();
         root.syncBarAccent();

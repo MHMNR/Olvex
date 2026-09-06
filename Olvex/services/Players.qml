@@ -560,21 +560,31 @@ Singleton {
         root.musicOnAccent = Colours.on(root.musicVisualizerAccent);
     }
 
-    function syncBootAccentsFromSystem(): void {
-        if (root.liveAccentReady || root.bootAccentLoaded)
-            return;
+    function syncBootAccentsFromSystem(force = false): void {
         root.bootVisualizerAccent = Colours.palette.m3primaryContainer;
         root.bootPlayButtonBg = Colours.palette.m3primary;
         root.bootSurfaceColor = Colours.palette.m3surfaceContainerHigh;
         root.bootOnSurfaceColor = Colours.palette.m3onSurface;
         root.bootPlayIconColor = root.resolvePlayIconColor(root.bootPlayButtonBg, null);
-        root.liveVisualizerAccent = root.bootVisualizerAccent;
-        root.livePlayButtonBg = root.bootPlayButtonBg;
-        root.liveSurfaceColor = root.bootSurfaceColor;
-        root.liveOnSurfaceColor = root.bootOnSurfaceColor;
-        root.livePlayIconColor = root.bootPlayIconColor;
-        root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
-        root._updateMusicOnAccent();
+
+        if (!root.liveAccentReady || !root.active || !root.currentArtUrl || force) {
+            root.liveVisualizerAccent = root.bootVisualizerAccent;
+            root.livePlayButtonBg = root.bootPlayButtonBg;
+            root.liveSurfaceColor = root.bootSurfaceColor;
+            root.liveOnSurfaceColor = root.bootOnSurfaceColor;
+            root.livePlayIconColor = root.bootPlayIconColor;
+            root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
+            root._updateMusicOnAccent();
+        }
+    }
+
+    function handleThemeChange(): void {
+        root.syncBootAccentsFromSystem();
+        if (root.active && root.currentArtUrl) {
+            root.requestMediaAccentRefresh();
+        } else {
+            root.clearLiveAccent();
+        }
     }
 
     property var _mediaAccentSession: ({})
@@ -657,6 +667,11 @@ Singleton {
 
     function clearLiveAccent(): void {
         root.liveAccentReady = false;
+        root.bootVisualizerAccent = Colours.palette.m3primaryContainer;
+        root.bootPlayButtonBg = Colours.palette.m3primary;
+        root.bootSurfaceColor = Colours.palette.m3surfaceContainerHigh;
+        root.bootOnSurfaceColor = Colours.palette.m3onSurface;
+        root.bootPlayIconColor = root.resolvePlayIconColor(root.bootPlayButtonBg, null);
         root.liveVisualizerAccent = root.bootVisualizerAccent;
         root.livePlayButtonBg = root.bootPlayButtonBg;
         root.liveSurfaceColor = root.bootSurfaceColor;
@@ -1252,12 +1267,19 @@ Singleton {
     }
 
     Connections {
+        target: Colours
+        function onLightChanged() {
+            root.handleThemeChange();
+        }
+    }
+
+    Connections {
         target: GlobalConfig.appearance
         function onSchemeVariantChanged() {
-            root.syncBootAccentsFromSystem();
+            root.handleThemeChange();
         }
         function onThemeModeChanged() {
-            root.syncBootAccentsFromSystem();
+            root.handleThemeChange();
         }
     }
 

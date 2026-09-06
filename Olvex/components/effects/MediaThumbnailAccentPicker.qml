@@ -46,14 +46,43 @@ Item {
     readonly property bool hasArt: root.artUrl !== ""
 
     function syncSystemDefaults() {
-        if (root.accentReady)
-            return;
         root.visualizerAccent = Colours.palette.m3primaryContainer;
         root.playButtonBg = Colours.palette.m3primary;
         root.playIconColor = accentAnalyser.playIconOnFill(Colours.light, root.playButtonBg);
         root.surfaceColor = Colours.palette.m3surfaceContainerHigh;
         root.onSurfaceColor = Colours.palette.m3onSurface;
-        root._notifyAccentColors();
+        if (!root.accentReady) {
+            root._notifyAccentColors();
+        }
+    }
+
+    function recomputeThemeColors() {
+        if (!root.hasArt) {
+            root.applySystemFallback();
+            return;
+        }
+        const seed = accentAnalyser.dominantColour;
+        const vis = accentAnalyser.vibrantAccent(seed);
+        const fill = accentAnalyser.playButtonFill(seed, Colours.light);
+        if (vis && fill && root.isVisibleAccent(vis) && root.isVisibleAccent(fill)) {
+            root._pendingVisualizer = vis;
+            root._pendingPlayBg = fill;
+            root._pendingPlayIcon = accentAnalyser.playIconOnFill(Colours.light, fill);
+            root._pendingSurface = accentAnalyser.surfaceColor(seed, Colours.light);
+            root._pendingOnSurface = accentAnalyser.onSurfaceColor(Colours.light);
+
+            root.visualizerAccent = vis;
+            root.playButtonBg = fill;
+            root.playIconColor = root._pendingPlayIcon;
+            root.surfaceColor = root._pendingSurface;
+            root.onSurfaceColor = root._pendingOnSurface;
+            root.accentReady = true;
+
+            root.publishAccent(root.artUrl);
+            root._notifyAccentColors();
+        } else {
+            root.scheduleAnalysis();
+        }
     }
 
     function _notifyAccentColors() {
@@ -399,18 +428,19 @@ Item {
     }
 
     Connections {
+        target: Colours
+        function onLightChanged() {
+            root.recomputeThemeColors();
+        }
+    }
+
+    Connections {
         target: GlobalConfig.appearance
         function onSchemeVariantChanged() {
-            if (root.accentReady && root.hasArt)
-                root.commitFromAnalyser();
-            else
-                root.syncSystemDefaults();
+            root.recomputeThemeColors();
         }
         function onThemeModeChanged() {
-            if (root.accentReady && root.hasArt)
-                root.commitFromAnalyser();
-            else
-                root.syncSystemDefaults();
+            root.recomputeThemeColors();
         }
     }
 
@@ -423,6 +453,9 @@ Item {
         function onMediaAccentRevisionChanged() {
             if (!root.accentReady && root.artUrl)
                 root.restoreCachedPreview(root.artUrl);
+        }
+        function onMediaAccentRefreshNeeded() {
+            root.recomputeThemeColors();
         }
     }
 
