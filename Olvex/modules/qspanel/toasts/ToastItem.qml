@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Olvex
+import Olvex.Blobs
 import Olvex.Config
 import qs.components
 import qs.components.effects
@@ -51,17 +52,19 @@ StyledRect {
     // ── M3 Theme-Adaptive Translucent Surface ───
     readonly property real toastAlpha: Colours.transparencyEnabled ? Colours.transparencyBase : 0.84
 
-    readonly property color containerColor: {
+    readonly property color baseContainerColor: {
         if (isSuccess)
-            return Qt.alpha(Colours.palette.m3successContainer, toastAlpha);
+            return Colours.palette.m3successContainer;
         if (isWarning)
-            return Qt.alpha(Colours.palette.m3tertiaryContainer, toastAlpha);
+            return Colours.palette.m3tertiaryContainer;
         if (isError)
-            return Qt.alpha(Colours.palette.m3errorContainer, toastAlpha);
+            return Colours.palette.m3errorContainer;
         return Colours.light
-            ? Qt.alpha(Colours.palette.m3surfaceBright, toastAlpha)
-            : Qt.alpha(Colours.palette.m3surfaceContainerHighest, toastAlpha);
+            ? Colours.palette.m3surfaceBright
+            : Colours.palette.m3surfaceContainerHighest;
     }
+
+    readonly property color containerColor: Qt.alpha(baseContainerColor, toastAlpha)
 
     readonly property color contentOnColor: {
         if (isSuccess)
@@ -113,9 +116,30 @@ StyledRect {
         SpringAnimation { spring: 3.8; damping: 0.74; mass: 1.0; epsilon: 0.005 }
     }
 
-    color: root.containerColor
+    color: "transparent"
     border.width: 0
     border.color: "transparent"
+
+
+    BlobGroup {
+        id: toastBlobGroup
+        color: root.baseContainerColor
+        smoothing: 24
+
+        Behavior on color {
+            CAnim {}
+        }
+    }
+
+    BlobRect {
+        id: toastBg
+        anchors.fill: parent
+        group: toastBlobGroup
+        radius: root.radius
+        opacity: root.toastAlpha
+        deformScale: 0
+        z: -1
+    }
 
     // M3 Pill State Layer
     StateLayer {

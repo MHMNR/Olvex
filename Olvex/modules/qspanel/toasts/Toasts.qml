@@ -85,9 +85,8 @@ Item {
             y: toast.offsetY
         }
 
-        // Hardware texture smoothing during motion to prevent text jitter
-        layer.enabled: enterAnim.running || exitAnim.running
-        layer.smooth: true
+        // Direct GPU rendering for BlobRect SDF and Elevation shadows without FBO clipping
+        layer.enabled: false
 
         anchors.bottomMargin: {
             root.flag; // Force update
