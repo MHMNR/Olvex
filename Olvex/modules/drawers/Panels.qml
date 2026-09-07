@@ -568,6 +568,7 @@ Item {
 
                 Behavior on color { CAnim {} }
                 Behavior on border.color { CAnim {} }
+                Behavior on width { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
                 Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                 Behavior on radius { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
@@ -592,7 +593,8 @@ Item {
                     readonly property real maxAvailableWidth: Math.max(280, (root.screen ? root.screen.width : 1920) - 160)
 
                     readonly property var dockMetrics: {
-                        const total = pinnedModel.count;
+                        const removingOffset = (pinnedState.isRemoving && pinnedState.removingIndex >= 0 && pinnedState.removingIndex < pinnedModel.count) ? 1 : 0;
+                        const total = pinnedModel.count - removingOffset;
                         if (total <= 0) {
                             return { itemSize: 52, itemSpacing: 12, slotStep: 64, visibleCount: 0, hasOverflow: false, overflowCount: 0, totalWidth: 0 };
                         }
@@ -662,6 +664,7 @@ Item {
                     width: dockMetrics.totalWidth
                     height: layout.itemSize
 
+                    Behavior on width { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
                     Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                     ListModel { id: pinnedModel }
@@ -691,7 +694,30 @@ Item {
                         property string landingAppId: ""
                         readonly property real dragThreshold: 10
 
+                        // Removal animation state
+                        property string removingAppId: ""
+                        property int removingIndex: -1
+                        property bool removingIsExternal: false
+                        readonly property bool isRemoving: removingAppId !== "" && removingIndex >= 0
+
                         function syncModel(apps) {
+                            if (!isRemoving && !isDragging && !isLandingNow && pinnedModel.count > 0 && apps.length === pinnedModel.count - 1) {
+                                let removedId = "";
+                                for (let i = 0; i < pinnedModel.count; i++) {
+                                    const id = pinnedModel.get(i).appId;
+                                    if (apps.indexOf(id) === -1) {
+                                        removedId = id;
+                                        break;
+                                    }
+                                }
+                                if (removedId !== "") {
+                                    unpinApp(removedId, true);
+                                    return;
+                                }
+                            }
+                            if (isRemoving) {
+                                commitRemoval();
+                            }
                             while (pinnedModel.count > apps.length)
                                 pinnedModel.remove(pinnedModel.count - 1);
                             for (let i = 0; i < apps.length; i++) {
@@ -703,7 +729,52 @@ Item {
                                 }
                             }
                         }
+                        function unpinApp(appId, isExternal) {
+                            if (isDragging) cancelDrag();
+                            if (isRemoving) commitRemoval();
+
+                            let idx = -1;
+                            for (let i = 0; i < pinnedModel.count; i++) {
+                                if (pinnedModel.get(i).appId === appId) {
+                                    idx = i;
+                                    break;
+                                }
+                            }
+                            if (idx === -1) return;
+
+                            if (hoveredAppIcon && hoveredAppIcon.appId === appId) {
+                                hoveredAppIcon = null;
+                            }
+
+                            removingAppId = appId;
+                            removingIndex = idx;
+                            removingIsExternal = !!isExternal;
+                            removeEndTimer.restart();
+                        }
+                        function commitRemoval() {
+                            if (!isRemoving) return;
+                            const idx = removingIndex;
+                            const appId = removingAppId;
+                            const isExt = removingIsExternal;
+
+                            removingAppId = "";
+                            removingIndex = -1;
+                            removingIsExternal = false;
+
+                            if (idx >= 0 && idx < pinnedModel.count && pinnedModel.get(idx).appId === appId) {
+                                pinnedModel.remove(idx);
+                            }
+
+                            if (!isExt) {
+                                const pinned = [];
+                                for (let i = 0; i < pinnedModel.count; i++) {
+                                    pinned.push(pinnedModel.get(i).appId);
+                                }
+                                root.visibilities.pinnedApps = pinned;
+                            }
+                        }
                         function startDrag(appId, index, startX, startY) {
+                            if (isRemoving) commitRemoval();
                             draggedAppId = appId; draggedOriginalIndex = index;
                             dragStartX = startX; dragStartY = startY;
                             hoverTargetSlot = index; isDragging = false;
@@ -746,8 +817,18 @@ Item {
                                         return (currentIndex + 1) * step;
                                 }
                             }
+                            if (isRemoving) {
+                                if (currentIndex === removingIndex) return currentIndex * step;
+                                if (currentIndex > removingIndex) return (currentIndex - 1) * step;
+                            }
                             return currentIndex * step;
                         }
+                    }
+
+                    Timer {
+                        id: removeEndTimer
+                        interval: 280
+                        onTriggered: pinnedState.commitRemoval()
                     }
 
                     Timer {
@@ -770,7 +851,7 @@ Item {
 
                     Rectangle {
                         id: pinnedHoverHighlight
-                        visible: pinnedState.hoveredAppIcon !== null
+                        visible: pinnedState.hoveredAppIcon !== null && !(pinnedState.isRemoving && pinnedState.hoveredAppIcon && pinnedState.hoveredAppIcon.appId === pinnedState.removingAppId)
                         opacity: visible ? 1 : 0
                         color: Colours.layer(Colours.palette.m3surfaceVariant, 0.8)
                         border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
@@ -796,6 +877,7 @@ Item {
                             required property int index
 
                             readonly property string appId: model.appId
+                            readonly property bool isBeingRemoved: pinnedState.isRemoving && pinnedState.removingAppId === appId
                             property string cachedIcon: ""
                             property var entry: {
                                 const apps = DesktopEntries.applications.values;
@@ -810,9 +892,17 @@ Item {
                                 cachedIcon = Icons.resolveIcon(entry?.icon || "", "image-missing");
                             }
 
-                            visible: index < layout.visibleCount
+                            visible: (index < layout.visibleCount) || isBeingRemoved
                             width: layout.itemSize
                             height: layout.itemSize
+                            opacity: isBeingRemoved ? 0.0 : 1.0
+
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 180
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
 
                             property int runningInstances: 0
 
@@ -851,8 +941,10 @@ Item {
                             }
 
                             x: pinnedState.getTargetX(index)
-                            y: (pinnedState.draggedAppId === appId && pinnedState.isDragging) ? -12 : (layout.height - height) / 2
-                            z: pinnedState.draggedAppId === appId ? 100 : 0
+                            y: (pinnedState.draggedAppId === appId && pinnedState.isDragging)
+                                ? -12
+                                : (isBeingRemoved ? ((layout.height - height) / 2 - 10) : (layout.height - height) / 2)
+                            z: (pinnedState.draggedAppId === appId) ? 100 : (isBeingRemoved ? 50 : 0)
 
                             Behavior on x { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
                             Behavior on y { SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 } }
@@ -871,9 +963,10 @@ Item {
                                 border.color: "transparent"
                                 border.width: 1
 
-                                scale: (pinnedState.isLandingNow && pinnedState.landingAppId === appId) ? 1.0
+                                scale: isBeingRemoved ? 0.0
+                                    : ((pinnedState.isLandingNow && pinnedState.landingAppId === appId) ? 1.0
                                     : ((pinnedState.draggedAppId === appId && pinnedState.isDragging) ? 1.25
-                                    : (dragArea.containsMouse && !pinnedState.isDragging ? 1.1 : 1.0))
+                                    : (dragArea.containsMouse && !pinnedState.isDragging ? 1.1 : 1.0)))
 
                                 Behavior on scale {
                                     enabled: !(pinnedState.isLandingNow && pinnedState.landingAppId === appId)
@@ -960,6 +1053,7 @@ Item {
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 hoverEnabled: true
                                 cursorShape: Qt.ArrowCursor
+                                enabled: !appWrapper.isBeingRemoved
                                 property bool isPressing: false
 
                                 onPressed: mouse => {
@@ -1047,7 +1141,7 @@ Item {
                         z: 10
 
                         Behavior on x {
-                            enabled: pinnedState.isDragging
+                            enabled: pinnedState.isDragging || pinnedState.isRemoving
                             SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 }
                         }
 
@@ -2087,13 +2181,9 @@ Item {
                             hoverEnabled: false
 
                             onClicked: {
-                                const pinned = (root.visibilities.pinnedApps || []).slice();
-                                const idx = pinned.indexOf(root.contextMenuAppId);
-                                if (idx > -1) {
-                                    pinned.splice(idx, 1);
-                                    root.visibilities.pinnedApps = pinned;
-                                }
+                                const appId = root.contextMenuAppId;
                                 root.hideContextMenu();
+                                pinnedState.unpinApp(appId);
                             }
                         }
 
