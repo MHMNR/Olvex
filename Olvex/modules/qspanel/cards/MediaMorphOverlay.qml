@@ -64,12 +64,13 @@ Item {
     readonly property real expandedProgressY: 128
     readonly property real expandedProgressHeight: 36
     readonly property real startRadius: startW / 2
-    readonly property int expandDur: 430
+    // ── M3 Expressive Tokens (Identical to NotificationMorphOverlay) ──────────
+    readonly property int expandDur: 420
     readonly property int collapseDur: 260
-    readonly property var spatialEasing: Tokens.anim.expressiveDefaultSpatial
+    readonly property var spatialEasing: Tokens.anim.expressiveSoftSpatial
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
-    readonly property int contentRevealDelay: 172
-    readonly property int progressRevealDelay: 200
+    readonly property int contentRevealDelay: 130
+    readonly property int progressRevealDelay: 150
     readonly property bool morphAnimating: expandTransition.running || collapseTransition.running
     readonly property bool opensRight: startX < root.width / 2
     readonly property bool ownsDockedPill: root.dockLayoutReady && !!Players.active
@@ -172,11 +173,13 @@ Item {
         realBtn3X = btn3X;
         realBtn3Y = btn3Y;
         realBtnSize = btnSize;
-        musicPill.x = startX;
-        musicPill.y = startY;
-        musicPill.width = startW;
-        musicPill.height = startH;
-        musicPill.radius = startRadius;
+        if (!root.active && !root.morphAnimating) {
+            musicPill.x = startX;
+            musicPill.y = startY;
+            musicPill.width = startW;
+            musicPill.height = startH;
+            musicPill.radius = startRadius;
+        }
     }
 
     function resetDockLayout() {
@@ -207,7 +210,7 @@ Item {
     }
 
     function syncDock(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real) {
-        if (root.active)
+        if (root.active || root.morphAnimating)
             return;
         applyLayout(x, y, w, h, color, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
         if (w <= 0 || h <= 0)
@@ -226,15 +229,47 @@ Item {
     }
 
     function start(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real) {
+        updateDockTarget(x, y, w, h, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
+
+        // HyperOS Interrupt Case 1: If currently closing down -> interrupt and smoothly reverse to expand from current in-flight rect
+        if (root.active && root.closingDown) {
+            hideTimer.stop();
+            root.closingDown = false;
+            root.suppressDismiss = true;
+            dismissGuard.restart();
+            musicPill.state = "expanded";
+            return;
+        }
+
+        // HyperOS Interrupt Case 2: If currently expanding or fully active -> interrupt and smoothly reverse to close from current in-flight rect
+        if (root.active && !root.closingDown) {
+            root.close();
+            return;
+        }
+
+        // Initial expand from docked resting pill
         applyLayout(x, y, w, h, color, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
-        docked = true;
-        expand();
+        docked = false;
+        dockLayoutReady = true;
+        root.suppressDismiss = true;
+        root.closingDown = false;
+        root.active = true;
+        musicPill.state = "expanded";
+        dismissGuard.restart();
+        forceActiveFocus();
     }
 
     function expand() {
         hideTimer.stop();
-        expandDeferred.stop();
-        closingDown = false;
+        if (root.active && root.closingDown) {
+            root.closingDown = false;
+            root.suppressDismiss = true;
+            dismissGuard.restart();
+            musicPill.state = "expanded";
+            return;
+        }
+        if (root.active)
+            return;
         const w = startW > 0 ? startW : 48;
         const h = startH > 0 ? startH : 160;
         if (startW <= 0 || startH <= 0) {
@@ -249,17 +284,21 @@ Item {
         dockLayoutReady = true;
         docked = false;
         root.suppressDismiss = true;
-        active = true;
-        musicPill.state = "compact";
-        expandDeferred.start();
+        root.closingDown = false;
+        root.active = true;
+        musicPill.state = "expanded";
+        dismissGuard.restart();
         forceActiveFocus();
     }
 
     function close() {
+        if (!root.active || (root.closingDown && musicPill.state === "compact"))
+            return;
         seekPreview = -1;
         closingDown = true;
         if (typeof sourceSelector !== "undefined")
             sourceSelector.expanded = false;
+        hideTimer.stop();
         musicPill.state = "compact";
         hideTimer.start();
     }
@@ -305,23 +344,14 @@ Item {
     }
 
     Timer {
-        id: expandDeferred
-        interval: 16
-        repeat: false
-        onTriggered: {
-            if (!root.active)
-                return;
-            musicPill.state = "expanded";
-            dismissGuard.restart();
-        }
-    }
-    Timer {
         id: hideTimer
         interval: root.collapseDur
         onTriggered: {
-            root.active = false;
-            root.docked = false;
-            root.closingDown = false;
+            if (root.closingDown && musicPill.state === "compact") {
+                root.active = false;
+                root.docked = false;
+                root.closingDown = false;
+            }
         }
     }
     Timer {
@@ -540,13 +570,12 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(root.musicAccent, 0.22)
+                color: root.hasMusicArt ? "transparent" : Qt.alpha(root.musicAccent, 0.22)
             }
 
             Image {
                 id: artImage
                 anchors.fill: parent
-                anchors.margins: -1 // Bleed out to hide OpacityMask edge anti-aliasing artifacts
                 source: root.artDisplaySource
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
@@ -655,12 +684,14 @@ Item {
             z: 5
             anchors.fill: parent
             hoverEnabled: true
-            enabled: musicPill.state !== "expanded"
+            enabled: musicPill.state !== "expanded" || root.closingDown
             onClicked: mouse => {
                 mouse.accepted = true;
                 if (root.seekPreview >= 0)
                     return;
-                if (!root.active)
+                if (root.active && root.closingDown)
+                    root.start(root.startX, root.startY, root.startW, root.startH, root.musicAccent, root.realArtX, root.realArtY, root.realArtW, root.realArtH, root.realBtn1X, root.realBtn1Y, root.realBtn2X, root.realBtn2Y, root.realBtn3X, root.realBtn3Y, root.realBtnSize);
+                else if (!root.active)
                     root.expand();
             }
         }
@@ -850,17 +881,15 @@ Item {
                             }
                         }
                         Behavior on width {
-                            SpringAnimation {
-                                spring: 5.5
-                                damping: 0.65
-                                epsilon: 0.001
+                            NumberAnimation {
+                                duration: Tokens.anim.durations.expressiveFastEffects
+                                easing: Tokens.anim.emphasizedDecel
                             }
                         }
                         Behavior on height {
-                            SpringAnimation {
-                                spring: 5.5
-                                damping: 0.65
-                                epsilon: 0.001
+                            NumberAnimation {
+                                duration: Tokens.anim.durations.expressiveFastEffects
+                                easing: Tokens.anim.emphasizedDecel
                             }
                         }
                     }
@@ -1049,31 +1078,37 @@ Item {
             }
         ]
 
-        // ── Transitions ────────────────────────────────────────────────────────
         transitions: [
             Transition {
                 id: expandTransition
                 from: "compact"
                 to: "expanded"
                 ParallelAnimation {
-                    // Container bounds travel — full expand duration (Layer 1)
+                    // Container bounds travel (Olvex native M3 Expressive spatial token)
                     NumberAnimation {
                         targets: [musicPill]
-                        properties: "x,y,width,height,radius"
+                        properties: "x,y,width,height"
                         duration: root.expandDur
                         easing: root.spatialEasing
                     }
-                    // Shared elements (art, buttons) travel in full unison with container
+                    // Shape mask morph
                     NumberAnimation {
-                        targets: [musicIcon]
-                        properties: "x,y,width,height,radius"
+                        target: musicPill
+                        property: "radius"
+                        duration: Math.round(root.expandDur * 0.75)
+                        easing: root.spatialEasing
+                    }
+                    // Shared hero elements travel
+                    NumberAnimation {
+                        targets: [musicIcon, prevBtnContainer, playBtn, nextBtnContainer]
+                        properties: "x,y,width,height,iconSize"
                         duration: root.expandDur
                         easing: root.spatialEasing
                     }
                     NumberAnimation {
-                        targets: [prevBtnContainer, playBtn, nextBtnContainer]
-                        properties: "x,y,width,height,radius,iconSize"
-                        duration: root.expandDur
+                        targets: [musicIcon, prevBtnContainer, playBtn, nextBtnContainer]
+                        property: "radius"
+                        duration: Math.round(root.expandDur * 0.75)
                         easing: root.spatialEasing
                     }
                     NumberAnimation {
@@ -1083,47 +1118,37 @@ Item {
                         easing: root.spatialEasing
                     }
 
-                    // Compact layer crossfades to card layer simultaneously with bounds morph
+                    // Compact layer fades out fast (110ms like notif pill)
                     NumberAnimation {
                         target: musicPill
                         property: "compactFade"
                         to: 0.0
-                        duration: Math.round(root.expandDur * 0.6)
-                        easing: root.spatialEasing
+                        duration: 110
+                        easing: Tokens.anim.expressiveFastSpatial
                     }
-                    // Card content slides up from within the expanding container
-                    SequentialAnimation {
-                        PauseAnimation {
-                            duration: root.contentRevealDelay
-                        }
-                        ParallelAnimation {
-                            NumberAnimation {
-                                targets: [titleChip, trackInfo, controlsSurface]
-                                property: "opacity"
-                                to: 1
-                                duration: Tokens.anim.durations.expressiveDefaultEffects
-                                easing: Tokens.anim.emphasizedDecel
-                            }
-                            NumberAnimation {
-                                target: trackInfo
-                                property: "y"
-                                to: 16
-                                duration: Tokens.anim.durations.expressiveDefaultEffects
-                                easing: Tokens.anim.emphasizedDecel
-                            }
-                        }
-                    }
-                    SequentialAnimation {
-                        PauseAnimation {
-                            duration: root.progressRevealDelay
-                        }
+                    // Card content reveals and slides up
+                    ParallelAnimation {
                         NumberAnimation {
-                            target: expandedContent
+                            targets: [titleChip, trackInfo, controlsSurface]
                             property: "opacity"
                             to: 1
-                            duration: Tokens.anim.durations.expressiveDefaultEffects
-                            easing: Tokens.anim.emphasizedDecel
+                            duration: root.expandDur - root.contentRevealDelay
+                            easing: root.spatialEasingDecel
                         }
+                        NumberAnimation {
+                            target: trackInfo
+                            property: "y"
+                            to: 16
+                            duration: root.expandDur - root.contentRevealDelay
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    NumberAnimation {
+                        target: expandedContent
+                        property: "opacity"
+                        to: 1
+                        duration: root.expandDur - root.progressRevealDelay
+                        easing: root.spatialEasingDecel
                     }
                 }
             },
@@ -1132,41 +1157,9 @@ Item {
                 from: "expanded"
                 to: "compact"
                 ParallelAnimation {
-                    // Card content fades out immediately so it's gone before pill shifts position
+                    // Container bounds travel back
                     NumberAnimation {
-                        targets: [titleChip, trackInfo, controlsSurface, expandedContent]
-                        property: "opacity"
-                        to: 0
-                        duration: Math.round(root.collapseDur * 0.35)
-                        easing.type: Easing.InQuad
-                    }
-                    NumberAnimation {
-                        target: trackInfo
-                        property: "y"
-                        to: 24
-                        duration: Math.round(root.collapseDur * 0.35)
-                        easing: root.spatialEasing
-                    }
-                    SequentialAnimation {
-                        PauseAnimation {
-                            duration: Math.round(root.collapseDur * 0.6)
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "compactFade"
-                            to: 1.0
-                            duration: Math.round(root.collapseDur * 0.4)
-                            easing: root.spatialEasing
-                        }
-                    }
-                    NumberAnimation {
-                        targets: [musicPill]
-                        properties: "x,y,width,height,radius"
-                        duration: root.collapseDur
-                        easing: root.spatialEasing
-                    }
-                    NumberAnimation {
-                        targets: [musicIcon, prevBtnContainer, playBtn, nextBtnContainer]
+                        targets: [musicPill, musicIcon, prevBtnContainer, playBtn, nextBtnContainer]
                         properties: "x,y,width,height,radius,iconSize"
                         duration: root.collapseDur
                         easing: root.spatialEasing
@@ -1177,7 +1170,26 @@ Item {
                         duration: root.collapseDur
                         easing: root.spatialEasing
                     }
-
+                    // Card content fades out quickly
+                    NumberAnimation {
+                        targets: [titleChip, trackInfo, controlsSurface, expandedContent]
+                        properties: "opacity,y"
+                        duration: Math.round(root.collapseDur * 0.4)
+                        easing: root.spatialEasing
+                    }
+                    // Compact pill layer fades back in as it nears docked slot
+                    SequentialAnimation {
+                        PauseAnimation {
+                            duration: Math.round(root.collapseDur * 0.3)
+                        }
+                        NumberAnimation {
+                            target: musicPill
+                            property: "compactFade"
+                            to: 1.0
+                            duration: Math.round(root.collapseDur * 0.7)
+                            easing: Tokens.anim.expressiveDefaultSpatial
+                        }
+                    }
                 }
             }
         ]

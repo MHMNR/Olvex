@@ -114,7 +114,8 @@ Item {
 
     MaterialIcon {
         id: controlIcon
-        anchors.centerIn: parent
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
         visible: !control.isSkipIcon
         text: control.iconName
         color: Players.active ? control.activeIconColor : control.disabledIconColor
@@ -131,8 +132,8 @@ Item {
 
         // Rubber squash: decoupled X/Y transform, pivot stays at center
         transform: Scale {
-            origin.x: controlIcon.width / 2
-            origin.y: controlIcon.height / 2
+            origin.x: Math.round(controlIcon.width / 2)
+            origin.y: Math.round(controlIcon.height / 2)
             xScale: control.iconScaleX
             yScale: control.iconScaleY
         }

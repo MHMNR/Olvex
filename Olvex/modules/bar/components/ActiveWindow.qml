@@ -742,15 +742,6 @@ Item {
                             fill: 1
                             visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
                         }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.alpha(Players.musicOnSurfaceColor, 0.12)
-                            antialiasing: true
-                        }
                     }
                 }
 

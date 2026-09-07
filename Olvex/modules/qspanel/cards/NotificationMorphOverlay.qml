@@ -37,7 +37,7 @@ Item {
 
     readonly property int expandDur: 420
     readonly property int collapseDur: 260
-    readonly property var spatialEasing: Tokens.anim.expressiveDefaultSpatial
+    readonly property var spatialEasing: Tokens.anim.expressiveSoftSpatial
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
     readonly property int contentRevealDelay: 130
 
@@ -58,7 +58,7 @@ Item {
         enabled: notifCard.state === "expanded" && !root.morphAnimating
         NumberAnimation {
             duration: 300
-            easing: Tokens.anim.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveSoftSpatial
         }
     }
 
@@ -74,7 +74,7 @@ Item {
         enabled: notifCard.state === "expanded" && !root.morphAnimating
         NumberAnimation {
             duration: 300
-            easing: Tokens.anim.expressiveDefaultSpatial
+            easing: Tokens.anim.expressiveSoftSpatial
         }
     }
 

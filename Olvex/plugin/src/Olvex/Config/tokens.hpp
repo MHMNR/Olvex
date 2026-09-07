@@ -21,6 +21,7 @@ class AnimCurves : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveDefaultSpatial)
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveSlowSpatial)
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveSubtleSpatial)
+    CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveSoftSpatial)
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveFastEffects)
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveDefaultEffects)
     CONFIG_GLOBAL_PROPERTY(QList<qreal>, expressiveSlowEffects)
@@ -38,6 +39,7 @@ public:
         , m_expressiveDefaultSpatial({ 0.28, 1.05, 0.36, 1.01, 1.0, 1.0 })
         , m_expressiveSlowSpatial({ 0.16, 1.00, 0.30, 1.00, 1.0, 1.0 })
         , m_expressiveSubtleSpatial({ 0.34, 1.25, 0.38, 1.08, 1.0, 1.0 })
+        , m_expressiveSoftSpatial({ 0.30, 1.14, 0.35, 1.04, 1.0, 1.0 })
         , m_expressiveFastEffects({ 0.31, 0.94, 0.34, 1.00, 1.0, 1.0 })
         , m_expressiveDefaultEffects({ 0.34, 0.80, 0.34, 1.00, 1.0, 1.0 })
         , m_expressiveSlowEffects({ 0.34, 0.88, 0.34, 1.00, 1.0, 1.0 }) {}
