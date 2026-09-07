@@ -28,6 +28,7 @@ ShellRoot {
     settings.watchFiles: true
     readonly property bool _resizerInit: WindowResizer.active
     readonly property bool _cpuProfileInit: CpuProfile.enabled
+    readonly property bool _nightLightInit: (NightLight.enabled, true)
     readonly property bool _accountFacesInit: AccountFaces.faces.length >= 0
     readonly property bool _hardwareButtonsInit: HardwareButtons.hasOwnProperty("objectName")
     readonly property bool _initApps: {

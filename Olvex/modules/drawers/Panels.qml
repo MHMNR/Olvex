@@ -558,6 +558,8 @@ Item {
                 width: layout.width + 20
                 radius: Math.round(height * (20 / 70))
                 visible: pinnedModel.count > 0
+                antialiasing: true
+                smooth: true
 
                 readonly property bool showBg: root.bottomPanelDockBg
                 color: showBg ? Colours.tileGlassStrong : "transparent"
@@ -577,6 +579,8 @@ Item {
                     border.color: dockContainer.showBg ? Colours.tileShineSoft : "transparent"
                     border.width: dockContainer.showBg ? 1 : 0
                     visible: dockContainer.showBg
+                    antialiasing: true
+                    smooth: true
                     Behavior on border.color { CAnim {} }
                 }
 

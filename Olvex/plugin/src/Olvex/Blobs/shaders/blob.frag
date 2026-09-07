@@ -210,6 +210,13 @@ void main() {
         }
     }
 
+    // Screen-space gradient length for isotropic, rotation-invariant antialiasing
+    // MUST be computed before discard to avoid derivative corruption across 2x2 SIMD quads
+    vec2 grad = vec2(dFdx(mergedSdf), dFdy(mergedSdf));
+    float fw = max(length(grad), 0.001);
+    float distInPixels = mergedSdf / fw;
+    float alpha = clamp(0.5 - distInPixels, 0.0, 1.0);
+
     // Each renderer only outputs pixels it owns, but allow rendering
     // blend zones to prevent gaps (mergedSdf < smoothFactor means in blend)
     // myIndex == -1: inverted rect renders border-owned pixels
@@ -217,7 +224,8 @@ void main() {
     if (owner != myIndex && mergedSdf > smoothFactor)
         discard;
 
-    float fw = fwidth(mergedSdf);
-    float alpha = 1.0 - smoothstep(-fw, fw, mergedSdf);
+    if (alpha <= 0.0)
+        discard;
+
     fragColor = vec4(color.rgb * alpha, alpha) * qt_Opacity;
 }
