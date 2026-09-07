@@ -554,7 +554,7 @@ Item {
             Rectangle {
                 id: dockContainer
                 anchors.centerIn: parent
-                height: Math.max(50, Math.round(layout.itemSize + 18))
+                height: Math.round(layout.itemSize + 18)
                 width: layout.width + 20
                 radius: Math.round(height * (20 / 70))
                 visible: pinnedModel.count > 0
@@ -656,7 +656,7 @@ Item {
                     readonly property int overflowCount: dockMetrics.overflowCount
 
                     width: dockMetrics.totalWidth
-                    height: layout.itemSize + 6
+                    height: layout.itemSize
 
                     Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
@@ -808,7 +808,7 @@ Item {
 
                             visible: index < layout.visibleCount
                             width: layout.itemSize
-                            height: layout.itemSize + 6
+                            height: layout.itemSize
 
                             property int runningInstances: 0
 
@@ -856,8 +856,7 @@ Item {
                             Rectangle {
                                 id: iconBg
                                 objectName: "iconBg"
-                                anchors.top: parent.top
-                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.centerIn: parent
                                 width: layout.itemSize
                                 height: layout.itemSize
                                 radius: Math.round(layout.itemSize * (12 / 52))
@@ -1038,7 +1037,7 @@ Item {
                         id: overflowBtn
                         visible: layout.hasOverflow
                         width: layout.itemSize
-                        height: layout.itemSize + 6
+                        height: layout.itemSize
                         x: layout.visibleCount * layout.slotStep
                         y: (layout.height - height) / 2
                         z: 10
@@ -1051,8 +1050,7 @@ Item {
                         Rectangle {
                             id: overflowIconBg
                             objectName: "overflowIconBg"
-                            anchors.top: parent.top
-                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.centerIn: parent
                             width: layout.itemSize
                             height: layout.itemSize
                             radius: Math.round(layout.itemSize * (12 / 52))
