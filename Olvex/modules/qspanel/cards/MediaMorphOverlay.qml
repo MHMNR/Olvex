@@ -64,6 +64,8 @@ Item {
     readonly property real expandedProgressY: 128
     readonly property real expandedProgressHeight: 36
     readonly property real startRadius: startW / 2
+    readonly property bool isDockCircle: startH <= (startW + 12)
+    signal requestDockSync()
     // ── M3 Expressive Tokens (Identical to NotificationMorphOverlay) ──────────
     readonly property int expandDur: 420
     readonly property int collapseDur: 260
@@ -143,14 +145,30 @@ Item {
     readonly property real pillW: musicPill.width
     readonly property real pillH: musicPill.height
     readonly property real targetEndX: opensRight ? startX + startW + 24 : startX - endW - 24
-    property real endX: {
+    property real currentExpandedX: 0
+    property real currentExpandedY: 0
+    readonly property real calculatedEndX: {
         const maxX = Math.max(16, root.width - root.endW - 16);
         return Math.round(Math.max(16, Math.min(maxX, root.targetEndX)));
     }
-    property real endY: {
+    readonly property real calculatedEndY: {
         const targetY = startY + (startH - endH) / 2;
         const maxY = Math.max(16, root.height - root.endH - 16);
         return Math.round(Math.max(16, Math.min(maxY, targetY)));
+    }
+    property real endX: currentExpandedX > 0 ? currentExpandedX : calculatedEndX
+    property real endY: currentExpandedY > 0 ? currentExpandedY : calculatedEndY
+
+    function refreshExpandedPosition() {
+        currentExpandedX = calculatedEndX;
+        currentExpandedY = calculatedEndY;
+    }
+
+    onActiveChanged: {
+        if (!active) {
+            currentExpandedX = 0;
+            currentExpandedY = 0;
+        }
     }
 
     visible: !!Players.active
@@ -210,8 +228,10 @@ Item {
     }
 
     function syncDock(x: real, y: real, w: real, h: real, color: color, artX: real, artY: real, artW: real, artH: real, btn1X: real, btn1Y: real, btn2X: real, btn2Y: real, btn3X: real, btn3Y: real, btnSize: real) {
-        if (root.active || root.morphAnimating)
+        if (root.active || root.morphAnimating) {
+            updateDockTarget(x, y, w, h, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
             return;
+        }
         applyLayout(x, y, w, h, color, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
         if (w <= 0 || h <= 0)
             return;
@@ -253,6 +273,7 @@ Item {
         dockLayoutReady = true;
         root.suppressDismiss = true;
         root.closingDown = false;
+        root.refreshExpandedPosition();
         root.active = true;
         musicPill.state = "expanded";
         dismissGuard.restart();
@@ -285,6 +306,7 @@ Item {
         docked = false;
         root.suppressDismiss = true;
         root.closingDown = false;
+        root.refreshExpandedPosition();
         root.active = true;
         musicPill.state = "expanded";
         dismissGuard.restart();
@@ -294,6 +316,7 @@ Item {
     function close() {
         if (!root.active || (root.closingDown && musicPill.state === "compact"))
             return;
+        root.requestDockSync();
         seekPreview = -1;
         closingDown = true;
         if (typeof sourceSelector !== "undefined")
@@ -648,6 +671,7 @@ Item {
         MorphControlButton {
             id: prevBtnContainer
             z: 10
+            visible: opacity > 0.01
             iconName: "skip_previous"
             balancedSkipIcon: true
             skipIconScale: root.compactSkipIconScale
@@ -663,6 +687,7 @@ Item {
         MorphControlButton {
             id: playBtn
             z: 10
+            visible: opacity > 0.01
             emphasized: true
             iconName: (Players.active && Players.active.isPlaying) ? "pause" : "play_arrow"
             onClicked: Players.togglePlaying()
@@ -670,6 +695,7 @@ Item {
         MorphControlButton {
             id: nextBtnContainer
             z: 10
+            visible: opacity > 0.01
             iconName: "skip_next"
             balancedSkipIcon: true
             skipIconScale: root.compactSkipIconScale
@@ -978,34 +1004,37 @@ Item {
                 }
                 PropertyChanges {
                     target: prevBtnContainer
-                    x: root.realBtn1X
-                    y: root.realBtn1Y
+                    x: root.isDockCircle ? (root.startW - root.realBtnSize) / 2 : root.realBtn1X
+                    y: root.isDockCircle ? (root.startH - root.realBtnSize) / 2 : root.realBtn1Y
                     width: root.realBtnSize
                     height: root.realBtnSize
                     radius: root.realBtnSize / 2
                     iconSize: Tokens.font.size.large
                     skipIconScale: root.compactSkipIconScale
                     secondaryProgress: 0
+                    opacity: root.isDockCircle ? 0 : 1
                 }
                 PropertyChanges {
                     target: playBtn
-                    x: root.realBtn2X
-                    y: root.realBtn2Y
+                    x: root.isDockCircle ? (root.startW - root.realBtnSize) / 2 : root.realBtn2X
+                    y: root.isDockCircle ? (root.startH - root.realBtnSize) / 2 : root.realBtn2Y
                     width: root.realBtnSize
                     height: root.realBtnSize
                     radius: root.realBtnSize / 2
                     iconSize: Tokens.font.size.larger
+                    opacity: root.isDockCircle ? 0 : 1
                 }
                 PropertyChanges {
                     target: nextBtnContainer
-                    x: root.realBtn3X
-                    y: root.realBtn3Y
+                    x: root.isDockCircle ? (root.startW - root.realBtnSize) / 2 : root.realBtn3X
+                    y: root.isDockCircle ? (root.startH - root.realBtnSize) / 2 : root.realBtn3Y
                     width: root.realBtnSize
                     height: root.realBtnSize
                     radius: root.realBtnSize / 2
                     iconSize: Tokens.font.size.large
                     skipIconScale: root.compactSkipIconScale
                     secondaryProgress: 0
+                    opacity: root.isDockCircle ? 0 : 1
                 }
             },
             State {
@@ -1054,6 +1083,7 @@ Item {
                     iconSize: root.expandedSideButtonIconSize
                     skipIconScale: root.expandedSkipIconScale
                     secondaryProgress: 1
+                    opacity: 1
                 }
                 PropertyChanges {
                     target: playBtn
@@ -1063,6 +1093,7 @@ Item {
                     height: 48
                     radius: 24
                     iconSize: 22
+                    opacity: 1
                 }
                 PropertyChanges {
                     target: nextBtnContainer
@@ -1074,6 +1105,7 @@ Item {
                     iconSize: root.expandedSideButtonIconSize
                     skipIconScale: root.expandedSkipIconScale
                     secondaryProgress: 1
+                    opacity: 1
                 }
             }
         ]
@@ -1110,6 +1142,13 @@ Item {
                         property: "radius"
                         duration: Math.round(root.expandDur * 0.75)
                         easing: root.spatialEasing
+                    }
+                    NumberAnimation {
+                        targets: [prevBtnContainer, playBtn, nextBtnContainer]
+                        property: "opacity"
+                        to: 1
+                        duration: root.expandDur - root.contentRevealDelay
+                        easing: root.spatialEasingDecel
                     }
                     NumberAnimation {
                         targets: [prevBtnContainer, nextBtnContainer]
@@ -1170,10 +1209,17 @@ Item {
                         duration: root.collapseDur
                         easing: root.spatialEasing
                     }
-                    // Card content fades out quickly
+                    // Card content and buttons fade out quickly
                     NumberAnimation {
-                        targets: [titleChip, trackInfo, controlsSurface, expandedContent]
-                        properties: "opacity,y"
+                        targets: [titleChip, trackInfo, controlsSurface, expandedContent, prevBtnContainer, playBtn, nextBtnContainer]
+                        property: "opacity"
+                        duration: Math.round(root.collapseDur * 0.4)
+                        easing: root.spatialEasing
+                    }
+                    NumberAnimation {
+                        targets: [trackInfo]
+                        property: "y"
+                        to: 24
                         duration: Math.round(root.collapseDur * 0.4)
                         easing: root.spatialEasing
                     }

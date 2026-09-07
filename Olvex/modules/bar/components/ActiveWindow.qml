@@ -116,9 +116,60 @@ Item {
         });
     }
 
+    function getMorphTargetDock() {
+        const morph = root.mediaMorph;
+        if (!morph)
+            return null;
+        const anchor = morph.parent ?? morph;
+        if (!anchor)
+            return null;
+        if (root.width <= 0 || root.height <= 0)
+            return null;
+        const rootPos = root.mapToItem(anchor, 0, 0);
+        if (!rootPos)
+            return null;
+
+        const isCircle = root.isNotificationPushed;
+        const pillW = root.musicPillWidth;
+        const pillH = isCircle ? root.musicPillWidth : root.musicPillHeight;
+        const pillX = rootPos.x + (root.width - pillW) / 2;
+        const bottomMargin = isCircle ? 0 : Math.max(0, (root.height - pillH) / 2);
+        const pillY = rootPos.y + root.height - pillH - bottomMargin;
+
+        const artSize = root.musicArtSize;
+        const artX = (pillW - artSize) / 2;
+        const artY = isCircle ? (pillH - artSize) / 2 : 4;
+
+        const btnSize = root.musicButtonSize;
+        const btnX = (pillW - btnSize) / 2;
+        const b1Y = isCircle ? (pillH - btnSize) / 2 : 50;
+        const b2Y = isCircle ? (pillH - btnSize) / 2 : 86;
+        const b3Y = isCircle ? (pillH - btnSize) / 2 : 122;
+
+        return {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            artX: artX,
+            artY: artY,
+            artW: artSize,
+            artH: artSize,
+            b1X: btnX,
+            b1Y: b1Y,
+            b2X: btnX,
+            b2Y: b2Y,
+            b3X: btnX,
+            b3Y: b3Y,
+            btnSize: btnSize
+        };
+    }
+
     function syncMorphDock(immediate) {
-        if (root.mediaMorph && root.mediaMorph.active)
+        if (root.mediaMorph && root.mediaMorph.active) {
+            applyMorphDock();
             return;
+        }
         if (immediate)
             dockSyncDebounce.stop();
         else {
@@ -129,12 +180,26 @@ Item {
     }
 
     function applyMorphDock() {
-        if (!root.mediaMorph || !root.playerActive || root.mediaMorph.active)
-            return;
-        if (musicPill.width <= 0 || musicPill.height <= 0)
+        if (!root.mediaMorph || !root.playerActive)
             return;
 
         const morph = root.mediaMorph;
+
+        if (morph.active) {
+            const t = getMorphTargetDock();
+            if (!t)
+                return;
+            morph.updateDockTarget(t.x, t.y, t.w, t.h, t.artX, t.artY, t.artW, t.artH, t.b1X, t.b1Y, t.b2X, t.b2Y, t.b3X, t.b3Y, t.btnSize);
+            root._lastMorphDockX = t.x;
+            root._lastMorphDockY = t.y;
+            root._lastMorphDockW = t.w;
+            root._lastMorphDockH = t.h;
+            return;
+        }
+
+        if (musicPill.width <= 0 || musicPill.height <= 0)
+            return;
+
         const anchor = morph.parent ?? morph;
         const pos = musicPill.mapToItem(anchor, 0, 0);
         if (Math.abs(pos.x - root._lastMorphDockX) < 0.5 && Math.abs(pos.y - root._lastMorphDockY) < 0.5 && Math.abs(musicPill.width - root._lastMorphDockW) < 0.5 && Math.abs(musicPill.height - root._lastMorphDockH) < 0.5 && morph.dockLayoutReady) {
@@ -257,29 +322,7 @@ Item {
     }
 
     onIsNotificationPushedChanged: {
-        if (root.isNotificationPushed && root.playerActive) {
-            const morph = (root.bar && root.bar.mediaMorph) ? root.bar.mediaMorph : Players.mediaMorphForScreen((root.bar && root.bar.screen) ? root.bar.screen.name : "");
-            if (morph && morph.active) {
-                Qt.callLater(() => {
-                    const anchor = morph.parent ? morph.parent : morph;
-                    const pos = musicPill.mapToItem(anchor, 0, 0);
-                    const artPos = artFrame.mapToItem(anchor, 0, 0);
-                    const b1 = prevSkipBtn.mapToItem(anchor, 0, 0);
-                    const b2 = playPillBtn.mapToItem(anchor, 0, 0);
-                    const b3 = nextSkipBtn.mapToItem(anchor, 0, 0);
-                    if (typeof morph.updateDockTarget === "function") {
-                        morph.updateDockTarget(
-                            pos.x, pos.y, root.musicPillWidth, root.musicPillWidth,
-                            artPos.x - pos.x, artPos.y - pos.y, artFrame.width, artFrame.height,
-                            b1.x - pos.x, b1.y - pos.y,
-                            b2.x - pos.x, b2.y - pos.y,
-                            b3.x - pos.x, b3.y - pos.y,
-                            root.musicButtonSize
-                        );
-                    }
-                });
-            }
-        }
+        root.applyMorphDock();
     }
 
     Connections {
@@ -388,6 +431,9 @@ Item {
                 Qt.callLater(() => root.syncMorphDock(true));
             }
         }
+        function onRequestDockSync() {
+            root.applyMorphDock();
+        }
     }
 
     readonly property string windowTitle: {
@@ -489,8 +535,18 @@ Item {
 
     transitions: [
         Transition {
+            id: windowStateTransition
             enabled: root.isLoaded
-            Anim { targets: [musicPill]; properties: "height,anchors.bottomMargin"; type: Anim.SubtleSpatial }
+            Anim {
+                id: pillAnim
+                targets: [musicPill]
+                properties: "height,anchors.bottomMargin"
+                type: Anim.SubtleSpatial
+                onRunningChanged: {
+                    if (!running)
+                        root.applyMorphDock();
+                }
+            }
             Anim { targets: [icon]; properties: "y"; type: Anim.SubtleSpatial }
         }
     ]
