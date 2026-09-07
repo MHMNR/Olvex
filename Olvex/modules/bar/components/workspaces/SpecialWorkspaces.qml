@@ -277,6 +277,17 @@ Item {
             target: root.Config.bar.workspaces
         }
 
+        Connections {
+            function onToplevelUpdateCounterChanged(): void {
+                if (ws.modelData) {
+                    const hasWins = (ws.modelData.lastIpcObject?.windows > 0) || (Hypr.toplevels?.values ?? []).some(c => c.workspace?.id === ws.wsId);
+                    ws.hasWindows = root.Config.bar.workspaces.showWindowsOnSpecialWorkspaces && hasWins;
+                }
+            }
+
+            target: Hypr
+        }
+
         Loader {
             id: label
 
@@ -345,7 +356,8 @@ Item {
                 Repeater {
                     model: ScriptModel {
                         values: {
-                            const windows = Hypr.toplevels.values.filter(c => c.workspace?.id === ws.wsId);
+                            const _ = Hypr.toplevelUpdateCounter;
+                            const windows = (Hypr.toplevels.values || []).filter(c => c.workspace?.id === ws.wsId);
                             const maxIcons = root.Config.bar.workspaces.maxWindowIcons;
                             return maxIcons > 0 ? windows.slice(0, maxIcons) : windows;
                         }

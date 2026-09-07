@@ -34,10 +34,34 @@ StyledClippingRect {
         for (let i = 0; i < values.length; i++) {
             const ws = values[i];
             const hasWin = (ws && ws.lastIpcObject && ws.lastIpcObject.windows ? ws.lastIpcObject.windows : 0) > 0;
-            next[ws.id] = hasWin;
-            if (root.occupied[ws.id] !== hasWin)
-                changed = true;
+            if (ws && ws.id !== undefined)
+                next[ws.id] = hasWin;
         }
+
+        const toplevels = Hypr.toplevels?.values ?? [];
+        for (let i = 0; i < toplevels.length; i++) {
+            const t = toplevels[i];
+            const wsId = t?.workspace?.id;
+            if (wsId !== undefined && wsId !== null) {
+                next[wsId] = true;
+            }
+        }
+
+        for (const k in next) {
+            if (root.occupied[k] !== next[k]) {
+                changed = true;
+                break;
+            }
+        }
+        if (!changed) {
+            for (const k in root.occupied) {
+                if (root.occupied[k] !== next[k]) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
         if (changed || Object.keys(next).length !== Object.keys(root.occupied).length) {
             root.occupied = next;
         }
@@ -46,6 +70,13 @@ StyledClippingRect {
     Connections {
         target: Hypr.workspaces
         function onValuesChanged() {
+            root.updateOccupied();
+        }
+    }
+
+    Connections {
+        target: Hypr
+        function onToplevelUpdateCounterChanged() {
             root.updateOccupied();
         }
     }

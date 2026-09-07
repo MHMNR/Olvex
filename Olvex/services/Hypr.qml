@@ -153,9 +153,9 @@ Singleton {
 
     Connections {
         function onRawEvent(event: HyprlandEvent): void {
-            const n = event.name;
+            let n = event.name;
             if (n.endsWith("v2"))
-                return;
+                n = n.slice(0, -2);
 
             if (n === "configreloaded") {
                 root.configReloaded();

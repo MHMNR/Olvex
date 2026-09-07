@@ -440,8 +440,9 @@ Item {
                 Repeater {
                     model: ScriptModel {
                         values: {
+                            const _ = Hypr.toplevelUpdateCounter;
                             const ws = root.ws;
-                            const windows = Hypr.toplevels.values.filter(c => (c.workspace ? c.workspace.id === ws : false));
+                            const windows = (Hypr.toplevels.values || []).filter(c => (c.workspace ? c.workspace.id === ws : false));
                             const maxIcons = root.Config.bar.workspaces.maxWindowIcons;
                             return maxIcons > 0 ? windows.slice(0, maxIcons) : windows;
                         }
