@@ -223,6 +223,7 @@ Window {
 
                         Text {
                             id: segGlyph
+                            visible: (fbgSeg.modelData.glyph || "").length > 0
                             scale: fbgSeg.active ? 1.12 : 1.0
 
                             Behavior on scale {
@@ -233,13 +234,13 @@ Window {
                                     easing.overshoot: tok.motion.expressiveOvershoot
                                 }
                             }
-                            Layout.preferredWidth: 22
+                            Layout.preferredWidth: visible ? 22 : 0
                             Layout.preferredHeight: 22
                             Layout.alignment: Qt.AlignVCenter
                             text: fbgSeg.modelData.glyph || ""
-                            font.pixelSize: 16
+                            font.pixelSize: 14
                             font.weight: Font.Bold
-                            font.family: "Monospace"
+                            font.family: tok.type.mono.family
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             color: fbgSeg.active
@@ -738,7 +739,7 @@ Window {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 14
+                anchors.leftMargin: 12
                 // Room for gliding delete on focus marker
                 anchors.rightMargin: 44
                 spacing: 10
@@ -746,8 +747,8 @@ Window {
 
                 // ID chip — solid M3
                 Rectangle {
-                    Layout.preferredWidth: Math.max(36, idLbl.implicitWidth + 12)
-                    Layout.preferredHeight: 24
+                    Layout.preferredWidth: Math.max(34, idLbl.implicitWidth + 10)
+                    Layout.preferredHeight: 22
                     radius: tok.shape.full
                     color: row.isCurrent
                         ? tok.palette.primary
@@ -766,8 +767,10 @@ Window {
                     Text {
                         id: idLbl
                         anchors.centerIn: parent
-                        text: row.entryId
-                        font: tok.type.labelEmph
+                        text: "#" + row.entryId
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        font.family: tok.type.mono.family
                         color: row.isCurrent ? tok.palette.fgPrimary : tok.palette.fgMuted
 
                         Behavior on color {
@@ -784,9 +787,9 @@ Window {
                 // Image thumb — solid primaryContainer
                 Rectangle {
                     visible: row.isImage
-                    Layout.preferredWidth: 42
-                    Layout.preferredHeight: 42
-                    radius: tok.shape.sm
+                    Layout.preferredWidth: 38
+                    Layout.preferredHeight: 38
+                    radius: tok.shape.md
                     color: tok.palette.primaryContainer
                     clip: true
                     border.width: 0
@@ -800,7 +803,7 @@ Window {
                             return (row.imagePath && row.imagePath.length > 0)
                                 ? ("file://" + row.imagePath) : ""
                         }
-                        sourceSize: Qt.size(84, 84)
+                        sourceSize: Qt.size(76, 76)
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                         smooth: true
@@ -816,33 +819,15 @@ Window {
                         anchors.centerIn: parent
                         visible: thumbImg.status !== Image.Ready
                         text: "▦"
-                        font.pixelSize: 16
+                        font.pixelSize: 15
                         color: tok.palette.fgPrimaryContainer
-                    }
-                }
-
-                Rectangle {
-                    visible: row.isImage
-                    Layout.preferredWidth: imgChipLbl.implicitWidth + 12
-                    Layout.preferredHeight: 22
-                    radius: tok.shape.full
-                    color: tok.palette.tertiaryContainer
-                    border.width: 0
-
-                    Text {
-                        id: imgChipLbl
-
-                        anchors.centerIn: parent
-                        text: qsTr("Image")
-                        font: tok.type.label
-                        color: tok.palette.fgTertiaryContainer
                     }
                 }
 
                 Text {
                     Layout.fillWidth: true
                     text: row.isImage
-                        ? (row.entryPreview.length > 0 ? row.entryPreview : qsTr("Image clip"))
+                        ? win.cleanImagePreview(row.entryPreview)
                         : row.entryPreview
                     font: row.isCurrent ? tok.type.bodyEmph : tok.type.body
                     color: row.isCurrent ? tok.palette.fgSurface : tok.palette.fgMuted
@@ -866,6 +851,16 @@ Window {
     }
 
     // ── Logic (unchanged behaviour) ───────────────────────────────────────────
+
+    function cleanImagePreview(raw) {
+        if (!raw || raw.length === 0) return qsTr("Image clip")
+        const m = raw.match(/\[\[\s*binary data\s*(.*?)\s*\]\]/)
+        if (m && m[1]) {
+            const info = m[1].trim()
+            return info.length > 0 ? (info + " • Image") : qsTr("Image clip")
+        }
+        return raw
+    }
 
     function clipId(entry) {
         if (!entry) return ""
@@ -1606,7 +1601,7 @@ Window {
                                         : qsTr("%1 clips in history").arg(clipListModel.count)
                                     font: tok.type.label
                                     color: tok.palette.fgMuted
-                                    opacity: 0.9
+                                    opacity: 0.85
 
                                     Connections {
                                         target: win
@@ -1632,7 +1627,7 @@ Window {
                                         NumberAnimation {
                                             target: statusLbl
                                             property: "opacity"
-                                            to: 0.9
+                                            to: 0.85
                                             duration: win.reducedMotion ? 1 : 160
                                             easing.type: Easing.OutCubic
                                         }
@@ -1640,26 +1635,7 @@ Window {
                                 }
                             }
 
-                            // Count chip — solid primaryContainer
-                            Rectangle {
-                                Layout.alignment: Qt.AlignVCenter
-                                implicitWidth: Math.max(36, countChipLbl.implicitWidth + 14)
-                                implicitHeight: 28
-                                radius: height / 2
-                                color: tok.palette.primaryContainer
-                                border.width: 0
-                                visible: clipListModel.count > 0 && statusMessage.length === 0
-
-                                Text {
-                                    id: countChipLbl
-                                    anchors.centerIn: parent
-                                    text: String(clipListModel.count)
-                                    font: tok.type.labelEmph
-                                    color: tok.palette.fgPrimaryContainer
-                                }
-                            }
-
-                            // Clear history — soft destructive, never solid red blob
+                            // Clear history
                             TonalButton {
                                 Layout.alignment: Qt.AlignVCenter
                                 label: qsTr("Clear")
@@ -1680,26 +1656,14 @@ Window {
                         Rectangle {
                             id: searchBox
                             Layout.fillWidth: true
-                            property int boxHeight: searchField.activeFocus ? 50 : 44
+                            property int boxHeight: 44
                             Layout.preferredHeight: boxHeight
-                            radius: searchField.activeFocus ? tok.shape.xl : tok.shape.lg
+                            radius: tok.shape.full
                             color: searchField.activeFocus
                                 ? tok.palette.primaryContainer
                                 : tok.palette.stageContent
                             border.width: 0
 
-                            Behavior on boxHeight {
-                                enabled: !win.reducedMotion
-                                NumberAnimation {
-                                    duration: tok.motion.effectsExpressive.fast
-                                    easing.type: Easing.OutBack
-                                    easing.overshoot: 1.15
-                                }
-                            }
-                            Behavior on radius {
-                                enabled: !win.reducedMotion
-                                NumberAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutQuad }
-                            }
                             Behavior on color {
                                 ColorAnimation { duration: tok.motion.effectsExpressive.fast }
                             }
@@ -1711,30 +1675,21 @@ Window {
                                 spacing: 8
 
                                 Text {
-                                    Layout.preferredWidth: 28
-                                    Layout.preferredHeight: 28
+                                    Layout.preferredWidth: 20
+                                    Layout.preferredHeight: 20
                                     Layout.alignment: Qt.AlignVCenter
                                     text: "⌕"
-                                    font.pixelSize: 24
-                                    font.weight: Font.DemiBold
+                                    font.pixelSize: 18
+                                    font.weight: Font.Bold
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                     color: searchField.activeFocus
                                         ? tok.palette.fgPrimaryContainer
                                         : tok.palette.fgMuted
-                                    scale: searchField.activeFocus ? 1.12 : 1.0
 
                                     Behavior on color {
                                         enabled: !win.reducedMotion
                                         ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                                    }
-                                    Behavior on scale {
-                                        enabled: !win.reducedMotion
-                                        NumberAnimation {
-                                            duration: tok.motion.effectsExpressive.defaultMs
-                                            easing.type: Easing.OutBack
-                                            easing.overshoot: tok.motion.expressiveOvershoot
-                                        }
                                     }
                                 }
 
@@ -1748,7 +1703,7 @@ Window {
                                         ? tok.palette.fgPrimaryContainer
                                         : tok.palette.fgSurface
                                     placeholderTextColor: searchField.activeFocus
-                                        ? tok.palette.fgPrimaryContainer
+                                        ? Qt.alpha(tok.palette.fgPrimaryContainer, 0.7)
                                         : tok.palette.fgMuted
                                     selectByMouse: true
                                     background: Item {}
@@ -1767,19 +1722,27 @@ Window {
                                     }
                                 }
 
-                                Text {
+                                Rectangle {
                                     visible: searchField.text.length === 0
-                                    text: "Ctrl+K"
-                                    font: tok.type.label
-                                    color: tok.palette.fgMuted
-                                    opacity: searchField.text.length === 0 ? 0.55 : 0
+                                    implicitWidth: kbdCtrlK.implicitWidth + 10
+                                    implicitHeight: 20
+                                    radius: 5
+                                    color: searchField.activeFocus
+                                        ? Qt.alpha(tok.palette.fgPrimaryContainer, 0.15)
+                                        : tok.palette.stageHigh
+                                    border.width: 0
 
-                                    Behavior on opacity {
-                                        enabled: !win.reducedMotion
-                                        NumberAnimation {
-                                            duration: tok.motion.effectsExpressive.fast
-                                            easing.type: Easing.OutCubic
-                                        }
+                                    Text {
+                                        id: kbdCtrlK
+                                        anchors.centerIn: parent
+                                        text: "Ctrl+K"
+                                        font.pixelSize: 10
+                                        font.weight: Font.DemiBold
+                                        font.family: tok.type.mono.family
+                                        color: searchField.activeFocus
+                                            ? tok.palette.fgPrimaryContainer
+                                            : tok.palette.fgMuted
+                                        opacity: 0.8
                                     }
                                 }
 
@@ -1813,9 +1776,9 @@ Window {
                                 anchors.fill: parent
                                 current: win.filterIndexForMode(filterMode)
                                 options: [
-                                    { label: qsTr("All"), value: "all", glyph: "☰" },
-                                    { label: qsTr("Text"), value: "text", glyph: "T" },
-                                    { label: qsTr("Images"), value: "image", glyph: "▤" }
+                                    { label: qsTr("All"), value: "all" },
+                                    { label: qsTr("Text"), value: "text" },
+                                    { label: qsTr("Images"), value: "image" }
                                 ]
                                 onPicked: function(index, value) { win.setFilter(value) }
                             }
@@ -2226,7 +2189,7 @@ Window {
                         // Preview meta header
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 10
+                            spacing: 8
                             opacity: activeClip !== null ? 1 : 0
                             scale: activeClip !== null ? 1 : 0.96
                             visible: opacity > 0
@@ -2249,50 +2212,30 @@ Window {
 
                             Rectangle {
                                 implicitWidth: metaId.implicitWidth + 16
-                                implicitHeight: 24
+                                implicitHeight: 26
                                 radius: tok.shape.full
                                 color: tok.palette.primaryContainer
-                                scale: activeClip !== null ? 1 : 0.8
-
-                                Behavior on scale {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation {
-                                        duration: tok.motion.effectsExpressive.defaultMs
-                                        easing.type: Easing.OutBack
-                                        easing.overshoot: tok.motion.expressiveOvershoot
-                                    }
-                                }
+                                border.width: 0
 
                                 Text {
                                     id: metaId
                                     anchors.centerIn: parent
                                     text: activeClip ? ("#" + activeClip.entryId) : ""
-                                    font: tok.type.labelEmph
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                    font.family: tok.type.mono.family
                                     color: tok.palette.fgPrimaryContainer
                                 }
                             }
 
                             Rectangle {
                                 opacity: activeClip && activeClip.isImage ? 1 : 0
-                                scale: activeClip && activeClip.isImage ? 1 : 0.7
                                 visible: opacity > 0
-                                implicitWidth: metaType.implicitWidth + 14
-                                implicitHeight: 24
+                                implicitWidth: metaType.implicitWidth + 16
+                                implicitHeight: 26
                                 radius: tok.shape.full
                                 color: tok.palette.tertiaryContainer
-
-                                Behavior on opacity {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                }
-                                Behavior on scale {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation {
-                                        duration: tok.motion.effectsExpressive.defaultMs
-                                        easing.type: Easing.OutBack
-                                        easing.overshoot: tok.motion.expressiveOvershoot
-                                    }
-                                }
+                                border.width: 0
 
                                 Text {
                                     id: metaType
@@ -2305,25 +2248,12 @@ Window {
 
                             Rectangle {
                                 opacity: activeClip && !activeClip.isImage ? 1 : 0
-                                scale: activeClip && !activeClip.isImage ? 1 : 0.7
                                 visible: opacity > 0
-                                implicitWidth: metaType2.implicitWidth + 14
-                                implicitHeight: 24
+                                implicitWidth: metaType2.implicitWidth + 16
+                                implicitHeight: 26
                                 radius: tok.shape.full
                                 color: tok.palette.secondaryContainer
-
-                                Behavior on opacity {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                }
-                                Behavior on scale {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation {
-                                        duration: tok.motion.effectsExpressive.defaultMs
-                                        easing.type: Easing.OutBack
-                                        easing.overshoot: tok.motion.expressiveOvershoot
-                                    }
-                                }
+                                border.width: 0
 
                                 Text {
                                     id: metaType2
@@ -2334,33 +2264,14 @@ Window {
                                 }
                             }
 
-                            Item { Layout.fillWidth: true }
-
                             Rectangle {
                                 opacity: activeClip && activeClip.edited ? 1 : 0
-                                scale: activeClip && activeClip.edited ? 1 : 0.6
                                 visible: opacity > 0
-                                implicitWidth: editedLbl.implicitWidth + 14
-                                implicitHeight: 24
+                                implicitWidth: editedLbl.implicitWidth + 16
+                                implicitHeight: 26
                                 radius: tok.shape.full
                                 color: tok.palette.primaryContainer
-
-                                Behavior on opacity {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation {
-                                        duration: tok.motion.effectsExpressive.fast
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                                Behavior on scale {
-                                    enabled: !win.reducedMotion
-                                    SpringAnimation {
-                                        spring: tok.motion.spatialExpressive.fastSpring
-                                        damping: tok.motion.spatialExpressive.fastDamping
-                                        mass: tok.motion.springMass
-                                        epsilon: tok.motion.springEpsilon
-                                    }
-                                }
+                                border.width: 0
 
                                 Text {
                                     id: editedLbl
@@ -2371,19 +2282,16 @@ Window {
                                 }
                             }
 
+                            Item { Layout.fillWidth: true }
+
                             Text {
                                 text: activeClip
-                                    ? qsTr("%1 chars").arg(activeClip.entryText.length)
+                                    ? (activeClip.isImage ? "" : qsTr("%1 chars").arg(activeClip.entryText.length))
                                     : ""
                                 font: tok.type.label
                                 color: tok.palette.fgMuted
-                                opacity: activeClip && !activeClip.isImage ? 1 : 0
+                                opacity: activeClip && !activeClip.isImage ? 0.8 : 0
                                 visible: opacity > 0
-
-                                Behavior on opacity {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                }
                             }
                         }
 
@@ -2789,8 +2697,8 @@ Window {
                         ColumnLayout {
                             id: actionFooter
                             Layout.fillWidth: true
-                            Layout.preferredHeight: clipListModel.count > 0 ? 84 : 0
-                            spacing: 10
+                            Layout.preferredHeight: clipListModel.count > 0 ? 80 : 0
+                            spacing: 8
 
                             Item {
                                 Layout.fillWidth: true
@@ -2799,12 +2707,12 @@ Window {
 
                                 Rectangle {
                                     id: actionPill
-                                    readonly property int pillPad: 6
+                                    readonly property int pillPad: 4
 
                                     anchors.centerIn: parent
                                     width: actionRow.width + pillPad * 2
                                     height: actionRow.height + pillPad * 2
-                                    radius: height / 2
+                                    radius: tok.shape.full
                                     color: tok.palette.stageHigh
                                     border.width: 0
                                     opacity: clipListModel.count > 0 ? 1 : 0
@@ -2843,7 +2751,7 @@ Window {
                                             id: copyBtn
                                             label: qsTr("Copy")
                                             glyph: "⏎"
-                                            implicitHeight: 36
+                                            implicitHeight: 38
                                             onTriggered: win.copySelected()
                                         }
 
@@ -2851,14 +2759,14 @@ Window {
                                             label: qsTr("Delete")
                                             glyph: "⌫"
                                             tone: "error"
-                                            implicitHeight: 36
+                                            implicitHeight: 38
                                             onTriggered: win.deleteSelected()
                                         }
 
                                         TonalButton {
                                             label: qsTr("Close")
                                             glyph: "Esc"
-                                            implicitHeight: 36
+                                            implicitHeight: 38
                                             onTriggered: win.close()
                                         }
                                     }
@@ -2867,8 +2775,8 @@ Window {
 
                             Row {
                                 Layout.alignment: Qt.AlignHCenter
-                                spacing: 14
-                                opacity: clipListModel.count > 0 ? 1 : 0
+                                spacing: 16
+                                opacity: clipListModel.count > 0 ? 0.75 : 0
                                 visible: opacity > 0.01
 
                                 Behavior on opacity {
@@ -2881,8 +2789,6 @@ Window {
 
                                 KbdHint { keys: "←→"; caption: qsTr("Filter") }
                                 KbdHint { keys: "↑↓"; caption: qsTr("Navigate") }
-                                KbdHint { keys: "Enter"; caption: qsTr("Copy") }
-                                KbdHint { keys: "Del"; caption: qsTr("Delete") }
                             }
                         }
                     }

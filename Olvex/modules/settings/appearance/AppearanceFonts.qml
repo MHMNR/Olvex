@@ -30,6 +30,7 @@ ColumnLayout {
 
     Component.onCompleted: {
         revealAnim.start();
+        fontListProc.running = true;
     }
 
     ParallelAnimation {
@@ -71,10 +72,6 @@ ColumnLayout {
                 }
             }
         }
-    }
-
-    Component.onCompleted: {
-        fontListProc.running = true;
     }
 
     readonly property FileDialog fontPicker: FileDialog {

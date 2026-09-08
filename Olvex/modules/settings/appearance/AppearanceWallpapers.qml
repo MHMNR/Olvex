@@ -25,6 +25,13 @@ ColumnLayout {
 
     Component.onCompleted: {
         revealAnim.start();
+        Wallpapers.ensureCatalog();
+        if (Wallpapers.isVideoPath(Wallpapers.actualCurrent))
+            root.wallpaperMode = "live";
+        else if (GlobalConfig.background?.liveWallpaper?.enabled && Wallpapers.liveEntryObjects?.length > 0)
+            root.wallpaperMode = "live";
+        else
+            root.wallpaperMode = "static";
     }
 
     ParallelAnimation {
@@ -50,16 +57,6 @@ ColumnLayout {
             GlobalConfig.background.liveWallpaper.enabled = root.wallpaperMode === "live";
         GlobalConfig.save();
         Wallpapers.ensureCatalog();
-    }
-    
-    Component.onCompleted: {
-        Wallpapers.ensureCatalog();
-        if (Wallpapers.isVideoPath(Wallpapers.actualCurrent))
-            root.wallpaperMode = "live";
-        else if (GlobalConfig.background?.liveWallpaper?.enabled && Wallpapers.liveEntryObjects?.length > 0)
-            root.wallpaperMode = "live";
-        else
-            root.wallpaperMode = "static";
     }
 
     Section {

@@ -44,7 +44,7 @@ Item {
             property: "opacity"
             from: 0
             to: 1
-            duration: Tokens.anim.durations.long
+            duration: Tokens.anim.durations.large
             easing.type: Easing.OutCubic
         }
     }
