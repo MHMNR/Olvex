@@ -347,6 +347,8 @@ Item {
     }
 
     Component.onCompleted: {
+        root.animatedMorphProgress = Qt.binding(() => root.morphProgress);
+        root.animatedNotifProgress = Qt.binding(() => root.notifProgress);
         root.updateBarArtSource();
         root.syncBarAccent();
         root.kickDockSync();
@@ -459,17 +461,47 @@ Item {
 
     clip: false
     anchors.fill: parent
-    implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
+    implicitWidth: (root.playerActive || root.isNotificationPushed) ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
 
     implicitHeight: root.playerActive ? root.musicPillHeight : (icon.implicitHeight + root.preferredTitleHeight + Tokens.spacing.small)
     
+    readonly property real morphProgress: root.playerActive ? 1.0 : 0.0
+    property real animatedMorphProgress: 0.0
+
+    Behavior on animatedMorphProgress {
+        enabled: root.isLoaded
+        Anim {
+            duration: root.playerActive ? 420 : 260
+            easing: Tokens.anim.expressiveSoftSpatial
+            onRunningChanged: {
+                if (!running)
+                    Qt.callLater(() => root.applyMorphDock());
+            }
+        }
+    }
+
+    readonly property real notifProgress: root.isNotificationPushed ? 1.0 : 0.0
+    property real animatedNotifProgress: 0.0
+
+    Behavior on animatedNotifProgress {
+        enabled: root.isLoaded
+        Anim {
+            duration: 420
+            easing: Tokens.anim.expressiveSoftSpatial
+            onRunningChanged: {
+                if (!running)
+                    Qt.callLater(() => root.applyMorphDock());
+            }
+        }
+    }
+
     // Dynamically tracks the visual overshoot push into adjacent items
     readonly property real upwardPush: {
         let push = 0;
         if (notifPill) {
             push = Math.max(push, (typeof notifPill.upwardPush === "number") ? notifPill.upwardPush : 0);
         }
-        if (musicPill) {
+        if (musicPill && root.isNotificationPushed) {
             const topY = musicPill.y;
             if (topY < 0) {
                 push = Math.max(push, -topY);
@@ -484,83 +516,6 @@ Item {
         value: root.upwardPush
         when: root.bar !== null
     }
-
-    // Dynamically tracks downward visual overshoot push into adjacent items during morph / workspace expansion
-    readonly property real downwardMorphPush: {
-        if (!musicPill) return 0;
-        const bottomY = musicPill.y + musicPill.height;
-        return Math.max(0, bottomY - root.height);
-    }
-
-    Binding {
-        target: root.bar
-        property: "activeWindowDownwardPush"
-        value: root.downwardMorphPush
-        when: root.bar !== null
-    }
-
-    states: [
-        State {
-            name: "notification"
-            when: root.isNotificationPushed
-            PropertyChanges {
-                target: musicPill
-                y: root.height - root.musicPillWidth
-                height: root.musicPillWidth
-                width: root.musicPillWidth
-            }
-            PropertyChanges {
-                target: icon
-                y: ((root.musicPillWidth - icon.height) / 2)
-            }
-        },
-        State {
-            name: "music"
-            when: root.playerActive && !root.isNotificationPushed
-            PropertyChanges {
-                target: musicPill
-                y: Math.max(0, (root.height - root.musicPillHeight) / 2)
-                height: root.musicPillHeight
-                width: root.musicPillWidth
-            }
-            PropertyChanges {
-                target: icon
-                y: ((root.musicPillHeight - icon.height) / 2)
-            }
-        },
-        State {
-            name: "default"
-            when: !root.playerActive && !root.isNotificationPushed
-            PropertyChanges {
-                target: musicPill
-                y: 0
-                height: root.height
-                width: parent ? parent.width : Tokens.sizes.bar.innerWidth
-            }
-            PropertyChanges {
-                target: icon
-                y: Math.max(0, (root.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2)
-            }
-        }
-    ]
-
-    transitions: [
-        Transition {
-            id: windowStateTransition
-            enabled: root.isLoaded
-            Anim {
-                id: pillAnim
-                targets: [musicPill]
-                properties: "y,height,width"
-                type: Anim.SubtleSpatial
-                onRunningChanged: {
-                    if (!running)
-                        root.applyMorphDock();
-                }
-            }
-            Anim { targets: [icon]; properties: "y"; type: Anim.SubtleSpatial }
-        }
-    ]
 
     Loader {
         asynchronous: true
@@ -608,9 +563,16 @@ Item {
         }
 
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 0
-        height: root.height
-        width: root.playerActive ? root.musicPillWidth : (parent ? parent.width : Tokens.sizes.bar.innerWidth)
+
+        readonly property real p: root.animatedMorphProgress
+        readonly property real n: root.animatedNotifProgress
+
+        readonly property real baseH: root.height * (1.0 - p) + root.musicPillHeight * p
+        readonly property real baseY: p * Math.max(0, (root.height - root.musicPillHeight) / 2)
+
+        height: baseH * (1.0 - n) + root.musicPillWidth * n
+        y: baseY * (1.0 - n) + Math.max(0, root.height - root.musicPillWidth) * n
+        width: parent ? parent.width : ((root.playerActive || root.isNotificationPushed) ? root.musicPillWidth : Tokens.sizes.bar.innerWidth)
 
         property real pillAlpha: 1
 
@@ -631,9 +593,12 @@ Item {
             color: "transparent"
             opacity: root.playerActive ? 1 : 0
             Behavior on opacity {
-                NumberAnimation {
-                    duration: Tokens.anim.durations.expressiveDefaultEffects
-                    easing: Tokens.anim.emphasizedDecel
+                SequentialAnimation {
+                    PauseAnimation { duration: root.playerActive ? Tokens.anim.durations.expressiveFastEffects : 0 }
+                    NumberAnimation {
+                        duration: Tokens.anim.durations.expressiveDefaultEffects
+                        easing: Tokens.anim.emphasizedDecel
+                    }
                 }
             }
 
@@ -673,7 +638,10 @@ Item {
             visible: opacity > 0.01
             opacity: root.mediaVisualizerActive ? 1 : 0
             Behavior on opacity {
-                Anim { type: Anim.DefaultSpatial }
+                SequentialAnimation {
+                    PauseAnimation { duration: root.mediaVisualizerActive ? Tokens.anim.durations.expressiveFastEffects : 0 }
+                    Anim { type: root.mediaVisualizerActive ? Anim.DefaultEffects : Anim.FastEffects }
+                }
             }
 
             // Keeps the mask active during the fade-out, fixing the clipping leak!
@@ -727,136 +695,140 @@ Item {
                 z: 2
                 anchors.fill: parent
                 clip: true
-                opacity: root.playerActive ? 1 : 0
+                opacity: Math.max(0, Math.min(1, (root.animatedMorphProgress - 0.2) / 0.8))
                 visible: opacity > 0.01
 
-                Behavior on opacity {
-                    Anim { type: controlsRow.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
-                }
-
                 Item {
-                    id: artFrame
-                    x: (parent.width - width) / 2
-                    y: root.isNotificationPushed ? ((parent.height - height) / 2) : 4
-                    width: root.musicArtSize
-                    height: root.musicArtSize
-
-                    Behavior on y {
-                        Anim { type: Anim.SubtleSpatial }
-                    }
-
-                    // Ambient glow moved to StyledClippingRect at musicPill level
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.topMargin: 1
-                        radius: width / 2
-                        color: Qt.alpha(Colours.palette.m3shadow, 0.26)
-                        antialiasing: true
-                        opacity: root.hasMusicArt ? 0.46 : 0.0
-                        layer.enabled: opacity > 0.01
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.42)
-                            shadowOpacity: 0.34
-                            shadowBlur: 0.55
-                            shadowHorizontalOffset: 0
-                            shadowVerticalOffset: 2
-                        }
-                    }
+                    id: controlsContainer
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    height: root.isNotificationPushed ? root.musicPillWidth : root.musicPillHeight
 
                     Item {
-                        id: barArtContainer
-                        anchors.fill: parent
+                        id: artFrame
+                        x: (parent.width - width) / 2
+                        y: root.isNotificationPushed ? ((parent.height - height) / 2) : 4
+                        width: root.musicArtSize
+                        height: root.musicArtSize
 
-                        layer.enabled: true
-                        layer.effect: CircleMask {}
+                        Behavior on y {
+                            Anim { type: Anim.DefaultSpatial }
+                        }
+
+                        // Ambient glow moved to StyledClippingRect at musicPill level
 
                         Rectangle {
                             anchors.fill: parent
-                            color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(root.musicAccent, 0.22)
+                            anchors.topMargin: 1
+                            radius: width / 2
+                            color: Qt.alpha(Colours.palette.m3shadow, 0.26)
+                            antialiasing: true
+                            opacity: root.hasMusicArt ? 0.46 : 0.0
+                            layer.enabled: opacity > 0.01
+                            layer.effect: MultiEffect {
+                                shadowEnabled: true
+                                shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.42)
+                                shadowOpacity: 0.34
+                                shadowBlur: 0.55
+                                shadowHorizontalOffset: 0
+                                shadowVerticalOffset: 2
+                            }
                         }
 
-                        Image {
-                            id: barArtImage
+                        Item {
+                            id: barArtContainer
                             anchors.fill: parent
-                            source: root.barArtSource
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            cache: false
-                            sourceSize: Qt.size(root.musicArtSize, root.musicArtSize)
-                            opacity: status === Image.Ready && source !== "" ? 1 : 0
-                            onStatusChanged: {
-                                if (status === Image.Ready)
-                                    barAccentPicker.scheduleAnalysis();
+
+                            layer.enabled: true
+                            layer.effect: CircleMask {}
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: root.hasMusicArt ? Qt.alpha(Players.musicOnSurfaceColor, 0.10) : Qt.alpha(root.musicAccent, 0.22)
                             }
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: 220
-                                    easing.type: Easing.OutCubic
+
+                            Image {
+                                id: barArtImage
+                                anchors.fill: parent
+                                source: root.barArtSource
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                cache: true
+                                sourceSize: Qt.size(root.musicArtSize, root.musicArtSize)
+                                opacity: status === Image.Ready && source !== "" ? 1 : 0
+                                onStatusChanged: {
+                                    if (status === Image.Ready)
+                                        barAccentPicker.scheduleAnalysis();
+                                }
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: 220
+                                        easing.type: Easing.OutCubic
+                                    }
                                 }
                             }
-                        }
 
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "music_note"
-                            color: root.hasMusicArt ? (Colours.light ? Players.musicOnSurfaceColor : Qt.alpha(Players.musicOnSurfaceColor, 0.4)) : (Colours.light ? Colours.palette.m3onPrimary : root.musicOnAccent)
-                            iconPointSize: Tokens.font.size.normal
-                            fill: 1
-                            visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
-                        }
-                    }
-                }
-
-                // Transport controls — smooth slide & fade during circle ↔ pill morph
-                Column {
-                    id: transportControls
-                    anchors.top: parent.top
-                    anchors.topMargin: 50
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 6
-                    opacity: root.isNotificationPushed ? 0 : 1
-                    visible: opacity > 0.01
-
-                    Behavior on opacity {
-                        Anim { type: transportControls.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
-                    }
-
-                    transform: Translate {
-                        y: root.isNotificationPushed ? 18 : 0
-                        Behavior on y {
-                            Anim { type: Anim.SubtleSpatial }
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "music_note"
+                                color: root.hasMusicArt ? (Colours.light ? Players.musicOnSurfaceColor : Qt.alpha(Players.musicOnSurfaceColor, 0.4)) : (Colours.light ? Colours.palette.m3onPrimary : root.musicOnAccent)
+                                iconPointSize: Tokens.font.size.normal
+                                fill: 1
+                                visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
+                            }
                         }
                     }
 
-                    // prev
-                    MorphControlButton {
-                        id: prevSkipBtn
-                        iconName: "skip_previous"
-                        balancedSkipIcon: true
-                        skipIconScale: 0.86
-                        iconSize: Tokens.font.size.large
-                        onClicked: Players.previous()
-                    }
+                    // Transport controls — smooth slide & fade during circle ↔ pill morph
+                    Column {
+                        id: transportControls
+                        anchors.top: parent.top
+                        anchors.topMargin: 50
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 6
+                        opacity: root.isNotificationPushed ? 0 : 1
+                        visible: opacity > 0.01
 
-                    // play
-                    MorphControlButton {
-                        id: playPillBtn
-                        emphasized: true
-                        iconName: root.isMusicPlaying ? "pause" : "play_arrow"
-                        iconSize: Tokens.font.size.larger
-                        onClicked: Players.togglePlaying()
-                    }
+                        Behavior on opacity {
+                            Anim { type: transportControls.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
+                        }
 
-                    // next
-                    MorphControlButton {
-                        id: nextSkipBtn
-                        iconName: "skip_next"
-                        balancedSkipIcon: true
-                        skipIconScale: 0.86
-                        iconSize: Tokens.font.size.large
-                        onClicked: Players.next()
+                        transform: Translate {
+                            y: root.isNotificationPushed ? 18 : 0
+                            Behavior on y {
+                                Anim { type: Anim.DefaultSpatial }
+                            }
+                        }
+
+                        // prev
+                        MorphControlButton {
+                            id: prevSkipBtn
+                            iconName: "skip_previous"
+                            balancedSkipIcon: true
+                            skipIconScale: 0.86
+                            iconSize: Tokens.font.size.large
+                            onClicked: Players.previous()
+                        }
+
+                        // play
+                        MorphControlButton {
+                            id: playPillBtn
+                            emphasized: true
+                            iconName: root.isMusicPlaying ? "pause" : "play_arrow"
+                            iconSize: Tokens.font.size.larger
+                            onClicked: Players.togglePlaying()
+                        }
+
+                        // next
+                        MorphControlButton {
+                            id: nextSkipBtn
+                            iconName: "skip_next"
+                            balancedSkipIcon: true
+                            skipIconScale: 0.86
+                            iconSize: Tokens.font.size.large
+                            onClicked: Players.next()
+                        }
                     }
                 }
             }
@@ -865,58 +837,63 @@ Item {
                 id: windowInfoContainer
                 anchors.fill: parent
                 clip: true
-                opacity: root.playerActive ? 0 : 1
+                opacity: Math.max(0, Math.min(1, (1.0 - root.animatedMorphProgress * 2.0)))
                 visible: opacity > 0.01
 
-                Behavior on opacity {
-                    Anim { type: windowInfoContainer.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
-                }
-
-                MaterialIcon {
-                    id: icon
+                Item {
+                    id: windowInfoContent
                     anchors.horizontalCenter: parent.horizontalCenter
-                    animate: false
-                    text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon((Hypr.activeToplevel && Hypr.activeToplevel.lastIpcObject) ? Hypr.activeToplevel.lastIpcObject.class : "", "desktop_windows")
-                    color: root.colour
-                }
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    height: icon.height + Tokens.spacing.small + windowTitleText.height
 
-                StyledText {
-                    id: windowTitleText
-                    anchors.horizontalCenter: icon.horizontalCenter
-                    anchors.top: icon.bottom
-                    anchors.topMargin: Tokens.spacing.small
-                    textPointSize: Tokens.font.size.smaller
-                    font.family: Tokens.font.family.mono
-                    color: root.colour
-                    width: implicitHeight
-                    height: implicitWidth
-                    visible: opacity > 0.01
-                    opacity: (root.playerActive || root.isNotificationPushed) ? 0 : 1
-
-                    Behavior on opacity {
-                        Anim { type: windowTitleText.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
+                    MaterialIcon {
+                        id: icon
+                        anchors.top: parent.top
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        animate: false
+                        text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon((Hypr.activeToplevel && Hypr.activeToplevel.lastIpcObject) ? Hypr.activeToplevel.lastIpcObject.class : "", "desktop_windows")
+                        color: root.colour
                     }
 
-                    transform: [
-                        Translate {
-                            x: root.Config.bar.activeWindow.inverted ? -windowTitleText.implicitWidth + windowTitleText.implicitHeight : 0
-                        },
-                        Rotation {
-                            angle: root.Config.bar.activeWindow.inverted ? 270 : 90
-                            origin.x: windowTitleText.implicitHeight / 2
-                            origin.y: windowTitleText.implicitHeight / 2
-                        }
-                    ]
-
-                    TextMetrics {
-                        id: metrics
-                        text: root.windowTitle
-                        font.pointSize: Tokens.font.size.smaller
+                    StyledText {
+                        id: windowTitleText
+                        anchors.horizontalCenter: icon.horizontalCenter
+                        anchors.top: icon.bottom
+                        anchors.topMargin: Tokens.spacing.small
+                        textPointSize: Tokens.font.size.smaller
                         font.family: Tokens.font.family.mono
-                        elide: Qt.ElideRight
-                        elideWidth: root.titleSlotHeight
-                        onTextChanged: windowTitleText.text = elidedText
-                        onElideWidthChanged: windowTitleText.text = elidedText
+                        color: root.colour
+                        width: implicitHeight
+                        height: implicitWidth
+                        visible: opacity > 0.01
+                        opacity: (root.playerActive || root.isNotificationPushed) ? 0 : 1
+
+                        Behavior on opacity {
+                            Anim { type: windowTitleText.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
+                        }
+
+                        transform: [
+                            Translate {
+                                x: root.Config.bar.activeWindow.inverted ? -windowTitleText.implicitWidth + windowTitleText.implicitHeight : 0
+                            },
+                            Rotation {
+                                angle: root.Config.bar.activeWindow.inverted ? 270 : 90
+                                origin.x: windowTitleText.implicitHeight / 2
+                                origin.y: windowTitleText.implicitHeight / 2
+                            }
+                        ]
+
+                        TextMetrics {
+                            id: metrics
+                            text: root.windowTitle
+                            font.pointSize: Tokens.font.size.smaller
+                            font.family: Tokens.font.family.mono
+                            elide: Qt.ElideRight
+                            elideWidth: root.titleSlotHeight
+                            onTextChanged: windowTitleText.text = elidedText
+                            onElideWidthChanged: windowTitleText.text = elidedText
+                        }
                     }
                 }
             }
@@ -924,7 +901,7 @@ Item {
         property real pillScale: 1.0
         readonly property real kineticSquash: {
             if (!root.bar) return 1.0;
-            const force = (typeof root.bar.downwardPushForce === "number") ? root.bar.downwardPushForce : 0;
+            const force = (typeof root.bar.wsPushForce === "number") ? root.bar.wsPushForce : 0;
             return Math.max(0.96, 1.0 - (force * 0.0004));
         }
 
@@ -957,6 +934,6 @@ Item {
     }
 
     Behavior on implicitWidth {
-        Anim { type: Anim.SubtleSpatial }
+        Anim { type: Anim.DefaultSpatial }
     }
 }

@@ -58,12 +58,16 @@ StyledRect {
     }
 
     clip: true
-    visible: TrayService.hasItems
+    visible: TrayService.hasItems || implicitHeight > 0.5
 
     implicitWidth: collapsedSize
-    implicitHeight: contentHeight
+    implicitHeight: 0
     width: implicitWidth
     height: implicitHeight
+
+    Component.onCompleted: {
+        implicitHeight = Qt.binding(() => root.contentHeight);
+    }
 
     Layout.preferredWidth: width
     Layout.preferredHeight: height

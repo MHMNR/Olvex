@@ -368,7 +368,7 @@ Item {
 
     Timer {
         id: hideTimer
-        interval: root.collapseDur
+        interval: root.collapseDur + 80
         onTriggered: {
             if (root.closingDown && musicPill.state === "compact") {
                 root.active = false;
@@ -1195,6 +1195,14 @@ Item {
                 id: collapseTransition
                 from: "expanded"
                 to: "compact"
+                onRunningChanged: {
+                    if (!running && root.closingDown) {
+                        hideTimer.stop();
+                        root.active = false;
+                        root.docked = false;
+                        root.closingDown = false;
+                    }
+                }
                 ParallelAnimation {
                     // Container bounds travel back
                     NumberAnimation {

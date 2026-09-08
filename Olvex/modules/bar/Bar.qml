@@ -19,8 +19,7 @@ ColumnLayout {
     required property bool fullscreen
     property real workspacePush: 0
     property real wsPushForce: 0
-    property real activeWindowDownwardPush: 0
-    readonly property real downwardPushForce: root.wsPushForce + root.activeWindowDownwardPush
+    readonly property real downwardPushForce: root.wsPushForce
     readonly property real cascadeForce: Math.min(16, root.downwardPushForce * 0.16)
     property var mediaMorph
     property var notificationMorph
@@ -205,7 +204,7 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "tray"
                 delegate: WrappedLoader {
-                    visible: !root.fullscreen && TrayService.hasItems
+                    visible: !root.fullscreen && (TrayService.hasItems || (item && item.implicitHeight > 0.5))
                     sourceComponent: Tray {
                         bar: root
                         popouts: root.popouts
@@ -300,7 +299,7 @@ ColumnLayout {
 
         property real animatedShiftY: kineticShiftY
         Behavior on animatedShiftY {
-            Anim { type: Anim.SubtleSpatial }
+            Anim { type: Anim.FastSpatial }
         }
 
         property real entryXOffset: -50
@@ -348,7 +347,7 @@ ColumnLayout {
         readonly property real kineticShiftY: root.cascadeForce * 0.15
         property real animatedShiftY: kineticShiftY
         Behavior on animatedShiftY {
-            Anim { type: Anim.SubtleSpatial }
+            Anim { type: Anim.FastSpatial }
         }
 
         property real entryXOffset: -50
