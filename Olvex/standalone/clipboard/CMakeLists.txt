@@ -8,9 +8,9 @@ set_target_properties(olvex-clipboard PROPERTIES
     AUTORCC ON
 )
 
-find_package(Qt6 REQUIRED COMPONENTS Core Qml Quick)
+find_package(Qt6 REQUIRED COMPONENTS Core Qml Quick QuickEffects)
 
-target_link_libraries(olvex-clipboard PRIVATE Qt6::Core Qt6::Qml Qt6::Quick)
+target_link_libraries(olvex-clipboard PRIVATE Qt6::Core Qt6::Qml Qt6::Quick Qt6::QuickEffects)
 
 # Install the binary to system bin (so `command -v olvex-clipboard` works)
 install(TARGETS olvex-clipboard

@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Effects
 
 // Olvex Clipboard — M3 Expressive split command canvas (redesigned from scratch)
 Window {
@@ -641,6 +642,16 @@ Window {
         implicitHeight: 60
         opacity: 1
 
+        Component.onCompleted: {
+            if (row.isImage && (!row.imagePath || row.imagePath.length === 0))
+                win.requestDecodeClipImageById(row.entryId)
+        }
+
+        onEntryIdChanged: {
+            if (row.isImage && (!row.imagePath || row.imagePath.length === 0))
+                win.requestDecodeClipImageById(row.entryId)
+        }
+
         // Hover on visual only — MouseArea fills row for click without fighting delete
         HoverHandler {
             id: rowHover
@@ -784,20 +795,49 @@ Window {
                     }
                 }
 
-                // Image thumb — solid primaryContainer
-                Rectangle {
+                // Image thumb — masked rounded rectangle, filled with cropped aspect
+                Item {
+                    id: thumbWrap
                     visible: row.isImage
                     Layout.preferredWidth: 38
                     Layout.preferredHeight: 38
-                    radius: tok.shape.md
-                    color: tok.palette.primaryContainer
-                    clip: true
-                    border.width: 0
 
+                    // Mask shape with layer.enabled
+                    Item {
+                        id: thumbMask
+                        anchors.fill: parent
+                        visible: false
+                        layer.enabled: true
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: tok.shape.md
+                            color: "white"
+                            antialiasing: true
+                            smooth: true
+                        }
+                    }
+
+                    // Placeholder background with icon
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: tok.shape.md
+                        color: tok.palette.primaryContainer
+                        border.width: 0
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: thumbImg.status !== Image.Ready
+                            text: "▦"
+                            font.pixelSize: 15
+                            color: tok.palette.fgPrimaryContainer
+                        }
+                    }
+
+                    // Source image with layer.effect MultiEffect
                     Image {
                         id: thumbImg
                         anchors.fill: parent
-                        anchors.margins: 1
                         source: {
                             const _rev = win.imageRev
                             return (row.imagePath && row.imagePath.length > 0)
@@ -808,19 +848,20 @@ Window {
                         asynchronous: true
                         smooth: true
                         opacity: status === Image.Ready ? 1 : 0
+                        visible: opacity > 0
 
                         Behavior on opacity {
                             enabled: !win.reducedMotion
                             NumberAnimation { duration: tok.motion.effectsExpressive.fast }
                         }
-                    }
 
-                    Text {
-                        anchors.centerIn: parent
-                        visible: thumbImg.status !== Image.Ready
-                        text: "▦"
-                        font.pixelSize: 15
-                        color: tok.palette.fgPrimaryContainer
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            maskEnabled: true
+                            maskSource: thumbMask
+                            maskSpreadAtMin: 1
+                            maskThresholdMin: 0.5
+                        }
                     }
                 }
 
@@ -964,6 +1005,9 @@ Window {
                 decoded: it.decoded || false,
                 edited: it.edited || false
             })
+            if (it.isImage && (!it.imagePath || it.imagePath.length === 0)) {
+                requestDecodeClipImageById(it.entryId)
+            }
         }
 
         if (selectedIndex >= clipListModel.count)
@@ -1080,6 +1124,16 @@ Window {
         return "/tmp/olvex-clip/" + entryId + ".png"
     }
 
+    function requestDecodeClipImageById(entryId) {
+        if (!entryId || entryId.length === 0)
+            return
+        if (typeof Cliphist === "undefined" || !Cliphist)
+            return
+        if (typeof Cliphist.requestDecodeImageById !== "function")
+            return
+        Cliphist.requestDecodeImageById(entryId, clipImagePath(entryId))
+    }
+
     function requestDecodeClipImage(listIndex) {
         if (listIndex < 0 || listIndex >= clipListModel.count)
             return
@@ -1088,11 +1142,7 @@ Window {
             return
         if (item.imagePath && item.imagePath.length > 0)
             return
-        if (typeof Cliphist === "undefined" || !Cliphist)
-            return
-        if (typeof Cliphist.requestDecodeImageById !== "function")
-            return
-        Cliphist.requestDecodeImageById(item.entryId, clipImagePath(item.entryId))
+        requestDecodeClipImageById(item.entryId)
     }
 
     function applyDecodedText(entryId, fullText) {
@@ -1121,8 +1171,7 @@ Window {
                 clipListModel.setProperty(i, "imagePath", path)
             else
                 clipListModel.setProperty(i, "imageDecodeFailed", true)
-            if (entryId === selectedEntryId)
-                imageRev++
+            imageRev++
             break
         }
     }
