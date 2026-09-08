@@ -28,9 +28,15 @@ Item {
     onHasNotifChanged: {
         if (hasNotif) {
             entryPushAnim.restart();
+            olderCascadeAnim.restart();
+            notifDownwardPulseAnim.restart();
         } else {
             entryPushAnim.stop();
+            olderCascadeAnim.stop();
+            notifDownwardPulseAnim.stop();
             entryPushOffset = 0;
+            olderCascadeOffset = 0;
+            notifDownwardForce = 0;
         }
     }
 
@@ -93,9 +99,8 @@ Item {
         }
     }
 
-    readonly property real targetTopHeight: {
-        return Math.max(root.pillWidth, root.height - currentOlderCirclesHeight - currentOlderCirclesSpacing);
-    }
+    readonly property real availableTopHeight: Math.max(0, root.height - currentOlderCirclesHeight - currentOlderCirclesSpacing)
+    readonly property real targetTopHeight: Math.min(root.height, Math.max(root.pillWidth, availableTopHeight))
 
     opacity: (root.hasNotif || root.isDismissingLast) ? 1 : 0
     visible: (root.hasNotif || root.isDismissingLast) && opacity > 0.01
@@ -122,6 +127,28 @@ Item {
     }
 
     property real entryPushOffset: 0
+    property real olderCascadeOffset: 0
+    property real notifDownwardForce: 0
+
+    SequentialAnimation {
+        id: notifDownwardPulseAnim
+        NumberAnimation {
+            target: root
+            property: "notifDownwardForce"
+            from: 0
+            to: 32
+            duration: Math.round(root.pillMorphDuration * 0.4)
+            easing: Tokens.anim.emphasizedDecel
+        }
+        NumberAnimation {
+            target: root
+            property: "notifDownwardForce"
+            from: 32
+            to: 0
+            duration: Math.round(root.pillMorphDuration * 0.6)
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+    }
 
     SequentialAnimation {
         id: entryPushAnim
@@ -139,6 +166,26 @@ Item {
             from: 15
             to: 0
             duration: Math.round(root.pillMorphDuration * 0.6)
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+    }
+
+    SequentialAnimation {
+        id: olderCascadeAnim
+        NumberAnimation {
+            target: root
+            property: "olderCascadeOffset"
+            from: 0
+            to: 12
+            duration: Math.round(root.pillMorphDuration * 0.35)
+            easing: Tokens.anim.emphasizedDecel
+        }
+        NumberAnimation {
+            target: root
+            property: "olderCascadeOffset"
+            from: 12
+            to: 0
+            duration: Math.round(root.pillMorphDuration * 0.65)
             easing: Tokens.anim.expressiveSubtleSpatial
         }
     }
@@ -181,11 +228,8 @@ Item {
                 const olderHeightBefore = olderCountBefore * root.pillWidth + Math.max(0, olderCountBefore - 1) * Tokens.spacing.small;
                 const oldTopH = Math.max(root.pillWidth, root.height - olderHeightBefore - (olderCountBefore > 0 ? Tokens.spacing.small : 0));
                 
-                const initialOldY = root.pillWidth + Tokens.spacing.small;
-                const initialOldH = Math.max(root.pillWidth, oldTopH - initialOldY);
-
-                shrinkingPill.y = initialOldY;
-                shrinkingPill.height = initialOldH;
+                shrinkingPill.y = 0;
+                shrinkingPill.height = oldTopH;
                 shrinkingPill.opacity = 1.0;
                 shrinkingPill.textAlpha = 1.0;
                 shrinkingPill.scale = 1.0;
@@ -207,6 +251,8 @@ Item {
                 
                 pushDownAnim.restart();
                 entryPushAnim.restart();
+                olderCascadeAnim.restart();
+                notifDownwardPulseAnim.restart();
             }
         }
 
@@ -561,6 +607,8 @@ Item {
         }
     }
 
+    readonly property real wsPushForce: (root.bar && typeof root.bar.wsPushForce === "number") ? root.bar.wsPushForce : 0
+
     // ── Settled Older Notifications: Mini Circles dynamically positioned with Y-glide animation ──
     Item {
         id: olderCirclesContainer
@@ -586,12 +634,33 @@ Item {
                     }
                 }
 
+                readonly property real totalCascadeForce: root.wsPushForce + root.notifDownwardForce
+                readonly property real circleKineticShiftY: Math.min(14, totalCascadeForce * 0.14 * Math.pow(0.85, index))
+                property real animatedCircleShiftY: circleKineticShiftY
+                Behavior on animatedCircleShiftY {
+                    Anim { type: Anim.FastSpatial }
+                }
+
+                readonly property real circleKineticSquash: Math.max(0.94, 1.0 - (totalCascadeForce * 0.0004 * Math.pow(0.85, index)))
+
                 x: (parent.width - width) / 2
                 y: Math.max(0, root.height - currentStackOffset)
                 width: root.pillWidth
                 height: root.pillWidth
                 radius: root.pillRadius
                 color: Colours.palette.m3secondaryContainer
+
+                transform: [
+                    Translate {
+                        y: root.olderCascadeOffset * Math.pow(0.75, index) + olderCircleDelegate.animatedCircleShiftY
+                    },
+                    Scale {
+                        origin.x: olderCircleDelegate.width / 2
+                        origin.y: olderCircleDelegate.height / 2
+                        xScale: olderCircleDelegate.circleScale * olderCircleDelegate.circleKineticSquash
+                        yScale: olderCircleDelegate.circleScale * olderCircleDelegate.circleKineticSquash
+                    }
+                ]
                 opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && notif && Notifs.activeMorphNotif.id === notif.id) ? 0 : 
                          ((root.isPushingDown || root.isPoppingUp) && root.animatingOldNotif && notif && notif.id === root.animatingOldNotif.id) ? 0 : 
                          ((root.isPushingDown || root.isPoppingUp) && root.animatingNewNotif && notif && notif.id === root.animatingNewNotif.id) ? 0 : 1
@@ -658,15 +727,29 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         width: root.pillWidth
         height: root.targetTopHeight
-        radius: root.pillRadius
+        radius: Math.min(width / 2, height / 2)
         color: Colours.palette.m3secondaryContainer
         visible: !root.isPushingDown && !root.isPoppingUp && !root.isDismissingLast && root.hasNotif
         opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && root.currentNotif && Notifs.activeMorphNotif.id === root.currentNotif.id) ? 0 : 1
         z: 2
 
-        transform: Translate {
-            y: -root.entryPushOffset
+        readonly property real topKineticSquash: Math.max(0.92, 1.0 - (root.wsPushForce * 0.0006))
+        readonly property real topKineticShiftY: Math.min(6, root.wsPushForce * 0.04)
+        property real animatedTopShiftY: topKineticShiftY
+        Behavior on animatedTopShiftY {
+            Anim { type: Anim.FastSpatial }
         }
+
+        transform: [
+            Translate {
+                y: -root.entryPushOffset + topPill.animatedTopShiftY
+            },
+            Scale {
+                origin.x: topPill.width / 2
+                origin.y: 0
+                yScale: topPill.topKineticSquash
+            }
+        ]
 
         Behavior on color {
             CAnim {

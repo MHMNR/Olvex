@@ -19,8 +19,9 @@ ColumnLayout {
     required property bool fullscreen
     property real workspacePush: 0
     property real wsPushForce: 0
-    readonly property real downwardPushForce: root.wsPushForce
-    readonly property real cascadeForce: Math.min(16, root.downwardPushForce * 0.16)
+    property real notifPushForce: 0
+    readonly property real downwardPushForce: root.wsPushForce + root.notifPushForce
+    readonly property real cascadeForce: Math.min(24, root.downwardPushForce * 0.20)
     property var mediaMorph
     property var notificationMorph
     readonly property int vPadding: Tokens.padding.large
@@ -294,7 +295,7 @@ ColumnLayout {
                 return root.cascadeForce * 0.65;
             if (wrapperItem.id === "systemPill")
                 return root.cascadeForce * 0.40;
-            return 0;
+            return root.cascadeForce * 0.30;
         }
 
         property real animatedShiftY: kineticShiftY

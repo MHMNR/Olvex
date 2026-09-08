@@ -533,17 +533,19 @@ Item {
         id: notifPill
         bar: root.bar
         anchors.top: parent.top
-        anchors.bottom: root.isNotificationPushed ? musicPill.top : undefined
-        anchors.bottomMargin: root.isNotificationPushed ? Tokens.spacing.small : 0
         anchors.horizontalCenter: parent.horizontalCenter
         width: root.musicPillWidth
-        height: root.isNotificationPushed ? undefined : (notifPill.isDismissingLast ? notifPill.lastDismissHeight : 0)
+        height: root.isNotificationPushed ? Math.max(0, (root.height - root.musicPillWidth - Tokens.spacing.small) * root.animatedNotifProgress) : (notifPill.isDismissingLast ? notifPill.lastDismissHeight : 0)
         opacity: (root.isNotificationPushed || notifPill.isDismissingLast) ? 1 : 0
         visible: opacity > 0.01
+        z: 3
+    }
 
-        Behavior on anchors.bottomMargin {
-            Anim { type: Anim.DefaultSpatial }
-        }
+    Binding {
+        target: root.bar
+        property: "notifPushForce"
+        value: notifPill.notifDownwardForce
+        when: root.bar !== undefined && root.bar !== null
     }
 
     // Bottom: Active Window / Music Pill (shrinks symmetrically from top/bottom to center capsule, expands back to full height)
@@ -912,13 +914,20 @@ Item {
             }
 
         property real pillScale: 1.0
-        readonly property real kineticSquash: {
-            if (!root.bar) return 1.0;
-            const force = (typeof root.bar.wsPushForce === "number") ? root.bar.wsPushForce : 0;
-            return Math.max(0.96, 1.0 - (force * 0.0004));
+        readonly property real wsPushForce: (root.bar && typeof root.bar.wsPushForce === "number") ? root.bar.wsPushForce : 0
+        readonly property real notifPushForce: (root.bar && typeof root.bar.notifPushForce === "number") ? root.bar.notifPushForce : 0
+        readonly property real totalPushForce: (root.bar && typeof root.bar.downwardPushForce === "number") ? root.bar.downwardPushForce : (musicPill.wsPushForce + musicPill.notifPushForce)
+        readonly property real kineticSquash: Math.max(0.95, 1.0 - (musicPill.totalPushForce * 0.0004))
+        readonly property real bottomKineticShiftY: root.isNotificationPushed ? Math.min(10, musicPill.totalPushForce * 0.12) : 0
+        property real animatedBottomShiftY: bottomKineticShiftY
+        Behavior on animatedBottomShiftY {
+            Anim { type: Anim.FastSpatial }
         }
 
         transform: [
+            Translate {
+                y: musicPill.animatedBottomShiftY
+            },
             Scale {
                 origin.x: musicPill.width / 2
                 origin.y: musicPill.height / 2
