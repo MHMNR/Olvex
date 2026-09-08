@@ -472,7 +472,7 @@ Item {
         enabled: root.isLoaded
         Anim {
             duration: root.playerActive ? 420 : 260
-            easing: Tokens.anim.expressiveSoftSpatial
+            easing: root.playerActive ? Tokens.anim.expressiveSoftSpatial : Tokens.anim.expressiveSubtleSpatial
             onRunningChanged: {
                 if (!running)
                     Qt.callLater(() => root.applyMorphDock());
@@ -501,7 +501,7 @@ Item {
         if (notifPill) {
             push = Math.max(push, (typeof notifPill.upwardPush === "number") ? notifPill.upwardPush : 0);
         }
-        if (musicPill && root.isNotificationPushed) {
+        if (musicPill) {
             const topY = musicPill.y;
             if (topY < 0) {
                 push = Math.max(push, -topY);
@@ -713,7 +713,10 @@ Item {
                         height: root.musicArtSize
 
                         Behavior on y {
-                            Anim { type: Anim.DefaultSpatial }
+                            Anim {
+                                duration: 300
+                                easing: Tokens.anim.expressiveSoftSpatial
+                            }
                         }
 
                         // Ambient glow moved to StyledClippingRect at musicPill level
@@ -797,7 +800,10 @@ Item {
                         transform: Translate {
                             y: root.isNotificationPushed ? 18 : 0
                             Behavior on y {
-                                Anim { type: Anim.DefaultSpatial }
+                                Anim {
+                                    duration: 300
+                                    easing: Tokens.anim.expressiveSoftSpatial
+                                }
                             }
                         }
 
@@ -845,15 +851,22 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
-                    height: icon.height + Tokens.spacing.small + windowTitleText.height
+                    height: root.isNotificationPushed ? root.musicPillWidth : (icon.height + Tokens.spacing.small + windowTitleText.height)
 
                     MaterialIcon {
                         id: icon
-                        anchors.top: parent.top
                         anchors.horizontalCenter: parent.horizontalCenter
+                        y: root.isNotificationPushed ? ((parent.height - height) / 2) : 0
                         animate: false
                         text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon((Hypr.activeToplevel && Hypr.activeToplevel.lastIpcObject) ? Hypr.activeToplevel.lastIpcObject.class : "", "desktop_windows")
                         color: root.colour
+
+                        Behavior on y {
+                            Anim {
+                                duration: 300
+                                easing: Tokens.anim.expressiveSoftSpatial
+                            }
+                        }
                     }
 
                     StyledText {
@@ -934,6 +947,9 @@ Item {
     }
 
     Behavior on implicitWidth {
-        Anim { type: Anim.DefaultSpatial }
+        Anim {
+            duration: root.playerActive ? 420 : 260
+            easing: root.playerActive ? Tokens.anim.expressiveSoftSpatial : Tokens.anim.expressiveSubtleSpatial
+        }
     }
 }
