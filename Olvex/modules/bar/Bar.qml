@@ -18,6 +18,10 @@ ColumnLayout {
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
     property real workspacePush: 0
+    property real wsPushForce: 0
+    property real activeWindowDownwardPush: 0
+    readonly property real downwardPushForce: root.wsPushForce + root.activeWindowDownwardPush
+    readonly property real cascadeForce: Math.min(16, root.downwardPushForce * 0.16)
     property var mediaMorph
     property var notificationMorph
     readonly property int vPadding: Tokens.padding.large
@@ -192,7 +196,6 @@ ColumnLayout {
                     // workspace pill above expands — pills below stay put.
                     Layout.fillHeight: true
                     Layout.minimumHeight: 64
-                    Layout.maximumHeight: item ? item.animatedMaxHeight : 0
                     sourceComponent: ActiveWindow {
                         bar: root
                         monitor: Brightness.getMonitorForScreen(root.screen)
@@ -202,7 +205,7 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "tray"
                 delegate: WrappedLoader {
-                    visible: !root.fullscreen
+                    visible: !root.fullscreen && TrayService.hasItems
                     sourceComponent: Tray {
                         bar: root
                         popouts: root.popouts
@@ -283,9 +286,29 @@ ColumnLayout {
         visible: enabled
         active: enabled
 
+        readonly property real kineticShiftY: {
+            if (wrapperItem.id === "workspaces" || wrapperItem.id === "activeWindow")
+                return 0;
+            if (wrapperItem.id === "tray")
+                return root.cascadeForce * 0.85;
+            if (wrapperItem.id === "clock")
+                return root.cascadeForce * 0.65;
+            if (wrapperItem.id === "systemPill")
+                return root.cascadeForce * 0.40;
+            return 0;
+        }
+
+        property real animatedShiftY: kineticShiftY
+        Behavior on animatedShiftY {
+            Anim { type: Anim.SubtleSpatial }
+        }
+
         property real entryXOffset: -50
         opacity: 0
-        transform: Translate { x: wrapperItem.entryXOffset }
+        transform: [
+            Translate { x: wrapperItem.entryXOffset },
+            Translate { y: wrapperItem.animatedShiftY }
+        ]
 
         Component.onCompleted: {
             if (enabled) {
@@ -322,9 +345,18 @@ ColumnLayout {
         implicitWidth: osIconLoader.implicitWidth
         implicitHeight: osIconLoader.implicitHeight
 
+        readonly property real kineticShiftY: root.cascadeForce * 0.15
+        property real animatedShiftY: kineticShiftY
+        Behavior on animatedShiftY {
+            Anim { type: Anim.SubtleSpatial }
+        }
+
         property real entryXOffset: -50
         opacity: 0
-        transform: Translate { x: osIconWrapper.entryXOffset }
+        transform: [
+            Translate { x: osIconWrapper.entryXOffset },
+            Translate { y: osIconWrapper.animatedShiftY }
+        ]
 
         Component.onCompleted: {
             entryAnim.start();

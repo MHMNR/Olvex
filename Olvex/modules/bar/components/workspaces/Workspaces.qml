@@ -38,10 +38,10 @@ StyledClippingRect {
                 next[ws.id] = hasWin;
         }
 
-        const toplevels = Hypr.toplevels?.values ?? [];
+        const toplevels = (Hypr.toplevels && Hypr.toplevels.values) ? Hypr.toplevels.values : [];
         for (let i = 0; i < toplevels.length; i++) {
             const t = toplevels[i];
-            const wsId = t?.workspace?.id;
+            const wsId = (t && t.workspace) ? t.workspace.id : undefined;
             if (wsId !== undefined && wsId !== null) {
                 next[wsId] = true;
             }
@@ -117,6 +117,23 @@ StyledClippingRect {
     readonly property real pushOffset: {
         const p = (root.bar && typeof root.bar.workspacePush === "number") ? root.bar.workspacePush : 0;
         return Math.max(0, p);
+    }
+
+    readonly property real expansionDelta: {
+        let baseH = 0;
+        for (let i = 0; i < wsRepeater.count; i++) {
+            const item = wsRepeater.itemAt(i);
+            baseH += item ? (item.isCurrent ? item.detailHeight : item.collapsedHeight) : 0;
+        }
+        baseH += Math.max(0, wsRepeater.count - 1) * layout.spacing + Tokens.padding.small * 2;
+        return Math.max(0, root.height - baseH);
+    }
+
+    Binding {
+        target: root.bar
+        property: "wsPushForce"
+        value: root.expansionDelta
+        when: root.bar !== null
     }
 
     implicitWidth: Tokens.sizes.bar.innerWidth

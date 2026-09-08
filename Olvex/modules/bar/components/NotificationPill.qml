@@ -97,8 +97,8 @@ Item {
         return Math.max(root.pillWidth, root.height - currentOlderCirclesHeight - currentOlderCirclesSpacing);
     }
 
-    opacity: root.hasNotif ? 1 : 0
-    visible: root.hasNotif && opacity > 0.01
+    opacity: (root.hasNotif || root.isDismissingLast) ? 1 : 0
+    visible: (root.hasNotif || root.isDismissingLast) && opacity > 0.01
 
     implicitWidth: pillWidth
     implicitHeight: root.hasNotif ? (160 + olderNotifs.length * (pillWidth + Tokens.spacing.small)) : 0
@@ -113,7 +113,7 @@ Item {
     Layout.preferredWidth: pillWidth
     Layout.alignment: Qt.AlignHCenter
 
-    function triggerExpand(sourceItem: Item, iconItem: Item, notifData: var): void {
+    function triggerExpand(sourceItem, iconItem, notifData) {
         if (!notifData)
             return;
         if (root.bar && typeof root.bar.expandNotificationMorphFromPill === "function") {
@@ -160,13 +160,19 @@ Item {
     // ── Transition animation properties ──
     property bool isPushingDown: pushDownAnim.running
     property bool isPoppingUp: popUpAnim.running
+    property bool isDismissingLast: dismissLastAnim.running
+    property real lastDismissHeight: pillWidth
     property var animatingOldNotif: null
     property var animatingNewNotif: null
 
     Connections {
         target: Notifs
 
-        function onNotificationPushed(newNotif: var, oldNotif: var): void {
+        function onNotificationPushed(newNotif, oldNotif) {
+            if (dismissLastAnim.running) {
+                dismissLastAnim.stop();
+                root.isDismissingLast = false;
+            }
             if (newNotif && oldNotif) {
                 root.animatingOldNotif = oldNotif;
                 root.animatingNewNotif = newNotif;
@@ -204,7 +210,10 @@ Item {
             }
         }
 
-        function onNotificationPopped(poppedNotif: var, newTopNotif: var): void {
+        function onNotificationPopped(poppedNotif, newTopNotif) {
+            if (pushDownAnim.running)
+                pushDownAnim.stop();
+
             if (poppedNotif && newTopNotif) {
                 root.animatingOldNotif = poppedNotif;
                 root.animatingNewNotif = newTopNotif;
@@ -243,6 +252,29 @@ Item {
                 popExpandHAnim.to = finalTargetTopH;
                 
                 popUpAnim.restart();
+            } else if (poppedNotif && !newTopNotif) {
+                root.animatingOldNotif = poppedNotif;
+                root.animatingNewNotif = null;
+
+                const isFromOverlay = (Notifs.activeMorphNotif && Notifs.activeMorphNotif.id === poppedNotif.id) || (Notifs.notifMorphRendering && Notifs.activeMorphNotif);
+
+                const currentH = (topPill && topPill.height > 0) ? topPill.height : (root.height > 0 ? root.height : root.pillWidth);
+                root.lastDismissHeight = currentH;
+
+                shrinkingPill.y = 0;
+                shrinkingPill.height = currentH;
+                shrinkingPill.textAlpha = 1.0;
+                shrinkingPill.opacity = isFromOverlay ? 0.0 : 1.0;
+                shrinkingPill.scale = 1.0;
+
+                dismissLastOpacityAnim.from = shrinkingPill.opacity;
+                dismissLastOpacityAnim.to = 0.0;
+                dismissLastYAnim.from = 0;
+                dismissLastYAnim.to = -(currentH + Tokens.spacing.small);
+                dismissLastScaleAnim.from = 1.0;
+                dismissLastScaleAnim.to = 0.8;
+
+                dismissLastAnim.restart();
             }
         }
     }
@@ -356,13 +388,55 @@ Item {
         }
     }
 
+    ParallelAnimation {
+        id: dismissLastAnim
+
+        NumberAnimation {
+            id: dismissLastOpacityAnim
+            target: shrinkingPill
+            property: "opacity"
+            from: 1.0
+            to: 0.0
+            duration: Math.round(root.pillMorphDuration * 0.45)
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+        NumberAnimation {
+            target: shrinkingPill
+            property: "textAlpha"
+            to: 0.0
+            duration: Math.round(root.pillMorphDuration * 0.25)
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+        NumberAnimation {
+            id: dismissLastYAnim
+            target: shrinkingPill
+            property: "y"
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+        NumberAnimation {
+            id: dismissLastScaleAnim
+            target: shrinkingPill
+            property: "scale"
+            from: 1.0
+            to: 0.8
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+
+        onFinished: {
+            root.animatingOldNotif = null;
+            root.animatingNewNotif = null;
+        }
+    }
+
     // ── Transient Shrinking Pill (Active during Push-Down Animation) ──
     StyledRect {
         id: shrinkingPill
         width: root.pillWidth
         radius: Math.min(width/2, height/2)
         color: Colours.palette.m3secondaryContainer
-        visible: root.isPushingDown || root.isPoppingUp
+        visible: root.isPushingDown || root.isPoppingUp || root.isDismissingLast
         z: 8
 
         property real textAlpha: 1.0
@@ -409,7 +483,7 @@ Item {
 
                         MarqueeText {
                             anchors.fill: parent
-                            text: root.animatingOldNotif?.summary || root.animatingOldNotif?.appName || ""
+                            text: root.animatingOldNotif ? (root.animatingOldNotif.summary || root.animatingOldNotif.appName || "") : ""
                             color: Colours.palette.m3onSecondaryContainer
                             textPointSize: Tokens.font.size.smaller
                         }
@@ -477,7 +551,7 @@ Item {
 
                         MarqueeText {
                             anchors.fill: parent
-                            text: root.animatingNewNotif?.summary || root.animatingNewNotif?.appName || ""
+                            text: root.animatingNewNotif ? (root.animatingNewNotif.summary || root.animatingNewNotif.appName || "") : ""
                             color: Colours.palette.m3onSecondaryContainer
                             textPointSize: Tokens.font.size.smaller
                         }
@@ -563,7 +637,12 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                    onClicked: mouse => {
+                        if (mouse.button === Qt.RightButton || mouse.button === Qt.MiddleButton) {
+                            Notifs.dismissNotif(notif);
+                            return;
+                        }
                         circlePressSpring.start();
                         root.triggerExpand(olderCircleDelegate, circleIconFrame, notif);
                     }
@@ -581,7 +660,7 @@ Item {
         height: root.targetTopHeight
         radius: root.pillRadius
         color: Colours.palette.m3secondaryContainer
-        visible: !root.isPushingDown && !root.isPoppingUp && root.hasNotif
+        visible: !root.isPushingDown && !root.isPoppingUp && !root.isDismissingLast && root.hasNotif
         opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && root.currentNotif && Notifs.activeMorphNotif.id === root.currentNotif.id) ? 0 : 1
         z: 2
 
@@ -696,7 +775,7 @@ Item {
 
                         MarqueeText {
                             anchors.fill: parent
-                            text: root.currentNotif?.summary || root.currentNotif?.appName || qsTr("Notification")
+                            text: root.currentNotif ? (root.currentNotif.summary || root.currentNotif.appName || qsTr("Notification")) : qsTr("Notification")
                             color: Colours.palette.m3onSecondaryContainer
                             textPointSize: Tokens.font.size.smaller
                         }
@@ -708,7 +787,12 @@ Item {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: {
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+            onClicked: mouse => {
+                if (mouse.button === Qt.RightButton || mouse.button === Qt.MiddleButton) {
+                    Notifs.dismissBarNotif();
+                    return;
+                }
                 topPressSpring.start();
                 root.triggerExpand(topPill, topAppIconFrame, root.currentNotif);
             }

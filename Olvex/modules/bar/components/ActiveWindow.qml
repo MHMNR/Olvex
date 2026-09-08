@@ -448,27 +448,12 @@ Item {
         return title;
     }
 
-    readonly property int maxHeight: {
-        const barChildren = (bar && bar.children) ? bar.children : [];
-        const otherModules = barChildren.filter(c => c && c.id && c.item !== this && c.id !== "spacer");
-        const otherHeight = otherModules.reduce((acc, curr) => {
-            const h = (curr && curr.item && curr.item.nonAnimHeight) ? curr.item.nonAnimHeight : (curr ? curr.height : 0);
-            return acc + (h || 0);
-        }, 0);
-        const barH = bar ? bar.height : 0;
-        const barSp = bar ? bar.spacing : 0;
-        const barPad = bar ? bar.vPadding : 0;
-        return barH - otherHeight - barSp * Math.max(0, barChildren.length - 1) - barPad * 2;
-    }
-    readonly property int availableTitleHeight: Math.max(0, root.maxHeight - Tokens.spacing.small * 4)
     readonly property int preferredTitleHeight: Math.max(64, Math.round((bar ? bar.height : 0) * 0.18))
     // Non-music pill is flex-sized by Bar.qml (Layout.fillHeight: true), so
     // the title spans whatever the pill actually rendered, not a calc against
     // the full bar height. 64px floor keeps the title legible if the bar is
     // crushed by a fully-expanded workspace pill.
-    readonly property int titleSlotHeight: root.playerActive
-        ? 0
-        : Math.max(64, root.height - icon.height - Tokens.spacing.small * 4)
+    readonly property int titleSlotHeight: Math.max(64, root.height - icon.height - Tokens.spacing.small * 4)
 
     readonly property bool isNotificationPushed: Notifs.hasBarNotif
 
@@ -476,20 +461,21 @@ Item {
     anchors.fill: parent
     implicitWidth: root.playerActive ? root.musicPillWidth : Tokens.sizes.bar.innerWidth
 
-    implicitHeight: icon.implicitHeight + root.titleSlotHeight + Tokens.spacing.small
+    implicitHeight: root.playerActive ? root.musicPillHeight : (icon.implicitHeight + root.preferredTitleHeight + Tokens.spacing.small)
     
     // Dynamically tracks the visual overshoot push into adjacent items
     readonly property real upwardPush: {
-        if (root.isNotificationPushed && notifPill) {
-            return (typeof notifPill.upwardPush === "number") ? notifPill.upwardPush : 0;
+        let push = 0;
+        if (notifPill) {
+            push = Math.max(push, (typeof notifPill.upwardPush === "number") ? notifPill.upwardPush : 0);
         }
         if (musicPill) {
-            const topY = root.height - musicPill.height - musicPill.anchors.bottomMargin;
+            const topY = musicPill.y;
             if (topY < 0) {
-                return -topY;
+                push = Math.max(push, -topY);
             }
         }
-        return 0;
+        return push;
     }
 
     Binding {
@@ -499,37 +485,62 @@ Item {
         when: root.bar !== null
     }
 
-    property real animatedMaxHeight: root.maxHeight
+    // Dynamically tracks downward visual overshoot push into adjacent items during morph / workspace expansion
+    readonly property real downwardMorphPush: {
+        if (!musicPill) return 0;
+        const bottomY = musicPill.y + musicPill.height;
+        return Math.max(0, bottomY - root.height);
+    }
 
-    // Using Anim.SubtleSpatial instead of manual easing properties
+    Binding {
+        target: root.bar
+        property: "activeWindowDownwardPush"
+        value: root.downwardMorphPush
+        when: root.bar !== null
+    }
 
     states: [
         State {
             name: "notification"
             when: root.isNotificationPushed
-            // Shrink to circle — bottom stays locked, shrinks upward
-            PropertyChanges { target: musicPill; height: root.musicPillWidth }
-            PropertyChanges { target: icon; y: ((root.musicPillWidth - icon.height) / 2) }
+            PropertyChanges {
+                target: musicPill
+                y: root.height - root.musicPillWidth
+                height: root.musicPillWidth
+                width: root.musicPillWidth
+            }
+            PropertyChanges {
+                target: icon
+                y: ((root.musicPillWidth - icon.height) / 2)
+            }
         },
         State {
             name: "music"
             when: root.playerActive && !root.isNotificationPushed
-            // Center pill vertically: shift it up from the bottom by half the
-            // remaining space so it sits in the middle of the available height.
             PropertyChanges {
                 target: musicPill
+                y: Math.max(0, (root.height - root.musicPillHeight) / 2)
                 height: root.musicPillHeight
-                // Offset upward from the bottom anchor so it appears centered
-                anchors.bottomMargin: Math.max(0, (root.height - root.musicPillHeight) / 2)
+                width: root.musicPillWidth
             }
-            PropertyChanges { target: icon; y: ((root.musicPillHeight - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2) }
+            PropertyChanges {
+                target: icon
+                y: ((root.musicPillHeight - icon.height) / 2)
+            }
         },
         State {
             name: "default"
             when: !root.playerActive && !root.isNotificationPushed
-            // Full height, bottom locked — the pill fills root from top
-            PropertyChanges { target: musicPill; height: root.height; anchors.bottomMargin: 0 }
-            PropertyChanges { target: icon; y: ((root.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2) }
+            PropertyChanges {
+                target: musicPill
+                y: 0
+                height: root.height
+                width: parent ? parent.width : Tokens.sizes.bar.innerWidth
+            }
+            PropertyChanges {
+                target: icon
+                y: Math.max(0, (root.height - (icon.height + Tokens.spacing.small + windowTitleText.height)) / 2)
+            }
         }
     ]
 
@@ -540,7 +551,7 @@ Item {
             Anim {
                 id: pillAnim
                 targets: [musicPill]
-                properties: "height,anchors.bottomMargin"
+                properties: "y,height,width"
                 type: Anim.SubtleSpatial
                 onRunningChanged: {
                     if (!running)
@@ -571,16 +582,16 @@ Item {
         anchors.bottomMargin: root.isNotificationPushed ? Tokens.spacing.small : 0
         anchors.horizontalCenter: parent.horizontalCenter
         width: root.musicPillWidth
-        height: root.isNotificationPushed ? undefined : 0
-        opacity: root.isNotificationPushed ? 1 : 0
+        height: root.isNotificationPushed ? undefined : (notifPill.isDismissingLast ? notifPill.lastDismissHeight : 0)
+        opacity: (root.isNotificationPushed || notifPill.isDismissingLast) ? 1 : 0
         visible: opacity > 0.01
 
         Behavior on anchors.bottomMargin {
-            Anim { type: Anim.SubtleSpatial }
+            Anim { type: Anim.DefaultSpatial }
         }
     }
 
-    // Bottom: Active Window / Music Pill (shrinks to 48x48 circle at parent.bottom, expands upwards)
+    // Bottom: Active Window / Music Pill (shrinks symmetrically from top/bottom to center capsule, expands back to full height)
     StyledRect {
         id: musicPill
 
@@ -596,14 +607,10 @@ Item {
             }
         }
 
-        anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         y: 0
-        width: root.playerActive ? root.musicPillWidth : parent.width
-
-        Behavior on radius {
-            Anim { type: Anim.SubtleSpatial }
-        }
+        height: root.height
+        width: root.playerActive ? root.musicPillWidth : (parent ? parent.width : Tokens.sizes.bar.innerWidth)
 
         property real pillAlpha: 1
 
@@ -719,11 +726,12 @@ Item {
                 id: controlsRow
                 z: 2
                 anchors.fill: parent
+                clip: true
                 opacity: root.playerActive ? 1 : 0
-                visible: opacity > 0
+                visible: opacity > 0.01
 
                 Behavior on opacity {
-                    Anim { type: Anim.DefaultSpatial }
+                    Anim { type: controlsRow.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
                 }
 
                 Item {
@@ -854,18 +862,20 @@ Item {
             }
             // ── Window info — shown when no music player is active ──
             Item {
+                id: windowInfoContainer
                 anchors.fill: parent
+                clip: true
                 opacity: root.playerActive ? 0 : 1
                 visible: opacity > 0.01
 
                 Behavior on opacity {
-                    Anim { type: parent.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
+                    Anim { type: windowInfoContainer.opacity === 0 ? Anim.FastEffects : Anim.DefaultEffects }
                 }
 
                 MaterialIcon {
                     id: icon
                     anchors.horizontalCenter: parent.horizontalCenter
-                    animate: true
+                    animate: false
                     text: root.isMusicPlaying ? "music_note" : Icons.getAppCategoryIcon((Hypr.activeToplevel && Hypr.activeToplevel.lastIpcObject) ? Hypr.activeToplevel.lastIpcObject.class : "", "desktop_windows")
                     color: root.colour
                 }
@@ -912,13 +922,18 @@ Item {
             }
 
         property real pillScale: 1.0
+        readonly property real kineticSquash: {
+            if (!root.bar) return 1.0;
+            const force = (typeof root.bar.downwardPushForce === "number") ? root.bar.downwardPushForce : 0;
+            return Math.max(0.96, 1.0 - (force * 0.0004));
+        }
 
         transform: [
             Scale {
                 origin.x: musicPill.width / 2
                 origin.y: musicPill.height / 2
-                xScale: musicPill.pillScale
-                yScale: musicPill.pillScale
+                xScale: musicPill.pillScale * musicPill.kineticSquash
+                yScale: musicPill.pillScale * musicPill.kineticSquash
             }
         ]
 
@@ -942,6 +957,6 @@ Item {
     }
 
     Behavior on implicitWidth {
-        Anim { type: Anim.SlowSpatial }
+        Anim { type: Anim.SubtleSpatial }
     }
 }
