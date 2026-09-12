@@ -1,9 +1,9 @@
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import QtQuick.Effects
+import QtQuick.Shapes
 
 // Olvex Clipboard — M3 Expressive split command canvas (redesigned from scratch)
 Window {
@@ -258,41 +258,30 @@ Window {
 
                         Text {
                             id: segLabel
-                            Layout.preferredHeight: 22
                             Layout.alignment: Qt.AlignVCenter
-                            text: fbgSeg.modelData.label
-                            font: fbgSeg.active ? tok.type.labelEmph : tok.type.label
-                            verticalAlignment: Text.AlignVCenter
+                            text: fbgSeg.modelData.label || ""
+                            font: tok.type.labelEmph
                             color: fbgSeg.active
                                 ? tok.palette.fgPrimary : tok.palette.fgMuted
 
                             Behavior on color {
                                 enabled: !win.reducedMotion
-                                ColorAnimation {
-                                    duration: tok.motion.effectsExpressive.defaultMs
-                                    easing.type: Easing.OutQuad
-                                }
+                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
                             }
                         }
 
+                        // Badge: pill container with contrasting fill matching mock
                         Rectangle {
+                            id: segBadge
                             Layout.alignment: Qt.AlignVCenter
-                            visible: fbgSeg.tabCount > 0
-                            width: countLbl.implicitWidth + 10
-                            height: 20
+                            implicitWidth: Math.max(22, badgeTxt.implicitWidth + 10)
+                            implicitHeight: 20
                             radius: tok.shape.full
                             color: fbgSeg.active
-                                ? tok.palette.fgPrimary
+                                ? Qt.darker(tok.palette.primary, 1.25)
                                 : tok.palette.stageHigh
-                            scale: fbgSeg.active ? 1.08 : 1.0
+                            scale: fbgSeg.active ? 1.05 : 1.0
 
-                            Behavior on color {
-                                enabled: !win.reducedMotion
-                                ColorAnimation {
-                                    duration: tok.motion.effectsExpressive.fast
-                                    easing.type: Easing.OutQuad
-                                }
-                            }
                             Behavior on scale {
                                 enabled: !win.reducedMotion
                                 NumberAnimation {
@@ -302,14 +291,21 @@ Window {
                                 }
                             }
 
+                            Behavior on color {
+                                enabled: !win.reducedMotion
+                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
+                            }
+
                             Text {
-                                id: countLbl
+                                id: badgeTxt
                                 anchors.centerIn: parent
-                                text: String(fbgSeg.tabCount)
-                                font: tok.type.labelEmph
+                                text: fbgSeg.tabCount.toString()
+                                font.pixelSize: 11
+                                font.weight: Font.DemiBold
+                                font.family: tok.type.mono.family
                                 color: fbgSeg.active
-                                    ? tok.palette.primary
-                                    : tok.palette.fgSecondaryContainer
+                                    ? tok.palette.fgPrimary
+                                    : tok.palette.fgMuted
 
                                 Behavior on color {
                                     enabled: !win.reducedMotion
@@ -369,8 +365,35 @@ Window {
             ColorAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutQuad }
         }
 
+        Shape {
+            id: ibIconShape
+            visible: ib.glyph === "delete" || ib.glyph === "trash"
+            anchors.centerIn: parent
+            width: 15
+            height: 15
+            layer.enabled: true
+            layer.samples: 4
+            scale: ibMa.pressed ? 0.9 : 1.0
+
+            Behavior on scale {
+                enabled: !win.reducedMotion
+                NumberAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutBack; easing.overshoot: 1.1 }
+            }
+
+            ShapePath {
+                fillColor: ib.tone === "error" ? tok.palette.fgErrorContainer : tok.palette.fgMuted
+                strokeColor: "transparent"
+                strokeWidth: 0
+                scale: Qt.size(15 / 24, 15 / 24)
+                PathSvg {
+                    path: "M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"
+                }
+            }
+        }
+
         Text {
             anchors.centerIn: parent
+            visible: !ibIconShape.visible && ib.glyph.length > 0
             text: ib.glyph
             font.pixelSize: 14
             font.weight: Font.DemiBold
@@ -2198,7 +2221,7 @@ Window {
                                 opacity: listFocusMarker.active ? 1 : 0
                                 visible: opacity > 0.01
                                 enabled: listFocusMarker.active
-                                glyph: "×"
+                                glyph: "delete"
                                 tone: "error"
                                 accessibleName: qsTr("Delete")
                                 onTriggered: {

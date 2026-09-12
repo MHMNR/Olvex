@@ -627,8 +627,6 @@ build_and_setup_olvex() {
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/ \
         -DINSTALL_QSCONFDIR="$TARGET_QSCONF" \
-        -DVERSION="1.0.0" \
-        -DGIT_REVISION="release" \
         ..
 
     log_info "Compiling native components (Parallel Job Queue)..."
@@ -648,6 +646,11 @@ build_and_setup_olvex() {
     ln -sfn "${standalone_olvex}" "${TARGET_BIN}/olvex"
     sudo mkdir -p "/usr/local/bin" 2>/dev/null || true
     sudo ln -sfn "${standalone_olvex}" "/usr/local/bin/olvex" 2>/dev/null || true
+
+    if [ -f "${build_dir}/lib/olvex-clipboard" ]; then
+        ln -sfn "${build_dir}/lib/olvex-clipboard" "${TARGET_BIN}/olvex-clipboard"
+        sudo ln -sfn "${build_dir}/lib/olvex-clipboard" "/usr/local/bin/olvex-clipboard" 2>/dev/null || true
+    fi
     log_success "CLI linked (${TARGET_BIN}/olvex & /usr/local/bin/olvex)."
 
     log_info "Configuring ydotool virtual input & uinput permissions..."
@@ -1044,8 +1047,6 @@ build_and_install_mode() {
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/ \
         -DINSTALL_QSCONFDIR="$TARGET_QSCONF" \
-        -DVERSION="1.0.0" \
-        -DGIT_REVISION="dev-build" \
         ..
     log_success "Build configured."
 
@@ -1068,6 +1069,11 @@ build_and_install_mode() {
     ln -sfn "${standalone_olvex}" "${TARGET_BIN}/olvex"
     sudo mkdir -p "/usr/local/bin" 2>/dev/null || true
     sudo ln -sfn "${standalone_olvex}" "/usr/local/bin/olvex" 2>/dev/null || true
+
+    if [ -f "${build_dir}/lib/olvex-clipboard" ]; then
+        ln -sfn "${build_dir}/lib/olvex-clipboard" "${TARGET_BIN}/olvex-clipboard"
+        sudo ln -sfn "${build_dir}/lib/olvex-clipboard" "/usr/local/bin/olvex-clipboard" 2>/dev/null || true
+    fi
 
     # Ydotool setup
     if ! getent group input >/dev/null 2>&1; then

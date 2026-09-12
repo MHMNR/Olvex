@@ -3,17 +3,21 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Olvex
 import Olvex.Config
 import qs.utils
 
 Singleton {
     id: root
 
-    property string osName
-    property string osPrettyName
-    property string osId
+    property string osName: "Linux"
+    property string osPrettyName: "Linux"
+    property string osId: "linux"
     property list<string> osIdLike
     property string osLogo: ""
+    property string osGlyph: "\uf17c"
+    property bool isOlvexLogo: false
+    property bool hasCustomImage: false
     property bool isDefaultLogo: true
     property string kernel: ""
     property string arch: "x86_64"
@@ -94,50 +98,105 @@ Singleton {
         }
     }
 
+    function updateLogo() {
+        const logoConfig = (GlobalConfig.general.logo || "").trim();
+
+        if (logoConfig === "olvex") {
+            root.isOlvexLogo = true;
+            root.hasCustomImage = false;
+            root.osLogo = Qt.resolvedUrl("../assets/images/olvex-mark.svg").toString();
+            root.osGlyph = "";
+            root.isDefaultLogo = false;
+            return;
+        }
+
+        if (logoConfig && logoConfig !== "auto") {
+            const isPath = logoConfig.includes("/") || /\.(svg|png|jpg|jpeg|webp)$/i.test(logoConfig);
+            if (isPath) {
+                root.isOlvexLogo = false;
+                root.hasCustomImage = true;
+                root.osLogo = logoConfig.startsWith("/") ? ("file://" + logoConfig) : ("file://" + Paths.absolutePath(logoConfig));
+                root.osGlyph = "";
+                root.isDefaultLogo = false;
+                return;
+            }
+
+            let glyph = "";
+            if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
+                glyph = CUtils.distroGlyph(logoConfig, [], logoConfig);
+            }
+
+            if (glyph) {
+                root.isOlvexLogo = false;
+                root.hasCustomImage = false;
+                root.osLogo = "";
+                root.osGlyph = glyph;
+                root.isDefaultLogo = false;
+                return;
+            }
+
+            const iconResolved = Quickshell.iconPath(logoConfig, true);
+            if (iconResolved) {
+                root.isOlvexLogo = false;
+                root.hasCustomImage = true;
+                root.osLogo = iconResolved;
+                root.osGlyph = "";
+                root.isDefaultLogo = false;
+                return;
+            }
+
+            root.isOlvexLogo = false;
+            root.hasCustomImage = false;
+            root.osLogo = "";
+            root.osGlyph = logoConfig;
+            root.isDefaultLogo = false;
+            return;
+        }
+
+        // Auto mode (detect from distro via C++ CUtils)
+        root.isOlvexLogo = false;
+        root.hasCustomImage = false;
+        root.osLogo = "";
+        if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
+            root.osGlyph = CUtils.distroGlyph(root.osId, root.osIdLike, root.osName);
+        } else {
+            root.osGlyph = "\uf17c";
+        }
+        root.isDefaultLogo = true;
+    }
+
     FileView {
         id: osRelease
 
         path: "/etc/os-release"
         onLoaded: {
-            const lines = text().split("\n");
+            const rawText = text();
+            if (!rawText) return;
 
-            const fd = key => lines.find(l => l.startsWith(`${key}=`))?.split("=")[1].replace(/"/g, "") ?? "";
+            const lines = rawText.split("\n");
 
-            root.osName = fd("NAME");
-            root.osPrettyName = fd("PRETTY_NAME");
-            root.osId = fd("ID");
-            root.osIdLike = fd("ID_LIKE").split(" ");
+            const fd = key => {
+                const prefix = key + "=";
+                const line = lines.find(l => l.startsWith(prefix));
+                if (!line) return "";
+                const val = line.slice(prefix.length).trim();
+                return val.replace(/^["']|["']$/g, "");
+            };
 
-            const logoName = fd("LOGO");
-            if (GlobalConfig.general.logo && GlobalConfig.general.logo !== "olvex") {
-                root.osLogo = Quickshell.iconPath(GlobalConfig.general.logo, true) || "file://" + Paths.absolutePath(GlobalConfig.general.logo);
-                root.isDefaultLogo = false;
-            } else {
-                const candidates = [
-                    logoName,
-                    root.osId + "-logo",
-                    root.osId,
-                    "distributor-logo-" + root.osId,
-                    ...(root.osIdLike || []).map(id => id ? id + "-logo" : ""),
-                    ...(root.osIdLike || []),
-                    "linux"
-                ];
-                let resolved = "";
-                for (const c of candidates) {
-                    if (c) {
-                        resolved = Quickshell.iconPath(c, true);
-                        if (resolved) break;
-                    }
-                }
-                root.osLogo = resolved || ("file:///usr/share/pixmaps/" + (logoName || root.osId) + ".svg");
-                root.isDefaultLogo = GlobalConfig.general.logo === "olvex";
-            }
+            root.osName = fd("NAME") || "Linux";
+            root.osPrettyName = fd("PRETTY_NAME") || root.osName;
+            root.osId = (fd("ID") || "linux").toLowerCase();
+
+            const rawIdLike = fd("ID_LIKE");
+            root.osIdLike = rawIdLike ? rawIdLike.toLowerCase().split(/\s+/).filter(Boolean) : [];
+
+            root.updateLogo();
         }
     }
 
     Connections {
-        function onLogoChanged(): void {
-            osRelease.reload();
+        function onLogoChanged() {
+            root.updateLogo();
         }
 
         target: GlobalConfig.general

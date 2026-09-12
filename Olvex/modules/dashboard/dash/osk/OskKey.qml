@@ -178,13 +178,39 @@ Item {
             }
         }
 
-        ColouredIcon {
-            id: osLogoIcon
+        Item {
             anchors.centerIn: parent
             visible: root.isSuper
-            source: SysInfo.osLogo
-            implicitSize: 20
-            colour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : keyText.color
+            width: 20
+            height: 20
+
+            Logo {
+                anchors.centerIn: parent
+                visible: SysInfo.isOlvexLogo
+                implicitWidth: 16
+                implicitHeight: 16
+                topColour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                bottomColour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : Colours.palette.m3tertiary
+            }
+
+            StyledText {
+                anchors.centerIn: parent
+                visible: !SysInfo.isOlvexLogo && !SysInfo.hasCustomImage
+                text: SysInfo.osGlyph || "\uf17c"
+                color: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : keyText.color
+                font.family: Tokens.font.family.mono
+                font.pixelSize: 16
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            ColouredIcon {
+                anchors.centerIn: parent
+                visible: !SysInfo.isOlvexLogo && SysInfo.hasCustomImage
+                source: SysInfo.osLogo
+                implicitSize: 18
+                colour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : keyText.color
+            }
         }
 
         StyledText {

@@ -29,6 +29,10 @@ public:
     Q_INVOKABLE bool fileExists(const QString& path) const;
     Q_INVOKABLE bool writeTextFile(const QString& path, const QString& content) const;
     Q_INVOKABLE QString readTextFile(const QString& path) const;
+
+    Q_INVOKABLE QString distroGlyph(const QString& id, const QStringList& idLike = {}, const QString& name = {}) const;
+    Q_INVOKABLE qreal glyphHOffset(const QString& glyph, int pixelSize = 22, const QString& family = {}) const;
+    Q_INVOKABLE qreal glyphVOffset(const QString& glyph, int pixelSize = 22, const QString& family = {}) const;
 };
 
 } // namespace olvex

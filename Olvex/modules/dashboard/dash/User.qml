@@ -182,7 +182,9 @@ Item {
             MetaRow {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.rowLineH
-                imageSource: SysInfo.osLogo
+                glyph: SysInfo.isOlvexLogo ? "" : SysInfo.osGlyph
+                imageSource: SysInfo.hasCustomImage ? SysInfo.osLogo : ""
+                isLogo: SysInfo.isOlvexLogo
                 fallbackIcon: "computer"
                 text: SysInfo.osPrettyName || SysInfo.osName || "Linux"
             }
@@ -240,8 +242,10 @@ Item {
 
         required property string text
         property string icon: ""
+        property string glyph: ""
         property string imageSource: ""
         property string fallbackIcon: "info"
+        property bool isLogo: false
         property bool mono: false
 
         RowLayout {
@@ -253,11 +257,30 @@ Item {
                 Layout.preferredWidth: 12
                 Layout.preferredHeight: 12
 
+                Logo {
+                    anchors.centerIn: parent
+                    visible: row.isLogo
+                    implicitWidth: 12
+                    implicitHeight: 12
+                    topColour: root.accentColor
+                    bottomColour: root.accentColor
+                }
+
+                StyledText {
+                    anchors.centerIn: parent
+                    visible: !row.isLogo && row.glyph.length > 0 && !row.imageSource
+                    text: row.glyph
+                    color: root.accentColor
+                    font.family: Tokens.font.family.mono
+                    font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
                 ColouredIcon {
                     id: rowLogo
-
                     anchors.centerIn: parent
-                    visible: row.imageSource.length > 0 && status === Image.Ready
+                    visible: !row.isLogo && !row.glyph && row.imageSource.length > 0 && status === Image.Ready
                     source: row.imageSource
                     implicitSize: 12
                     colour: Qt.alpha(root.textColor, 0.72)
@@ -265,7 +288,7 @@ Item {
 
                 MaterialIcon {
                     anchors.centerIn: parent
-                    visible: !rowLogo.visible
+                    visible: !row.isLogo && !row.glyph && (!row.imageSource || !rowLogo.visible)
                     text: row.icon || row.fallbackIcon
                     color: root.accentColor
                     iconPointSize: 12
