@@ -58,9 +58,8 @@ Item {
     }
 
     visible: offsetScale < 1 || (peekOffset > 0 && Config.qspanel.enabled)
-    // Render to offscreen layer during peek so the rounded corner is anti-aliased
-    // at the screen-edge clip boundary instead of appearing jaggy
-    layer.enabled: peekOffset > 0 && !shouldBeActive
+    // Render to offscreen layer during peek & transition so animations are butter-smooth
+    layer.enabled: (peekOffset > 0 && !shouldBeActive) || (offsetScale > 0 && offsetScale < 1)
     layer.smooth: true
     // Slide from right → left: offsetScale 1 = fully off-screen right, 0 = docked
     // peekOffset pulls a thin strip into view while closed

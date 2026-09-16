@@ -23,6 +23,8 @@ Item {
     }
 
     visible: offsetScale < 1
+    layer.enabled: offsetScale > 0 && offsetScale < 1
+    layer.smooth: true
     opacity: 1 - offsetScale
     scale: 0.95 + (0.05 * (1 - offsetScale))
 

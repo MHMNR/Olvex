@@ -111,6 +111,8 @@ Item {
     }
 
     visible: offsetScale < 1
+    layer.enabled: offsetScale > 0 && offsetScale < 1
+    layer.smooth: true
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: closingAnimationActive ? cachedImplicitHeight : (content.implicitHeight || cachedImplicitHeight)
     implicitWidth: closingAnimationActive ? cachedImplicitWidth : (content.implicitWidth || cachedImplicitWidth)

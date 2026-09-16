@@ -130,43 +130,50 @@ StyledRect {
         onPressAndHold: root.held()
     }
 
-    ColumnLayout {
+    StyledRect {
+        id: iconPill
         anchors.top: parent.top
         anchors.topMargin: 8
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 6
-        StyledRect {
-            id: iconPill
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: root.checked ? 100 : 55
-            Layout.preferredHeight: 55
-            radius: height / 2
-            color: root.disabled ? root.disabledColour
-                 : root.checked ? root.activeColour
-                 : root.inactiveColour
-            border.width: 0
-            border.color: "transparent"
+        width: root.checked ? (root.width - 16) : 55
+        height: 55
+        radius: height / 2
+        color: root.disabled ? root.disabledColour
+             : root.checked ? root.activeColour
+             : root.inactiveColour
+        border.width: 0
+        border.color: "transparent"
 
-            Behavior on Layout.preferredWidth { Anim { type: Anim.FastSpatial } }
-            Behavior on Layout.preferredHeight { Anim { type: Anim.FastSpatial } }
-            Behavior on radius { Anim { type: Anim.FastSpatial } }
-
-             MaterialIcon {
-                anchors.centerIn: parent
-                text: root.icon
-                fill: !root.toggle || root.checked ? 1 : 0
-                color: root.disabled ? root.disabledOnColour
-                     : root.checked ? root.activeOnColour
-                     : root.inactiveOnColour
-             iconPointSize: Tokens.font.size.large
-
-                Behavior on fill { Anim {} }
+        Behavior on width {
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on radius {
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.OutCubic
             }
         }
 
-        ColumnLayout {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 2
+        MaterialIcon {
+            anchors.centerIn: parent
+            text: root.icon
+            fill: !root.toggle || root.checked ? 1 : 0
+            color: root.disabled ? root.disabledOnColour
+                 : root.checked ? root.activeOnColour
+                 : root.inactiveOnColour
+            iconPointSize: Tokens.font.size.large
+        }
+    }
+
+    ColumnLayout {
+        anchors.top: iconPill.bottom
+        anchors.topMargin: 6
+        anchors.left: parent.left
+        anchors.right: parent.right
+        spacing: 2
 
                 Item {
                     id: marqueeContainer
@@ -252,5 +259,4 @@ StyledRect {
                 opacity: Colours.light ? 1.0 : 0.7
             }
         }
-    }
 }

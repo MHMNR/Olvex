@@ -59,7 +59,7 @@ Item {
     }
 
     visible: offsetScale < 1 || (peekOffset > 0 && Config.dashboard.enabled)
-    layer.enabled: peekOffset > 0 && !shouldBeActive
+    layer.enabled: (peekOffset > 0 && !shouldBeActive) || (offsetScale > 0 && offsetScale < 1)
     layer.smooth: true
 
     // Top margin defaults to fully hiding the panel (-implicitHeight - 10)
