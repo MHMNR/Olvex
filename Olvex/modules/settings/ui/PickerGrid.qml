@@ -199,7 +199,7 @@ Item {
                     text: {
                         const cur = (root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length) ? root.model[root.currentIndex] : null;
                         const v = cur ? ((cur.value !== undefined) ? String(cur.value) : String(cur)) : "";
-                        if (!v || v === "auto") return SysInfo.osGlyph || "\uf31a";
+                        if (!v || v === "auto") return SysInfo.detectedOsGlyph || "\uf31a";
                         if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
                             return CUtils.distroGlyph(v, [], v);
                         }
@@ -317,7 +317,7 @@ Item {
                         text: {
                             const cur = (root.model && root.currentIndex >= 0 && root.currentIndex < root.model.length) ? root.model[root.currentIndex] : null;
                             const v = cur ? ((cur.value !== undefined) ? String(cur.value) : String(cur)) : "";
-                            if (!v || v === "auto") return SysInfo.osGlyph || "\uf31a";
+                            if (!v || v === "auto") return SysInfo.detectedOsGlyph || "\uf31a";
                             if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
                                 return CUtils.distroGlyph(v, [], v);
                             }
@@ -596,7 +596,13 @@ Item {
                                                 : 0.0
                                             text: {
                                                 const v = cell.itemVal;
-                                                if (!v || v === "auto") return SysInfo.osGlyph || "\uf31a";
+                                                if (!v || v === "auto") {
+                                                    return (typeof SysInfo !== "undefined" && SysInfo.detectedOsGlyph) 
+                                                        ? SysInfo.detectedOsGlyph 
+                                                        : (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function" 
+                                                            ? CUtils.distroGlyph(SysInfo.osId, SysInfo.osIdLike, SysInfo.osName) 
+                                                            : "\uf31a");
+                                                }
                                                 if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
                                                     return CUtils.distroGlyph(v, [], v);
                                                 }

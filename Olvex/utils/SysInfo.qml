@@ -16,6 +16,7 @@ Singleton {
     property list<string> osIdLike
     property string osLogo: ""
     property string osGlyph: "\uf17c"
+    property string detectedOsGlyph: "\uf31a"
     property bool isOlvexLogo: false
     property bool hasCustomImage: false
     property bool isDefaultLogo: true
@@ -157,11 +158,7 @@ Singleton {
         root.isOlvexLogo = false;
         root.hasCustomImage = false;
         root.osLogo = "";
-        if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
-            root.osGlyph = CUtils.distroGlyph(root.osId, root.osIdLike, root.osName);
-        } else {
-            root.osGlyph = "\uf17c";
-        }
+        root.osGlyph = root.detectedOsGlyph || "\uf31a";
         root.isDefaultLogo = true;
     }
 
@@ -189,6 +186,12 @@ Singleton {
 
             const rawIdLike = fd("ID_LIKE");
             root.osIdLike = rawIdLike ? rawIdLike.toLowerCase().split(/\s+/).filter(Boolean) : [];
+
+            if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
+                root.detectedOsGlyph = CUtils.distroGlyph(root.osId, root.osIdLike, root.osName);
+            } else {
+                root.detectedOsGlyph = "\uf31a";
+            }
 
             root.updateLogo();
         }
