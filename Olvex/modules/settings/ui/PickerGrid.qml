@@ -544,8 +544,6 @@ Item {
                                     ? Colours.layer(Colours.palette.m3primaryContainer, 0.8) 
                                     : (cell.hovered ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 0.95) : Colours.tPalette.m3surfaceContainer)
 
-                                scale: cellMouse.pressed ? 0.95 : (cell.hovered ? 1.02 : 1.0)
-                                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
                                 // Selected Checkmark Dot
