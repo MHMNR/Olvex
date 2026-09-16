@@ -289,18 +289,18 @@ ColumnLayout {
         readonly property real kineticShiftY: {
             if (wrapperItem.id === "workspaces" || wrapperItem.id === "activeWindow")
                 return 0;
-            if (wrapperItem.id === "tray")
-                return root.cascadeForce * 0.85;
-            if (wrapperItem.id === "clock")
-                return root.cascadeForce * 0.65;
-            if (wrapperItem.id === "systemPill")
-                return root.cascadeForce * 0.40;
-            return root.cascadeForce * 0.30;
+            // Dynamic topological distance from expansion source (activeWindow / index 1)
+            const step = Math.max(1, wrapperItem.index - 1);
+            const decay = Math.pow(0.75, step - 1);
+            return root.cascadeForce * decay;
         }
 
         property real animatedShiftY: kineticShiftY
         Behavior on animatedShiftY {
-            Anim { type: Anim.FastSpatial }
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
         }
 
         property real entryXOffset: -50
@@ -345,10 +345,17 @@ ColumnLayout {
         implicitWidth: osIconLoader.implicitWidth
         implicitHeight: osIconLoader.implicitHeight
 
-        readonly property real kineticShiftY: root.cascadeForce * 0.15
+        readonly property real kineticShiftY: {
+            const count = (repeater && repeater.count) ? repeater.count : 4;
+            const step = Math.max(1, count - 1);
+            return root.cascadeForce * Math.pow(0.75, step);
+        }
         property real animatedShiftY: kineticShiftY
         Behavior on animatedShiftY {
-            Anim { type: Anim.FastSpatial }
+            NumberAnimation {
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
         }
 
         property real entryXOffset: -50
