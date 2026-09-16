@@ -114,8 +114,7 @@ Item {
 
     MaterialIcon {
         id: controlIcon
-        x: Math.round((parent.width - width) / 2)
-        y: Math.round((parent.height - height) / 2)
+        anchors.centerIn: parent
         visible: !control.isSkipIcon
         text: control.iconName
         color: Players.active ? control.activeIconColor : control.disabledIconColor
@@ -125,12 +124,12 @@ Item {
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         animate: control.emphasized
-        animateProp: "rotation"
-        animateFrom: 90
-        animateTo: 0
-        animateDuration: 320
+        animateProp: "scale"
+        animateFrom: 0.7
+        animateTo: 1.0
+        animateDuration: 200
 
-        // Rubber squash: decoupled X/Y transform, pivot stays at center
+        // Subtle press scale transform
         transform: Scale {
             origin.x: Math.round(controlIcon.width / 2)
             origin.y: Math.round(controlIcon.height / 2)
@@ -248,8 +247,8 @@ Item {
             when: stateLayer.pressed
             PropertyChanges {
                 target: control
-                iconScaleX: 0.72
-                iconScaleY: 0.94
+                iconScaleX: 0.90
+                iconScaleY: 0.90
             }
         },
         State {
@@ -269,62 +268,36 @@ Item {
             to: "pressed"
             NumberAnimation {
                 properties: "iconScaleX,iconScaleY"
-                duration: 80
+                duration: 90
                 easing.type: Easing.OutQuad
             }
         },
         Transition {
             from: "pressed"
             to: "idle"
-            SequentialAnimation {
-                ParallelAnimation {
-                    // X: rubbery overshoot — low damping = elastic wobble
-                    SpringAnimation {
-                        target: control
-                        property: "iconScaleX"
-                        to: 1.0
-                        spring: 4.5
-                        damping: 0.22
-                        epsilon: 0.001
-                    }
-                    // Y: snappier settle — higher damping prevents vertical flap
-                    SpringAnimation {
-                        target: control
-                        property: "iconScaleY"
-                        to: 1.0
-                        spring: 5.0
-                        damping: 0.38
-                        epsilon: 0.001
-                    }
-                }
-                PropertyAction {
-                    target: control
-                    properties: "iconScaleX,iconScaleY"
-                    value: 1.0
-                }
+            NumberAnimation {
+                properties: "iconScaleX,iconScaleY"
+                duration: 160
+                easing.type: Easing.OutCubic
             }
         }
     ]
 
     SequentialAnimation {
         id: pressSpring
-        ParallelAnimation {
-            NumberAnimation {
-                target: control
-                property: "clickScale"
-                to: 0.88
-                duration: Tokens.anim.durations.expressiveFastEffects
-                easing: Tokens.anim.expressiveFastSpatial
-            }
+        NumberAnimation {
+            target: control
+            property: "clickScale"
+            to: 0.92
+            duration: 80
+            easing.type: Easing.OutQuad
         }
-        SpringAnimation {
+        NumberAnimation {
             target: control
             property: "clickScale"
             to: 1.0
-            spring: 5.6
-            damping: 0.58
-            mass: 1.0
-            epsilon: 0.001
+            duration: 160
+            easing.type: Easing.OutCubic
         }
         PropertyAction {
             target: control
