@@ -129,10 +129,38 @@ StyledClippingRect {
         return Math.max(0, root.height - baseH);
     }
 
+    property real wsPulseForce: 0
+    SequentialAnimation {
+        id: wsPulseAnim
+        NumberAnimation {
+            target: root
+            property: "wsPulseForce"
+            from: 0
+            to: 16
+            duration: 110
+            easing.type: Easing.OutQuad
+        }
+        NumberAnimation {
+            target: root
+            property: "wsPulseForce"
+            from: 16
+            to: 0
+            duration: 200
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    onActiveWsIdChanged: wsPulseAnim.restart()
+
+    readonly property real wsKineticImpulse: {
+        const delta = (typeof root.expansionDelta === "number" && !isNaN(root.expansionDelta)) ? root.expansionDelta : 0;
+        return Math.min(24, Math.max(root.wsPulseForce, delta * 0.28));
+    }
+
     Binding {
         target: root.bar
         property: "wsPushForce"
-        value: root.expansionDelta
+        value: root.wsKineticImpulse
         when: root.bar !== null
     }
 

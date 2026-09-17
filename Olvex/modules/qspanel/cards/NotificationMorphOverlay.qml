@@ -41,7 +41,7 @@ Item {
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
     readonly property int contentRevealDelay: 130
 
-    readonly property string notifRawImage: String(root.notifData?.image ?? "")
+    readonly property string notifRawImage: (root.notifData && root.notifData.image) ? String(root.notifData.image) : ""
     readonly property bool hasRealImage: {
         if (!notifRawImage || notifRawImage.length === 0)
             return false;
@@ -89,9 +89,9 @@ Item {
         Notifs.unregisterNotifMorph(root.screen.name, root);
     }
 
-    function start(x: real, y: real, w: real, h: real,
-                   iconX: real, iconY: real, iconW: real, iconH: real,
-                   data: var): void {
+    function start(x, y, w, h,
+                   iconX, iconY, iconW, iconH,
+                   itemData) {
         startX = x;
         startY = y;
         startW = w;
@@ -100,7 +100,7 @@ Item {
         realIconY = iconY;
         realIconW = iconW;
         realIconH = iconH;
-        notifData = data;
+        notifData = itemData;
 
         dismissAnimation.stop();
         hideTimer.stop();
@@ -117,14 +117,14 @@ Item {
         notifCard.radius = startRadius;
 
         active = true;
-        Notifs.activeMorphNotif = data;
+        Notifs.activeMorphNotif = itemData;
         Notifs.notifMorphActive = true;
         Notifs.notifMorphAnimating = true;
         notifCard.state = "docked";
         expandDeferred.start();
     }
 
-    function collapse(): void {
+    function collapse() {
         if (dismissAnimation.running || hideTimer.running || root.isDismissing)
             return;
         closingDown = true;
@@ -133,11 +133,11 @@ Item {
         hideTimer.start();
     }
 
-    function close(): void {
+    function close() {
         collapse();
     }
 
-    function dismiss(): void {
+    function dismiss() {
         if (dismissAnimation.running || hideTimer.running)
             return;
         isDismissing = true;
@@ -277,7 +277,6 @@ Item {
                     y: root.realIconY
                     width: root.realIconW
                     height: root.realIconH
-                    radius: root.realIconW / 2
                 }
             },
             State {
@@ -305,7 +304,6 @@ Item {
                     y: 18
                     width: 32
                     height: 32
-                    radius: 16
                 }
             }
         ]
@@ -344,12 +342,6 @@ Item {
                         duration: root.expandDur
                         easing: root.spatialEasing
                     }
-                    NumberAnimation {
-                        target: heroIcon
-                        property: "radius"
-                        duration: Math.round(root.expandDur * 0.75)
-                        easing: root.spatialEasing
-                    }
                     // Pill content fades out
                     NumberAnimation {
                         target: collapsedPillContent
@@ -385,7 +377,7 @@ Item {
                     }
                     NumberAnimation {
                         target: heroIcon
-                        properties: "x,y,width,height,radius"
+                        properties: "x,y,width,height"
                         duration: root.collapseDur
                         easing: root.spatialEasing
                     }
@@ -449,7 +441,7 @@ Item {
 
                         StyledText {
                             anchors.fill: parent
-                            text: root.notifData?.summary || root.notifData?.appName || qsTr("Notification")
+                            text: (root.notifData && (root.notifData.summary || root.notifData.appName)) ? (root.notifData.summary || root.notifData.appName) : qsTr("Notification")
                             color: Colours.palette.m3onSecondaryContainer
                             textPointSize: Tokens.font.size.smaller
                             font.family: Tokens.font.family.mono
@@ -463,19 +455,29 @@ Item {
         }
 
         // ── Shared Hero App Icon ──
-        StyledClippingRect {
+        Item {
             id: heroIcon
             x: notifCard.state === "expanded" ? 18 : root.realIconX
             y: notifCard.state === "expanded" ? 18 : root.realIconY
             width: notifCard.state === "expanded" ? 32 : root.realIconW
             height: notifCard.state === "expanded" ? 32 : root.realIconH
-            radius: width / 2
-            color: Colours.palette.m3surfaceContainerHighest
             z: 5
+
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: CircleMask {}
+
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: Colours.palette.m3surfaceContainerHighest
+            }
 
             CachingIconImage {
                 id: heroIconImg
-                anchors.fill: parent
+                anchors.centerIn: parent
+                width: Math.max(0, parent.width - 8)
+                height: width
                 source: root.notifData ? Icons.getNotificationIcon(root.notifData) : ""
             }
         }
@@ -507,7 +509,7 @@ Item {
                     }
 
                     StyledText {
-                        text: root.notifData?.appName || qsTr("Notification")
+                        text: (root.notifData && root.notifData.appName) ? root.notifData.appName : qsTr("Notification")
                         textPointSize: Tokens.font.size.small
                         font.weight: Font.DemiBold
                         color: Colours.palette.m3onSurfaceVariant
@@ -516,7 +518,7 @@ Item {
                     }
 
                     StyledText {
-                        text: root.notifData?.timeStr || ""
+                        text: (root.notifData && root.notifData.timeStr) ? root.notifData.timeStr : ""
                         textPointSize: Tokens.font.size.smaller
                         color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.7)
                     }
@@ -533,7 +535,7 @@ Item {
 
                 // Summary / Title
                 StyledText {
-                    text: root.notifData?.summary || ""
+                    text: (root.notifData && root.notifData.summary) ? root.notifData.summary : ""
                     textPointSize: Tokens.font.size.normal
                     font.weight: Font.Bold
                     color: Colours.palette.m3onSurface
@@ -544,7 +546,7 @@ Item {
 
                 // Body text
                 StyledText {
-                    text: root.notifData?.body || ""
+                    text: (root.notifData && root.notifData.body) ? root.notifData.body : ""
                     textPointSize: Tokens.font.size.small
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.85)
                     Layout.fillWidth: true
@@ -580,7 +582,7 @@ Item {
                     spacing: 8
 
                     Repeater {
-                        model: root.notifData?.actions ?? []
+                        model: (root.notifData && root.notifData.actions) ? root.notifData.actions : []
 
                         delegate: TextButton {
                             required property var modelData
@@ -589,9 +591,9 @@ Item {
                             onClicked: {
                                 if (typeof modelData.invoke === "function") {
                                     modelData.invoke();
-                                } else if (typeof modelData.action?.invoke === "function") {
+                                } else if (modelData.action && typeof modelData.action.invoke === "function") {
                                     modelData.action.invoke();
-                                } else if (root.notifData?.notification?.actions) {
+                                } else if (root.notifData && root.notifData.notification && root.notifData.notification.actions) {
                                     const act = root.notifData.notification.actions.find(a => a.identifier === (modelData.identifier || modelData.id));
                                     if (act && typeof act.invoke === "function")
                                         act.invoke();

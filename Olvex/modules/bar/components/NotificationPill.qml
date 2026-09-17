@@ -191,6 +191,8 @@ Item {
     }
 
     readonly property real upwardPush: {
+        if (root.isDismissingLast)
+            return 0;
         let push = entryPushOffset;
         if (incomingPill && incomingPill.visible) {
             const incY = incomingPill.useBottomEdge ? (incomingPill.targetBottomEdge - incomingPill.height) : incomingPill.y;
@@ -198,10 +200,7 @@ Item {
                 push = Math.max(push, -incY);
             }
         }
-        if (shrinkingPill && shrinkingPill.visible && shrinkingPill.y < 0) {
-            push = Math.max(push, -shrinkingPill.y * shrinkingPill.opacity);
-        }
-        return push;
+        return Math.min(18, push);
     }
 
     // ── Transition animation properties ──
@@ -228,12 +227,6 @@ Item {
                 const olderHeightBefore = olderCountBefore * root.pillWidth + Math.max(0, olderCountBefore - 1) * Tokens.spacing.small;
                 const oldTopH = Math.max(root.pillWidth, root.height - olderHeightBefore - (olderCountBefore > 0 ? Tokens.spacing.small : 0));
                 
-                shrinkingPill.y = 0;
-                shrinkingPill.height = oldTopH;
-                shrinkingPill.opacity = 1.0;
-                shrinkingPill.textAlpha = 1.0;
-                shrinkingPill.scale = 1.0;
-                
                 const olderCountAfter = olderCirclesModel.count;
                 const olderHeightAfter = olderCountAfter * root.pillWidth + Math.max(0, olderCountAfter - 1) * Tokens.spacing.small;
                 const targetCircY = Math.max(0, root.height - olderHeightAfter);
@@ -242,8 +235,15 @@ Item {
                 incomingPill.useBottomEdge = false;
                 incomingPill.manualY = 0;
                 incomingPill.height = root.pillWidth;
-                incomingPill.opacity = 0.0;
-                incomingPill.scale = 0.6;
+                incomingPill.opacity = 1.0;
+                incomingPill.scale = 1.0;
+                incomingPill.textAlpha = 0.0;
+
+                shrinkingPill.y = root.pillWidth + Tokens.spacing.small;
+                shrinkingPill.height = Math.max(root.pillWidth, oldTopH - (root.pillWidth + Tokens.spacing.small));
+                shrinkingPill.opacity = 1.0;
+                shrinkingPill.textAlpha = 1.0;
+                shrinkingPill.scale = 1.0;
                 
                 pushShrinkYAnim.to = targetCircY;
                 pushShrinkHAnim.to = root.pillWidth;
@@ -480,60 +480,73 @@ Item {
     StyledRect {
         id: shrinkingPill
         width: root.pillWidth
-        radius: Math.min(width/2, height/2)
+        radius: Math.min(width / 2, height / 2)
         color: Colours.palette.m3secondaryContainer
         visible: root.isPushingDown || root.isPoppingUp || root.isDismissingLast
         z: 8
+        clip: true
 
         property real textAlpha: 1.0
+        readonly property bool isCompactCircle: height <= 52
+
+        transform: [
+            Translate {
+                y: root.olderCascadeOffset
+            }
+        ]
 
         Item {
-            anchors.fill: parent
+            id: shrinkingBg
+            width: shrinkingPill.isCompactCircle ? 36 : 40
+            height: width
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: shrinkingPill.isCompactCircle ? undefined : parent.top
+            anchors.topMargin: shrinkingPill.isCompactCircle ? 0 : 4
+            anchors.verticalCenter: shrinkingPill.isCompactCircle ? parent.verticalCenter : undefined
+
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: CircleMask {}
+
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: Colours.palette.m3surfaceContainerHighest
+            }
+
+            CachingIconImage {
+                id: shrinkingIconImg
+                anchors.centerIn: parent
+                width: parent.width - 12
+                height: width
+                source: Icons.getNotificationIcon(root.animatingOldNotif)
+            }
+        }
+
+        Item {
+            id: shrinkingTextContainer
+            anchors.top: shrinkingBg.bottom
+            anchors.topMargin: 6
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 4
+            anchors.left: parent.left
+            anchors.right: parent.right
             anchors.margins: 4
             clip: true
+            visible: !shrinkingPill.isCompactCircle && shrinkingPill.textAlpha > 0.01
+            opacity: shrinkingPill.textAlpha
 
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 6
+            Item {
+                anchors.centerIn: parent
+                width: Math.max(1, parent.height)
+                height: 24
+                transform: [ Rotation { angle: 90; origin.x: width / 2; origin.y: height / 2 } ]
 
-                Item {
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
-                    Layout.alignment: Qt.AlignHCenter
-
-                    StyledClippingRect {
-                        id: shrinkingBg
-                        anchors.fill: parent
-                        radius: width / 2
-                        color: Colours.palette.m3surfaceContainerHighest
-
-                        CachingIconImage {
-                            id: shrinkingIconImg
-                            anchors.fill: parent
-                            source: Icons.getNotificationIcon(root.animatingOldNotif)
-                        }
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    opacity: shrinkingPill.textAlpha
-
-                    Item {
-                        anchors.centerIn: parent
-                        width: Math.max(1, parent.height)
-                        height: 24
-                        transform: [ Rotation { angle: 90; origin.x: width / 2; origin.y: height / 2 } ]
-
-                        MarqueeText {
-                            anchors.fill: parent
-                            text: root.animatingOldNotif ? (root.animatingOldNotif.summary || root.animatingOldNotif.appName || "") : ""
-                            color: Colours.palette.m3onSecondaryContainer
-                            textPointSize: Tokens.font.size.smaller
-                        }
-                    }
+                MarqueeText {
+                    anchors.fill: parent
+                    text: root.animatingOldNotif ? (root.animatingOldNotif.summary || root.animatingOldNotif.appName || "") : ""
+                    color: Colours.palette.m3onSecondaryContainer
+                    textPointSize: Tokens.font.size.smaller
                 }
             }
         }
@@ -543,10 +556,11 @@ Item {
     StyledRect {
         id: incomingPill
         width: root.pillWidth
-        radius: Math.min(width/2, height/2)
+        radius: Math.min(width / 2, height / 2)
         color: Colours.palette.m3secondaryContainer
         visible: root.isPushingDown || root.isPoppingUp
         z: 9
+        clip: true
 
         property bool useBottomEdge: false
         property real targetBottomEdge: 0
@@ -554,56 +568,80 @@ Item {
         y: useBottomEdge ? targetBottomEdge - height : manualY
 
         property real textAlpha: 0.0
+        readonly property bool isCompactCircle: height <= 52
+
+        transform: Translate {
+            y: -root.entryPushOffset
+        }
 
         Item {
-            anchors.fill: parent
+            id: incomingBg
+            width: incomingPill.isCompactCircle ? 36 : 40
+            height: width
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: incomingPill.isCompactCircle ? undefined : parent.top
+            anchors.topMargin: incomingPill.isCompactCircle ? 0 : 4
+            anchors.verticalCenter: incomingPill.isCompactCircle ? parent.verticalCenter : undefined
+
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: CircleMask {}
+
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: Colours.palette.m3surfaceContainerHighest
+            }
+
+            CachingIconImage {
+                id: incomingIconImg
+                anchors.centerIn: parent
+                width: parent.width - 12
+                height: width
+                source: Icons.getNotificationIcon(root.animatingNewNotif)
+            }
+        }
+
+        Item {
+            id: incomingTextContainer
+            anchors.top: incomingBg.bottom
+            anchors.topMargin: 6
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 4
+            anchors.left: parent.left
+            anchors.right: parent.right
             anchors.margins: 4
             clip: true
+            visible: !incomingPill.isCompactCircle && incomingPill.textAlpha > 0.01
+            opacity: incomingPill.textAlpha
 
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 6
+            Item {
+                anchors.centerIn: parent
+                width: Math.max(1, parent.height)
+                height: 24
+                transform: [ Rotation { angle: 90; origin.x: width / 2; origin.y: height / 2 } ]
 
-                Item {
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
-                    Layout.alignment: Qt.AlignHCenter
-
-                    StyledClippingRect {
-                        id: incomingBg
-                        anchors.fill: parent
-                        radius: width / 2
-                        color: Colours.palette.m3surfaceContainerHighest
-
-                        CachingIconImage {
-                            id: incomingIconImg
-                            anchors.fill: parent
-                            source: Icons.getNotificationIcon(root.animatingNewNotif)
-                        }
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    opacity: incomingPill.textAlpha
-
-                    Item {
-                        anchors.centerIn: parent
-                        width: Math.max(1, parent.height)
-                        height: 24
-                        transform: [ Rotation { angle: 90; origin.x: width / 2; origin.y: height / 2 } ]
-
-                        MarqueeText {
-                            anchors.fill: parent
-                            text: root.animatingNewNotif ? (root.animatingNewNotif.summary || root.animatingNewNotif.appName || "") : ""
-                            color: Colours.palette.m3onSecondaryContainer
-                            textPointSize: Tokens.font.size.smaller
-                        }
-                    }
+                MarqueeText {
+                    anchors.fill: parent
+                    text: root.animatingNewNotif ? (root.animatingNewNotif.summary || root.animatingNewNotif.appName || "") : ""
+                    color: Colours.palette.m3onSecondaryContainer
+                    textPointSize: Tokens.font.size.smaller
                 }
             }
+        }
+    }
+
+    readonly property real kineticShift: {
+        if (!root.bar) return 0;
+        const force = (typeof root.bar.cascadeForce === "number" && !isNaN(root.bar.cascadeForce)) ? root.bar.cascadeForce : 0;
+        return force * 0.76;
+    }
+
+    property real animatedKineticShift: kineticShift
+    Behavior on animatedKineticShift {
+        NumberAnimation {
+            duration: 260
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -624,6 +662,7 @@ Item {
                 required property int index
                 required property real explicitTargetOffset
 
+                property real circleScale: 1.0
                 property real targetStackOffset: explicitTargetOffset
                 property real currentStackOffset: targetStackOffset
                 
@@ -641,8 +680,6 @@ Item {
                     Anim { type: Anim.FastSpatial }
                 }
 
-                readonly property real circleKineticSquash: Math.max(0.94, 1.0 - (totalCascadeForce * 0.0004 * Math.pow(0.85, index)))
-
                 x: (parent.width - width) / 2
                 y: Math.max(0, root.height - currentStackOffset)
                 width: root.pillWidth
@@ -657,8 +694,8 @@ Item {
                     Scale {
                         origin.x: olderCircleDelegate.width / 2
                         origin.y: olderCircleDelegate.height / 2
-                        xScale: olderCircleDelegate.circleScale * olderCircleDelegate.circleKineticSquash
-                        yScale: olderCircleDelegate.circleScale * olderCircleDelegate.circleKineticSquash
+                        xScale: olderCircleDelegate.circleScale
+                        yScale: olderCircleDelegate.circleScale
                     }
                 ]
                 opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && notif && Notifs.activeMorphNotif.id === notif.id) ? 0 : 
@@ -679,8 +716,7 @@ Item {
                     }
                 }
 
-                property real circleScale: 1.0
-                scale: circleScale
+
 
                 SequentialAnimation {
                     id: circlePressSpring
@@ -688,17 +724,27 @@ Item {
                     NumberAnimation { target: olderCircleDelegate; property: "circleScale"; to: 1.0; duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
                 }
 
-                StyledClippingRect {
+                Item {
                     id: circleIconFrame
                     anchors.centerIn: parent
                     width: 36
                     height: 36
-                    radius: width / 2
-                    color: Colours.palette.m3surfaceContainerHighest
+
+                    layer.enabled: true
+                    layer.smooth: true
+                    layer.effect: CircleMask {}
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: Colours.palette.m3surfaceContainerHighest
+                    }
 
                     CachingIconImage {
                         id: circleIconImg
-                        anchors.fill: parent
+                        anchors.centerIn: parent
+                        width: parent.width - 12
+                        height: width
                         source: Icons.getNotificationIcon(notif)
                     }
                 }
@@ -732,24 +778,9 @@ Item {
         visible: !root.isPushingDown && !root.isPoppingUp && !root.isDismissingLast && root.hasNotif
         opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && root.currentNotif && Notifs.activeMorphNotif.id === root.currentNotif.id) ? 0 : 1
         z: 2
+        clip: true
 
-        readonly property real topKineticSquash: Math.max(0.92, 1.0 - (root.wsPushForce * 0.0006))
-        readonly property real topKineticShiftY: Math.min(6, root.wsPushForce * 0.04)
-        property real animatedTopShiftY: topKineticShiftY
-        Behavior on animatedTopShiftY {
-            Anim { type: Anim.FastSpatial }
-        }
-
-        transform: [
-            Translate {
-                y: -root.entryPushOffset + topPill.animatedTopShiftY
-            },
-            Scale {
-                origin.x: topPill.width / 2
-                origin.y: 0
-                yScale: topPill.topKineticSquash
-            }
-        ]
+        readonly property bool isCompactCircle: height <= 52
 
         Behavior on color {
             CAnim {
@@ -759,7 +790,18 @@ Item {
         }
 
         property real pillScale: 1.0
-        scale: pillScale
+
+        transform: [
+            Translate {
+                y: -root.entryPushOffset
+            },
+            Scale {
+                origin.x: topPill.width / 2
+                origin.y: 0
+                xScale: topPill.pillScale
+                yScale: topPill.pillScale
+            }
+        ]
 
         SequentialAnimation {
             id: topPressSpring
@@ -768,101 +810,102 @@ Item {
         }
 
         Item {
-            id: innerClipContainer
-            anchors.fill: parent
+            id: topAppBg
+            width: topPill.isCompactCircle ? 36 : 40
+            height: width
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: topPill.isCompactCircle ? undefined : parent.top
+            anchors.topMargin: topPill.isCompactCircle ? 0 : 4
+            anchors.verticalCenter: topPill.isCompactCircle ? parent.verticalCenter : undefined
+
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: CircleMask {}
+
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: Colours.palette.m3surfaceContainerHighest
+            }
+
+            CachingIconImage {
+                id: topAppIconImg
+                anchors.centerIn: parent
+                width: parent.width - 12
+                height: width
+                source: Icons.getNotificationIcon(root.currentNotif)
+            }
+        }
+
+        Item {
+            id: topTextFrame
+            anchors.top: topAppBg.bottom
+            anchors.topMargin: 6
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 4
+            anchors.left: parent.left
+            anchors.right: parent.right
             anchors.margins: 4
             clip: true
+            visible: root.hasNotif && !topPill.isCompactCircle
+            opacity: (root.hasNotif && !root.isPushingDown && !root.isPoppingUp && !topPill.isCompactCircle) ? 1.0 : 0.0
 
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 6
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Tokens.anim.durations.expressiveFastSpatial
+                    easing: Tokens.anim.expressiveFastSpatial
+                }
+            }
 
-                Item {
-                    id: topAppIconFrame
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
-                    Layout.alignment: Qt.AlignHCenter
+            Item {
+                id: rotatedMarqueeWrapper
+                anchors.centerIn: parent
+                width: Math.max(1, topTextFrame.height)
+                height: 24
 
-                    StyledClippingRect {
-                        id: topAppBg
-                        anchors.fill: parent
-                        radius: width / 2
-                        color: Colours.palette.m3surfaceContainerHighest
+                property real slideOffset: 0
 
-                        CachingIconImage {
-                            id: topAppIconImg
-                            anchors.fill: parent
-                            source: Icons.getNotificationIcon(root.currentNotif)
+                transform: [
+                    Rotation {
+                        angle: 90
+                        origin.x: rotatedMarqueeWrapper.width / 2
+                        origin.y: rotatedMarqueeWrapper.height / 2
+                    },
+                    Translate {
+                        x: rotatedMarqueeWrapper.slideOffset
+                    }
+                ]
+
+                NumberAnimation {
+                    id: titleSlideAnim
+                    target: rotatedMarqueeWrapper
+                    property: "slideOffset"
+                    from: -20
+                    to: 0
+                    duration: 280
+                    easing: Tokens.anim.emphasizedDecel
+                }
+
+                Connections {
+                    target: root
+                    function onCurrentNotifChanged() {
+                        if (root.currentNotif) {
+                            titleSlideAnim.restart();
                         }
                     }
                 }
 
-                Item {
-                    id: topTextFrame
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    clip: true
-                    visible: root.hasNotif
-                    opacity: (root.hasNotif && !root.isPushingDown && !root.isPoppingUp) ? 1.0 : 0.0
-
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Tokens.anim.durations.expressiveFastSpatial
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
+                Component.onCompleted: {
+                    if (root.currentNotif) {
+                        titleSlideAnim.restart();
                     }
+                }
 
-                    Item {
-                        id: rotatedMarqueeWrapper
-                        anchors.centerIn: parent
-                        width: Math.max(1, topTextFrame.height)
-                        height: 24
-
-                        property real slideOffset: 0
-
-                        transform: [
-                            Rotation {
-                                angle: 90
-                                origin.x: rotatedMarqueeWrapper.width / 2
-                                origin.y: rotatedMarqueeWrapper.height / 2
-                            },
-                            Translate {
-                                x: rotatedMarqueeWrapper.slideOffset
-                            }
-                        ]
-
-                        NumberAnimation {
-                            id: titleSlideAnim
-                            target: rotatedMarqueeWrapper
-                            property: "slideOffset"
-                            from: -20
-                            to: 0
-                            duration: 280
-                            easing: Tokens.anim.emphasizedDecel
-                        }
-
-                        Connections {
-                            target: root
-                            function onCurrentNotifChanged() {
-                                if (root.currentNotif) {
-                                    titleSlideAnim.restart();
-                                }
-                            }
-                        }
-
-                        Component.onCompleted: {
-                            if (root.currentNotif) {
-                                titleSlideAnim.restart();
-                            }
-                        }
-
-                        MarqueeText {
-                            anchors.fill: parent
-                            text: root.currentNotif ? (root.currentNotif.summary || root.currentNotif.appName || qsTr("Notification")) : qsTr("Notification")
-                            color: Colours.palette.m3onSecondaryContainer
-                            textPointSize: Tokens.font.size.smaller
-                        }
-                    }
+                MarqueeText {
+                    anchors.fill: parent
+                    text: root.currentNotif ? (root.currentNotif.summary || root.currentNotif.appName || qsTr("Notification")) : qsTr("Notification")
+                    color: Colours.palette.m3onSecondaryContainer
+                    textPointSize: Tokens.font.size.smaller
                 }
             }
         }
@@ -877,7 +920,7 @@ Item {
                     return;
                 }
                 topPressSpring.start();
-                root.triggerExpand(topPill, topAppIconFrame, root.currentNotif);
+                root.triggerExpand(topPill, topAppBg, root.currentNotif);
             }
         }
     }

@@ -20,8 +20,12 @@ ColumnLayout {
     property real workspacePush: 0
     property real wsPushForce: 0
     property real notifPushForce: 0
-    readonly property real downwardPushForce: root.wsPushForce + root.notifPushForce
-    readonly property real cascadeForce: Math.min(24, root.downwardPushForce * 0.20)
+    readonly property real downwardPushForce: {
+        const ws = (typeof root.wsPushForce === "number" && !isNaN(root.wsPushForce)) ? root.wsPushForce : 0;
+        const notif = (typeof root.notifPushForce === "number" && !isNaN(root.notifPushForce)) ? root.notifPushForce : 0;
+        return ws + notif;
+    }
+    readonly property real cascadeForce: Math.min(22, root.downwardPushForce)
     property var mediaMorph
     property var notificationMorph
     readonly property int vPadding: Tokens.padding.large
@@ -68,7 +72,7 @@ ColumnLayout {
         );
     }
     // OS/launcher icon is pinned to the bar bottom — never part of reorderable entries.
-    readonly property var barEntries: (Config.bar.entries ?? []).filter(entry => entry.id !== "logo")
+    readonly property var barEntries: (Config.bar.entries ?? []).filter(entry => entry && entry.id !== "logo")
 
     readonly property bool isMusicMode: {
         if (Notifs.hasBarNotif)
@@ -81,6 +85,43 @@ ColumnLayout {
             }
         }
         return false;
+    }
+
+    function getElementKineticShift(elementId, isSubElement) {
+        const force = (typeof root.cascadeForce === "number" && !isNaN(root.cascadeForce)) ? root.cascadeForce : 0;
+        if (force <= 0) return 0;
+
+        let order = 0;
+        let foundAw = false;
+        if (!repeater) return 0;
+
+        for (let i = 0; i < repeater.count; i++) {
+            const it = repeater.itemAt(i);
+            if (!it) continue;
+            if (it.id === "activeWindow") {
+                foundAw = true;
+                continue;
+            }
+            if (foundAw && it.visible && it.width > 0 && it.height > 0) {
+                if (it.id === elementId) {
+                    if (elementId === "systemPill") {
+                        const idx = isSubElement ? (order + 1) : order;
+                        return force * 0.50 * Math.pow(0.72, idx);
+                    }
+                    return force * 0.50 * Math.pow(0.72, order);
+                }
+                if (it.id === "systemPill") {
+                    order += 2;
+                } else {
+                    order += 1;
+                }
+            }
+        }
+
+        if (elementId === "osIcon") {
+            return force * 0.50 * Math.pow(0.72, order);
+        }
+        return 0;
     }
 
     function closeTray() {
@@ -173,6 +214,7 @@ ColumnLayout {
                 delegate: WrappedLoader {
                     visible: false
                     Layout.fillHeight: false
+                    active: false
                 }
             }
             DelegateChoice {
@@ -189,11 +231,6 @@ ColumnLayout {
                 roleValue: "activeWindow"
                 delegate: WrappedLoader {
                     visible: !root.fullscreen
-
-                    // Music pill keeps its fixed musicPillHeight (don't stretch
-                    // the controls). Non-music pill flexes: the ColumnLayout
-                    // hands it whatever's left, and compresses it when the
-                    // workspace pill above expands — pills below stay put.
                     Layout.fillHeight: true
                     Layout.minimumHeight: 64
                     sourceComponent: ActiveWindow {
@@ -224,16 +261,43 @@ ColumnLayout {
                 roleValue: "systemPill"
                 delegate: WrappedLoader {
                     visible: !root.fullscreen
-                    sourceComponent: ColumnLayout {
-                        spacing: Tokens.spacing.normal
+                    sourceComponent: Item {
+                        id: sysPillContainer
                         implicitWidth: Tokens.sizes.bar.innerWidth
+                        implicitHeight: netSpeedWidget.implicitHeight + Tokens.spacing.normal + statusIcons.implicitHeight
+
+                        readonly property alias item: statusIcons.items
+                        readonly property alias statusIcons: statusIcons
+                        readonly property alias netSpeedWidget: netSpeedWidget
+
+                        readonly property real innerKineticShift: {
+                            const netShift = root.getElementKineticShift("systemPill", false);
+                            const statusShift = root.getElementKineticShift("systemPill", true);
+                            return statusShift - netShift;
+                        }
+                        property real animatedInnerShift: innerKineticShift
+                        Behavior on animatedInnerShift {
+                            NumberAnimation {
+                                duration: 260
+                                easing.type: Easing.OutCubic
+                            }
+                        }
 
                         OlvexBar.NetSpeedWidget {
-                            Layout.alignment: Qt.AlignHCenter
+                            id: netSpeedWidget
+                            anchors.top: parent.top
+                            anchors.horizontalCenter: parent.horizontalCenter
                         }
 
                         StatusIcons {
-                            Layout.alignment: Qt.AlignHCenter
+                            id: statusIcons
+                            anchors.top: netSpeedWidget.bottom
+                            anchors.topMargin: Tokens.spacing.normal
+                            anchors.horizontalCenter: parent.horizontalCenter
+
+                            transform: Translate {
+                                y: sysPillContainer.animatedInnerShift
+                            }
 
                             MouseArea {
                                 anchors.fill: parent
@@ -287,18 +351,15 @@ ColumnLayout {
         active: enabled
 
         readonly property real kineticShiftY: {
-            if (wrapperItem.id === "workspaces" || wrapperItem.id === "activeWindow")
+            if (wrapperItem.id === "workspaces" || wrapperItem.id === "activeWindow" || wrapperItem.id === "spacer")
                 return 0;
-            // Dynamic topological distance from expansion source (activeWindow / index 1)
-            const step = Math.max(1, wrapperItem.index - 1);
-            const decay = Math.pow(0.75, step - 1);
-            return root.cascadeForce * decay;
+            return root.getElementKineticShift(wrapperItem.id, false);
         }
 
         property real animatedShiftY: kineticShiftY
         Behavior on animatedShiftY {
             NumberAnimation {
-                duration: 250
+                duration: 260
                 easing.type: Easing.OutCubic
             }
         }
@@ -345,15 +406,11 @@ ColumnLayout {
         implicitWidth: osIconLoader.implicitWidth
         implicitHeight: osIconLoader.implicitHeight
 
-        readonly property real kineticShiftY: {
-            const count = (repeater && repeater.count) ? repeater.count : 4;
-            const step = Math.max(1, count - 1);
-            return root.cascadeForce * Math.pow(0.75, step);
-        }
+        readonly property real kineticShiftY: root.getElementKineticShift("osIcon", false)
         property real animatedShiftY: kineticShiftY
         Behavior on animatedShiftY {
             NumberAnimation {
-                duration: 250
+                duration: 260
                 easing.type: Easing.OutCubic
             }
         }

@@ -132,9 +132,8 @@ Item {
         const isCircle = root.isNotificationPushed;
         const pillW = root.musicPillWidth;
         const pillH = isCircle ? root.musicPillWidth : root.musicPillHeight;
-        const pillX = rootPos.x + (root.width - pillW) / 2;
-        const bottomMargin = isCircle ? 0 : Math.max(0, (root.height - pillH) / 2);
-        const pillY = rootPos.y + root.height - pillH - bottomMargin;
+        const pillX = rootPos.x + musicPill.x;
+        const pillY = rootPos.y + musicPill.y;
 
         const artSize = root.musicArtSize;
         const artX = (pillW - artSize) / 2;
@@ -253,10 +252,28 @@ Item {
         dockSyncTimer.start();
     }
 
+    property real awPushOffset: 0
+    SequentialAnimation {
+        id: awPushAnim
+        NumberAnimation {
+            target: root
+            property: "awPushOffset"
+            from: 0
+            to: 15
+            duration: Math.round(430 * 0.4)
+            easing: Tokens.anim.emphasizedDecel
+        }
+        NumberAnimation {
+            target: root
+            property: "awPushOffset"
+            from: 15
+            to: 0
+            duration: Math.round(430 * 0.6)
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
+    }
+
     function triggerPillExpand() {
-        // No-op without music: skip the press spring and the morph entirely.
-        // Otherwise a click on the active-window state would squeeze the pill
-        // and try to start a morph that returns early anyway.
         if (!root.playerActive)
             return;
         dockSyncDebounce.stop();
@@ -316,13 +333,11 @@ Item {
         }
     }
 
-    onMediaMorphChanged: {
-        root.syncBarAccent();
-        root.kickDockSync();
-    }
-
     onIsNotificationPushedChanged: {
         root.applyMorphDock();
+        if (!root.isNotificationPushed) {
+            awPushAnim.restart();
+        }
     }
 
     Connections {
@@ -497,15 +512,9 @@ Item {
 
     // Dynamically tracks the visual overshoot push into adjacent items
     readonly property real upwardPush: {
-        let push = 0;
-        if (notifPill) {
+        let push = root.awPushOffset;
+        if (root.isNotificationPushed && notifPill) {
             push = Math.max(push, (typeof notifPill.upwardPush === "number") ? notifPill.upwardPush : 0);
-        }
-        if (musicPill) {
-            const topY = musicPill.y;
-            if (topY < 0) {
-                push = Math.max(push, -topY);
-            }
         }
         return push;
     }
@@ -514,7 +523,7 @@ Item {
         target: root.bar
         property: "workspacePush"
         value: root.upwardPush
-        when: root.bar !== null
+        when: root.bar !== undefined && root.bar !== null
     }
 
     Loader {
@@ -528,14 +537,14 @@ Item {
         z: -1
     }
 
-    // Top: Notification Pill (flexible, fills available space down to musicPill circle)
+    // Top: Notification Pill (flexible, fills available space down to musicPill circle with kinetic tracking)
     NotificationPill {
         id: notifPill
         bar: root.bar
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         width: root.musicPillWidth
-        height: root.isNotificationPushed ? Math.max(0, (root.height - root.musicPillWidth - Tokens.spacing.small) * root.animatedNotifProgress) : (notifPill.isDismissingLast ? notifPill.lastDismissHeight : 0)
+        height: root.isNotificationPushed ? Math.max(0, (musicPill.y - Tokens.spacing.small) * root.animatedNotifProgress) : (notifPill.isDismissingLast ? notifPill.lastDismissHeight : 0)
         opacity: (root.isNotificationPushed || notifPill.isDismissingLast) ? 1 : 0
         visible: opacity > 0.01
         z: 3
@@ -566,14 +575,28 @@ Item {
 
         anchors.horizontalCenter: parent.horizontalCenter
 
+        readonly property real kineticShift: {
+            if (!root.bar) return 0;
+            const force = (typeof root.bar.cascadeForce === "number" && !isNaN(root.bar.cascadeForce)) ? root.bar.cascadeForce : 0;
+            return force * 0.65;
+        }
+
+        property real animatedKineticShift: kineticShift
+        Behavior on animatedKineticShift {
+            NumberAnimation {
+                duration: 260
+                easing.type: Easing.OutCubic
+            }
+        }
+
         readonly property real p: root.animatedMorphProgress
         readonly property real n: root.animatedNotifProgress
 
-        readonly property real baseH: root.height * (1.0 - p) + root.musicPillHeight * p
-        readonly property real baseY: p * Math.max(0, (root.height - root.musicPillHeight) / 2)
+        readonly property real baseH: (root.height * (1.0 - p) + root.musicPillHeight * p) + (animatedKineticShift * (1.0 - n) * (1.0 - p))
+        readonly property real baseY: (p * Math.max(0, (root.height - root.musicPillHeight) / 2)) + (animatedKineticShift * (p * 0.65))
 
         height: baseH * (1.0 - n) + root.musicPillWidth * n
-        y: baseY * (1.0 - n) + Math.max(0, root.height - root.musicPillWidth) * n
+        y: baseY * (1.0 - n) + (Math.max(0, root.height - root.musicPillWidth) + animatedKineticShift) * n
         width: parent ? parent.width : ((root.playerActive || root.isNotificationPushed) ? root.musicPillWidth : Tokens.sizes.bar.innerWidth)
 
         property real pillAlpha: 1
@@ -850,8 +873,7 @@ Item {
 
                 Item {
                     id: windowInfoContent
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.centerIn: parent
                     width: parent.width
                     height: root.isNotificationPushed ? root.musicPillWidth : (icon.height + Tokens.spacing.small + windowTitleText.height)
 
@@ -914,25 +936,12 @@ Item {
             }
 
         property real pillScale: 1.0
-        readonly property real wsPushForce: (root.bar && typeof root.bar.wsPushForce === "number") ? root.bar.wsPushForce : 0
-        readonly property real notifPushForce: (root.bar && typeof root.bar.notifPushForce === "number") ? root.bar.notifPushForce : 0
-        readonly property real totalPushForce: (root.bar && typeof root.bar.downwardPushForce === "number") ? root.bar.downwardPushForce : (musicPill.wsPushForce + musicPill.notifPushForce)
-        readonly property real kineticSquash: Math.max(0.95, 1.0 - (musicPill.totalPushForce * 0.0004))
-        readonly property real bottomKineticShiftY: root.isNotificationPushed ? Math.min(10, musicPill.totalPushForce * 0.12) : 0
-        property real animatedBottomShiftY: bottomKineticShiftY
-        Behavior on animatedBottomShiftY {
-            Anim { type: Anim.FastSpatial }
-        }
-
         transform: [
-            Translate {
-                y: musicPill.animatedBottomShiftY
-            },
             Scale {
                 origin.x: musicPill.width / 2
                 origin.y: musicPill.height / 2
-                xScale: musicPill.pillScale * musicPill.kineticSquash
-                yScale: musicPill.pillScale * musicPill.kineticSquash
+                xScale: musicPill.pillScale
+                yScale: musicPill.pillScale
             }
         ]
 
