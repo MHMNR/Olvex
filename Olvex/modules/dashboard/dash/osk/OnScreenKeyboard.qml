@@ -118,11 +118,13 @@ Item {
             id: oskBackground
             anchors.fill: parent
             
-            radius: Tokens.rounding.large - 5
+            readonly property real screenCornerRounding: (GlobalConfig && GlobalConfig.border) ? GlobalConfig.border.rounding : Tokens.rounding.large
+            
+            radius: root.isDocked ? screenCornerRounding : (Tokens.rounding.large - 5)
             topLeftRadius: radius
             topRightRadius: radius
-            bottomLeftRadius: root.isDocked ? 0 : radius
-            bottomRightRadius: root.isDocked ? 0 : radius
+            bottomLeftRadius: radius
+            bottomRightRadius: radius
             
             color: Colours.tPalette.m3surface // Deep dark glass to match dashboard panels
             border.width: 1

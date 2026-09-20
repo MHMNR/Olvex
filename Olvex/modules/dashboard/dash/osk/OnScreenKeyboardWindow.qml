@@ -60,7 +60,7 @@ PanelWindow {
     exclusiveZone: exclusiveZoneEnabled && isDocked && (visibilities && visibilities.osk) ? Math.round((osk ? osk.implicitHeight : 350) + 6) : 0
     
     WlrLayershell.namespace: "quickshell:osk"
-    WlrLayershell.layer: (exclusiveZoneEnabled && isDocked) ? WlrLayer.Top : WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     
     property real floatingX: Math.round((screen.width - (osk ? osk.implicitWidth : 800)) / 2)
