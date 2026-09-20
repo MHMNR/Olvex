@@ -82,40 +82,32 @@ Singleton {
             if (targetTemp >= 6500) {
                 // Neutral
                 runCommand(`
-                    NIGHT_BIN=$(which hyprsunset 2>/dev/null || echo "$HOME/.local/bin/hyprsunset")
-                    if [ -x "$NIGHT_BIN" ]; then
+                    NIGHT_BIN=$(which hyprsunset 2>/dev/null || ([ -x "$HOME/.local/bin/hyprsunset" ] && echo "$HOME/.local/bin/hyprsunset"))
+                    if [ -n "$NIGHT_BIN" ] && [ -x "$NIGHT_BIN" ]; then
                         pkill -9 hyprsunset 2>/dev/null || true
                         nohup "$NIGHT_BIN" -i >/dev/null 2>&1 &
-                        sleep 0.3
+                        sleep 0.2
                         pkill -9 hyprsunset 2>/dev/null || true
                     fi
-                    pkill -9 gammastep 2>/dev/null || true
-                    gammastep -x 2>/dev/null || true
                 `);
             } else {
                 runCommand(`
-                    NIGHT_BIN=$(which hyprsunset 2>/dev/null || echo "$HOME/.local/bin/hyprsunset")
-                    if [ -x "$NIGHT_BIN" ]; then
+                    NIGHT_BIN=$(which hyprsunset 2>/dev/null || ([ -x "$HOME/.local/bin/hyprsunset" ] && echo "$HOME/.local/bin/hyprsunset"))
+                    if [ -n "$NIGHT_BIN" ] && [ -x "$NIGHT_BIN" ]; then
                         pkill -9 hyprsunset 2>/dev/null || true
-                        pkill -9 gammastep 2>/dev/null || true
                         nohup "$NIGHT_BIN" -t ${targetTemp} >/dev/null 2>&1 &
-                    elif which gammastep >/dev/null 2>&1; then
-                        pkill -9 gammastep 2>/dev/null || true
-                        nohup gammastep -O ${targetTemp} >/dev/null 2>&1 &
                     fi
                 `);
             }
         } else {
             runCommand(`
-                NIGHT_BIN=$(which hyprsunset 2>/dev/null || echo "$HOME/.local/bin/hyprsunset")
-                if [ -x "$NIGHT_BIN" ]; then
+                NIGHT_BIN=$(which hyprsunset 2>/dev/null || ([ -x "$HOME/.local/bin/hyprsunset" ] && echo "$HOME/.local/bin/hyprsunset"))
+                if [ -n "$NIGHT_BIN" ] && [ -x "$NIGHT_BIN" ]; then
                     pkill -9 hyprsunset 2>/dev/null || true
                     nohup "$NIGHT_BIN" -i >/dev/null 2>&1 &
-                    sleep 0.3
+                    sleep 0.2
                     pkill -9 hyprsunset 2>/dev/null || true
                 fi
-                pkill -9 gammastep 2>/dev/null || true
-                gammastep -x 2>/dev/null || true
             `);
         }
     }

@@ -119,7 +119,11 @@ StyledRect {
             IconButton {
                 icon: "keyboard"
                 onClicked: {
-                    root.visibilities.osk = !root.visibilities.osk;
+                    const willOpen = !root.visibilities.osk;
+                    root.visibilities.osk = willOpen;
+                    if (willOpen) {
+                        root.visibilities.qspanel = false;
+                    }
                 }
             }
             IconButton {

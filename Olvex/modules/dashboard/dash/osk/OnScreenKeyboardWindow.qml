@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Olvex.Config
+import qs.components
 
 PanelWindow {
     id: root
@@ -9,10 +10,10 @@ PanelWindow {
     required property ShellScreen oskScreen
     required property var visibilities
     
-    readonly property bool isDocked: visibilities.isOskDocked
+    readonly property bool isDocked: visibilities ? visibilities.isOskDocked : false
     readonly property bool isDragging: osk && osk.isDragging
     
-    visible: visibilities.osk || entranceProgress > 0.001
+    visible: (visibilities && visibilities.osk) || entranceProgress > 0.001
     screen: oskScreen
     color: "transparent"
     
@@ -21,13 +22,13 @@ PanelWindow {
     implicitWidth: screen.width
     
     mask: Region {
-        x: 0
+        x: root.isDragging ? 0 : osk.x
         y: root.isDragging ? 0 : (osk.y - (osk.showingSettings ? 450 : 0))
-        width: screen.width
+        width: root.isDragging ? screen.width : osk.width
         height: root.isDragging ? screen.height : (osk.height + (osk.showingSettings ? 450 : 0))
     }
 
-    anchors.top: true // Restore full-screen anchoring for coordinate stability
+    anchors.top: true
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
@@ -40,27 +41,25 @@ PanelWindow {
     Binding on dockProgress { value: isDocked ? 1.0 : 0.0 }
     Behavior on dockProgress { 
         enabled: !root.isDragging && entranceProgress > 0.9
-        NumberAnimation { 
-            duration: Tokens.anim.durations.expressiveDefaultSpatial
-            easing.type: Easing.OutQuart
+        Anim { 
+            type: Anim.DefaultSpatial
         } 
     }
 
-    // Entrance/Exit animation source (Slide ONLY)
+    // Entrance/Exit animation source (Smooth bottom slide in / slide out)
     property real entranceProgress: 0.0
-    Binding on entranceProgress { value: visibilities.osk ? 1.0 : 0.0 }
+    Binding on entranceProgress { value: (visibilities && visibilities.osk) ? 1.0 : 0.0 }
     Behavior on entranceProgress { 
-        NumberAnimation { 
-            duration: Tokens.anim.durations.expressiveDefaultSpatial + 100
-            easing.type: Easing.OutExpo
+        Anim { 
+            type: Anim.DefaultSpatial
         } 
     }
     
-    // THE STABILITY FIX: Use a fixed exclusive zone for docked mode
-    exclusiveZone: isDocked && visibilities.osk ? Math.round((osk ? osk.implicitHeight : 350) + 6) : 0
+    // Smooth exclusive zone for docked mode once fully opened
+    exclusiveZone: isDocked && (visibilities && visibilities.osk) && entranceProgress > 0.95 ? Math.round((osk ? osk.implicitHeight : 350) + 6) : 0
     
     WlrLayershell.namespace: "quickshell:osk"
-    WlrLayershell.layer: isDocked && visibilities.osk ? WlrLayer.Top : WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     
     property real floatingX: Math.round((screen.width - (osk ? osk.implicitWidth : 800)) / 2)
@@ -85,7 +84,7 @@ PanelWindow {
         layer.enabled: osk.showingSettings
         layer.smooth: true
         
-        readonly property real offScreenY: Math.round(screen.height + 160)
+        readonly property real offScreenY: Math.round(screen.height + 20)
         readonly property real dockedY: Math.round(screen.height - implicitHeight - 3)
         readonly property real dockedX: 3
         
@@ -96,7 +95,11 @@ PanelWindow {
         
         width: implicitWidth + (parent.width - 6 - implicitWidth) * dockProgress
         
-        onHideRequested: visibilities.osk = false
+        onHideRequested: {
+            if (visibilities) {
+                visibilities.osk = false;
+            }
+        }
         
         onDragged: (dx, dy) => {
             if (!isDocked) {

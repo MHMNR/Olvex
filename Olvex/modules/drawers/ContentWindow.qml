@@ -206,7 +206,7 @@ StyledWindow {
         id: focusGrab
 
         active: !Visibilities.areaPickerActive && ((visibilities.launcher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.wallpaperLauncher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.powermenu && root.contentItem?.Config?.powermenu?.enabled) || (visibilities.notificationcenter && root.contentItem?.Config?.notificationcenter?.enabled) || (visibilities.dashboard && root.contentItem?.Config?.dashboard?.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.qspanel || visibilities.clipboard)
-        windows: root.oskWindow && visibilities.osk ? [root, root.oskWindow] : [root]
+        windows: [root]
         onActiveChanged: {
             if (active) {
                 root.launchTransition = true;

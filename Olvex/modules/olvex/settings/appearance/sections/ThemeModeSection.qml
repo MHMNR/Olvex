@@ -51,7 +51,7 @@ CollapsibleSection {
     }
 
     SwitchRow {
-        label: qsTr("Night light (Gammastep)")
+        label: qsTr("Night light")
         checked: NightLight.enabled
         onToggled: NightLight.enabled = checked
     }
