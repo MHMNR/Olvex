@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-09-20
+
+### Added
+- **On-Screen Keyboard (OSK) Wayland Exclusive Zone**: Added dedicated "Exclusive Zone" toggle in OSK Settings. In docked mode, OSK automatically reserves layer-shell screen space so tiled and floating windows seamlessly adjust above the keyboard.
+- **Dynamic Docked OSK Corner Rounding**: OSK docked corners dynamically adapt to Olvex screen corner decoration (`GlobalConfig.border.rounding`).
+- **Dynamic Battery Glyphs & Power Saver Indicators**: Reactive multi-level battery icon rendering with charging states and visual power saver mode indicators.
+- **IP Geolocation via ipwho.is**: Integrated `ipwho.is` provider with robust reverse-geocoding fallback pipeline in weather services.
+- **Hardware-Accelerated Clipboard Thumbnails**: Added `QtQuick.Effects` image decoding and caching pipeline for clipboard history preview thumbnails.
+- **Standalone Clipboard Application**: Installed and integrated `olvex-clipboard` standalone utility binary.
+- **PickerGrid Component & Auto-Detection**: Integrated `PickerGrid` component and automatic OS glyph detection in system information utilities (`SysInfo.qml`).
+
+### UI & UX Improvements
+- **Docked OSK & Bottom Panel Overlay Flow**: Intelligent bottom panel auto-hide during docked OSK typing, sliding up as a smooth overlay when hovering the screen bottom edge.
+- **OSK Entrance & Exit Motion**: Replaced abrupt toggling with smooth bottom slide transitions and synchronized entrance progress.
+- **Centered Key Glyphs**: Refactored `OskKey.qml` to perfectly center Super/distro logo glyphs and control labels within key pills.
+- **Dynamic Decay Kinetic Shifts**: Replaced static taskbar shifts with fluid physics decay and explicit scale transitions.
+- **Workspace Indicator Pulse**: Added responsive workspace switch pulse animations and adjusted ring sizing.
+- **OsIcon Styling**: Added dynamic color properties and subtle light theme borders for desktop OS icons.
+
+### Performance & Stability
+- **Offscreen Transition Rendering**: Enabled offscreen rendering caching across feature drawer wrappers to eliminate frame drops during panel open/close.
+- **Screen Recorder & Notification Morph Optimization**: Streamlined screen recorder service capture logic and notification pill morph calculations.
+- **Night Light & Tray Streamlining**: Streamlined Night Light service management, tray popout logic, and clock background rendering.
+- **Resolved Layer Shell Property Conflicts**: Cleaned up layer-shell property assignments and input region masks across drawers.
+
+---
+
 ## [1.2.0] - 2026-09-08
 
 ### Added
