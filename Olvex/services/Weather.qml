@@ -106,18 +106,48 @@ Singleton {
     readonly property var cachedCities: new Map()
 
     function fetchCoordsFromIp(): void {
-        Requests.get("https://get.geojs.io/v1/ip/geo.json", text => {
+        const tryGeojs = () => {
+            Requests.get("https://get.geojs.io/v1/ip/geo.json", text => {
+                try {
+                    const response = JSON.parse(text);
+                    if (response.latitude && response.longitude) {
+                        loc = response.latitude + "," + response.longitude;
+                        if (response.city || response.region) {
+                            city = response.city || response.region;
+                            cachedCities.set(loc, city);
+                        } else {
+                            fetchCityFromCoords(loc);
+                        }
+                        timer.restart();
+                    }
+                } catch (e) {
+                    console.log("Failed to parse geojs.io response");
+                }
+            });
+        };
+
+        Requests.get("https://ipwho.is/", text => {
             try {
                 const response = JSON.parse(text);
-                if (response.latitude && response.longitude) {
+                if (response.success && response.latitude && response.longitude) {
                     loc = response.latitude + "," + response.longitude;
-                    city = response.city || response.region || "Unknown City";
+                    if (response.city && response.city.length > 0) {
+                        city = response.city;
+                        cachedCities.set(loc, response.city);
+                    } else if (response.region && response.region.length > 0) {
+                        city = response.region;
+                        cachedCities.set(loc, response.region);
+                    } else {
+                        fetchCityFromCoords(loc);
+                    }
                     timer.restart();
+                    return;
                 }
             } catch (e) {
-                console.log("Failed to parse geojs.io response");
+                console.log("Failed to parse ipwho.is response");
             }
-        });
+            tryGeojs();
+        }, tryGeojs);
     }
 
     function reload(): void {
@@ -140,6 +170,9 @@ Singleton {
     }
 
     function fetchCityFromCoords(coords: string): void {
+        if (!coords || coords.indexOf(",") === -1)
+            return;
+
         if (cachedCities.has(coords)) {
             city = cachedCities.get(coords);
             return;
@@ -147,33 +180,38 @@ Singleton {
 
         const [lat, lon] = coords.split(",").map(s => s.trim());
 
-        const fallbackToBigDataCloud = () => {
-            const fallbackUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
-            Requests.get(fallbackUrl, text => {
+        const fallbackToNominatim = () => {
+            const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`;
+            Requests.get(nominatimUrl, text => {
+                try {
+                    const geo = JSON.parse(text);
+                    const addr = geo.address;
+                    const geoCity = addr ? (addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.county || addr.state) : (geo.name || geo.display_name);
+                    if (geoCity && geoCity.length > 0) {
+                        city = geoCity;
+                        cachedCities.set(coords, geoCity);
+                    }
+                } catch (e) {
+                    console.log("Failed to parse nominatim response");
+                }
+            }, () => {}, { "User-Agent": "OlvexShell/1.0" });
+        };
+
+        const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+        Requests.get(bdcUrl, text => {
+            try {
                 const geo = JSON.parse(text);
-                const geoCity = geo.city || geo.locality;
-                if (geoCity) {
+                const geoCity = geo.city || geo.locality || geo.principalSubdivision;
+                if (geoCity && geoCity.length > 0) {
                     city = geoCity;
                     cachedCities.set(coords, geoCity);
                 } else {
-                    city = "Unknown City";
+                    fallbackToNominatim();
                 }
-            });
-        };
-
-        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=geocodejson`;
-        Requests.get(nominatimUrl, text => {
-            const geo = JSON.parse(text).features?.[0]?.properties.geocoding;
-            if (geo) {
-                const geoCity = geo.type === "city" ? geo.name : geo.city;
-                if (geoCity) {
-                    city = geoCity;
-                    cachedCities.set(coords, geoCity);
-                    return;
-                }
+            } catch (e) {
+                fallbackToNominatim();
             }
-            fallbackToBigDataCloud();
-        }, fallbackToBigDataCloud);
+        }, fallbackToNominatim);
     }
 
     function fetchCoordsFromCity(cityName: string): void {
