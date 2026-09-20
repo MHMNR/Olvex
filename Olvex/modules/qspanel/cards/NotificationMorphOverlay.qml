@@ -463,14 +463,12 @@ Item {
             height: notifCard.state === "expanded" ? 32 : root.realIconH
             z: 5
 
-            layer.enabled: true
-            layer.smooth: true
-            layer.effect: CircleMask {}
-
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
                 color: Colours.palette.m3surfaceContainerHighest
+                antialiasing: true
+                smooth: true
             }
 
             CachingIconImage {

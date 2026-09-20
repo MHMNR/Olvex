@@ -10,25 +10,38 @@ Singleton {
     readonly property alias running: props.running
     readonly property alias paused: props.paused
     readonly property alias elapsed: props.elapsed
-    property bool needsStart
-    property list<string> startArgs
-    property bool needsStop
-    property bool needsPause
+    property bool selecting: false
 
     function start(extraArgs = []): void {
-        needsStart = true;
-        startArgs = extraArgs;
-        checkProc.running = true;
+        if (props.running)
+            return;
+
+        if (extraArgs.some(a => a.includes("r"))) {
+            root.selecting = true;
+        }
+
+        const script = `${Quickshell.shellDir}/scripts/record.sh`;
+        Quickshell.execDetached([script, ...extraArgs]);
+
+        pollTimer.restart();
     }
 
     function stop(): void {
-        needsStop = true;
-        checkProc.running = true;
+        root.selecting = false;
+        const script = `${Quickshell.shellDir}/scripts/record.sh`;
+        Quickshell.execDetached([script, "--stop"]);
+        Quickshell.execDetached(["pkill", "-f", "slurp"]);
+
+        props.running = false;
+        props.paused = false;
+        props.elapsed = 0;
+        pollTimer.restart();
     }
 
     function togglePause(): void {
-        needsPause = true;
-        checkProc.running = true;
+        const script = `${Quickshell.shellDir}/scripts/record.sh`;
+        Quickshell.execDetached([script, "-p"]);
+        props.paused = !props.paused;
     }
 
     PersistentProperties {
@@ -36,61 +49,71 @@ Singleton {
 
         property bool running: false
         property bool paused: false
-        property real elapsed: 0 // Might get too large for int
+        property real elapsed: 0
 
         reloadableId: "recorder"
     }
 
     Process {
-        id: checkProc
-
-        running: true
+        id: gsrCheckProc
         command: ["pidof", "gpu-screen-recorder"]
         onExited: code => { // qmllint disable signal-handler-parameters
-            props.running = code === 0;
-
-            if (code === 0) {
-                if (root.needsStop) {
-                    Quickshell.execDetached(["/home/abm/Projects/QS-Config/Olvex/scripts/olvex", "record"]);
+            const isRunning = (code === 0);
+            if (isRunning) {
+                if (!props.running) {
+                    props.running = true;
+                    props.elapsed = 0;
+                }
+                root.selecting = false;
+            } else {
+                if (root.selecting) {
+                    if (!slurpCheckProc.running)
+                        slurpCheckProc.running = true;
+                } else {
                     props.running = false;
                     props.paused = false;
-                } else if (root.needsPause) {
-                    Quickshell.execDetached(["/home/abm/Projects/QS-Config/Olvex/scripts/olvex", "record", "-p"]);
-                    props.paused = !props.paused;
                 }
-            } else if (root.needsStart) {
-                Quickshell.execDetached(["/home/abm/Projects/QS-Config/Olvex/scripts/olvex", "record", ...root.startArgs]);
-                props.running = true;
-                props.paused = false;
-                props.elapsed = 0;
             }
-
-            root.needsStart = false;
-            root.needsStop = false;
-            root.needsPause = false;
         }
     }
 
     Process {
-        id: pollProc
-        command: ["pidof", "gpu-screen-recorder"]
+        id: slurpCheckProc
+        command: ["pidof", "slurp"]
         onExited: code => { // qmllint disable signal-handler-parameters
-            if (code !== 0 && props.running) {
-                props.running = false;
-                props.paused = false;
+            if (code !== 0 && !props.running) {
+                graceTimer.restart();
             }
         }
     }
 
     Timer {
-        id: elapsedTimer
+        id: graceTimer
+        interval: 400
+        repeat: false
+        onTriggered: {
+            if (!gsrCheckProc.running)
+                gsrCheckProc.running = true;
+            root.selecting = false;
+        }
+    }
+
+    Timer {
+        id: pollTimer
         interval: 1000
         repeat: true
-        running: props.running && !props.paused
+        running: true
         onTriggered: {
-            props.elapsed++;
-            if (!pollProc.running && !checkProc.running)
-                pollProc.running = true;
+            if (props.running && !props.paused) {
+                props.elapsed++;
+            }
+            if (!gsrCheckProc.running) {
+                gsrCheckProc.running = true;
+            }
         }
+    }
+
+    Component.onCompleted: {
+        gsrCheckProc.running = true;
     }
 }

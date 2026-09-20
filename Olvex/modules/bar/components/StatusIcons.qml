@@ -42,6 +42,37 @@ StyledRect {
 
         spacing: Tokens.spacing.smaller / 2
 
+        // Recording status
+        WrappedLoader {
+            name: "recording"
+            active: Recorder.running || Recorder.selecting
+
+            sourceComponent: Item {
+                implicitWidth: recIcon.implicitWidth
+                implicitHeight: recIcon.implicitHeight
+
+                MaterialIcon {
+                    id: recIcon
+
+                    anchors.centerIn: parent
+                    text: Recorder.selecting ? "crop" : (Recorder.paused ? "pause_circle" : "fiber_manual_record")
+                    color: Colours.palette.m3error
+
+                    SequentialAnimation on opacity {
+                        running: (Recorder.running && !Recorder.paused) || Recorder.selecting
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1.0; to: 0.25; duration: 600; easing.type: Easing.InOutQuad }
+                        NumberAnimation { from: 0.25; to: 1.0; duration: 600; easing.type: Easing.InOutQuad }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Recorder.stop()
+                }
+            }
+        }
 
         // Lock keys status
         WrappedLoader {

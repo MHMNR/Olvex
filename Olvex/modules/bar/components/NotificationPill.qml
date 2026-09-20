@@ -497,29 +497,26 @@ Item {
 
         Item {
             id: shrinkingBg
-            width: shrinkingPill.isCompactCircle ? 36 : 40
-            height: width
+            width: 36
+            height: 36
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: shrinkingPill.isCompactCircle ? undefined : parent.top
-            anchors.topMargin: shrinkingPill.isCompactCircle ? 0 : 4
-            anchors.verticalCenter: shrinkingPill.isCompactCircle ? parent.verticalCenter : undefined
-
-            layer.enabled: true
-            layer.smooth: true
-            layer.effect: CircleMask {}
+            anchors.top: parent.top
+            anchors.topMargin: shrinkingPill.isCompactCircle ? Math.max(0, (shrinkingPill.height - height) / 2) : 6
 
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
                 color: Colours.palette.m3surfaceContainerHighest
+                antialiasing: true
+                smooth: true
             }
 
             CachingIconImage {
                 id: shrinkingIconImg
                 anchors.centerIn: parent
-                width: parent.width - 12
-                height: width
-                source: Icons.getNotificationIcon(root.animatingOldNotif)
+                width: 24
+                height: 24
+                source: root.animatingOldNotif ? Icons.getNotificationIcon(root.animatingOldNotif) : ""
             }
         }
 
@@ -576,29 +573,26 @@ Item {
 
         Item {
             id: incomingBg
-            width: incomingPill.isCompactCircle ? 36 : 40
-            height: width
+            width: 36
+            height: 36
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: incomingPill.isCompactCircle ? undefined : parent.top
-            anchors.topMargin: incomingPill.isCompactCircle ? 0 : 4
-            anchors.verticalCenter: incomingPill.isCompactCircle ? parent.verticalCenter : undefined
-
-            layer.enabled: true
-            layer.smooth: true
-            layer.effect: CircleMask {}
+            anchors.top: parent.top
+            anchors.topMargin: incomingPill.isCompactCircle ? Math.max(0, (incomingPill.height - height) / 2) : 6
 
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
                 color: Colours.palette.m3surfaceContainerHighest
+                antialiasing: true
+                smooth: true
             }
 
             CachingIconImage {
                 id: incomingIconImg
                 anchors.centerIn: parent
-                width: parent.width - 12
-                height: width
-                source: Icons.getNotificationIcon(root.animatingNewNotif)
+                width: 24
+                height: 24
+                source: root.animatingNewNotif ? Icons.getNotificationIcon(root.animatingNewNotif) : ""
             }
         }
 
@@ -730,22 +724,20 @@ Item {
                     width: 36
                     height: 36
 
-                    layer.enabled: true
-                    layer.smooth: true
-                    layer.effect: CircleMask {}
-
                     Rectangle {
                         anchors.fill: parent
                         radius: width / 2
                         color: Colours.palette.m3surfaceContainerHighest
+                        antialiasing: true
+                        smooth: true
                     }
 
                     CachingIconImage {
                         id: circleIconImg
                         anchors.centerIn: parent
-                        width: parent.width - 12
-                        height: width
-                        source: Icons.getNotificationIcon(notif)
+                        width: 24
+                        height: 24
+                        source: notif ? Icons.getNotificationIcon(notif) : ""
                     }
                 }
 
@@ -811,29 +803,26 @@ Item {
 
         Item {
             id: topAppBg
-            width: topPill.isCompactCircle ? 36 : 40
-            height: width
+            width: 36
+            height: 36
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: topPill.isCompactCircle ? undefined : parent.top
-            anchors.topMargin: topPill.isCompactCircle ? 0 : 4
-            anchors.verticalCenter: topPill.isCompactCircle ? parent.verticalCenter : undefined
-
-            layer.enabled: true
-            layer.smooth: true
-            layer.effect: CircleMask {}
+            anchors.top: parent.top
+            anchors.topMargin: topPill.isCompactCircle ? Math.max(0, (topPill.height - height) / 2) : 6
 
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
                 color: Colours.palette.m3surfaceContainerHighest
+                antialiasing: true
+                smooth: true
             }
 
             CachingIconImage {
                 id: topAppIconImg
                 anchors.centerIn: parent
-                width: parent.width - 12
-                height: width
-                source: Icons.getNotificationIcon(root.currentNotif)
+                width: 24
+                height: 24
+                source: root.currentNotif ? Icons.getNotificationIcon(root.currentNotif) : ""
             }
         }
 

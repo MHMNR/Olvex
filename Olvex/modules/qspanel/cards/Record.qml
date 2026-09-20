@@ -12,6 +12,8 @@ StyledRect {
     required property var props
     required property DrawerVisibilities visibilities
 
+    readonly property bool isRecordingActive: Recorder.running || Recorder.selecting
+
     property list<MenuItem> menuItems: [
             MenuItem {
                 property string activeText: qsTr("Fullscreen")
@@ -95,7 +97,7 @@ StyledRect {
 
                 // Original split action: [ mode · start ] + [ chevron / stop ]
                 RowLayout {
-                    spacing: Recorder.running ? Tokens.spacing.small : 2
+                    spacing: root.isRecordingActive ? Tokens.spacing.small : 2
                     Behavior on spacing {
                         Anim {}
                     }
@@ -108,12 +110,12 @@ StyledRect {
 
                         topLeftRadius: 21
                         bottomLeftRadius: 21
-                        topRightRadius: Recorder.running ? 21 : 4
-                        bottomRightRadius: Recorder.running ? 21 : 4
+                        topRightRadius: root.isRecordingActive ? 21 : 4
+                        bottomRightRadius: root.isRecordingActive ? 21 : 4
 
                         color: Recorder.running
                             ? (Recorder.paused ? Colours.palette.m3tertiary : Colours.palette.m3primary)
-                            : Colours.palette.m3primary
+                            : (Recorder.selecting ? Colours.palette.m3tertiary : Colours.palette.m3primary)
 
                         Behavior on implicitWidth {
                             Anim {
@@ -149,6 +151,8 @@ StyledRect {
 
                             MaterialIcon {
                                 text: {
+                                    if (Recorder.selecting)
+                                        return "crop";
                                     let found = root.menuItems[0];
                                     for (let i = 0; i < root.menuItems.length; i++) {
                                         if (root.props.recordingMode === root.menuItems[i].icon + root.menuItems[i].text) {
@@ -164,6 +168,8 @@ StyledRect {
 
                             StyledText {
                                 text: {
+                                    if (Recorder.selecting)
+                                        return qsTr("Selecting...");
                                     let found = root.menuItems[0];
                                     for (let i = 0; i < root.menuItems.length; i++) {
                                         if (root.props.recordingMode === root.menuItems[i].icon + root.menuItems[i].text) {
@@ -197,6 +203,8 @@ StyledRect {
                             onClicked: {
                                 if (Recorder.running) {
                                     Recorder.togglePause();
+                                } else if (Recorder.selecting) {
+                                    Recorder.stop();
                                 } else {
                                     const args = ["-f", root.props.recordingFps];
                                     let foundIndex = 0;
@@ -206,13 +214,16 @@ StyledRect {
                                             break;
                                         }
                                     }
-                                    if (foundIndex === 1)
+                                    if (foundIndex === 1) {
                                         args.push("-r");
-                                    else if (foundIndex === 2)
+                                    } else if (foundIndex === 2) {
                                         args.push("-s");
-                                    else if (foundIndex === 3)
-                                        args.push("-sr");
+                                    } else if (foundIndex === 3) {
+                                        args.push("-s");
+                                        args.push("-r");
+                                    }
                                     Recorder.start(args);
+                                    root.visibilities.qspanel = false;
                                 }
                             }
                         }
@@ -221,15 +232,15 @@ StyledRect {
                     // Right Action Pill (Dropdown / Stop)
                     StyledRect {
                         id: menuPill
-                        implicitWidth: Recorder.running ? 42 : (modeMenu.expanded ? 36 : 48)
-                        implicitHeight: Recorder.running ? 42 : 36
+                        implicitWidth: root.isRecordingActive ? 42 : (modeMenu.expanded ? 36 : 48)
+                        implicitHeight: root.isRecordingActive ? 42 : 36
 
                         topRightRadius: 21
                         bottomRightRadius: 21
-                        topLeftRadius: Recorder.running ? 21 : (modeMenu.expanded ? 18 : 4)
-                        bottomLeftRadius: Recorder.running ? 21 : (modeMenu.expanded ? 18 : 4)
+                        topLeftRadius: root.isRecordingActive ? 21 : (modeMenu.expanded ? 18 : 4)
+                        bottomLeftRadius: root.isRecordingActive ? 21 : (modeMenu.expanded ? 18 : 4)
 
-                        color: Recorder.running ? Colours.palette.m3error : Colours.palette.m3primary
+                        color: root.isRecordingActive ? Colours.palette.m3error : Colours.palette.m3primary
 
                         Behavior on implicitWidth {
                             Anim {
@@ -263,7 +274,7 @@ StyledRect {
                             color: Colours.palette.m3onPrimary
                             iconPointSize: Tokens.font.size.normal
                             rotation: modeMenu.expanded ? 180 : 0
-                            visible: !Recorder.running
+                            visible: !root.isRecordingActive
                             Behavior on rotation {
                                 Anim {}
                             }
@@ -274,7 +285,7 @@ StyledRect {
                             text: "stop"
                             color: Colours.palette.m3onError
                             iconPointSize: Tokens.font.size.large
-                            visible: Recorder.running
+                            visible: root.isRecordingActive
                         }
 
                         StateLayer {
@@ -285,7 +296,7 @@ StyledRect {
                             topRightRadius: parent.topRightRadius
                             bottomRightRadius: parent.bottomRightRadius
                             onClicked: {
-                                if (Recorder.running) {
+                                if (root.isRecordingActive) {
                                     Recorder.stop();
                                 } else {
                                     modeMenu.expanded = !modeMenu.expanded;
@@ -306,10 +317,12 @@ StyledRect {
                     }
                 }
 
-                // Timer (Visible only when running)
+                // Timer (Visible only when running or selecting)
                 StyledText {
-                    visible: Recorder.running
+                    visible: Recorder.running || Recorder.selecting
                     text: {
+                        if (Recorder.selecting)
+                            return qsTr("Selecting...");
                         const elapsed = Recorder.elapsed;
                         const hours = Math.floor(elapsed / 3600);
                         const mins = Math.floor((elapsed % 3600) / 60);
@@ -319,7 +332,7 @@ StyledRect {
                     }
                     textPointSize: Tokens.font.size.normal
                     font.weight: Font.DemiBold
-                    color: Colours.palette.m3onSurface
+                    color: Recorder.selecting ? Colours.palette.m3tertiary : Colours.palette.m3onSurface
                     Layout.leftMargin: Tokens.spacing.small
                 }
 
