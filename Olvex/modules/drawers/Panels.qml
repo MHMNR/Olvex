@@ -56,6 +56,9 @@ Item {
 
     // App launch morph — set by ContentWindow after creation
     property var appLaunchMorph: null
+    property var oskWindow: null
+    readonly property real oskHeight: (visibilities && visibilities.osk && visibilities.isOskDocked) ? ((oskWindow && oskWindow.osk) ? oskWindow.osk.implicitHeight : 350) : 0
+    readonly property real oskOffset: oskHeight
 
     readonly property bool powermenuVisible: powermenu.visible
 
@@ -225,7 +228,7 @@ Item {
         const ws = mon?.activeWorkspace;
         const monY = mon?.lastIpcObject?.y ?? 0;
         const screenH = root.screen.height;
-        const panelTop = monY + screenH - 80;
+        const panelTop = monY + screenH - 80 - root.oskOffset;
         const windows = ws?.toplevels?.values ?? [];
         for (let i = 0; i < windows.length; i++) {
             const ipc = windows[i].lastIpcObject;
@@ -234,7 +237,7 @@ Item {
             const winY = ipc.at?.[1] ?? 0;
             const winH = ipc.size?.[1] ?? 0;
 
-            // Only consider windows on this monitor that overlap the bottom 80px
+            // Only consider windows on this monitor that overlap the panel area
             if (winH > 0 && (winY + winH) > panelTop) {
                 return true;
             }
@@ -336,7 +339,7 @@ Item {
         if (contextMenuVisible || overflowFlyoutVisible || (overflowFlyoutContainer && overflowFlyoutContainer.isMorphAnimating))
             return true;
         if (bottomPanelMode === "smarthide") {
-            // If a window overlaps the bottom 80px, react like autohide (hover to show)
+            // If a window overlaps the bottom panel area, react like autohide (hover to show)
             // If no window overlaps, always show
             return hasWindowsOverlappingPanel ? visibilities.bottomPanel : true;
         }
@@ -502,7 +505,7 @@ Item {
 
         // Slide-up behavior relative to parent (which has bottomMargin)
         opacity: root.bottomPanelVisible ? 1 : 0
-        y: root.bottomPanelVisible ? safeParentHeight + root.bottomMargin - height : safeParentHeight + root.bottomMargin
+        y: root.bottomPanelVisible ? (safeParentHeight + root.bottomMargin - height - root.oskOffset) : (safeParentHeight + root.bottomMargin - root.oskOffset)
 
         Behavior on opacity {
             NumberAnimation {

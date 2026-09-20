@@ -28,7 +28,7 @@ PanelWindow {
         height: root.isDragging ? screen.height : (osk.height + (osk.showingSettings ? 450 : 0))
     }
 
-    anchors.top: true
+    anchors.top: false
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
@@ -55,11 +55,12 @@ PanelWindow {
         } 
     }
     
-    // Smooth exclusive zone for docked mode once fully opened
-    exclusiveZone: isDocked && (visibilities && visibilities.osk) && entranceProgress > 0.95 ? Math.round((osk ? osk.implicitHeight : 350) + 6) : 0
+    // Smooth exclusive zone for docked mode (if enabled in settings)
+    readonly property bool exclusiveZoneEnabled: osk ? osk.exclusiveZone : false
+    exclusiveZone: exclusiveZoneEnabled && isDocked && (visibilities && visibilities.osk) ? Math.round((osk ? osk.implicitHeight : 350) + 6) : 0
     
     WlrLayershell.namespace: "quickshell:osk"
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: (exclusiveZoneEnabled && isDocked) ? WlrLayer.Top : WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     
     property real floatingX: Math.round((screen.width - (osk ? osk.implicitWidth : 800)) / 2)
@@ -85,15 +86,15 @@ PanelWindow {
         layer.smooth: true
         
         readonly property real offScreenY: Math.round(screen.height + 20)
-        readonly property real dockedY: Math.round(screen.height - implicitHeight - 3)
-        readonly property real dockedX: 3
+        readonly property real dockedY: Math.round(screen.height - implicitHeight)
+        readonly property real dockedX: 0
         
         x: Math.round(dockedX + (floatingX - dockedX) * (1.0 - dockProgress))
         
         readonly property real currentActiveY: dockedY + (floatingY - dockedY) * (1.0 - dockProgress)
         y: Math.round(offScreenY + (currentActiveY - offScreenY) * root.entranceProgress)
         
-        width: implicitWidth + (parent.width - 6 - implicitWidth) * dockProgress
+        width: implicitWidth + (parent.width - implicitWidth) * dockProgress
         
         onHideRequested: {
             if (visibilities) {

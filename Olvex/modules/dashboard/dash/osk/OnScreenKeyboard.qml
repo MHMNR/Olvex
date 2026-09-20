@@ -19,7 +19,10 @@ Item {
     readonly property var ydotool: Ydotool
     readonly property bool isDocked: visibilities && visibilities.isOskDocked ? true : false
     property bool showingSettings: false
-    readonly property real padding: 22
+    readonly property real padding: root.isDocked ? 12 : 22
+    readonly property real topPadding: root.isDocked ? 10 : (root.padding - 6)
+    readonly property real bottomPadding: root.isDocked ? 6 : (root.padding - 4)
+
     property bool isSplit: oskSettings.isSplit
     property string activeLayoutName: {
         let saved = oskSettings.activeLayoutName;
@@ -34,6 +37,7 @@ Item {
         }
     }
     property real oskScale: oskSettings.scale
+    property bool exclusiveZone: oskSettings.exclusiveZone
     
     Settings {
         id: oskSettings
@@ -41,9 +45,11 @@ Item {
         property real scale: 1.0
         property bool isSplit: false
         property string activeLayoutName: "Default"
+        property bool exclusiveZone: false
     }
 
     onOskScaleChanged: oskSettings.scale = oskScale
+    onExclusiveZoneChanged: oskSettings.exclusiveZone = exclusiveZone
     onIsSplitChanged: oskSettings.isSplit = isSplit
     onActiveLayoutNameChanged: {
         if (!activeLayoutName.includes("Emoji") && !activeLayoutName.includes("Symbols")) {
@@ -93,7 +99,7 @@ Item {
 
     // Layout stability: Keep implicit size constant regardless of mode
     implicitWidth: oskLayoutContainer.implicitWidth + (root.padding * 2)
-    implicitHeight: oskLayoutContainer.implicitHeight + (root.padding * 2) + 6
+    implicitHeight: oskLayoutContainer.implicitHeight + topPadding + bottomPadding
 
     readonly property bool isDragging: dragArea.pressed
     
@@ -115,8 +121,8 @@ Item {
             radius: Tokens.rounding.large - 5
             topLeftRadius: radius
             topRightRadius: radius
-            bottomLeftRadius: radius
-            bottomRightRadius: radius
+            bottomLeftRadius: root.isDocked ? 0 : radius
+            bottomRightRadius: root.isDocked ? 0 : radius
             
             color: Colours.tPalette.m3surface // Deep dark glass to match dashboard panels
             border.width: 1
@@ -132,9 +138,9 @@ Item {
             anchors.top: parent.top
             anchors.leftMargin: root.padding
             anchors.rightMargin: root.padding
-            anchors.topMargin: root.padding - 6
-            anchors.bottomMargin: 8
-            spacing: 12
+            anchors.topMargin: root.topPadding
+            anchors.bottomMargin: root.bottomPadding
+            spacing: root.isDocked ? 8 : 12
             clip: false
 
             // Top Header Bar
@@ -277,11 +283,12 @@ Item {
                 id: dragHandle
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 60
-                Layout.preferredHeight: 6
-                Layout.topMargin: 8
+                Layout.preferredHeight: root.isDocked ? 0 : 6
+                Layout.topMargin: root.isDocked ? 0 : 8
                 radius: 3
                 color: "#ffffff"
                 opacity: (isDocked || root.showingSettings) ? 0 : 0.3
+                visible: !root.isDocked
                 Behavior on opacity { NumberAnimation { duration: 200 } }
 
                 MouseArea {
@@ -378,12 +385,14 @@ Item {
             canSplit: root.canSplit
             activeLayoutName: root.activeLayoutName
             oskScale: root.oskScale
+            exclusiveZone: root.exclusiveZone
             opacity: root.showingSettings ? 1 : 0
             visible: opacity > 0
             
             onIsSplitChanged: root.isSplit = settingsPanel.isSplit
             onActiveLayoutNameChanged: root.activeLayoutName = settingsPanel.activeLayoutName
             onOskScaleChanged: root.oskScale = settingsPanel.oskScale
+            onExclusiveZoneChanged: root.exclusiveZone = settingsPanel.exclusiveZone
             onClose: root.showingSettings = false
         }
     }

@@ -14,6 +14,7 @@ Item {
     property string activeLayoutName: "Default"
     property real oskScale: 1.0
     property bool canSplit: true
+    property bool exclusiveZone: false
     signal close()
     
     property real maxImplicitHeight: headerRow.implicitHeight + scrollContent.implicitHeight + 64 // 24 * 2 margins + 16 spacing
@@ -225,7 +226,47 @@ Item {
                 }
             }
 
-            // Card 4: Keyboard Scale Slider
+            // Card 4: Exclusive Zone (Docked Mode) Toggle
+            StyledRect {
+                Layout.fillWidth: true
+                implicitHeight: exclusiveZoneRow.implicitHeight + 28
+                radius: 16
+                color: Colours.tPalette.m3surfaceContainer
+                border.width: 1
+                border.color: Qt.alpha(Colours.palette.m3primary, 0.15)
+                
+                RowLayout {
+                    id: exclusiveZoneRow
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 12
+                    
+                    ColumnLayout {
+                        spacing: 2
+                        Layout.fillWidth: true
+                        
+                        StyledText {
+                            text: "Exclusive Zone"
+                            color: Colours.palette.m3onSurface
+                            font.pixelSize: 14
+                            font.weight: Font.DemiBold
+                        }
+                        
+                        StyledText {
+                            text: "Reserve screen space in docked mode"
+                            color: Colours.palette.m3onSurfaceVariant
+                            font.pixelSize: 11
+                        }
+                    }
+                    
+                    StyledSwitch {
+                        checked: root.exclusiveZone
+                        onClicked: root.exclusiveZone = !root.exclusiveZone
+                    }
+                }
+            }
+
+            // Card 5: Keyboard Scale Slider
             StyledRect {
                 Layout.fillWidth: true
                 implicitHeight: scaleRow.implicitHeight + 28

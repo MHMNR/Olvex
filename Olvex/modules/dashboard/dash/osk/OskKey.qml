@@ -179,27 +179,25 @@ Item {
         }
 
         Item {
-            anchors.centerIn: parent
+            anchors.fill: parent
             visible: root.isSuper
-            width: 20
-            height: 20
 
             Logo {
                 anchors.centerIn: parent
                 visible: SysInfo.isOlvexLogo
-                implicitWidth: 16
-                implicitHeight: 16
+                implicitWidth: 18
+                implicitHeight: 18
                 topColour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : Colours.palette.m3primary
                 bottomColour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : Colours.palette.m3tertiary
             }
 
             StyledText {
-                anchors.centerIn: parent
+                anchors.fill: parent
                 visible: !SysInfo.isOlvexLogo && !SysInfo.hasCustomImage
                 text: SysInfo.osGlyph || "\uf17c"
                 color: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : keyText.color
                 font.family: Tokens.font.family.mono
-                font.pixelSize: 16
+                textPixelSize: 18
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }

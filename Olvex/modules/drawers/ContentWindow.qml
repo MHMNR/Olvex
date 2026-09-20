@@ -443,6 +443,7 @@ StyledWindow {
             borderThickness: root.borderLayoutThickness
             fullscreen: root.hasFullscreen
             safeBorder: root.safeBorder
+            oskWindow: root.oskWindow
 
             Panels {
                 id: panels
@@ -453,6 +454,7 @@ StyledWindow {
                 bar: bar
                 borderThickness: root.borderThickness
                 safeBorder: root.safeBorder
+                oskWindow: root.oskWindow
                 flyoutsScreenCapture: flyoutsScreenCapture
 
                 // Wire the flying-icon morph overlay back into Panels so GridAppItem → Panels.triggerAppMorph reaches it

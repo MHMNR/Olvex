@@ -88,7 +88,7 @@ Region {
 
     R {
         panel: root.panels.bottomPanel
-        y: root.win.height - height
+        y: root.win.height - height - (root.panels.oskOffset ?? 0)
         customHeight: root.panels.bottomPanelVisible ? panel.height : 0
     }
 

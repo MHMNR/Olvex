@@ -19,6 +19,7 @@ CustomMouseArea {
     required property real borderThickness
     required property var safeBorder
     required property bool fullscreen
+    property var oskWindow: null
 
     property point dragStart
     property bool dashboardShortcutActive
@@ -31,14 +32,15 @@ CustomMouseArea {
     readonly property int floatingGap: safeBorder.floating ? 5 : 0
     readonly property real hoverTolerance: root.borderThickness + floatingGap
     readonly property real verticalTolerance: root.borderThickness + floatingGap
+    readonly property real oskHeight: (visibilities && visibilities.osk && visibilities.isOskDocked) ? ((oskWindow && oskWindow.osk) ? oskWindow.osk.implicitHeight : 350) : 0
 
     function inBottomPanelArea(x: real, y: real): bool {
         if (x < bar.implicitWidth)
             return false;
         if (visibilities.bottomPanel) {
-            return y >= height - 80;
+            return y >= (height - oskHeight - 80) && (oskHeight > 0 ? y <= (height - oskHeight) : true);
         }
-        return y >= height - 4;
+        return y >= (height - oskHeight - 6) && (oskHeight > 0 ? y <= (height - oskHeight + 6) : true);
     }
 
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
