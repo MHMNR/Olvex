@@ -22,6 +22,11 @@ ColumnLayout {
     readonly property bool hasBattery: UPower.displayDevice && UPower.displayDevice.isPresent
     readonly property real battPercent: hasBattery ? Math.round(UPower.displayDevice.percentage * 100) : 100
     readonly property bool isCharging: hasBattery && !UPower.onBattery
+    readonly property bool isPowerSaver: (typeof PowerProfiles !== "undefined" && PowerProfiles.profile === PowerProfile.PowerSaver) || root.activePowerProfile === 0
+    readonly property bool isLow: hasBattery && !isCharging && (battPercent <= 20)
+
+    readonly property color batGreen: "#34C759"
+    readonly property color batYellow: "#FFD60A"
 
     property int activePowerProfile: 1
 
@@ -47,7 +52,7 @@ ColumnLayout {
         Quickshell.execDetached(["powerprofilesctl", "set", profiles[index]]);
     }
 
-    // Live Battery Status Hero Card (Matches Screenshot)
+    // Live Battery Status Hero Card
     StyledRect {
         id: heroCard
         Layout.fillWidth: true
@@ -62,12 +67,98 @@ ColumnLayout {
             anchors.margins: Tokens.padding.large
             spacing: Tokens.spacing.large
 
-            // Left Battery Icon
-            MaterialIcon {
-                text: root.isCharging ? "bolt" : (root.battPercent <= 20 ? "battery_saver" : "battery_full")
-                color: Colours.palette.m3onSurfaceVariant
-                iconPointSize: 24
+            // Left Dynamic Battery Glyph (Matches Dashboard Bar)
+            Item {
+                id: battGlyph
+                Layout.preferredWidth: 46
+                Layout.preferredHeight: 24
                 Layout.leftMargin: Tokens.padding.small
+                Layout.alignment: Qt.AlignVCenter
+
+                readonly property real fillFraction: Math.min(1.0, Math.max(0, root.battPercent / 100.0))
+
+                readonly property color stateColor: {
+                    if (root.isCharging) return root.batGreen;
+                    if (root.isPowerSaver) return root.batYellow;
+                    if (root.isLow) return Colours.palette.m3error;
+                    return Colours.palette.m3primary;
+                }
+
+                readonly property color outlineColor: {
+                    if (root.isCharging) return Qt.alpha(root.batGreen, 0.55);
+                    if (root.isPowerSaver) return Qt.alpha(root.batYellow, 0.65);
+                    if (root.isLow) return Qt.alpha(Colours.palette.m3error, 0.55);
+                    return Colours.light ? Qt.alpha(Colours.palette.m3outline, 0.45) : Qt.alpha(Colours.palette.m3outlineVariant, 0.50);
+                }
+
+                readonly property color trackColor: {
+                    if (root.isCharging) return Qt.alpha(root.batGreen, 0.12);
+                    if (root.isPowerSaver) return Qt.alpha(root.batYellow, 0.12);
+                    if (root.isLow) return Qt.alpha(Colours.palette.m3error, 0.12);
+                    return Colours.light ? Colours.tileFill : Qt.alpha(Colours.palette.m3onSurface, 0.12);
+                }
+
+                // Battery Cap (Right terminal)
+                Rectangle {
+                    id: batCap
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 3.5
+                    height: parent.height * 0.40
+                    radius: 1.5
+                    color: battGlyph.outlineColor
+
+                    Behavior on color { CAnim {} }
+                }
+
+                // Battery Body
+                Rectangle {
+                    id: batBody
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.right: batCap.left
+                    anchors.rightMargin: 1.5
+                    radius: 5
+                    clip: true
+                    color: battGlyph.trackColor
+                    border.width: 1.2
+                    border.color: battGlyph.outlineColor
+
+                    Behavior on color { CAnim {} }
+                    Behavior on border.color { CAnim {} }
+
+                    // Progress Fill Bar
+                    Rectangle {
+                        id: batFill
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.margins: 1.5
+                        radius: 3.5
+                        width: battGlyph.fillFraction > 0 ? Math.max(4, (parent.width - 3) * battGlyph.fillFraction) : 0
+                        color: battGlyph.stateColor
+                        opacity: root.isCharging ? 0.70 : 0.88
+
+                        Behavior on width {
+                            Anim { type: Anim.StandardLarge }
+                        }
+                        Behavior on color { CAnim {} }
+                    }
+
+                    // Inside Status Icon
+                    MaterialIcon {
+                        visible: root.isCharging || root.isPowerSaver
+                        anchors.centerIn: parent
+                        text: root.isCharging ? "bolt" : "energy_savings_leaf"
+                        iconPointSize: root.isCharging ? 12 : 10
+                        fill: 1
+                        color: root.isCharging ? "#ffffff" : "#1c1c1e"
+                        z: 2
+
+                        Behavior on color { CAnim {} }
+                    }
+                }
             }
 
             // Middle Info Column
@@ -76,14 +167,14 @@ ColumnLayout {
                 Layout.fillWidth: true
 
                 StyledText {
-                    text: root.hasBattery ? (root.battPercent + "% — " + (root.isCharging ? qsTr("Charging") : qsTr("On Battery"))) : qsTr("Desktop PC — AC Power")
+                    text: root.hasBattery ? (root.battPercent + "% — " + (root.isCharging ? qsTr("Charging") : (root.isPowerSaver ? qsTr("Battery Saver") : qsTr("On Battery")))) : qsTr("Desktop PC — AC Power")
                     font.weight: Font.Bold
                     textPointSize: Tokens.font.size.normal
                     color: Colours.palette.m3onSurface
                 }
 
                 StyledText {
-                    text: root.hasBattery ? (root.isCharging ? qsTr("Connected to external power supply") : qsTr("Running on internal battery power")) : qsTr("No battery system detected")
+                    text: root.hasBattery ? (root.isCharging ? qsTr("Connected to external power supply") : (root.isPowerSaver ? qsTr("Running in battery saver mode") : qsTr("Running on internal battery power"))) : qsTr("No battery system detected")
                     font.weight: Font.Normal
                     textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
@@ -92,10 +183,10 @@ ColumnLayout {
 
             // Right Status Text Pill (Matches Screenshot)
             StyledText {
-                text: root.isCharging ? qsTr("AC Adapter") : qsTr("Discharging")
+                text: root.isCharging ? qsTr("AC Adapter") : (root.isPowerSaver ? qsTr("Battery Saver") : qsTr("Discharging"))
                 font.weight: Font.Normal
                 textPointSize: Tokens.font.size.small
-                color: Colours.palette.m3onSurfaceVariant
+                color: root.isCharging ? root.batGreen : (root.isPowerSaver ? root.batYellow : Colours.palette.m3onSurfaceVariant)
                 Layout.rightMargin: Tokens.padding.small
             }
         }
