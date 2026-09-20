@@ -34,19 +34,6 @@ ColumnLayout {
         }
 
         SettingRow {
-            title: qsTr("Show clock icon")
-            description: qsTr("Display clock icon in pill")
-            divider: true
-            StyledSwitch {
-                checked: Config.bar.clock.showIcon ?? true
-                onToggled: {
-                    GlobalConfig.bar.clock.showIcon = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-
-        SettingRow {
             title: qsTr("Use 12-hour clock")
             description: qsTr("AM/PM format instead of 24-hour")
             divider: true

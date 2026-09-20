@@ -28,7 +28,7 @@ class BarPopouts : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, tray, true)
-    CONFIG_PROPERTY(bool, systemPill, true)
+    CONFIG_PROPERTY(bool, systemPill, false)
 
 public:
     explicit BarPopouts(QObject* parent = nullptr)

@@ -136,41 +136,7 @@ ColumnLayout {
         if (ch && ch.id !== "tray")
             closeTray();
 
-        if (!ch) {
-            popouts.hasCurrent = false;
-            return;
-        }
-
-        const id = ch.id;
-        const top = ch.y;
-
-        if (id === "systemPill" && Config.bar.popouts.systemPill) {
-            const systemPill = ch.item;
-            if (!systemPill) {
-                popouts.hasCurrent = false;
-                return;
-            }
-            const items = systemPill.item;
-            if (!items) {
-                popouts.hasCurrent = false;
-                return;
-            }
-            const localY = mapToItem(items, 0, y).y;
-            let icon = items.childAt(items.width / 2, localY);
-            // Walk into group hosts if needed; only use nodes with a popout `name`
-            if (icon && (!icon.name || icon.name.length === 0) && icon.children) {
-                const nested = icon.childAt(icon.width / 2, localY - icon.y);
-                if (nested && nested.name && nested.name.length)
-                    icon = nested;
-            }
-            if (icon && icon.name && icon.name.length) {
-                popouts.currentName = icon.name;
-                popouts.currentCenter = Qt.binding(() => icon.mapToItem(root, 0, icon.implicitHeight / 2).y);
-                popouts.hasCurrent = true;
-            } else {
-                popouts.hasCurrent = false;
-            }
-        }
+        popouts.hasCurrent = false;
     }
 
     function handleWheel(y, angleDelta) {

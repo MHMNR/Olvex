@@ -90,11 +90,15 @@ ColumnLayout {
 
         SettingRow {
             title: qsTr("Status icons popout")
-            description: qsTr("Expand status indicators popup")
+            description: qsTr("Expand status indicators popup on hover")
             descriptionColor: Qt.alpha(root.accent, 0.65)
             divider: false
             StyledSwitch {
-                checked: true
+                checked: Config.bar.popouts.systemPill ?? false
+                onToggled: {
+                    GlobalConfig.bar.popouts.systemPill = checked;
+                    GlobalConfig.save();
+                }
             }
         }
     }

@@ -51,7 +51,7 @@ Item {
     property bool scrollBrightness: Config.bar.scrollActions.brightness ?? true
     property bool popoutActiveWindow: Config.bar.popouts.activeWindow ?? true
     property bool popoutTray: Config.bar.popouts.tray ?? true
-    property bool popoutStatusIcons: Config.bar.popouts.statusIcons ?? true
+    property bool popoutStatusIcons: Config.bar.popouts.systemPill ?? false
     property bool netSpeedShowIcons: GlobalConfig.bar?.netSpeed?.showIcons ?? true
     property bool netSpeedBackground: GlobalConfig.bar?.netSpeed?.background ?? false
     property int netSpeedInterval: GlobalConfig.bar?.netSpeed?.refreshInterval ?? 1000
@@ -70,7 +70,6 @@ Item {
         GlobalConfig.bar.activeWindow.inverted = root.activeWindowInverted;
         GlobalConfig.bar.clock.background = root.clockBackground;
         GlobalConfig.bar.clock.showDate = root.clockShowDate;
-        GlobalConfig.bar.clock.showIcon = root.clockShowIcon;
         GlobalConfig.bar.persistent = root.persistent;
         GlobalConfig.bar.showOnHover = root.showOnHover;
         GlobalConfig.bar.dragThreshold = root.dragThreshold;
@@ -96,7 +95,7 @@ Item {
         GlobalConfig.bar.scrollActions.brightness = root.scrollBrightness;
         GlobalConfig.bar.popouts.activeWindow = root.popoutActiveWindow;
         GlobalConfig.bar.popouts.tray = root.popoutTray;
-        GlobalConfig.bar.popouts.statusIcons = root.popoutStatusIcons;
+        GlobalConfig.bar.popouts.systemPill = root.popoutStatusIcons;
         if (GlobalConfig.bar?.netSpeed) {
             GlobalConfig.bar.netSpeed.enabled = root.netSpeedEnabled;
             GlobalConfig.bar.netSpeed.showIcons = root.netSpeedShowIcons;
@@ -565,14 +564,7 @@ Item {
                                 }
                             }
 
-                            SwitchRow {
-                                label: qsTr("Show clock icon")
-                                checked: root.clockShowIcon
-                                onToggled: checked => {
-                                    root.clockShowIcon = checked;
-                                    root.saveConfig();
-                                }
-                            }
+
 
                             SwitchRow {
                                 label: qsTr("Use 12-hour clock")

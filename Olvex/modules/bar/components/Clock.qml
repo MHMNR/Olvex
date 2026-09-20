@@ -7,13 +7,14 @@ import qs.services
 StyledRect {
     id: root
 
+    readonly property bool showBackground: (Config.bar ? Config.bar.clock.background : GlobalConfig.bar.clock.background) ?? false
     readonly property color accentColour: Colours.palette.m3primary
     readonly property color mutedColour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
 
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
 
-    color: Colours.tPalette.m3surfaceContainer
+    color: showBackground ? Colours.tPalette.m3surfaceContainer : "transparent"
     radius: Tokens.rounding.full
 
     MouseArea {
