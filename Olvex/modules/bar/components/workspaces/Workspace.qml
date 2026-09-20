@@ -26,7 +26,7 @@ Item {
     readonly property bool hasWindows: isOccupied && Config.bar.workspaces.showWindows
 
     readonly property int dotDiameter: Tokens.padding.large
-    readonly property int ringDiameter: Tokens.rounding.small
+    readonly property int ringDiameter: 12
     readonly property int labelHeight: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
     // Always reflects the "if fully expanded" height, regardless of current
     // showDetail state — Workspaces.qml sums these for the hover hit-region,
