@@ -77,18 +77,19 @@ ColumnLayout {
         id: offStateCard
         visible: !Nmcli.wifiEnabled
         Layout.fillWidth: true
-        Layout.preferredHeight: 160
+        Layout.preferredHeight: offCol.implicitHeight + Tokens.padding.large * 2
         radius: Tokens.rounding.large
         color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
 
         ColumnLayout {
+            id: offCol
             anchors.centerIn: parent
             spacing: Tokens.spacing.normal
 
             StyledRect {
                 Layout.alignment: Qt.AlignHCenter
-                implicitWidth: 52
-                implicitHeight: 52
+                implicitWidth: 48
+                implicitHeight: 48
                 radius: Tokens.rounding.full
                 color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
@@ -102,7 +103,7 @@ ColumnLayout {
 
             ColumnLayout {
                 Layout.alignment: Qt.AlignHCenter
-                spacing: 2
+                spacing: 4
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter

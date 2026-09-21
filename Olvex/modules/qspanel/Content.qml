@@ -27,6 +27,7 @@ Item {
         id: contentContainer
         anchors.fill: parent
 
+
         ColumnLayout {
             id: layout
 
@@ -86,9 +87,6 @@ Item {
                 contentRoot: root
             }
         }
-
-        Behavior on opacity { Anim {} }
-        opacity: root.props.expansionActive !== "" ? root.props.expansionBgOpacity : 1
     }
 
     ExpansionOverlay {

@@ -154,6 +154,23 @@ Item {
     readonly property int dur: Tokens.anim.durations.normal
     readonly property int expandedHeight: Math.min(root.height - 80, Math.max(150, contentLoader.implicitHeight + 120))
 
+    // ── M3 Backdrop Scrim (fades in behind card to focus overlay) ───────────
+    Rectangle {
+        id: scrim
+        anchors.fill: parent
+        color: "black"
+        opacity: root.active ? 0.38 : 0.0
+        visible: opacity > 0.01
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.active ? root.expandDur : root.collapseDur
+                easing.type: Easing.Bezier
+                easing.bezierCurve: root.md3Emphasized
+            }
+        }
+    }
+
     MouseArea {
         anchors.fill: parent
         enabled: root.active
@@ -224,7 +241,7 @@ Item {
                     width: root.width
                     height: root.expandedHeight
                     radius: Tokens.rounding.large
-                    color: Colours.tileFill
+                    color: Colours.palette.m3surfaceContainerHigh
                     border.color: "transparent"
                     border.width: 0
                 }
