@@ -481,10 +481,18 @@ Item {
         id: shrinkingPill
         width: root.pillWidth
         radius: Math.min(width / 2, height / 2)
-        color: Colours.palette.m3secondaryContainer
+        color: Colours.tPalette.m3surfaceContainerHigh
         visible: root.isPushingDown || root.isPoppingUp || root.isDismissingLast
         z: 8
         clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+            antialiasing: true
+            smooth: true
+        }
 
         property real textAlpha: 1.0
         readonly property bool isCompactCircle: height <= 52
@@ -502,20 +510,18 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.topMargin: shrinkingPill.isCompactCircle ? Math.max(0, (shrinkingPill.height - height) / 2) : 6
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: CircleMask {}
 
             Rectangle {
                 anchors.fill: parent
-                radius: width / 2
                 color: Colours.palette.m3surfaceContainerHighest
-                antialiasing: true
-                smooth: true
             }
 
             CachingIconImage {
                 id: shrinkingIconImg
-                anchors.centerIn: parent
-                width: 24
-                height: 24
+                anchors.fill: parent
                 source: root.animatingOldNotif ? Icons.getNotificationIcon(root.animatingOldNotif) : ""
             }
         }
@@ -542,7 +548,7 @@ Item {
                 MarqueeText {
                     anchors.fill: parent
                     text: root.animatingOldNotif ? (root.animatingOldNotif.summary || root.animatingOldNotif.appName || "") : ""
-                    color: Colours.palette.m3onSecondaryContainer
+                    color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.smaller
                 }
             }
@@ -554,10 +560,18 @@ Item {
         id: incomingPill
         width: root.pillWidth
         radius: Math.min(width / 2, height / 2)
-        color: Colours.palette.m3secondaryContainer
+        color: Colours.tPalette.m3surfaceContainerHigh
         visible: root.isPushingDown || root.isPoppingUp
         z: 9
         clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+            antialiasing: true
+            smooth: true
+        }
 
         property bool useBottomEdge: false
         property real targetBottomEdge: 0
@@ -578,20 +592,18 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.topMargin: incomingPill.isCompactCircle ? Math.max(0, (incomingPill.height - height) / 2) : 6
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: CircleMask {}
 
             Rectangle {
                 anchors.fill: parent
-                radius: width / 2
                 color: Colours.palette.m3surfaceContainerHighest
-                antialiasing: true
-                smooth: true
             }
 
             CachingIconImage {
                 id: incomingIconImg
-                anchors.centerIn: parent
-                width: 24
-                height: 24
+                anchors.fill: parent
                 source: root.animatingNewNotif ? Icons.getNotificationIcon(root.animatingNewNotif) : ""
             }
         }
@@ -618,7 +630,7 @@ Item {
                 MarqueeText {
                     anchors.fill: parent
                     text: root.animatingNewNotif ? (root.animatingNewNotif.summary || root.animatingNewNotif.appName || "") : ""
-                    color: Colours.palette.m3onSecondaryContainer
+                    color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.smaller
                 }
             }
@@ -679,7 +691,15 @@ Item {
                 width: root.pillWidth
                 height: root.pillWidth
                 radius: root.pillRadius
-                color: Colours.palette.m3secondaryContainer
+                color: Colours.tPalette.m3surfaceContainerHigh
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: parent.radius
+                    color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+                    antialiasing: true
+                    smooth: true
+                }
 
                 transform: [
                     Translate {
@@ -723,20 +743,18 @@ Item {
                     anchors.centerIn: parent
                     width: 36
                     height: 36
+                    layer.enabled: true
+                    layer.smooth: true
+                    layer.effect: CircleMask {}
 
                     Rectangle {
                         anchors.fill: parent
-                        radius: width / 2
                         color: Colours.palette.m3surfaceContainerHighest
-                        antialiasing: true
-                        smooth: true
                     }
 
                     CachingIconImage {
                         id: circleIconImg
-                        anchors.centerIn: parent
-                        width: 24
-                        height: 24
+                        anchors.fill: parent
                         source: notif ? Icons.getNotificationIcon(notif) : ""
                     }
                 }
@@ -766,11 +784,19 @@ Item {
         width: root.pillWidth
         height: root.targetTopHeight
         radius: Math.min(width / 2, height / 2)
-        color: Colours.palette.m3secondaryContainer
+        color: Colours.tPalette.m3surfaceContainerHigh
         visible: !root.isPushingDown && !root.isPoppingUp && !root.isDismissingLast && root.hasNotif
         opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && root.currentNotif && Notifs.activeMorphNotif.id === root.currentNotif.id) ? 0 : 1
         z: 2
         clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+            antialiasing: true
+            smooth: true
+        }
 
         readonly property bool isCompactCircle: height <= 52
 
@@ -808,20 +834,18 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.topMargin: topPill.isCompactCircle ? Math.max(0, (topPill.height - height) / 2) : 6
+            layer.enabled: true
+            layer.smooth: true
+            layer.effect: CircleMask {}
 
             Rectangle {
                 anchors.fill: parent
-                radius: width / 2
                 color: Colours.palette.m3surfaceContainerHighest
-                antialiasing: true
-                smooth: true
             }
 
             CachingIconImage {
                 id: topAppIconImg
-                anchors.centerIn: parent
-                width: 24
-                height: 24
+                anchors.fill: parent
                 source: root.currentNotif ? Icons.getNotificationIcon(root.currentNotif) : ""
             }
         }
@@ -893,7 +917,7 @@ Item {
                 MarqueeText {
                     anchors.fill: parent
                     text: root.currentNotif ? (root.currentNotif.summary || root.currentNotif.appName || qsTr("Notification")) : qsTr("Notification")
-                    color: Colours.palette.m3onSecondaryContainer
+                    color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.smaller
                 }
             }
@@ -919,8 +943,8 @@ Item {
         id: marqueeRoot
 
         required property string text
-        property color color: Colours.palette.m3onSecondaryContainer
-        property color fadeColor: Colours.palette.m3secondaryContainer
+        property color color: Colours.palette.m3onSurface
+        property color fadeColor: Colours.tPalette.m3surfaceContainer
         property real textPointSize: Tokens.font.size.smaller
         property bool running: true
 

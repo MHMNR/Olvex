@@ -16,7 +16,7 @@ import "../../../components/effects"
 Item {
     id: root
 
-    readonly property color pillColor: root.playerActive ? Players.musicSurfaceColor : Colours.tPalette.m3surfaceContainer
+    readonly property color pillColor: root.playerActive ? Players.musicSurfaceColor : Colours.tPalette.m3surfaceContainerHigh
     readonly property real pillRadius: root.musicPillRadius
 
     required property var bar
@@ -605,7 +605,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: musicPill.radius
-            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
+            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
             antialiasing: true
             smooth: true
         }

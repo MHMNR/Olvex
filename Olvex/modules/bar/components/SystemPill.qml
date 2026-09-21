@@ -53,8 +53,17 @@ StyledRect {
     readonly property bool tierTelemetry: showSpeed
     readonly property bool tierEphemeral: showLock || showKb
 
-    color: Colours.tPalette.m3surfaceContainer
+    color: Colours.tPalette.m3surfaceContainerHigh
     radius: Tokens.rounding.full
+
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+        antialiasing: true
+        smooth: true
+    }
+
     border.width: 1
     border.color: pillHover.containsMouse
         ? Qt.alpha(Colours.palette.m3primary, 0.3)

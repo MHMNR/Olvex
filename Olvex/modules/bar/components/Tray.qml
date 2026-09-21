@@ -76,8 +76,18 @@ StyledRect {
     Layout.preferredWidth: width
     Layout.preferredHeight: height
 
-    color: trayBackground ? Colours.tPalette.m3surfaceContainer : "transparent"
+    color: trayBackground ? Colours.tPalette.m3surfaceContainerHigh : "transparent"
     radius: Tokens.rounding.full
+
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+        visible: root.trayBackground
+        antialiasing: true
+        smooth: true
+    }
+
     border.width: trayBackground ? 1 : 0
     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.14)
 

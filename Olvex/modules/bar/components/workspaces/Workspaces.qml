@@ -171,8 +171,16 @@ StyledClippingRect {
     width: implicitWidth
     height: implicitHeight
 
-    color: Colours.tPalette.m3surfaceContainer
+    color: Colours.tPalette.m3surfaceContainerHigh
     radius: Tokens.rounding.full
+
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+        antialiasing: true
+        smooth: true
+    }
 
     transform: Translate {
         y: -root.pushOffset

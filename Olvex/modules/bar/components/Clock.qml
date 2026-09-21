@@ -14,8 +14,17 @@ StyledRect {
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
 
-    color: showBackground ? Colours.tPalette.m3surfaceContainer : "transparent"
+    color: showBackground ? Colours.tPalette.m3surfaceContainerHigh : "transparent"
     radius: Tokens.rounding.full
+
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
+        visible: root.showBackground
+        antialiasing: true
+        smooth: true
+    }
 
     MouseArea {
         id: hoverArea
