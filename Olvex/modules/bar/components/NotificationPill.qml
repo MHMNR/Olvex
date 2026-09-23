@@ -54,19 +54,17 @@ Item {
                     olderCirclesModel.remove(i);
                 }
             }
-            for (let i = 0; i < newNotifs.length; i++) {
-                const n = newNotifs[i];
-                if (i >= olderCirclesModel.count) {
-                    olderCirclesModel.insert(i, { notif: n, notifId: n.id, explicitTargetOffset: 0 });
-                } else if (olderCirclesModel.get(i).notifId !== n.id) {
-                    olderCirclesModel.insert(i, { notif: n, notifId: n.id, explicitTargetOffset: 0 });
-                }
-            }
-            
-            const count = olderCirclesModel.count;
+            const count = newNotifs.length;
             for (let i = 0; i < count; i++) {
+                const n = newNotifs[i];
                 const offset = (count - i) * root.pillWidth + Math.max(0, count - 1 - i) * Tokens.spacing.small;
-                olderCirclesModel.setProperty(i, "explicitTargetOffset", offset);
+                if (i >= olderCirclesModel.count) {
+                    olderCirclesModel.insert(i, { notif: n, notifId: n.id, explicitTargetOffset: offset });
+                } else if (olderCirclesModel.get(i).notifId !== n.id) {
+                    olderCirclesModel.insert(i, { notif: n, notifId: n.id, explicitTargetOffset: offset });
+                } else {
+                    olderCirclesModel.setProperty(i, "explicitTargetOffset", offset);
+                }
             }
         }
     }
@@ -100,7 +98,7 @@ Item {
     }
 
     readonly property real availableTopHeight: Math.max(0, root.height - currentOlderCirclesHeight - currentOlderCirclesSpacing)
-    readonly property real targetTopHeight: Math.min(root.height, Math.max(root.pillWidth, availableTopHeight))
+    readonly property real targetTopHeight: Math.max(0, Math.min(availableTopHeight, root.height))
 
     opacity: (root.hasNotif || root.isDismissingLast) ? 1 : 0
     visible: (root.hasNotif || root.isDismissingLast) && opacity > 0.01
@@ -136,17 +134,17 @@ Item {
             target: root
             property: "notifDownwardForce"
             from: 0
-            to: 32
-            duration: Math.round(root.pillMorphDuration * 0.4)
-            easing: Tokens.anim.emphasizedDecel
+            to: 22
+            duration: 120
+            easing.type: Easing.OutQuad
         }
         NumberAnimation {
             target: root
             property: "notifDownwardForce"
-            from: 32
+            from: 22
             to: 0
-            duration: Math.round(root.pillMorphDuration * 0.6)
-            easing: Tokens.anim.expressiveSubtleSpatial
+            duration: 240
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -156,17 +154,17 @@ Item {
             target: root
             property: "entryPushOffset"
             from: 0
-            to: 15
-            duration: Math.round(root.pillMorphDuration * 0.4)
-            easing: Tokens.anim.emphasizedDecel
+            to: 12
+            duration: 110
+            easing.type: Easing.OutQuad
         }
         NumberAnimation {
             target: root
             property: "entryPushOffset"
-            from: 15
+            from: 12
             to: 0
-            duration: Math.round(root.pillMorphDuration * 0.6)
-            easing: Tokens.anim.expressiveSubtleSpatial
+            duration: 220
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -176,17 +174,17 @@ Item {
             target: root
             property: "olderCascadeOffset"
             from: 0
-            to: 12
-            duration: Math.round(root.pillMorphDuration * 0.35)
-            easing: Tokens.anim.emphasizedDecel
+            to: 10
+            duration: 110
+            easing.type: Easing.OutQuad
         }
         NumberAnimation {
             target: root
             property: "olderCascadeOffset"
-            from: 12
+            from: 10
             to: 0
-            duration: Math.round(root.pillMorphDuration * 0.65)
-            easing: Tokens.anim.expressiveSubtleSpatial
+            duration: 220
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -234,13 +232,13 @@ Item {
 
                 incomingPill.useBottomEdge = false;
                 incomingPill.manualY = 0;
-                incomingPill.height = root.pillWidth;
+                incomingPill.animHeight = root.pillWidth;
                 incomingPill.opacity = 1.0;
                 incomingPill.scale = 1.0;
                 incomingPill.textAlpha = 0.0;
 
-                shrinkingPill.y = root.pillWidth + Tokens.spacing.small;
-                shrinkingPill.height = Math.max(root.pillWidth, oldTopH - (root.pillWidth + Tokens.spacing.small));
+                shrinkingPill.manualY = root.pillWidth + Tokens.spacing.small;
+                shrinkingPill.animHeight = Math.max(root.pillWidth, oldTopH - (root.pillWidth + Tokens.spacing.small));
                 shrinkingPill.opacity = 1.0;
                 shrinkingPill.textAlpha = 1.0;
                 shrinkingPill.scale = 1.0;
@@ -277,15 +275,15 @@ Item {
                 const newOlderCirclesHeight = actualNewCount * root.pillWidth + Math.max(0, actualNewCount - 1) * Tokens.spacing.small;
                 const finalTargetTopH = Math.max(root.pillWidth, root.height - newOlderCirclesHeight - (actualNewCount > 0 ? Tokens.spacing.small : 0));
 
-                shrinkingPill.y = 0;
-                shrinkingPill.height = oldTopH;
+                shrinkingPill.manualY = 0;
+                shrinkingPill.animHeight = oldTopH;
                 shrinkingPill.textAlpha = 0.0;
                 shrinkingPill.opacity = isFromOverlay ? 0.0 : 1.0;
                 shrinkingPill.scale = 1.0;
 
                 incomingPill.useBottomEdge = true;
                 incomingPill.targetBottomEdge = oldTargetCircY + root.pillWidth;
-                incomingPill.height = root.pillWidth;
+                incomingPill.animHeight = root.pillWidth;
                 incomingPill.textAlpha = 0.0;
                 incomingPill.opacity = 1.0;
 
@@ -307,8 +305,8 @@ Item {
                 const currentH = (topPill && topPill.height > 0) ? topPill.height : (root.height > 0 ? root.height : root.pillWidth);
                 root.lastDismissHeight = currentH;
 
-                shrinkingPill.y = 0;
-                shrinkingPill.height = currentH;
+                shrinkingPill.manualY = 0;
+                shrinkingPill.animHeight = currentH;
                 shrinkingPill.textAlpha = 1.0;
                 shrinkingPill.opacity = isFromOverlay ? 0.0 : 1.0;
                 shrinkingPill.scale = 1.0;
@@ -332,14 +330,14 @@ Item {
         NumberAnimation {
             id: pushShrinkYAnim
             target: shrinkingPill
-            property: "y"
+            property: "manualY"
             duration: root.pillMorphDuration
             easing: Tokens.anim.expressiveSubtleSpatial
         }
         NumberAnimation {
             id: pushShrinkHAnim
             target: shrinkingPill
-            property: "height"
+            property: "animHeight"
             duration: root.pillMorphDuration
             easing: Tokens.anim.expressiveSubtleSpatial
         }
@@ -354,7 +352,7 @@ Item {
         NumberAnimation {
             id: pushExpandHAnim
             target: incomingPill
-            property: "height"
+            property: "animHeight"
             duration: root.pillMorphDuration
             easing: Tokens.anim.expressiveSubtleSpatial
         }
@@ -400,7 +398,7 @@ Item {
         NumberAnimation {
             id: popShrinkYAnim
             target: shrinkingPill
-            property: "y"
+            property: "manualY"
             duration: root.pillMorphDuration
             easing: Tokens.anim.expressiveSubtleSpatial
         }
@@ -416,7 +414,7 @@ Item {
         NumberAnimation {
             id: popExpandHAnim
             target: incomingPill
-            property: "height"
+            property: "animHeight"
             duration: root.pillMorphDuration
             easing: Tokens.anim.expressiveSubtleSpatial
         }
@@ -456,7 +454,7 @@ Item {
         NumberAnimation {
             id: dismissLastYAnim
             target: shrinkingPill
-            property: "y"
+            property: "manualY"
             duration: root.pillMorphDuration
             easing: Tokens.anim.expressiveSubtleSpatial
         }
@@ -480,6 +478,10 @@ Item {
     StyledRect {
         id: shrinkingPill
         width: root.pillWidth
+        property real animHeight: root.pillWidth
+        property real manualY: 0
+        y: Math.min(root.height - root.pillWidth, manualY)
+        height: Math.max(root.pillWidth, Math.min(animHeight, Math.max(root.pillWidth, root.height - y)))
         radius: Math.min(width / 2, height / 2)
         color: Colours.tPalette.m3surfaceContainerHigh
         visible: root.isPushingDown || root.isPoppingUp || root.isDismissingLast
@@ -499,7 +501,7 @@ Item {
 
         transform: [
             Translate {
-                y: root.olderCascadeOffset
+                y: Math.min(root.olderCascadeOffset, Math.max(0, root.height - (shrinkingPill.y + shrinkingPill.height)))
             }
         ]
 
@@ -559,6 +561,8 @@ Item {
     StyledRect {
         id: incomingPill
         width: root.pillWidth
+        property real animHeight: root.pillWidth
+        height: Math.max(root.pillWidth, animHeight)
         radius: Math.min(width / 2, height / 2)
         color: Colours.tPalette.m3surfaceContainerHigh
         visible: root.isPushingDown || root.isPoppingUp
@@ -665,6 +669,7 @@ Item {
             delegate: StyledRect {
                 id: olderCircleDelegate
                 required property var notif
+                required property var notifId
                 required property int index
                 required property real explicitTargetOffset
 
@@ -687,7 +692,7 @@ Item {
                 }
 
                 x: (parent.width - width) / 2
-                y: Math.max(0, root.height - currentStackOffset)
+                y: Math.min(root.height - root.pillWidth, Math.max(0, root.height - currentStackOffset))
                 width: root.pillWidth
                 height: root.pillWidth
                 radius: root.pillRadius
@@ -703,7 +708,10 @@ Item {
 
                 transform: [
                     Translate {
-                        y: root.olderCascadeOffset * Math.pow(0.75, index) + olderCircleDelegate.animatedCircleShiftY
+                        y: Math.min(
+                            root.olderCascadeOffset * Math.pow(0.75, index) + olderCircleDelegate.animatedCircleShiftY,
+                            Math.max(0, root.height - (olderCircleDelegate.y + olderCircleDelegate.height))
+                        )
                     },
                     Scale {
                         origin.x: olderCircleDelegate.width / 2
@@ -712,16 +720,20 @@ Item {
                         yScale: olderCircleDelegate.circleScale
                     }
                 ]
-                opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && notif && Notifs.activeMorphNotif.id === notif.id) ? 0 : 
-                         ((root.isPushingDown || root.isPoppingUp) && root.animatingOldNotif && notif && notif.id === root.animatingOldNotif.id) ? 0 : 
-                         ((root.isPushingDown || root.isPoppingUp) && root.animatingNewNotif && notif && notif.id === root.animatingNewNotif.id) ? 0 : 1
-
-                Behavior on opacity {
-                    NumberAnimation { 
-                        duration: (root.isPushingDown || root.isPoppingUp) ? 150 : 0
-                        easing: Tokens.anim.expressiveFastSpatial 
+                readonly property bool isAnimatingThis: {
+                    if (root.isPushingDown) {
+                        if (index === 0) return true;
+                        if (root.animatingOldNotif && (olderCircleDelegate.notifId === root.animatingOldNotif.id || (notif && notif.id === root.animatingOldNotif.id))) return true;
                     }
+                    if (root.isPoppingUp) {
+                        if (root.animatingNewNotif && (olderCircleDelegate.notifId === root.animatingNewNotif.id || (notif && notif.id === root.animatingNewNotif.id))) return true;
+                        if (root.animatingOldNotif && (olderCircleDelegate.notifId === root.animatingOldNotif.id || (notif && notif.id === root.animatingOldNotif.id))) return true;
+                    }
+                    return false;
                 }
+                opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && ((notif && Notifs.activeMorphNotif.id === notif.id) || (olderCircleDelegate.notifId && Notifs.activeMorphNotif.id === olderCircleDelegate.notifId))) ? 0 : 
+                         isAnimatingThis ? 0 : 1
+                visible: !isAnimatingThis && opacity > 0.01
 
                 Behavior on color {
                     CAnim {

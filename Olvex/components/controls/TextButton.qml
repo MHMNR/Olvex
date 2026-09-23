@@ -29,7 +29,9 @@ StyledRect {
     property color inactiveColour: {
         if (!toggle && type === TextButton.Filled)
             return Colours.palette.m3primary;
-        return type === TextButton.Filled ? Colours.tPalette.m3surfaceContainer : Colours.palette.m3secondaryContainer;
+        if (type === TextButton.Tonal)
+            return Colours.transparencyEnabled ? Qt.alpha(Colours.palette.m3secondaryContainer, 0.50) : Colours.palette.m3secondaryContainer;
+        return Colours.tPalette.m3surfaceContainer;
     }
     property color activeOnColour: {
         if (type === TextButton.Text)
