@@ -57,7 +57,7 @@ Item {
             const count = newNotifs.length;
             for (let i = 0; i < count; i++) {
                 const n = newNotifs[i];
-                const offset = (count - i) * root.pillWidth + Math.max(0, count - 1 - i) * Tokens.spacing.small;
+                const offset = root.computeStackOffset(i, count);
                 if (i >= olderCirclesModel.count) {
                     olderCirclesModel.insert(i, { notif: n, notifId: n.id, explicitTargetOffset: offset });
                 } else if (olderCirclesModel.get(i).notifId !== n.id) {
@@ -74,11 +74,39 @@ Item {
 
     readonly property int pillMorphDuration: 430
 
-    readonly property real olderCirclesHeight: {
-        const len = olderCirclesModel.count;
-        if (len === 0) return 0;
-        return len * root.pillWidth + (len - 1) * Tokens.spacing.small;
+    // ── Dynamic visible slot & overflow calculations ──
+    readonly property int maxOlderSlots: {
+        if (root.height <= 0) return 1;
+        const available = root.height - 96 - Tokens.spacing.small;
+        const slotH = root.pillWidth + Tokens.spacing.small;
+        return Math.max(1, Math.min(5, Math.floor(available / slotH)));
     }
+
+    readonly property bool hasOverflow: olderCirclesModel.count > maxOlderSlots
+    readonly property int maxVisibleCircles: hasOverflow ? (maxOlderSlots - 1) : maxOlderSlots
+    readonly property int overflowCount: Math.max(0, olderCirclesModel.count - maxVisibleCircles)
+    readonly property int displayedSlotCount: hasOverflow ? maxOlderSlots : olderCirclesModel.count
+
+    function getOlderStackHeight(count) {
+        if (count <= 0) return 0;
+        const slots = count > root.maxOlderSlots ? root.maxOlderSlots : count;
+        return slots * root.pillWidth + Math.max(0, slots - 1) * Tokens.spacing.small;
+    }
+
+    function getDisplayedSlotCount(count) {
+        if (count <= 0) return 0;
+        return count > root.maxOlderSlots ? root.maxOlderSlots : count;
+    }
+
+    function computeStackOffset(idx, totalCount) {
+        if (totalCount <= 0) return 0;
+        const slots = root.getDisplayedSlotCount(totalCount);
+        const isOver = root.hasOverflow && idx >= root.maxVisibleCircles;
+        const slot = isOver ? (slots - 1) : Math.min(idx, slots - 1);
+        return (slots - slot) * root.pillWidth + Math.max(0, slots - 1 - slot) * Tokens.spacing.small;
+    }
+
+    readonly property real olderCirclesHeight: getOlderStackHeight(olderCirclesModel.count)
     
     property real currentOlderCirclesHeight: olderCirclesHeight
     Behavior on currentOlderCirclesHeight {
@@ -88,7 +116,7 @@ Item {
         }
     }
 
-    readonly property real targetOlderCirclesSpacing: olderCirclesModel.count > 0 ? Tokens.spacing.small : 0
+    readonly property real targetOlderCirclesSpacing: displayedSlotCount > 0 ? Tokens.spacing.small : 0
     property real currentOlderCirclesSpacing: targetOlderCirclesSpacing
     Behavior on currentOlderCirclesSpacing {
         NumberAnimation {
@@ -104,7 +132,7 @@ Item {
     visible: (root.hasNotif || root.isDismissingLast) && opacity > 0.01
 
     implicitWidth: pillWidth
-    implicitHeight: root.hasNotif ? (160 + olderNotifs.length * (pillWidth + Tokens.spacing.small)) : 0
+    implicitHeight: root.hasNotif ? (160 + displayedSlotCount * (pillWidth + Tokens.spacing.small)) : 0
 
     Behavior on implicitHeight {
         NumberAnimation {
@@ -222,11 +250,11 @@ Item {
                 root.animatingNewNotif = newNotif;
                 
                 const olderCountBefore = Math.max(0, olderCirclesModel.count - 1);
-                const olderHeightBefore = olderCountBefore * root.pillWidth + Math.max(0, olderCountBefore - 1) * Tokens.spacing.small;
+                const olderHeightBefore = root.getOlderStackHeight(olderCountBefore);
                 const oldTopH = Math.max(root.pillWidth, root.height - olderHeightBefore - (olderCountBefore > 0 ? Tokens.spacing.small : 0));
                 
                 const olderCountAfter = olderCirclesModel.count;
-                const olderHeightAfter = olderCountAfter * root.pillWidth + Math.max(0, olderCountAfter - 1) * Tokens.spacing.small;
+                const olderHeightAfter = root.getOlderStackHeight(olderCountAfter);
                 const targetCircY = Math.max(0, root.height - olderHeightAfter);
                 const targetTopH = Math.max(root.pillWidth, root.height - olderHeightAfter - Tokens.spacing.small);
 
@@ -268,11 +296,11 @@ Item {
                 const actualOldCount = newTopNotif ? actualNewCount + 1 : 0;
 
                 const oldCount = actualOldCount;
-                const oldOlderCirclesHeight = oldCount * root.pillWidth + Math.max(0, oldCount - 1) * Tokens.spacing.small;
+                const oldOlderCirclesHeight = root.getOlderStackHeight(oldCount);
                 const oldTargetCircY = Math.max(0, root.height - oldOlderCirclesHeight);
-                const oldTopH = Math.max(root.pillWidth, root.height - oldOlderCirclesHeight - Tokens.spacing.small);
+                const oldTopH = Math.max(root.pillWidth, root.height - oldOlderCirclesHeight - (oldCount > 0 ? Tokens.spacing.small : 0));
 
-                const newOlderCirclesHeight = actualNewCount * root.pillWidth + Math.max(0, actualNewCount - 1) * Tokens.spacing.small;
+                const newOlderCirclesHeight = root.getOlderStackHeight(actualNewCount);
                 const finalTargetTopH = Math.max(root.pillWidth, root.height - newOlderCirclesHeight - (actualNewCount > 0 ? Tokens.spacing.small : 0));
 
                 shrinkingPill.manualY = 0;
@@ -281,8 +309,8 @@ Item {
                 shrinkingPill.opacity = isFromOverlay ? 0.0 : 1.0;
                 shrinkingPill.scale = 1.0;
 
-                incomingPill.useBottomEdge = true;
-                incomingPill.targetBottomEdge = oldTargetCircY + root.pillWidth;
+                incomingPill.useBottomEdge = false;
+                incomingPill.manualY = oldTargetCircY;
                 incomingPill.animHeight = root.pillWidth;
                 incomingPill.textAlpha = 0.0;
                 incomingPill.opacity = 1.0;
@@ -293,6 +321,9 @@ Item {
                 popShrinkScaleAnim.from = 1.0;
                 popShrinkScaleAnim.to = 0.8;
                 
+                popIncomingYAnim.from = oldTargetCircY;
+                popIncomingYAnim.to = 0;
+                popExpandHAnim.from = root.pillWidth;
                 popExpandHAnim.to = finalTargetTopH;
                 
                 popUpAnim.restart();
@@ -410,6 +441,14 @@ Item {
             easing: Tokens.anim.expressiveSubtleSpatial
         }
 
+
+        NumberAnimation {
+            id: popIncomingYAnim
+            target: incomingPill
+            property: "manualY"
+            duration: root.pillMorphDuration
+            easing: Tokens.anim.expressiveSubtleSpatial
+        }
 
         NumberAnimation {
             id: popExpandHAnim
@@ -673,8 +712,18 @@ Item {
                 required property int index
                 required property real explicitTargetOffset
 
-                property real circleScale: 1.0
-                property real targetStackOffset: explicitTargetOffset
+                readonly property bool isOverflowed: root.hasOverflow && index >= root.maxVisibleCircles
+
+                property real circleScale: isOverflowed ? 0.7 : 1.0
+                Behavior on circleScale {
+                    NumberAnimation {
+                        duration: root.pillMorphDuration
+                        easing: Tokens.anim.expressiveSubtleSpatial
+                    }
+                }
+
+                readonly property real dynamicStackOffset: root.computeStackOffset(index, olderCirclesModel.count)
+                property real targetStackOffset: isNaN(dynamicStackOffset) ? explicitTargetOffset : dynamicStackOffset
                 property real currentStackOffset: targetStackOffset
                 
                 Behavior on currentStackOffset {
@@ -685,7 +734,7 @@ Item {
                 }
 
                 readonly property real totalCascadeForce: root.wsPushForce + root.notifDownwardForce
-                readonly property real circleKineticShiftY: Math.min(14, totalCascadeForce * 0.14 * Math.pow(0.85, index))
+                readonly property real circleKineticShiftY: Math.min(14, totalCascadeForce * 0.14 * Math.pow(0.85, Math.min(index, root.maxOlderSlots)))
                 property real animatedCircleShiftY: circleKineticShiftY
                 Behavior on animatedCircleShiftY {
                     Anim { type: Anim.FastSpatial }
@@ -709,7 +758,7 @@ Item {
                 transform: [
                     Translate {
                         y: Math.min(
-                            root.olderCascadeOffset * Math.pow(0.75, index) + olderCircleDelegate.animatedCircleShiftY,
+                            root.olderCascadeOffset * Math.pow(0.75, Math.min(index, root.maxOlderSlots)) + olderCircleDelegate.animatedCircleShiftY,
                             Math.max(0, root.height - (olderCircleDelegate.y + olderCircleDelegate.height))
                         )
                     },
@@ -732,8 +781,15 @@ Item {
                     return false;
                 }
                 opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && ((notif && Notifs.activeMorphNotif.id === notif.id) || (olderCircleDelegate.notifId && Notifs.activeMorphNotif.id === olderCircleDelegate.notifId))) ? 0 : 
-                         isAnimatingThis ? 0 : 1
+                         isOverflowed ? 0 : 1
                 visible: !isAnimatingThis && opacity > 0.01
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Math.round(root.pillMorphDuration * 0.4)
+                        easing: Tokens.anim.expressiveSubtleSpatial
+                    }
+                }
 
                 Behavior on color {
                     CAnim {
@@ -741,8 +797,6 @@ Item {
                         easing: Tokens.anim.expressiveDefaultSpatial
                     }
                 }
-
-
 
                 SequentialAnimation {
                     id: circlePressSpring
@@ -782,6 +836,139 @@ Item {
                         }
                         circlePressSpring.start();
                         root.triggerExpand(olderCircleDelegate, circleIconFrame, notif);
+                    }
+                }
+            }
+        }
+
+        // ── Overflow Indicator Badge ─────────────────────────────────────
+        StyledRect {
+            id: overflowBadge
+            z: 2
+            x: (parent.width - width) / 2
+            y: Math.min(root.height - root.pillWidth, Math.max(0, root.height - root.pillWidth))
+            width: root.pillWidth
+            height: root.pillWidth
+            radius: root.pillRadius
+            color: Colours.tPalette.m3surfaceContainerHighest
+
+            visible: root.hasOverflow && opacity > 0.01
+            opacity: root.hasOverflow ? 1.0 : 0.0
+            scale: root.hasOverflow ? badgePulseScale : 0.6
+
+            property real badgePulseScale: 1.0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Math.round(root.pillMorphDuration * 0.5)
+                    easing: Tokens.anim.expressiveSubtleSpatial
+                }
+            }
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: root.pillMorphDuration
+                    easing: Tokens.anim.expressiveDefaultSpatial
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: Qt.alpha(Colours.palette.m3primary, 0.14)
+                antialiasing: true
+                smooth: true
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: "transparent"
+                border.width: 1
+                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+                antialiasing: true
+                smooth: true
+            }
+
+            transform: [
+                Translate {
+                    y: Math.min(
+                        root.olderCascadeOffset * 0.5 + Math.min(10, (root.wsPushForce + root.notifDownwardForce) * 0.08),
+                        Math.max(0, root.height - (overflowBadge.y + overflowBadge.height))
+                    )
+                },
+                Scale {
+                    origin.x: overflowBadge.width / 2
+                    origin.y: overflowBadge.height / 2
+                    xScale: overflowBadge.scale
+                    yScale: overflowBadge.scale
+                }
+            ]
+
+            SequentialAnimation {
+                id: badgePressSpring
+                NumberAnimation { target: overflowBadge; property: "badgePulseScale"; to: 0.90; duration: 90; easing.type: Easing.OutQuad }
+                NumberAnimation { target: overflowBadge; property: "badgePulseScale"; to: 1.0; duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+            }
+
+            SequentialAnimation {
+                id: badgeCountPulse
+                NumberAnimation { target: overflowBadge; property: "badgePulseScale"; to: 1.15; duration: 110; easing.type: Easing.OutQuad }
+                NumberAnimation { target: overflowBadge; property: "badgePulseScale"; to: 1.0; duration: 200; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
+            }
+
+            Connections {
+                target: root
+                function onOverflowCountChanged() {
+                    if (root.overflowCount > 0 && root.hasOverflow) {
+                        badgeCountPulse.restart();
+                    }
+                }
+            }
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 1
+
+                StyledText {
+                    text: "+"
+                    color: Colours.palette.m3primary
+                    font.family: Tokens.font.family.sans
+                    font.weight: Font.Bold
+                    textPointSize: Tokens.font.size.smaller
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                StyledText {
+                    text: `${root.overflowCount}`
+                    color: Colours.palette.m3primary
+                    font.family: Tokens.font.family.mono
+                    font.weight: Font.Bold
+                    textPointSize: Tokens.font.size.normal
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                onClicked: mouse => {
+                    if (mouse.button === Qt.RightButton || mouse.button === Qt.MiddleButton) {
+                        const notifsToDismiss = [];
+                        for (let i = root.olderNotifs.length - 1; i >= root.maxVisibleCircles; i--) {
+                            const n = root.olderNotifs[i];
+                            if (n) notifsToDismiss.push(n);
+                        }
+                        for (let i = 0; i < notifsToDismiss.length; i++) {
+                            Notifs.dismissNotif(notifsToDismiss[i]);
+                        }
+                        return;
+                    }
+                    badgePressSpring.start();
+                    const vis = Visibilities.getForActive();
+                    if (vis) {
+                        vis.notificationcenter = !vis.notificationcenter;
                     }
                 }
             }
@@ -873,7 +1060,7 @@ Item {
             anchors.margins: 4
             clip: true
             visible: root.hasNotif && !topPill.isCompactCircle
-            opacity: (root.hasNotif && !root.isPushingDown && !root.isPoppingUp && !topPill.isCompactCircle) ? 1.0 : 0.0
+            opacity: (root.hasNotif && !topPill.isCompactCircle) ? 1.0 : 0.0
 
             Behavior on opacity {
                 NumberAnimation {

@@ -17,9 +17,16 @@ StyledRect {
 
     required property NotifData modelData
 
-    // image://icon/* is a theme icon name, not a bitmap — must not load as Image@36
+    // image://icon/* or plain icon name is a theme icon name, not a bitmap — must not load as Image@36
     readonly property string rawImage: String(modelData.image ?? "")
-    readonly property string imageIconName: Icons.iconNameFromUrl(rawImage)
+    readonly property string imageIconName: {
+        if (!rawImage.length) return "";
+        if (rawImage.startsWith("image://icon/"))
+            return Icons.iconNameFromUrl(rawImage);
+        if (!rawImage.startsWith("/") && !rawImage.startsWith("file://") && !rawImage.startsWith("data:") && !rawImage.startsWith("http"))
+            return rawImage;
+        return "";
+    }
     readonly property bool hasImage: rawImage.length > 0 && imageIconName.length === 0
     readonly property bool hasAppIcon: modelData.appIcon.length > 0 || imageIconName.length > 0
     readonly property bool isCritical: modelData.urgency === NotificationUrgency.Critical
