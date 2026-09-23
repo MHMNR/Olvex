@@ -7,8 +7,9 @@ import Olvex.Config
 import qs.components
 import qs.services
 
-StyledClippingRect {
+StyledRect {
     id: root
+    clip: true
 
     required property ShellScreen screen
     required property bool fullscreen
@@ -176,7 +177,7 @@ StyledClippingRect {
 
     Rectangle {
         anchors.fill: parent
-        radius: parent.radius
+        radius: root.radius
         color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
         antialiasing: true
         smooth: true
