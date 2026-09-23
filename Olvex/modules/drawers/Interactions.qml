@@ -235,8 +235,9 @@ CustomMouseArea {
             const cHeight = Math.max(pop ? pop.height : 0, content ? (content.nonAnimHeight || content.implicitHeight) : 0);
             const pt = pop ? pop.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
             const inPopoutContent = pt.x >= 0 && pt.x <= cWidth && pt.y >= 0 && pt.y <= cHeight;
+            const inBar = event.x <= bar.clampedWidth;
 
-            if (!inPopoutContent) {
+            if (!inPopoutContent && !inBar) {
                 popouts.hasCurrent = false;
                 bar.closeTray();
                 event.accepted = false;
@@ -462,7 +463,9 @@ CustomMouseArea {
 
         // Show popouts on hover
         if (x < bar.implicitWidth) {
-            bar.checkPopout(y);
+            if (!popouts.currentName.startsWith("traymenu")) {
+                bar.checkPopout(y);
+            }
         } else if (inPopout(x, y)) {
             // Mouse is inside or transitioning into the popout menu — keep open!
         } else {

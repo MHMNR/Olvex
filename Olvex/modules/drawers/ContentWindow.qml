@@ -115,7 +115,7 @@ StyledWindow {
         repeat: false
     }
 
-    function pulseShellMotion(): void {
+    function pulseShellMotion() {
         shellMotionGrace.restart();
         Visibilities.pulseShellMotion(shellMotionGrace.interval);
     }
@@ -123,26 +123,26 @@ StyledWindow {
     Connections {
         target: visibilities
 
-        function onQspanelChanged(): void { root.pulseShellMotion(); }
-        function onDashboardChanged(): void { root.pulseShellMotion(); }
-        function onLauncherChanged(): void { root.pulseShellMotion(); }
-        function onWallpaperLauncherChanged(): void { root.pulseShellMotion(); }
-        function onPowermenuChanged(): void { root.pulseShellMotion(); }
-        function onNotificationcenterChanged(): void { root.pulseShellMotion(); }
-        function onClipboardChanged(): void { root.pulseShellMotion(); }
+        function onQspanelChanged() { root.pulseShellMotion(); }
+        function onDashboardChanged() { root.pulseShellMotion(); }
+        function onLauncherChanged() { root.pulseShellMotion(); }
+        function onWallpaperLauncherChanged() { root.pulseShellMotion(); }
+        function onPowermenuChanged() { root.pulseShellMotion(); }
+        function onNotificationcenterChanged() { root.pulseShellMotion(); }
+        function onClipboardChanged() { root.pulseShellMotion(); }
     }
 
     Connections {
         target: panels.popouts
 
-        function onHasCurrentChanged(): void { root.pulseShellMotion(); }
+        function onHasCurrentChanged() { root.pulseShellMotion(); }
     }
 
     Connections {
         target: panels
 
-        function onContextMenuVisibleChanged(): void { root.pulseShellMotion(); }
-        function onOverflowFlyoutVisibleChanged(): void { root.pulseShellMotion(); }
+        function onContextMenuVisibleChanged() { root.pulseShellMotion(); }
+        function onOverflowFlyoutVisibleChanged() { root.pulseShellMotion(); }
     }
 
     mask: (hasFullscreen || morph.active || notifMorph.active || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating) || visibilities.launcher || visibilities.wallpaperLauncher || panels.popouts.hasCurrent) ? null : regions
@@ -205,7 +205,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: !Visibilities.areaPickerActive && ((visibilities.launcher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.wallpaperLauncher && root.contentItem?.Config?.launcher?.enabled) || (visibilities.powermenu && root.contentItem?.Config?.powermenu?.enabled) || (visibilities.notificationcenter && root.contentItem?.Config?.notificationcenter?.enabled) || (visibilities.dashboard && root.contentItem?.Config?.dashboard?.enabled) || (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1) || visibilities.qspanel || visibilities.clipboard)
+        active: !Visibilities.areaPickerActive && ((visibilities.launcher && (Config.launcher.enabled ?? true)) || (visibilities.wallpaperLauncher && (Config.launcher.enabled ?? true)) || (visibilities.powermenu && (Config.powermenu.enabled ?? true)) || (visibilities.notificationcenter && (Config.notificationcenter.enabled ?? true)) || (visibilities.dashboard && (Config.dashboard.enabled ?? true)) || (panels.popouts.hasCurrent && panels.popouts.currentName.startsWith("traymenu")) || visibilities.qspanel || visibilities.clipboard)
         windows: [root]
         onActiveChanged: {
             if (active) {

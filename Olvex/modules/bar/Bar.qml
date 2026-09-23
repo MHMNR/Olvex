@@ -131,12 +131,13 @@ ColumnLayout {
     }
 
     function checkPopout(y) {
+        if (popouts.hasCurrent && popouts.currentName.startsWith("traymenu"))
+            return;
+
         const ch = childAt(width / 2, y) as WrappedLoader;
 
         if (ch && ch.id !== "tray")
             closeTray();
-
-        popouts.hasCurrent = false;
     }
 
     function handleWheel(y, angleDelta) {
