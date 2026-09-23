@@ -27,6 +27,16 @@ Item {
         id: contentContainer
         anchors.fill: parent
 
+        opacity: root.props.expansionActive !== "" ? (root.props.expansionBgOpacity ?? 0.35) : 1.0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.props.expansionActive !== "" ? 500 : 400
+                easing.type: Easing.Bezier
+                easing.bezierCurve: [0.05, 0, 0.133333, 0.06, 0.166666, 0.4, 0.208333, 0.82, 0.25, 1, 1, 1]
+            }
+        }
+
 
         ColumnLayout {
             id: layout

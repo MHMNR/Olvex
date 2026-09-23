@@ -12,7 +12,7 @@ import "../../bar/popouts" as Popouts
 Item {
     id: root
 
-    focus: active
+    focus: needsKeyboard
     Keys.forwardTo: [contentLoader]
 
     required property var props
@@ -154,22 +154,7 @@ Item {
     readonly property int dur: Tokens.anim.durations.normal
     readonly property int expandedHeight: Math.min(root.height - 80, Math.max(150, contentLoader.implicitHeight + 120))
 
-    // ── M3 Backdrop Scrim (fades in behind card to focus overlay) ───────────
-    Rectangle {
-        id: scrim
-        anchors.fill: parent
-        color: "black"
-        opacity: root.active ? 0.38 : 0.0
-        visible: opacity > 0.01
 
-        Behavior on opacity {
-            NumberAnimation {
-                duration: root.active ? root.expandDur : root.collapseDur
-                easing.type: Easing.Bezier
-                easing.bezierCurve: root.md3Emphasized
-            }
-        }
-    }
 
     MouseArea {
         anchors.fill: parent
@@ -214,6 +199,16 @@ Item {
         border.color: "transparent"
         border.width: 0
         clip: true
+
+        StyledRect {
+            anchors.fill: parent
+            radius: parent.radius
+            color: "transparent"
+            border.color: Colours.tileShine
+            border.width: 1
+            opacity: card.state === "expanded" ? 1 : 0
+            Behavior on opacity { Anim { type: Anim.FastEffects } }
+        }
 
         Behavior on color { ColorAnimation { duration: 250 } }
         

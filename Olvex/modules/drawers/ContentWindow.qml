@@ -145,7 +145,22 @@ StyledWindow {
         function onOverflowFlyoutVisibleChanged() { root.pulseShellMotion(); }
     }
 
-    mask: (hasFullscreen || morph.active || notifMorph.active || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating) || visibilities.launcher || visibilities.wallpaperLauncher || panels.popouts.hasCurrent) ? null : regions
+    readonly property bool anyPanelActive: (visibilities.launcher && (Config.launcher.enabled ?? true))
+                                        || (visibilities.wallpaperLauncher && (Config.launcher.enabled ?? true))
+                                        || (visibilities.dashboard && (Config.dashboard.enabled ?? true))
+                                        || (visibilities.qspanel && (Config.qspanel.enabled ?? true))
+                                        || (visibilities.notificationcenter && (Config.notificationcenter.enabled ?? true))
+                                        || (visibilities.powermenu && (Config.powermenu.enabled ?? true))
+                                        || (visibilities.clipboard)
+                                        || (visibilities.flyouts && (Config.flyouts.enabled ?? true))
+                                        || panels.popouts.hasCurrent
+                                        || panels.contextMenuVisible
+                                        || panels.overflowFlyoutVisible
+                                        || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating)
+                                        || morph.active
+                                        || notifMorph.active
+
+    mask: (hasFullscreen || anyPanelActive) ? null : regions
 
     Regions {
         id: regions
@@ -205,7 +220,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: !Visibilities.areaPickerActive && ((visibilities.launcher && (Config.launcher.enabled ?? true)) || (visibilities.wallpaperLauncher && (Config.launcher.enabled ?? true)) || (visibilities.powermenu && (Config.powermenu.enabled ?? true)) || (visibilities.notificationcenter && (Config.notificationcenter.enabled ?? true)) || (visibilities.dashboard && (Config.dashboard.enabled ?? true)) || (panels.popouts.hasCurrent && panels.popouts.currentName.startsWith("traymenu")) || visibilities.qspanel || visibilities.clipboard)
+        active: !Visibilities.areaPickerActive && ((visibilities.launcher && (Config.launcher.enabled ?? true)) || (visibilities.wallpaperLauncher && (Config.launcher.enabled ?? true)) || (visibilities.powermenu && (Config.powermenu.enabled ?? true)) || (visibilities.notificationcenter && (Config.notificationcenter.enabled ?? true)) || (visibilities.dashboard && (Config.dashboard.enabled ?? true)) || (panels.popouts.hasCurrent && panels.popouts.currentName.startsWith("traymenu")) || (panels.qspanel && panels.qspanel.needsKeyboard && visibilities.qspanel) || visibilities.clipboard)
         windows: [root]
         onActiveChanged: {
             if (active) {

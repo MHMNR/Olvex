@@ -169,30 +169,10 @@ CustomMouseArea {
             return;
         }
 
-        // Dismiss bottom panel overflow flyout when clicking outside it
-        if (panels.overflowFlyoutVisible) {
-            const flyout = panels.overflowFlyoutContainer;
-            const pt = flyout ? flyout.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
-            const inFlyout = flyout && pt.x >= 0 && pt.x <= flyout.width && pt.y >= 0 && pt.y <= flyout.height;
-
-            if (!inFlyout) {
-                panels.overflowFlyoutVisible = false;
-                event.accepted = false;
-                return;
-            }
-        }
-
-        // Dismiss bottom panel app context menu when clicking outside it
-        if (panels.contextMenuVisible) {
-            const menu = panels.contextMenuContainer;
-            const pt = menu ? menu.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
-            const inMenu = menu && pt.x >= 0 && pt.x <= menu.width && pt.y >= 0 && pt.y <= menu.height;
-
-            if (!inMenu) {
-                panels.hideContextMenu();
-                event.accepted = false;
-                return;
-            }
+        // Heads-up notifs (any size) — never steal expand / swipe / action clicks
+        if (overNotifications(event.x, event.y)) {
+            event.accepted = false;
+            return;
         }
 
         dragStart = Qt.point(event.x, event.y);
@@ -221,95 +201,138 @@ CustomMouseArea {
             return;
         }
 
-        // Heads-up notifs (any size) — never steal expand / swipe / action clicks
-        if (overNotifications(event.x, event.y)) {
-            event.accepted = false;
-            return;
-        }
+        // ── Determine which panels/surfaces contain the click ──────────────
+        const inBar = event.x <= bar.clampedWidth;
+        const inBp = panels.bottomPanel.visible && event.y >= (height - panels.bottomPanel.height - root.borderThickness - floatingGap);
 
-        // Dismiss popout menus (tray context menu, popouts) when clicking outside
+        let inPopoutContent = false;
         if (popouts.hasCurrent) {
             const pop = panels.popoutsWrapper;
             const content = pop ? pop.content : null;
             const cWidth = Math.max(pop ? pop.width : 0, content ? (content.nonAnimWidth || content.implicitWidth) : 0);
             const cHeight = Math.max(pop ? pop.height : 0, content ? (content.nonAnimHeight || content.implicitHeight) : 0);
             const pt = pop ? pop.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
-            const inPopoutContent = pt.x >= 0 && pt.x <= cWidth && pt.y >= 0 && pt.y <= cHeight;
-            const inBar = event.x <= bar.clampedWidth;
-
-            if (!inPopoutContent && !inBar) {
-                popouts.hasCurrent = false;
-                bar.closeTray();
-                event.accepted = false;
-                return;
-            }
+            inPopoutContent = pt.x >= 0 && pt.x <= cWidth && pt.y >= 0 && pt.y <= cHeight;
         }
 
-        // Dismiss qspanel (QS panel) when clicking outside — only if NOT on a shell panel.
-        // Must close + reject here (not ContentWindow MouseArea) so Wayland gets the event.
+        let inFlyout = false;
+        if (panels.overflowFlyoutVisible) {
+            const flyout = panels.overflowFlyoutContainer;
+            const pt = flyout ? flyout.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            inFlyout = flyout && pt.x >= 0 && pt.x <= flyout.width && pt.y >= 0 && pt.y <= flyout.height;
+        }
+
+        let inMenu = false;
+        if (panels.contextMenuVisible) {
+            const menu = panels.contextMenuContainer;
+            const pt = menu ? menu.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            inMenu = menu && pt.x >= 0 && pt.x <= menu.width && pt.y >= 0 && pt.y <= menu.height;
+        }
+
+        let inUtil = false;
         if (visibilities.qspanel) {
             const util = panels.qspanel;
-            const utilMapped = util.mapFromItem(root, event.x, event.y);
-            const inUtil = utilMapped.x >= 0 && utilMapped.y >= 0 
-                        && utilMapped.x <= util.width && utilMapped.y <= util.height;
-
-            if (!inUtil) {
-                visibilities.qspanel = false;
-                event.accepted = false;
-                return;
-            }
+            const utilMapped = util ? util.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            inUtil = utilMapped.x >= 0 && utilMapped.y >= 0 && utilMapped.x <= util.width && utilMapped.y <= util.height;
         }
 
-        // Dismiss launcher / wallpaper-selector when clicking outside their area.
-        // Must happen in Interactions (not a separate overlay MouseArea) so that
-        // event.accepted = false actually forwards the click to the underlying app.
-        if (visibilities.launcher && !inBottomPanel(panels.launcher, event.x, event.y)) {
-            // Let bar OS icon still toggle launcher
-            let inOsIcon = false;
-            if (bar.osIcon) {
-                const osMapped = bar.osIcon.mapFromItem(root, event.x, event.y);
-                inOsIcon = osMapped.x >= 0 && osMapped.y >= 0 && osMapped.x <= bar.osIcon.width && osMapped.y <= bar.osIcon.height;
-            }
-            const inBp = panels.bottomPanel.visible && event.y >= (height - panels.bottomPanel.height - root.borderThickness - floatingGap);
-            if (!inOsIcon && !inBp) {
-                visibilities.launcher = false;
-                event.accepted = false;
-                return;
-            }
-        }
-
-        if (visibilities.wallpaperLauncher && !inBottomPanel(panels.wallpaperSelector, event.x, event.y)) {
-            let inOsIcon = false;
-            if (bar.osIcon) {
-                const osMapped = bar.osIcon.mapFromItem(root, event.x, event.y);
-                inOsIcon = osMapped.x >= 0 && osMapped.y >= 0 && osMapped.x <= bar.osIcon.width && osMapped.y <= bar.osIcon.height;
-            }
-            const inBp = panels.bottomPanel.visible && event.y >= (height - panels.bottomPanel.height - root.borderThickness - floatingGap);
-            if (!inOsIcon && !inBp) {
-                visibilities.wallpaperLauncher = false;
-                event.accepted = false;
-                return;
-            }
-        }
-
-        // Dismiss dashboard when clicking outside — only if NOT on dashboard panel
+        let inDash = false;
         if (visibilities.dashboard) {
             const dash = panels.dashboard;
-            const dashMapped = dash.mapFromItem(root, event.x, event.y);
-            const inDash = dashMapped.x >= 0 && dashMapped.y >= 0 
-                        && dashMapped.x <= dash.width && dashMapped.y <= dash.height;
+            const dashMapped = dash ? dash.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            inDash = dashMapped.x >= 0 && dashMapped.y >= 0 && dashMapped.x <= dash.width && dashMapped.y <= dash.height;
+        }
 
-            if (!inDash) {
-                visibilities.dashboard = false;
-                event.accepted = false;
-                return;
-            } else {
-                event.accepted = false;
-                return;
+        let inLaunch = false;
+        if (visibilities.launcher) {
+            inLaunch = inBottomPanel(panels.launcher, event.x, event.y);
+            if (!inLaunch && bar.osIcon) {
+                const osMapped = bar.osIcon.mapFromItem(root, event.x, event.y);
+                inLaunch = osMapped.x >= 0 && osMapped.y >= 0 && osMapped.x <= bar.osIcon.width && osMapped.y <= bar.osIcon.height;
             }
+        }
+
+        let inWallpaper = false;
+        if (visibilities.wallpaperLauncher) {
+            inWallpaper = inBottomPanel(panels.wallpaperSelector, event.x, event.y);
+            if (!inWallpaper && bar.osIcon) {
+                const osMapped = bar.osIcon.mapFromItem(root, event.x, event.y);
+                inWallpaper = osMapped.x >= 0 && osMapped.y >= 0 && osMapped.x <= bar.osIcon.width && osMapped.y <= bar.osIcon.height;
+            }
+        }
+
+        // ── Dismiss any open menus/drawers that the click was NOT inside ───
+        let dismissedAny = false;
+
+        if (panels.overflowFlyoutVisible && !inFlyout) {
+            panels.overflowFlyoutVisible = false;
+            dismissedAny = true;
+        }
+        if (panels.contextMenuVisible && !inMenu) {
+            panels.hideContextMenu();
+            dismissedAny = true;
+        }
+        if (popouts.hasCurrent && !inPopoutContent && !inBar) {
+            popouts.hasCurrent = false;
+            bar.closeTray();
+            dismissedAny = true;
+        }
+        if (visibilities.qspanel && !inUtil) {
+            visibilities.qspanel = false;
+            qspanelShortcutActive = false;
+            dismissedAny = true;
+        }
+        if (visibilities.dashboard && !inDash) {
+            visibilities.dashboard = false;
+            dashboardShortcutActive = false;
+            dismissedAny = true;
+        }
+        if (visibilities.launcher && !inLaunch && !inBp) {
+            visibilities.launcher = false;
+            dismissedAny = true;
+        }
+        if (visibilities.wallpaperLauncher && !inWallpaper && !inBp) {
+            visibilities.wallpaperLauncher = false;
+            dismissedAny = true;
+        }
+        if (visibilities.notificationcenter) {
+            const notifPanel = panels.notifications;
+            const notifMapped = notifPanel ? notifPanel.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            const inNotif = notifMapped.x >= 0 && notifMapped.y >= 0 && notifMapped.x <= notifPanel.width && notifMapped.y <= notifPanel.height;
+            if (!inNotif) {
+                visibilities.notificationcenter = false;
+                dismissedAny = true;
+            }
+        }
+        if (visibilities.powermenu) {
+            const pm = panels.powermenu;
+            const pmMapped = pm ? pm.mapFromItem(root, event.x, event.y) : ({ x: -1, y: -1 });
+            const inPower = pmMapped.x >= 0 && pmMapped.y >= 0 && pmMapped.x <= pm.width && pmMapped.y <= pm.height;
+            if (!inPower) {
+                visibilities.powermenu = false;
+                dismissedAny = true;
+            }
+        }
+        if (dismissedAny) {
+            event.accepted = false;
+            return;
+        }
+
+        const isDragTrigger = inTopRightCorner(event.x, event.y)
+                           || inTopPanel(panels.dashboard, event.x, event.y)
+                           || inBottomPanel(panels.launcher, event.x, event.y)
+                           || inRightPanel(panels.flyoutsWrapper, event.x, event.y)
+                           || inRightPanel(panels.qspanel, event.x, event.y)
+                           || inBar
+                           || inBp;
+
+        if (!isDragTrigger && !inUtil && !inDash && !inLaunch && !inWallpaper && !inPopoutContent && !inFlyout && !inMenu) {
+            event.accepted = false;
+            return;
         }
 
         dragStart = Qt.point(event.x, event.y);
+        event.accepted = true;
     }
 
     // No click-to-open on top-right — drag only (see onPositionChanged).
