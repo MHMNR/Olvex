@@ -77,39 +77,36 @@ Singleton {
 
     function applyState() {
         const targetTemp = root.autoSchedule ? calculateAutoTemp() : root.temperature;
+        const isEnabled = root.enabled ? "1" : "0";
 
-        if (root.enabled) {
-            if (targetTemp >= 6500) {
-                // Neutral
-                runCommand(`
-                    NIGHT_BIN=$(which hyprsunset 2>/dev/null || ([ -x "$HOME/.local/bin/hyprsunset" ] && echo "$HOME/.local/bin/hyprsunset"))
-                    if [ -n "$NIGHT_BIN" ] && [ -x "$NIGHT_BIN" ]; then
-                        pkill -9 hyprsunset 2>/dev/null || true
-                        nohup "$NIGHT_BIN" -i >/dev/null 2>&1 &
-                        sleep 0.2
-                        pkill -9 hyprsunset 2>/dev/null || true
-                    fi
-                `);
-            } else {
-                runCommand(`
-                    NIGHT_BIN=$(which hyprsunset 2>/dev/null || ([ -x "$HOME/.local/bin/hyprsunset" ] && echo "$HOME/.local/bin/hyprsunset"))
-                    if [ -n "$NIGHT_BIN" ] && [ -x "$NIGHT_BIN" ]; then
-                        pkill -9 hyprsunset 2>/dev/null || true
-                        nohup "$NIGHT_BIN" -t ${targetTemp} >/dev/null 2>&1 &
-                    fi
-                `);
-            }
-        } else {
-            runCommand(`
-                NIGHT_BIN=$(which hyprsunset 2>/dev/null || ([ -x "$HOME/.local/bin/hyprsunset" ] && echo "$HOME/.local/bin/hyprsunset"))
-                if [ -n "$NIGHT_BIN" ] && [ -x "$NIGHT_BIN" ]; then
-                    pkill -9 hyprsunset 2>/dev/null || true
-                    nohup "$NIGHT_BIN" -i >/dev/null 2>&1 &
-                    sleep 0.2
+        runCommand(`
+            ENABLED="${isEnabled}"
+            TARGET_TEMP="${targetTemp}"
+
+            if command -v hyprsunset >/dev/null 2>&1 || [ -x "$HOME/.local/bin/hyprsunset" ]; then
+                HS_BIN=$(command -v hyprsunset 2>/dev/null || echo "$HOME/.local/bin/hyprsunset")
+                pkill -9 hyprsunset 2>/dev/null || true
+                if [ "$ENABLED" = "1" ] && [ "$TARGET_TEMP" -lt 6500 ]; then
+                    nohup "$HS_BIN" -t "$TARGET_TEMP" >/dev/null 2>&1 &
+                else
+                    nohup "$HS_BIN" -i >/dev/null 2>&1 &
+                    sleep 0.1
                     pkill -9 hyprsunset 2>/dev/null || true
                 fi
-            `);
-        }
+            elif command -v gammastep >/dev/null 2>&1; then
+                pkill -9 gammastep 2>/dev/null || true
+                if [ "$ENABLED" = "1" ] && [ "$TARGET_TEMP" -lt 6500 ]; then
+                    nohup gammastep -O "$TARGET_TEMP" >/dev/null 2>&1 &
+                else
+                    gammastep -x >/dev/null 2>&1 || true
+                fi
+            elif command -v wlsunset >/dev/null 2>&1; then
+                pkill -9 wlsunset 2>/dev/null || true
+                if [ "$ENABLED" = "1" ] && [ "$TARGET_TEMP" -lt 6500 ]; then
+                    nohup wlsunset -t "$TARGET_TEMP" -T 6500 >/dev/null 2>&1 &
+                fi
+            fi
+        `);
     }
 
     Timer {
