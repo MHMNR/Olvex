@@ -43,11 +43,49 @@ Singleton {
     signal configReloaded
 
     function dispatch(request: string): void {
-        const parts = request.trim().split(/\s+/);
-        if (parts.length > 0) {
-            const args = ["hyprctl", "dispatch"].concat(parts);
-            Quickshell.execDetached(args);
+        const trimmed = request.trim();
+        if (!trimmed)
+            return;
+
+        if (trimmed.startsWith("hl.") || trimmed.startsWith("return ")) {
+            Quickshell.execDetached(["hyprctl", "dispatch", trimmed]);
+            return;
         }
+
+        const parts = trimmed.split(/\s+/);
+        const cmd = parts[0].toLowerCase();
+        const arg = parts.slice(1).join(" ").trim();
+
+        let luaExpr = "";
+
+        if (cmd === "workspace") {
+            luaExpr = `hl.dsp.focus({ workspace = '${arg}' })`;
+        } else if (cmd === "togglespecialworkspace") {
+            const wsName = arg || "special";
+            luaExpr = `hl.dsp.workspace.toggle_special('${wsName}')`;
+        } else if (cmd === "focuswindow") {
+            luaExpr = `hl.dsp.focus({ window = '${arg}' })`;
+        } else if (cmd === "closewindow") {
+            luaExpr = arg ? `hl.dsp.window.close({ window = '${arg}' })` : `hl.dsp.window.close()`;
+        } else if (cmd === "killwindow") {
+            luaExpr = arg ? `hl.dsp.window.kill({ window = '${arg}' })` : `hl.dsp.window.kill()`;
+        } else if (cmd === "togglefloating") {
+            luaExpr = arg ? `hl.dsp.window.float({ action = 'toggle', window = '${arg}' })` : `hl.dsp.window.float({ action = 'toggle' })`;
+        } else if (cmd === "pin") {
+            luaExpr = arg ? `hl.dsp.window.pin({ action = 'toggle', window = '${arg}' })` : `hl.dsp.window.pin({ action = 'toggle' })`;
+        } else if (cmd === "dpms") {
+            luaExpr = `hl.dsp.dpms('${arg}')`;
+        } else if (cmd === "movetoworkspace") {
+            const sub = arg.split(",");
+            const targetWs = sub[0].trim();
+            const targetWin = sub.length > 1 ? sub[1].trim() : "";
+            luaExpr = targetWin ? `hl.dsp.window.move({ workspace = '${targetWs}', window = '${targetWin}' })` : `hl.dsp.window.move({ workspace = '${targetWs}' })`;
+        } else {
+            Quickshell.execDetached(["hyprctl", "dispatch"].concat(parts));
+            return;
+        }
+
+        Quickshell.execDetached(["hyprctl", "dispatch", luaExpr]);
     }
 
     function cycleSpecialWorkspace(direction: string): void {

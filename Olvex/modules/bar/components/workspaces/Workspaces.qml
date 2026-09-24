@@ -260,10 +260,18 @@ StyledRect {
             onClicked: event => {
                 const child = layout.childAt(event.x, event.y);
                 const ws = child ? child.ws : undefined;
-                if (Hypr.activeWsId !== ws)
-                    Hypr.dispatch(`workspace ${ws}`);
-                else
-                    Hypr.dispatch("togglespecialworkspace special");
+                if (ws !== undefined) {
+                    if (Hypr.activeWsId !== ws)
+                        Hypr.dispatch(`workspace ${ws}`);
+                    else
+                        Hypr.dispatch("togglespecialworkspace special");
+                }
+            }
+            onWheel: wheel => {
+                if (wheel.angleDelta.y > 0)
+                    Hypr.dispatch("workspace r-1");
+                else if (wheel.angleDelta.y < 0)
+                    Hypr.dispatch("workspace r+1");
             }
         }
 
