@@ -55,7 +55,7 @@ Item {
                 clip: true
 
                 color: Colours.tileSurface
-                radius: Tokens.rounding.normal
+                radius: (typeof Config !== "undefined" && Config && Config.border) ? Config.border.drawerRounding : Tokens.rounding.normal
 
                 border.width: 1
                 border.color: Colours.tileStroke

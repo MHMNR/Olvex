@@ -74,7 +74,7 @@ StyledRect {
 
     Layout.fillWidth: true
     implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
-    radius: Tokens.rounding.normal
+    radius: (typeof Config !== "undefined" && Config && Config.border) ? Config.border.drawerRounding : Tokens.rounding.normal
     
     color: Colours.tileGlassStrong
 

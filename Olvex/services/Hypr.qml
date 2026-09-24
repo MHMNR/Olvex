@@ -156,11 +156,39 @@ Singleton {
         return !isCodeEditorToplevel(t);
     }
 
+    function syncGaps(): void {
+        if (typeof GameMode !== "undefined" && GameMode && GameMode.enabled)
+            return;
+        const gap = GlobalConfig.border.gap ?? 6;
+        const rounding = GlobalConfig.border.drawerRounding;
+        extras.applyOptions({
+            "general:gaps_out": gap,
+            "decoration:rounding": rounding
+        });
+    }
+
     function reloadDynamicConfs(): void {
-        extras.batchMessage(["keyword bindlni ,Caps_Lock,global,olvex:refreshDevices", "keyword bindlni ,Num_Lock,global,olvex:refreshDevices"]);
+        extras.batchMessage(["eval hl.bind('Caps_Lock', hl.dsp.global('olvex:refreshDevices'), { locked = true, non_consuming = true, ignore_mods = true })", "eval hl.bind('Num_Lock', hl.dsp.global('olvex:refreshDevices'), { locked = true, non_consuming = true, ignore_mods = true })"]);
+        syncGaps();
     }
 
     Component.onCompleted: reloadDynamicConfs()
+
+    Connections {
+        target: GlobalConfig.border
+        function onGapChanged(): void {
+            root.syncGaps();
+        }
+        function onFloatingChanged(): void {
+            root.syncGaps();
+        }
+        function onRoundingChanged(): void {
+            root.syncGaps();
+        }
+        function onDrawerRoundingChanged(): void {
+            root.syncGaps();
+        }
+    }
 
     onCapsLockChanged: {
         if (!GlobalConfig.qspanel.toasts.capsLockChanged)

@@ -29,7 +29,7 @@ CustomMouseArea {
     property bool wallpaperShortcutActive: false
     property bool launcherHoverDisabled: false
 
-    readonly property int floatingGap: safeBorder.floating ? 5 : 0
+    readonly property int floatingGap: safeBorder.floating ? (safeBorder.gap ?? 6) : 0
     readonly property real hoverTolerance: root.borderThickness + floatingGap
     readonly property real verticalTolerance: root.borderThickness + floatingGap
     function inBottomPanelArea(x: real, y: real): bool {

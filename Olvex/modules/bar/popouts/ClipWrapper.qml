@@ -63,6 +63,6 @@ Item {
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
-        anchors.leftMargin: (-implicitWidth - 5) * root.offsetScale
+        anchors.leftMargin: (-implicitWidth - 6) * root.offsetScale
     }
 }

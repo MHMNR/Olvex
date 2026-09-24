@@ -63,7 +63,7 @@ Item {
     layer.smooth: true
     // Slide from right → left: offsetScale 1 = fully off-screen right, 0 = docked
     // peekOffset pulls a thin strip into view while closed
-    anchors.rightMargin: (-implicitWidth - 5) * offsetScale + peekOffset * offsetScale
+    anchors.rightMargin: (-implicitWidth - 6) * offsetScale + peekOffset * offsetScale
     // Height comes from Panels anchors (top + bottom) — full column
     implicitWidth: Tokens.sizes.qspanel.width
     // Fallback when not yet anchored

@@ -439,20 +439,21 @@ Singleton {
     }
 
     function reloadHyprRules() {
-        const str = "keyword layerrule %1 %2, match:namespace %3";
         const namespaces = ["olvex-drawers", "quickshell:osk"];
         const messages = [];
         const shouldBlur = transparencyEnabled && transparencyBlur;
-        const ignoreAlpha = transparencyEnabled ? Math.max(0.005, transparencyBase * 0.7) : 1.0;
+        const ignoreAlpha = transparencyEnabled ? Math.max(0.1, transparencyBase * 0.7) : 1.0;
         namespaces.forEach(ns => {
-            messages.push(str.arg("blur").arg(shouldBlur ? 1 : 0).arg(ns));
-            messages.push(str.arg("ignore_alpha").arg(ignoreAlpha.toFixed(3)).arg(ns));
+            if (shouldBlur) {
+                messages.push(`eval hl.layer_rule({ match = { namespace = "${ns}" }, blur = true, ignore_alpha = ${ignoreAlpha.toFixed(3)} })`);
+            } else {
+                messages.push(`eval hl.layer_rule({ match = { namespace = "${ns}" }, blur = false })`);
+            }
         });
         if (shouldBlur) {
             const size = Math.max(1, Math.min(30, transparencyBlurRadius));
             const passes = Math.max(1, Math.min(5, transparencyBlurPasses));
-            messages.push("keyword decoration:blur:size " + size);
-            messages.push("keyword decoration:blur:passes " + passes);
+            messages.push(`eval hl.config({ decoration = { blur = { size = ${size}, passes = ${passes} } } })`);
         }
         Hypr.extras.batchMessage(messages);
     }

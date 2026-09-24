@@ -106,9 +106,9 @@ Item {
     // so the border blob expands and panel sits inside it. Only always mode
     // sets exclusiveZone=80 to push windows.
     property real bottomMargin: {
-        const baseMargin = borderThickness + (safeBorder.floating ? 5 : 0);
+        const baseMargin = borderThickness + (safeBorder.floating ? safeBorder.gap : 0);
         if (bottomPanelVisible)
-            return 80 + (safeBorder.floating ? 5 : 0);
+            return 80 + (safeBorder.floating ? safeBorder.gap : 0);
         return baseMargin;
     }
 
@@ -364,10 +364,10 @@ Item {
     }
 
     anchors.fill: parent
-    anchors.margins: borderThickness + (safeBorder.floating ? 5 : 0)
+    anchors.topMargin: borderThickness + (safeBorder.floating ? safeBorder.gap : 0)
     anchors.bottomMargin: bottomMargin
-
-    anchors.leftMargin: bar.implicitWidth + (safeBorder.floating ? 5 : 0)
+    anchors.leftMargin: bar.implicitWidth + (safeBorder.floating ? safeBorder.gap : 0)
+    anchors.rightMargin: borderThickness + (safeBorder.floating ? safeBorder.gap : 0)
 
     Item {
         id: flyoutsWrapper
@@ -411,9 +411,9 @@ Item {
 
         anchors.fill: parent
         anchors.leftMargin: -bar.implicitWidth
-        anchors.topMargin: -root.anchors.margins
-        anchors.rightMargin: -root.anchors.margins
-        anchors.bottomMargin: -root.anchors.margins
+        anchors.topMargin: -root.anchors.topMargin
+        anchors.rightMargin: -root.anchors.rightMargin
+        anchors.bottomMargin: -root.anchors.bottomMargin
         z: 999
 
         Session.Wrapper {
@@ -474,9 +474,10 @@ Item {
         visibilities: root.visibilities
         popouts: popoutsWrapper.content
 
-        // Full height right column — root item already shrinks by bottomMargin, no extra offset needed
         anchors.top: parent.top
+        anchors.topMargin: safeBorder.floating ? 1 : 0
         anchors.bottom: parent.bottom
+        anchors.bottomMargin: safeBorder.floating ? 1 : 0
         anchors.right: parent.right
     }
 
@@ -499,7 +500,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 0
         anchors.right: parent.right
-        anchors.rightMargin: -(root.borderThickness + (safeBorder.floating ? 5 : 0))
+        anchors.rightMargin: -(root.borderThickness + (safeBorder.floating ? safeBorder.gap : 0))
 
         height: 80
         visible: root.bottomPanelEnabled

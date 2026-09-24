@@ -126,7 +126,7 @@ Region {
         property real customWidth: panel.width
         property real customHeight: panel.height
 
-        readonly property int gap: root.borderFloating ? 5 : 0
+        readonly property int gap: root.borderFloating ? (win.safeBorder.gap ?? 6) : 0
 
         x: panel.x + root.bar.implicitWidth + gap
         y: panel.y + root.borderThickness + gap

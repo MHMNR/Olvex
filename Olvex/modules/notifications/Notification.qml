@@ -93,7 +93,7 @@ StyledRect {
     border.color: isCritical
         ? Qt.alpha(Colours.palette.m3error, 0.28)
         : Colours.tileStrokeSubtle
-    radius: Tokens.rounding.large
+    radius: (typeof Config !== "undefined" && Config && Config.border) ? Config.border.drawerRounding : Tokens.rounding.large
     // Resolve sizes on this Item (screen Tokens via window tree) — never on Anim
     readonly property int notifWidth: Tokens.sizes.notifs.width
     implicitWidth: notifWidth

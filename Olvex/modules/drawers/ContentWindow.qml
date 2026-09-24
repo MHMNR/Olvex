@@ -17,14 +17,16 @@ import "../qspanel/cards" as Cards
 StyledWindow {
     id: root
 
-    readonly property var safeBorder: (contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border : {
+    readonly property var safeBorder: (typeof Config !== "undefined" && Config && Config.border) ? Config.border : ((typeof GlobalConfig !== "undefined" && GlobalConfig.border) ? GlobalConfig.border : {
         thickness: 0,
-        rounding: 0,
+        rounding: 24,
         minThickness: 0,
-        floating: false,
-        smoothing: 0,
-        clampedThickness: 0
-    }
+        floating: true,
+        smoothing: 32,
+        clampedThickness: 0,
+        gap: 6,
+        drawerRounding: 18
+    })
 
     readonly property bool _initApps: {
         Qt.application.name = "Olvex";
@@ -56,6 +58,7 @@ StyledWindow {
     property real borderThickness: hasFullscreen ? 0 : safeBorder.thickness
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : safeBorder.thickness
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
+    readonly property real drawerRounding: hasFullscreen ? 0 : (safeBorder.drawerRounding ?? (safeBorder.floating ? Math.max(0, safeBorder.rounding - (safeBorder.gap ?? 6)) : safeBorder.rounding))
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
     readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
 
@@ -336,7 +339,7 @@ StyledWindow {
                 y: visibilities.powermenu ? 0 : panels.powermenuWrapper.y + panels.powermenu.y + panels.y
                 implicitWidth: visibilities.powermenu ? root.width : 0
                 implicitHeight: visibilities.powermenu ? root.height : 0
-                radius: visibilities.powermenu ? 0 : Tokens.rounding.large
+                radius: visibilities.powermenu ? 0 : root.drawerRounding
             }
 
             PanelBg {
@@ -372,7 +375,7 @@ StyledWindow {
                 panel: panels.overflowFlyoutContainer
                 group: drawerGroup
                 deformAmount: 0.05
-                radius: Tokens.rounding.large
+                radius: root.drawerRounding
             }
         }
     }
@@ -423,7 +426,8 @@ StyledWindow {
 
     Item {
         id: revealContainer
-        anchors.fill: parent
+        width: root.screen ? root.screen.width : 1920
+        height: root.screen ? root.screen.height : 1080
         opacity: isVisible ? 1 : 0
 
         Behavior on opacity {
@@ -439,7 +443,8 @@ StyledWindow {
         // live only while the OSD is actually on screen to save bandwidth.
         ScreencopyView {
             id: flyoutsScreenCapture
-            anchors.fill: parent
+            width: root.screen ? root.screen.width : 1920
+            height: root.screen ? root.screen.height : 1080
             captureSource: root.screen
             live: visibilities.flyouts
             visible: false
@@ -449,6 +454,8 @@ StyledWindow {
 
         Interactions {
             id: interactions
+            width: root.screen ? root.screen.width : 1920
+            height: root.screen ? root.screen.height : 1080
 
             screen: root.screen
             popouts: panels.popouts
@@ -662,7 +669,7 @@ StyledWindow {
         y: panel.y + panels.y
         implicitWidth: active ? panel.width : 0
         implicitHeight: active ? panel.height : 0
-        radius: Tokens.rounding.large
+        radius: root.drawerRounding
         deformScale: (deformAmount * Config.appearance.deformScale) / 10000
     }
 }

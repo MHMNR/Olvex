@@ -20,7 +20,7 @@ Item {
 
     // Padding/rounding constants — mirror what Content.qml uses
     readonly property int padding: Tokens.padding.large
-    readonly property int rounding: Tokens.rounding.large
+    readonly property int rounding: (typeof Config !== "undefined" && Config && Config.border) ? Config.border.drawerRounding : Tokens.rounding.large
 
     // Slide-up offset: 0 = visible, 1 = hidden below screen
     property real offsetScale: shouldBeActive ? 0 : 1
@@ -46,7 +46,7 @@ Item {
     }
 
     visible: offsetScale < 1
-    anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
+    anchors.bottomMargin: (-implicitHeight - 6) * offsetScale
     implicitHeight: innerContent.implicitHeight
 
     // ── Inner content ──────────────────────────────────────────────────────

@@ -86,14 +86,36 @@ void HyprExtras::applyOptions(const QVariantHash& options) {
         return;
     }
 
-    QString request;
-    request.reserve(12 + options.size() * 40);
-    request += QLatin1String("[[BATCH]]");
+    QString lua = QStringLiteral("eval hl.config({ ");
     for (auto it = options.constBegin(); it != options.constEnd(); ++it) {
-        request += QLatin1String("keyword ") + it.key() + QLatin1Char(' ') + it.value().toString() + QLatin1Char(';');
-    }
+        const QStringList parts = it.key().split(QLatin1Char(':'));
+        if (parts.isEmpty())
+            continue;
 
-    makeRequest(request, [this](bool success, const QByteArray& res) {
+        QString line;
+        for (int i = 0; i < parts.size() - 1; ++i) {
+            line += parts[i] + QStringLiteral(" = { ");
+        }
+
+        QString valStr;
+        const auto val = it.value();
+        if (val.typeId() == QMetaType::Bool) {
+            valStr = val.toBool() ? QStringLiteral("true") : QStringLiteral("false");
+        } else if (val.typeId() == QMetaType::Int || val.typeId() == QMetaType::LongLong || val.typeId() == QMetaType::Double) {
+            valStr = val.toString();
+        } else {
+            valStr = QStringLiteral("'") + val.toString() + QStringLiteral("'");
+        }
+
+        line += parts.last() + QStringLiteral(" = ") + valStr;
+        for (int i = 0; i < parts.size() - 1; ++i) {
+            line += QStringLiteral(" }");
+        }
+        lua += line + QStringLiteral(", ");
+    }
+    lua += QStringLiteral("})");
+
+    makeRequest(lua, [this](bool success, const QByteArray& res) {
         if (success) {
             refreshOptions();
         } else {

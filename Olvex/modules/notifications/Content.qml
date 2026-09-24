@@ -16,7 +16,7 @@ Item {
 
     // Same inset on top / sides / bottom so the stack container padding matches
     readonly property int padding: Tokens.padding.large
-    readonly property int cardRadius: Tokens.rounding.large
+    readonly property int cardRadius: (typeof Config !== "undefined" && Config && Config.border) ? Config.border.drawerRounding : Tokens.rounding.large
     // Resolve sizes on this Item (has screen Tokens), never inside Anim/NumberAnimation
     readonly property int notifWidth: Tokens.sizes.notifs.width
 
@@ -26,7 +26,9 @@ Item {
         minThickness: 0,
         floating: false,
         smoothing: 0,
-        clampedThickness: 0
+        clampedThickness: 0,
+        gap: 6,
+        drawerRounding: 18
     }
 
     anchors.top: parent.top

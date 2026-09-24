@@ -14,7 +14,7 @@ Item {
     required property real maxHeight
 
     readonly property int padding: Tokens.padding.large
-    readonly property int rounding: Tokens.rounding.large
+    readonly property int rounding: (typeof Config !== "undefined" && Config && Config.border) ? Config.border.drawerRounding : Tokens.rounding.large
     readonly property bool launcherVisible: root.visibilities.launcher
 
     function navigateUp() {
