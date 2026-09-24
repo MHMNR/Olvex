@@ -522,18 +522,10 @@ Item {
         y: Math.min(root.height - root.pillWidth, manualY)
         height: Math.max(root.pillWidth, Math.min(animHeight, Math.max(root.pillWidth, root.height - y)))
         radius: Math.min(width / 2, height / 2)
-        color: Colours.tPalette.m3surfaceContainerHigh
+        color: Colours.tileSurface
         visible: root.isPushingDown || root.isPoppingUp || root.isDismissingLast
         z: 8
         clip: true
-
-        Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
-            antialiasing: true
-            smooth: true
-        }
 
         property real textAlpha: 1.0
         readonly property bool isCompactCircle: height <= 52
@@ -603,18 +595,10 @@ Item {
         property real animHeight: root.pillWidth
         height: Math.max(root.pillWidth, animHeight)
         radius: Math.min(width / 2, height / 2)
-        color: Colours.tPalette.m3surfaceContainerHigh
+        color: Colours.tileSurface
         visible: root.isPushingDown || root.isPoppingUp
         z: 9
         clip: true
-
-        Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
-            antialiasing: true
-            smooth: true
-        }
 
         property bool useBottomEdge: false
         property real targetBottomEdge: 0
@@ -745,15 +729,7 @@ Item {
                 width: root.pillWidth
                 height: root.pillWidth
                 radius: root.pillRadius
-                color: Colours.tPalette.m3surfaceContainerHigh
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: parent.radius
-                    color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
-                    antialiasing: true
-                    smooth: true
-                }
+                color: Colours.tileSurface
 
                 transform: [
                     Translate {
@@ -983,19 +959,11 @@ Item {
         width: root.pillWidth
         height: root.targetTopHeight
         radius: Math.min(width / 2, height / 2)
-        color: Colours.tPalette.m3surfaceContainerHigh
+        color: Colours.tileSurface
         visible: !root.isPushingDown && !root.isPoppingUp && !root.isDismissingLast && root.hasNotif
         opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && root.currentNotif && Notifs.activeMorphNotif.id === root.currentNotif.id) ? 0 : 1
         z: 2
         clip: true
-
-        Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
-            antialiasing: true
-            smooth: true
-        }
 
         readonly property bool isCompactCircle: height <= 52
 

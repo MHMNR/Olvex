@@ -69,9 +69,9 @@ StyledRect {
     readonly property var totalFmt: NetworkUsage.formatBytes(NetworkUsage.uploadSpeed + NetworkUsage.downloadSpeed)
 
     implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: layout.implicitHeight + root.padding * 2
+    implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
 
-    color: Qt.alpha(Colours.tPalette.m3surfaceContainer, showBackground ? Colours.tPalette.m3surfaceContainer.a : 0)
+    color: Colours.tileSurface
     radius: Tokens.rounding.full
 
     Component.onCompleted: {

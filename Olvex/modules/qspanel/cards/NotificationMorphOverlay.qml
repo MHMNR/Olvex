@@ -242,18 +242,9 @@ Item {
             id: cardBg
             anchors.fill: parent
             radius: notifCard.radius
-            color: Colours.tileGlassStrong
+            color: Colours.tileSurface
             antialiasing: true
             smooth: true
-
-            // M3 surface tint overlay
-            Rectangle {
-                anchors.fill: parent
-                radius: parent.radius
-                color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
-                antialiasing: true
-                smooth: true
-            }
 
             // Outer subtle glass border
             Rectangle {
@@ -291,6 +282,10 @@ Item {
                     radius: root.startRadius
                 }
                 PropertyChanges {
+                    target: cardBg
+                    color: Colours.tileSurface
+                }
+                PropertyChanges {
                     target: cardContent
                     opacity: 0
                     slideY: 12
@@ -317,6 +312,10 @@ Item {
                     width: root.endW
                     height: root.endH
                     radius: root.endRadius
+                }
+                PropertyChanges {
+                    target: cardBg
+                    color: Colours.tileFillElevated
                 }
                 PropertyChanges {
                     target: cardContent
@@ -356,7 +355,7 @@ Item {
                         target: cardBg
                         property: "color"
                         duration: root.expandDur
-                        easing.type: Easing.OutCubic
+                        easing: root.spatialEasing
                     }
                     // Shape mask morph
                     NumberAnimation {
@@ -434,7 +433,7 @@ Item {
                         target: cardBg
                         property: "color"
                         duration: root.collapseDur
-                        easing.type: Easing.OutCubic
+                        easing: root.spatialEasing
                     }
                     NumberAnimation {
                         target: heroIcon

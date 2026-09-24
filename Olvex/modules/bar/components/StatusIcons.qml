@@ -22,16 +22,8 @@ StyledRect {
     readonly property int netSpeedMaxDigits: netSpeedConfig?.maxDigits ?? 0
     readonly property bool showSpeed: root.netSpeedEnabled
 
-    color: Colours.tPalette.m3surfaceContainerHigh
+    color: Colours.tileSurface
     radius: Tokens.rounding.full
-
-    Rectangle {
-        anchors.fill: parent
-        radius: parent.radius
-        color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
-        antialiasing: true
-        smooth: true
-    }
 
     clip: true
     implicitWidth: Tokens.sizes.bar.innerWidth

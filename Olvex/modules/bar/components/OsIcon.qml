@@ -34,35 +34,32 @@ Item {
 
     readonly property color fgColor: root.isLauncherOpen 
         ? Colours.palette.m3onPrimary 
-        : (Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3tertiary)
+        : (Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3primary)
 
-    readonly property color bgColor: {
-        if (root.isLauncherOpen) 
-            return Colours.palette.m3primary;
-        if (root.pressed) {
-            return Colours.light 
-                ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 0.95) 
-                : Colours.layer(Colours.palette.m3surfaceVariant, 0.8);
-        }
-        if (root.hovered) {
-            return Colours.light 
-                ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 0.85) 
-                : Colours.layer(Colours.palette.m3surfaceVariant, 0.65);
-        }
-        return Colours.light 
-            ? Colours.tPalette.m3surfaceContainerHigh 
-            : Colours.layer(Colours.palette.m3surfaceVariant, 0.5);
-    }
+    readonly property color bgColor: root.isLauncherOpen 
+        ? Colours.palette.m3primary 
+        : Colours.tileSurface
 
-    // macOS-style rounded square background matching dock/launcher items
     Rectangle {
         id: bgContainer
         anchors.fill: parent
         transformOrigin: Item.Center
-        radius: isLauncherOpen ? 11 : (pressed ? 10 : (hovered ? 13 : width / 2))
+        radius: Tokens.rounding.full
         color: root.bgColor
-        border.color: Colours.light ? Qt.alpha(Colours.palette.m3outlineVariant, root.hovered ? 0.4 : 0.2) : "transparent"
-        border.width: Colours.light ? 1 : 0
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Colours.palette.m3onSurface
+            opacity: root.pressed ? 0.14 : (root.hovered ? 0.08 : 0)
+            visible: !root.isLauncherOpen
+            antialiasing: true
+            smooth: true
+
+            Behavior on opacity {
+                NumberAnimation { duration: 150 }
+            }
+        }
 
         // Premium shrink-on-click and bounce-on-hover interaction animations
         scale: pressed ? 0.90 : (hovered ? 1.08 : (isLauncherOpen ? 1.04 : 1.0))

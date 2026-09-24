@@ -172,16 +172,8 @@ StyledRect {
     width: implicitWidth
     height: implicitHeight
 
-    color: Colours.tPalette.m3surfaceContainerHigh
+    color: Colours.tileSurface
     radius: Tokens.rounding.full
-
-    Rectangle {
-        anchors.fill: parent
-        radius: root.radius
-        color: Qt.alpha(Colours.palette.m3surfaceTint, 0.12)
-        antialiasing: true
-        smooth: true
-    }
 
     transform: Translate {
         y: -root.pushOffset
