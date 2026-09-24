@@ -25,7 +25,7 @@ Item {
     }
 
     readonly property var logoOptions: [
-        { label: qsTr("Auto (Detected Distro)"), value: "", category: "distros" },
+        { label: qsTr("Auto (System)"), value: "", category: "distros" },
         { label: qsTr("Olvex Logo"), value: "olvex", category: "distros" },
 
         // Linux Distributions
@@ -47,23 +47,23 @@ Item {
         { label: qsTr("Garuda Linux"), value: "garuda", category: "distros" },
         { label: qsTr("Artix Linux"), value: "artix", category: "distros" },
         { label: qsTr("Kali Linux"), value: "kali", category: "distros" },
-        { label: qsTr("Elementary OS"), value: "elementary", category: "distros" },
+        { label: qsTr("elementaryOS"), value: "elementary", category: "distros" },
         { label: qsTr("Zorin OS"), value: "zorin", category: "distros" },
-        { label: qsTr("Red Hat / RHEL"), value: "rhel", category: "distros" },
+        { label: qsTr("RHEL"), value: "rhel", category: "distros" },
         { label: qsTr("CentOS"), value: "centos", category: "distros" },
         { label: qsTr("Rocky Linux"), value: "rocky", category: "distros" },
         { label: qsTr("AlmaLinux"), value: "almalinux", category: "distros" },
         { label: qsTr("Nobara Linux"), value: "nobara", category: "distros" },
-        { label: qsTr("Raspberry Pi OS"), value: "raspberry", category: "distros" },
+        { label: qsTr("Raspberry Pi"), value: "raspberry", category: "distros" },
         { label: qsTr("Slackware"), value: "slackware", category: "distros" },
         { label: qsTr("Solus"), value: "solus", category: "distros" },
         { label: qsTr("Mageia"), value: "mageia", category: "distros" },
-        { label: qsTr("FreeBSD / OpenBSD"), value: "freebsd", category: "distros" },
-        { label: qsTr("Generic Linux (Tux)"), value: "linux", category: "distros" },
+        { label: qsTr("FreeBSD"), value: "freebsd", category: "distros" },
+        { label: qsTr("Generic Linux"), value: "linux", category: "distros" },
 
         // Operating Systems
         { label: qsTr("Apple (macOS)"), value: "apple", category: "os" },
-        { label: qsTr("Microsoft Windows"), value: "windows", category: "os" },
+        { label: qsTr("Windows"), value: "windows", category: "os" },
         { label: qsTr("Android"), value: "android", category: "os" },
 
         // Tech, Tools & Developer
@@ -82,15 +82,15 @@ Item {
 
         // Community & Icons
         { label: qsTr("Rocket"), value: "rocket", category: "icons" },
-        { label: qsTr("Flame / Fire"), value: "fire", category: "icons" },
-        { label: qsTr("Sparkles / Magic"), value: "sparkles", category: "icons" },
+        { label: qsTr("Flame"), value: "fire", category: "icons" },
+        { label: qsTr("Sparkles"), value: "sparkles", category: "icons" },
         { label: qsTr("Lightning"), value: "lightning", category: "icons" },
         { label: qsTr("Heart"), value: "heart", category: "icons" },
         { label: qsTr("Star"), value: "star", category: "icons" },
-        { label: qsTr("Coffee Cup"), value: "coffee", category: "icons" },
+        { label: qsTr("Coffee"), value: "coffee", category: "icons" },
         { label: qsTr("Diamond"), value: "diamond", category: "icons" },
         { label: qsTr("Ghost"), value: "ghost", category: "icons" },
-        { label: qsTr("Music Note"), value: "music", category: "icons" },
+        { label: qsTr("Music"), value: "music", category: "icons" },
         { label: qsTr("Gamepad"), value: "gamepad", category: "icons" }
     ]
 

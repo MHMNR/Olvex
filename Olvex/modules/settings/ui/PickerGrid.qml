@@ -368,20 +368,21 @@ Item {
                 // Search & Filter Row
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 32
                     spacing: Tokens.spacing.small
 
                     // Search input
                     Rectangle {
-                        Layout.preferredWidth: 180
+                        Layout.preferredWidth: 160
                         Layout.preferredHeight: 32
-                        radius: Tokens.rounding.normal
+                        radius: Tokens.rounding.full
                         color: Colours.tPalette.m3surfaceContainerHigh
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 8
+                            anchors.leftMargin: 10
                             anchors.rightMargin: 8
-                            spacing: 4
+                            spacing: 6
 
                             MaterialIcon {
                                 text: "search"
@@ -445,8 +446,8 @@ Item {
                                 readonly property bool isSelected: root.activeCategory === modelData.id
                                 property bool hovered: chipMouse.containsMouse
 
-                                width: chipText.implicitWidth + 14
-                                height: 28
+                                width: chipText.implicitWidth + 16
+                                height: 32
                                 radius: Tokens.rounding.full
                                 color: isSelected ? Colours.palette.m3primary : (hovered ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 0.9) : Colours.tPalette.m3surfaceContainer)
 
@@ -458,7 +459,7 @@ Item {
                                     text: chip.modelData.label
                                     color: chip.isSelected ? Colours.palette.m3onPrimary : (chip.hovered ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant)
                                     font.weight: chip.isSelected ? Font.DemiBold : Font.Normal
-                                    textPointSize: Tokens.font.size.small * 0.9
+                                    textPointSize: Tokens.font.size.small * 0.92
                                 }
 
                                 MouseArea {
@@ -487,7 +488,7 @@ Item {
                         readonly property int numCols: Math.max(3, Math.floor(width / minColWidth))
 
                         cellWidth: width / numCols
-                        cellHeight: 68
+                        cellHeight: 74
 
                         model: root.filteredModel
 
@@ -541,45 +542,28 @@ Item {
                                 anchors.margins: 3
                                 radius: Tokens.rounding.normal
                                 color: cell.isSelected 
-                                    ? Colours.layer(Colours.palette.m3primaryContainer, 0.8) 
-                                    : (cell.hovered ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 0.95) : Colours.tPalette.m3surfaceContainer)
+                                    ? Colours.layer(Colours.palette.m3primaryContainer, 0.85) 
+                                    : (cell.hovered ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 0.75) : "transparent")
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
-                                // Selected Checkmark Dot
-                                Rectangle {
-                                    visible: cell.isSelected
-                                    anchors.top: parent.top
-                                    anchors.right: parent.right
-                                    anchors.margins: 4
-                                    width: 12
-                                    height: 12
-                                    radius: 6
-                                    color: Colours.palette.m3primary
-
-                                    MaterialIcon {
-                                        anchors.centerIn: parent
-                                        text: "check"
-                                        iconPointSize: 8
-                                        color: Colours.palette.m3onPrimary
-                                    }
-                                }
-
                                 ColumnLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 4
-                                    spacing: 2
+                                    anchors.margins: 6
+                                    spacing: 4
 
                                     Item {
                                         Layout.alignment: Qt.AlignHCenter
-                                        Layout.preferredWidth: 28
-                                        Layout.preferredHeight: 28
+                                        Layout.preferredWidth: 32
+                                        Layout.preferredHeight: 30
+                                        scale: cell.hovered ? 1.08 : 1.0
+                                        Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                                         Logo {
                                             visible: cell.itemVal === "olvex"
                                             anchors.centerIn: parent
-                                            implicitWidth: 22
-                                            implicitHeight: 18
+                                            implicitWidth: 26
+                                            implicitHeight: 22
                                             topColour: cell.isSelected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3primary
                                             bottomColour: cell.isSelected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3tertiary
                                         }
@@ -608,9 +592,9 @@ Item {
                                                 }
                                                 return "\uf31a";
                                             }
-                                            color: cell.isSelected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3primary
+                                            color: cell.isSelected ? Colours.palette.m3onPrimaryContainer : (cell.hovered ? Colours.palette.m3primary : Colours.palette.m3onSurface)
                                             font.family: Tokens.font.family.mono
-                                            font.pixelSize: 18
+                                            font.pixelSize: 22
                                             renderType: Text.QtRendering
                                             horizontalAlignment: Text.AlignHCenter
                                             verticalAlignment: Text.AlignVCenter
@@ -624,8 +608,8 @@ Item {
                                         elide: Text.ElideRight
                                         maximumLineCount: 1
                                         font.weight: cell.isSelected ? Font.DemiBold : Font.Normal
-                                        color: cell.isSelected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
-                                        textPointSize: Tokens.font.size.small * 0.88
+                                        color: cell.isSelected ? Colours.palette.m3onPrimaryContainer : (cell.hovered ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.85))
+                                        textPointSize: Tokens.font.size.small * 0.84
                                     }
                                 }
 
