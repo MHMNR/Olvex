@@ -264,6 +264,21 @@ ColumnLayout {
         }
 
         SettingRow {
+            title: qsTr("Charging ripple effect")
+            description: qsTr("Android 17 style expanding ripple bloom and battery pill on AC connect")
+            divider: true
+            StyledSwitch {
+                checked: GlobalConfig.general?.battery?.chargingRipple ?? true
+                onToggled: {
+                    if (GlobalConfig.general && GlobalConfig.general.battery) {
+                        GlobalConfig.general.battery.chargingRipple = checked;
+                        GlobalConfig.save();
+                    }
+                }
+            }
+        }
+
+        SettingRow {
             title: qsTr("Charger plug/unplug notification")
             description: qsTr("Show popup toast when AC charger is connected or disconnected")
             divider: false

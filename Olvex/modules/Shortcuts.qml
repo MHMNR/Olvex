@@ -242,6 +242,13 @@ Scope {
         }
     }
 
+    IpcHandler {
+        target: "charging"
+        function ripple(): void {
+            Visibilities.triggerChargingRipple();
+        }
+    }
+
     LoggingCategory {
         id: lc
 

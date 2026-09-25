@@ -18,6 +18,7 @@ Scope {
                     Toaster.toast(qsTr("Charger disconnected"), "", "power_off");
             } else {
                 UiSounds.playChargerIn();
+                Visibilities.triggerChargingRipple();
                 if (GlobalConfig.qspanel.toasts.chargingChanged)
                     Toaster.toast(qsTr("Charger connected"), "", "power");
                 for (const level of root.warnLevels)

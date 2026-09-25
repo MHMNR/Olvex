@@ -1,0 +1,10 @@
+--- modules/drawers/ChargingRipple.qml
++++ modules/drawers/ChargingRipple.qml
+@@ -28,6 +28,8 @@
+     readonly property bool isFullyCharged: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.FullyCharged || batteryPercentInt >= 99) : false
+ 
+     function trigger() {
++        console.log("ChargingRipple trigger() called on active=" + root.active + ", parent=" + parent);
+         if (!(GlobalConfig.general.battery.chargingRipple ?? true))
+             return;
+         rippleMasterAnim.stop();

@@ -657,6 +657,11 @@ StyledWindow {
             bottomPanel: panels.bottomPanel
             pinnedLayout: panels.pinnedLayout
         }
+
+        // Full-screen Android 17 charging ripple effect overlay
+        ChargingRipple {
+            id: chargingRippleOverlay
+        }
     }
 
     component PanelBg: BlobRect {

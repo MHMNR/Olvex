@@ -4,6 +4,7 @@ import QtQuick.Effects
 import Quickshell.Wayland
 import Olvex.Config
 import "../olvex/background" as OlvexBg
+import "../drawers"
 import qs.components
 import qs.services
 
@@ -174,6 +175,8 @@ WlSessionLockSurface {
     Item {
         id: lockContent
         anchors.fill: parent
+        width: root.width
+        height: root.height
         opacity: 0  // set to 1 in onCompleted
 
         Loader {
@@ -186,6 +189,13 @@ WlSessionLockSurface {
                 if (status === Loader.Error) root.useCardFallback()
                 if (status === Loader.Ready) item.forceActiveFocus()
             }
+        }
+
+        // ── Charging Ripple Effect (Android 16/17 style) ──────────────────────────
+        ChargingRipple {
+            id: chargingRipple
+            anchors.fill: parent
+            z: 9999
         }
     }
 

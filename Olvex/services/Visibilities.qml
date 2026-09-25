@@ -13,6 +13,12 @@ Singleton {
     property bool shellMotionActive: false
     property bool areaPickerActive: false
 
+    signal chargingRippleTriggered()
+
+    function triggerChargingRipple() {
+        chargingRippleTriggered();
+    }
+
     property alias bottomPanelDockBackground: bpSettings.dockBackground
 
     PersistentProperties {

@@ -79,6 +79,7 @@ class GeneralBattery : public ConfigObject {
             }),
         })
     CONFIG_GLOBAL_PROPERTY(int, criticalLevel, 3)
+    CONFIG_GLOBAL_PROPERTY(bool, chargingRipple, true)
 
 public:
     explicit GeneralBattery(QObject* parent = nullptr)
