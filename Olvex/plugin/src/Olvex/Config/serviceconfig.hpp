@@ -9,9 +9,46 @@ namespace olvex::config {
 
 using Qt::StringLiterals::operator""_s;
 
+class UiSoundsConfig : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
+    CONFIG_GLOBAL_PROPERTY(qreal, volume, 0.8)
+
+    // Charger
+    CONFIG_GLOBAL_PROPERTY(bool, charger, true)
+    CONFIG_GLOBAL_PROPERTY(QString, chargerInSound, u"charger-in.mp3"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, chargerOutSound, u"charger-out.mp3"_s)
+
+    // Devices (Bluetooth / USB)
+    CONFIG_GLOBAL_PROPERTY(bool, device, true)
+    CONFIG_GLOBAL_PROPERTY(QString, deviceInSound, u"device-in.mp3"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, deviceOutSound, u"device-out.mp3"_s)
+
+    // Notifications
+    CONFIG_GLOBAL_PROPERTY(bool, notifications, true)
+    CONFIG_GLOBAL_PROPERTY(QString, notificationsSound, u"notif.mp3"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, notificationsUrgentSound, u"notificationV.mp3"_s)
+
+    // Toasts
+    CONFIG_GLOBAL_PROPERTY(bool, toasts, true)
+    CONFIG_GLOBAL_PROPERTY(QString, toastSound, u"toast.mp3"_s)
+
+    // Warnings
+    CONFIG_GLOBAL_PROPERTY(bool, warnings, true)
+    CONFIG_GLOBAL_PROPERTY(QString, warningSound, u"warning.mp3"_s)
+
+public:
+    explicit UiSoundsConfig(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
 class ServiceConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
+
+    CONFIG_SUBOBJECT(UiSoundsConfig, uiSounds)
 
     CONFIG_GLOBAL_PROPERTY(QString, weatherLocation)
     // Guess based on locale
@@ -43,7 +80,8 @@ class ServiceConfig : public ConfigObject {
 
 public:
     explicit ServiceConfig(QObject* parent = nullptr)
-        : ConfigObject(parent) {}
+        : ConfigObject(parent)
+        , m_uiSounds(new UiSoundsConfig(this)) {}
 };
 
 } // namespace olvex::config

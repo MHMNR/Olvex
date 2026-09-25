@@ -19,11 +19,13 @@ Item {
         target: UsbWatcher
 
         function onDeviceConnected(title, message, icon): void {
+            UiSounds.playDeviceIn();
             if (GlobalConfig.qspanel.toasts.usbDevices ?? true)
                 Toaster.toast(title, message, icon, Toast.Info);
         }
 
         function onDeviceDisconnected(title, message, icon): void {
+            UiSounds.playDeviceOut();
             if (GlobalConfig.qspanel.toasts.usbDevices ?? true)
                 Toaster.toast(title, message, icon, Toast.Info);
         }
@@ -87,6 +89,7 @@ Item {
                     currentMap[id] = d.name || qsTr("Bluetooth Device");
                     if (!root._connectedBtDevices.hasOwnProperty(id)) {
                         // New connection!
+                        UiSounds.playDeviceIn();
                         if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true) {
                             const icon = root.getBtIcon(d);
                             Toaster.toast(qsTr("Bluetooth connected"), d.name || qsTr("Bluetooth Device"), icon, Toast.Info);
@@ -98,6 +101,7 @@ Item {
             for (const id in root._connectedBtDevices) {
                 if (!currentMap.hasOwnProperty(id)) {
                     // Disconnected!
+                    UiSounds.playDeviceOut();
                     if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true) {
                         const name = root._connectedBtDevices[id];
                         Toaster.toast(qsTr("Bluetooth disconnected"), name, "bluetooth_disabled", Toast.Info);
@@ -127,6 +131,7 @@ Item {
                     if (modelData.connected) {
                         if (!root._connectedBtDevices.hasOwnProperty(id)) {
                             root._connectedBtDevices[id] = modelData.name || qsTr("Bluetooth Device");
+                            UiSounds.playDeviceIn();
                             if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true) {
                                 const icon = root.getBtIcon(modelData);
                                 Toaster.toast(qsTr("Bluetooth connected"), modelData.name || qsTr("Bluetooth Device"), icon, Toast.Info);
@@ -136,6 +141,7 @@ Item {
                         if (root._connectedBtDevices.hasOwnProperty(id)) {
                             const name = root._connectedBtDevices[id];
                             delete root._connectedBtDevices[id];
+                            UiSounds.playDeviceOut();
                             if (GlobalConfig.qspanel.toasts.bluetoothDevices ?? true)
                                 Toaster.toast(qsTr("Bluetooth disconnected"), name, "bluetooth_disabled", Toast.Info);
                         }

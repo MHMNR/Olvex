@@ -109,6 +109,7 @@ void Toaster::toast(const QString& title, const QString& message, const QString&
         }
     });
     m_toasts.push_front(toast);
+    emit toastAdded(title, message, icon, static_cast<int>(type));
     emit toastsChanged();
 }
 

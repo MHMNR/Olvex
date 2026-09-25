@@ -215,6 +215,7 @@ Singleton {
             root.list = [comp, ...root.list];
             if (root.shouldShowPopup()) {
                 root.showInBar(comp);
+                UiSounds.playNotification(notif.urgency);
             }
         }
     }

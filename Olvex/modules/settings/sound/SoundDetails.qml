@@ -33,6 +33,7 @@ Item {
                     case "output": return "SoundOutput.qml";
                     case "input": return "SoundInput.qml";
                     case "apps": return "SoundApps.qml";
+                    case "uisounds": return "SoundUiSounds.qml";
                     case "behavior": return "SoundBehavior.qml";
                     default: return "SoundOutput.qml";
                 }

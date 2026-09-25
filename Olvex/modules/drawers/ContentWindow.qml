@@ -375,7 +375,7 @@ StyledWindow {
                 panel: panels.overflowFlyoutContainer
                 group: drawerGroup
                 deformAmount: 0.05
-                radius: root.drawerRounding
+                radius: panels.overflowFlyoutContainer ? panels.overflowFlyoutContainer.radius : Tokens.rounding.large
             }
         }
     }

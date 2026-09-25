@@ -74,6 +74,7 @@ public:
 
 signals:
     void toastsChanged();
+    void toastAdded(const QString& title, const QString& message, const QString& icon, int type);
 
 private:
     QList<Toast*> m_toasts;
