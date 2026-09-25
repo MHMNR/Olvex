@@ -114,9 +114,37 @@ Singleton {
             play(GlobalConfig.services.uiSounds.warningSound);
     }
 
+    function isHardwareEventToast(title, message, icon) {
+        const t = (title || "").toLowerCase();
+        const m = (message || "").toLowerCase();
+        const ic = (icon || "").toLowerCase();
+
+        // Charger events (handled by playChargerIn / playChargerOut)
+        if (t.includes("charger") || t.includes("charging") || ic === "power" || ic === "power_off" || ic.includes("battery_charging"))
+            return true;
+
+        // Battery warnings (handled by playWarning)
+        if (t.includes("battery") || t.includes("hibernating") || ic === "battery_android_alert")
+            return true;
+
+        // Bluetooth / USB / Headphones peripheral connect & disconnect / remove
+        if (t.includes("bluetooth") || t.includes("device") || t.includes("usb") || t.includes("headphones") ||
+            ic.includes("bluetooth") || ic.includes("usb") || ic === "headphones" || ic === "mouse" ||
+            ic === "keyboard" || ic === "sports_esports" || ic === "speaker") {
+            if (t.includes("connected") || t.includes("disconnected") || t.includes("removed") || t.includes("attached") ||
+                t.includes("unplugged") || t.includes("ejected") || m.includes("connected") || m.includes("disconnected") ||
+                m.includes("removed") || t.includes("switched") || ic.includes("off") || ic.includes("disabled"))
+                return true;
+        }
+
+        return false;
+    }
+
     Connections {
         target: Toaster
         function onToastAdded(title, message, icon, type) {
+            if (root.isHardwareEventToast(title, message, icon))
+                return;
             root.playToast(type);
         }
     }
