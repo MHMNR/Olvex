@@ -166,17 +166,19 @@ Item {
     }
 
     function syncMorphDock(immediate) {
-        if (root.mediaMorph && root.mediaMorph.active) {
+        if (!root.playerActive || !root.mediaMorph)
+            return;
+
+        if (root.mediaMorph.active) {
             applyMorphDock();
             return;
         }
-        if (immediate)
+        if (immediate) {
             dockSyncDebounce.stop();
-        else {
+            applyMorphDock();
+        } else {
             dockSyncDebounce.restart();
-            return;
         }
-        applyMorphDock();
     }
 
     function applyMorphDock() {
@@ -237,10 +239,10 @@ Item {
         VisualizerState.request("pill", 20, root.mediaVisualizerActive);
     }
 
-    onWidthChanged: syncMorphDock(false)
-    onHeightChanged: syncMorphDock(false)
-    onXChanged: syncMorphDock(false)
-    onYChanged: syncMorphDock(false)
+    onWidthChanged: if (root.playerActive) syncMorphDock(false)
+    onHeightChanged: if (root.playerActive) syncMorphDock(false)
+    onXChanged: if (root.playerActive) syncMorphDock(false)
+    onYChanged: if (root.playerActive) syncMorphDock(false)
 
     function kickDockSync() {
         if (!root.playerActive || !root.mediaMorph)
