@@ -92,7 +92,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
-        active: true
+        active: root.shouldBeActive || closeGrace.running || root.visible
 
         sourceComponent: Content {
             dashboardActive: root.dashboardActive

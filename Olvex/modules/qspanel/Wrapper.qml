@@ -112,7 +112,7 @@ Item {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
 
-        active: true
+        active: root.shouldBeActive || closeGrace.running || root.visible
 
         sourceComponent: Content {
             // Fill the loader so ColumnLayout can expand the notification tile
