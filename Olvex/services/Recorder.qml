@@ -100,7 +100,7 @@ Singleton {
 
     Timer {
         id: pollTimer
-        interval: 1000
+        interval: (props.running || root.selecting) ? 1000 : 10000
         repeat: true
         running: true
         onTriggered: {
