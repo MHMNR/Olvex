@@ -2,7 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import Olvex
 import Olvex.Config
 import qs.utils
 
@@ -49,43 +49,26 @@ Singleton {
         { id: "media", label: qsTr("Media & Sys"), icon: "tune", count: root.counts.media || 0 }
     ]
 
+    KeybindManager {
+        id: nativeManager
+        onBindsChanged: {
+            root.reload();
+        }
+    }
+
     Component.onCompleted: {
         reload();
     }
 
     function reload() {
-        if (fetchBindsProc.running)
-            return;
         loading = true;
-        fetchBindsProc.running = true;
-    }
-
-    Process {
-        id: fetchBindsProc
-        running: false
-        command: ["hyprctl", "binds", "-j"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                root.loading = false;
-                try {
-                    let clean = (text || "").trim();
-                    if (!clean) return;
-                    const start = clean.indexOf("[");
-                    const end = clean.lastIndexOf("]");
-                    if (start >= 0 && end > start) {
-                        clean = clean.substring(start, end + 1);
-                        const raw = JSON.parse(clean);
-                        root.binds = root.parseRawBinds(raw);
-                    }
-                } catch (e) {
-                    console.warn("Keybinds.qml: Failed to parse hyprctl binds JSON:", e);
-                }
-            }
-        }
+        const raw = nativeManager.getBinds();
+        root.binds = root.parseRawBinds(raw);
+        loading = false;
     }
 
     function parseRawBinds(rawList) {
-        if (!Array.isArray(rawList)) return [];
+        if (!rawList || rawList.length === undefined) return [];
         const results = [];
         const seen = new Set();
         const counts = { all: 0, olvex: 0, window: 0, workspace: 0, apps: 0, media: 0 };
@@ -573,56 +556,6 @@ Singleton {
         }
     }
 
-    function applyKeybindLive(mods, key, dispatcher, arg, bindFlag) {
-        const flag = bindFlag || "bind";
-        const modStr = Array.isArray(mods) ? mods.join("+") : (mods || "");
-        const formattedMods = modStr.length > 0 ? `${modStr}, ` : ", ";
-        Quickshell.execDetached(["hyprctl", "keyword", flag, `${formattedMods}${key}, ${dispatcher}, ${arg}`]);
-    }
-
-    function unbindKeybindLive(mods, key, bindFlag) {
-        const flag = (bindFlag && bindFlag.startsWith("bind")) ? bindFlag.replace("bind", "unbind") : "unbind";
-        const modStr = Array.isArray(mods) ? mods.join("+") : (mods || "");
-        const formattedMods = modStr.length > 0 ? `${modStr}, ` : ", ";
-        Quickshell.execDetached(["hyprctl", "keyword", flag, `${formattedMods}${key}`]);
-    }
-
-    function saveKeybind(oldBind, newMods, newKey, newDispatcher, newArg, newFlag) {
-        // 1. Live unbind old
-        if (oldBind) {
-            unbindKeybindLive(oldBind.mods, oldBind.key, oldBind.flag);
-        }
-
-        // 2. Live bind new
-        const flag = newFlag || (oldBind ? oldBind.flag : "bind");
-        applyKeybindLive(newMods, newKey, newDispatcher, newArg, flag);
-
-        // 3. Persist to ~/.config/hypr/hyprland/keybinds.conf
-        const oldModStr = oldBind ? (oldBind.mods.join("+") || "") : "";
-        const oldKeyStr = oldBind ? oldBind.key : "";
-        const newModStr = Array.isArray(newMods) ? newMods.join("+") : (newMods || "");
-        
-        persistBindsScript.oldMods = oldModStr;
-        persistBindsScript.oldKey = oldKeyStr;
-        persistBindsScript.newMods = newModStr;
-        persistBindsScript.newKey = newKey;
-        persistBindsScript.newDispatcher = newDispatcher;
-        persistBindsScript.newArg = newArg;
-        persistBindsScript.newFlag = flag;
-        persistBindsScript.action = oldBind ? "update" : "add";
-        persistBindsScript.running = true;
-    }
-
-    function deleteKeybind(bind) {
-        if (!bind) return;
-        unbindKeybindLive(bind.mods, bind.key, bind.flag);
-
-        persistBindsScript.oldMods = bind.mods.join("+") || "";
-        persistBindsScript.oldKey = bind.key;
-        persistBindsScript.action = "delete";
-        persistBindsScript.running = true;
-    }
-
     function startKeyRecording() {
         Quickshell.execDetached(["hyprctl", "--batch", "keyword submap olvex_record ; keyword submap reset ; dispatch submap olvex_record"]);
     }
@@ -631,73 +564,21 @@ Singleton {
         Quickshell.execDetached(["hyprctl", "dispatch", "submap", "reset"]);
     }
 
-    Process {
-        id: persistBindsScript
+    function saveKeybind(oldBind, newMods, newKey, newDispatcher, newArg, newFlag, newDesc) {
+        const oldModStr = oldBind ? (Array.isArray(oldBind.mods) ? oldBind.mods.join("+") : (oldBind.modString || "")) : "";
+        const oldKeyStr = oldBind ? oldBind.key : "";
+        const newModStr = Array.isArray(newMods) ? newMods.join("+") : (newMods || "");
+        const flag = newFlag || (oldBind ? oldBind.flag : "bind");
+        const action = oldBind ? "update" : "add";
 
-        property string action: "update"
-        property string oldMods: ""
-        property string oldKey: ""
-        property string newMods: ""
-        property string newKey: ""
-        property string newDispatcher: ""
-        property string newArg: ""
-        property string newFlag: "bind"
+        nativeManager.saveKeybind(action, oldModStr, oldKeyStr, newModStr, newKey, newDispatcher, newArg, flag, newDesc || "");
+        root.reload();
+    }
 
-        command: [
-            "python3", "-c", `
-import os, sys
-
-conf_path = os.path.expanduser("~/.config/hypr/hyprland/keybinds.conf")
-if not os.path.exists(conf_path):
-    conf_path = os.path.expanduser("~/.config/hypr/hyprland.conf")
-
-action = "${persistBindsScript.action}"
-old_mods = "${persistBindsScript.oldMods}".strip().lower()
-old_key = "${persistBindsScript.oldKey}".strip().lower()
-new_mods = "${persistBindsScript.newMods}".strip()
-new_key = "${persistBindsScript.newKey}".strip()
-new_disp = "${persistBindsScript.newDispatcher}".strip()
-new_arg = "${persistBindsScript.newArg}".strip()
-new_flag = "${persistBindsScript.newFlag}".strip()
-
-if os.path.exists(conf_path):
-    with open(conf_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    
-    new_line = f"{new_flag} = {new_mods}, {new_key}, {new_disp}, {new_arg}\\n" if new_mods else f"{new_flag} = , {new_key}, {new_disp}, {new_arg}\\n"
-    
-    found = False
-    new_lines = []
-    for line in lines:
-        stripped = line.strip()
-        if not stripped.startswith("#") and ("bind" in stripped):
-            if "=" in line:
-                flag_part, rest = line.split("=", 1)
-                parts = [p.strip() for p in rest.split(",")]
-                if len(parts) >= 2:
-                    l_mods = parts[0].strip().lower()
-                    l_key = parts[1].strip().lower()
-                    if l_mods == old_mods and l_key == old_key:
-                        found = True
-                        if action == "delete":
-                            continue
-                        elif action == "update":
-                            new_lines.append(new_line)
-                            continue
-        new_lines.append(line)
-    
-    if (action == "add" or (action == "update" and not found)) and new_line:
-        new_lines.append("\\n# Custom Keybind via Olvex\\n" + new_line)
-    
-    with open(conf_path, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
-`
-        ]
-
-        onExited: {
-            Qt.callLater(() => {
-                root.reload();
-            });
-        }
+    function deleteKeybind(bind) {
+        if (!bind) return;
+        const modStr = Array.isArray(bind.mods) ? bind.mods.join("+") : (bind.modString || "");
+        nativeManager.deleteKeybind(modStr, bind.key, bind.flag || "bind");
+        root.reload();
     }
 }

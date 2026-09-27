@@ -68,6 +68,7 @@ qml_module(olvex
         requests.hpp requests.cpp
         toaster.hpp toaster.cpp
         imageanalyser.hpp imageanalyser.cpp
+        keybindmanager.hpp keybindmanager.cpp
     LIBRARIES
         Qt::Gui
         Qt::Quick
