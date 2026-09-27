@@ -25,7 +25,7 @@ ColumnLayout {
         visible: false
         Ref {
             service: SystemUsage
-            active: root.activePoll
+            active: root.activePoll && LockState.locked
         }
     }
 

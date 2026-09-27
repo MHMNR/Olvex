@@ -13,6 +13,7 @@ import qs.components
 import qs.components.controls
 import qs.components.effects
 import qs.components.images
+import qs.components.misc
 import qs.services
 import qs.utils
 
@@ -20,6 +21,11 @@ Item {
     id: root
 
     anchors.fill: parent
+
+    Ref {
+        service: SystemUsage
+        active: LockState.locked
+    }
 
     // Dismissal Layer (Collapses expanded pills on background tap)
     MouseArea {
