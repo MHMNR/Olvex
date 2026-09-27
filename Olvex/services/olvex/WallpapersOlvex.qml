@@ -199,6 +199,8 @@ Searcher {
     function markPathFileReady(loaded: string): void {
         root.actualCurrent = loaded;
         root._pathFileLoaded = true;
+        if (root.isVideoPath(loaded))
+            root.queueThumbnail(loaded, true);
         if (!root._bootstrapDone)
             root.scheduleBootstrap();
         else if (loaded !== root._lastBootstrapPath)
