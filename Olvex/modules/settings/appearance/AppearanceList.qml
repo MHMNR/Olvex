@@ -1,4 +1,4 @@
-pragma ComponentBehavior: Bound
+
 
 
 import ".."

@@ -24,8 +24,8 @@ StyledWindow {
         floating: true,
         smoothing: 32,
         clampedThickness: 0,
-        gap: 6,
-        drawerRounding: 18
+        gap: 5,
+        drawerRounding: 19
     }
 
     readonly property bool _initApps: {
@@ -58,7 +58,7 @@ StyledWindow {
     property real borderThickness: hasFullscreen ? 0 : safeBorder.thickness
     readonly property real borderLayoutThickness: hasFullscreen ? 0 : safeBorder.thickness
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
-    readonly property real drawerRounding: hasFullscreen ? 0 : (safeBorder.drawerRounding ?? (safeBorder.floating ? Math.max(0, safeBorder.rounding - (safeBorder.gap ?? 6)) : safeBorder.rounding))
+    readonly property real drawerRounding: hasFullscreen ? 0 : (safeBorder.drawerRounding ?? Math.max(0, safeBorder.rounding - (safeBorder.gap ?? 5)))
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
     readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
 

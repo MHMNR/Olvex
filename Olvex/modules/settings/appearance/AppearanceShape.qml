@@ -1,4 +1,3 @@
-pragma ComponentBehavior: Bound
 
 
 import ".."
@@ -105,6 +104,7 @@ ColumnLayout {
         SettingRow {
             title: qsTr("Border rounding")
             description: qsTr("Corner radius of the screen border")
+            divider: false
             CustomSpinBox {
                 value: GlobalConfig.border.rounding
                 min: 0
@@ -112,22 +112,6 @@ ColumnLayout {
                 step: 2
                 onValueModified: v => {
                     GlobalConfig.border.rounding = v;
-                    GlobalConfig.save();
-                }
-            }
-        }
-
-        SettingRow {
-            title: qsTr("Edge gap")
-            description: qsTr("Gap between screen edges/drawers (syncs to Hyprland gaps)")
-            divider: false
-            CustomSpinBox {
-                value: GlobalConfig.border.gap
-                min: 0
-                max: 30
-                step: 1
-                onValueModified: v => {
-                    GlobalConfig.border.gap = v;
                     GlobalConfig.save();
                 }
             }

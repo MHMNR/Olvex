@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.2] - 2026-09-27
 
+### Added
+- **Hyprland Lua Configuration Migration**: Full architectural migration of Hyprland configuration from legacy `.conf` (hyprlang) syntax to modular Lua scripting (`.config/hypr/hyprland.lua`, `animations.lua`, `decoration.lua`, `execs.lua`, `general.lua`, `gestures.lua`, `group.lua`, `input.lua`, `keybinds.lua`, `rules.lua`, `variables.lua`, `utils/functions.lua`, and dynamic `scheme/*.lua`). Refactored `services/Hypr.qml` and `Workspaces.qml` for real-time Lua IPC compatibility.
+- **UI Sound Effects System**: Added complete sound effects engine with dedicated audio assets (`charger-in/out`, `device-in/out`, `notif`, `toast`, `warning`), sound dispatcher service (`services/UiSounds.qml`), and settings configuration panel (`SoundUiSounds.qml`). Filtered hardware event toasts from sound triggers to prevent double notifications.
+- **Charging Ripple Effect Overlay**: GPU-accelerated shader-driven ripple effect animation overlay (`ChargingRipple.qml`, custom `charging_ripple.frag` and `.vert` shaders) that smoothly radiates across the screen and lock screen on charger plug-in, with customizable settings toggle.
+- **Configurable Drawer Rounding & Screen Edge Gaps**: Added configurable edge gaps (`GlobalConfig.border.edgeGap`) and customizable drawer radius controls in Appearance Settings, adapting drawer anchor layouts, panel exclusion zones, and blur rules.
+- **Dual Night Light Backend Support**: Added support for both `gammastep` and `wlsunset` backends in `NightLight.qml` with automatic fallback detection.
+- **Dynamic Notification Pill Overflow & Stacking Refinements**: Added dynamic overflow handling for older notification pills, safe screen configuration bindings, and fluid spring models.
+- **M3 Backdrop Scrim & Frosted Glass Styling**: Added M3 backdrop scrim to Quick Settings expansion overlays and frosted glass styling across bar popouts and notification cards.
+
+### UI & UX Improvements
+- **Standardized Tile Backgrounds**: Standardized tile backgrounds and cleaned up redundant surface tint overlays.
+- **Picker Grid Polish**: Refactored `PickerGrid` layout and streamlined logo label rendering.
+- **Tray Menu Stability**: Prevented tray popout menus from inadvertently dismissing during bar mouse interactions.
+- **Cleaned Component Tree**: Removed legacy unused Olvex modules, components, and dead assets.
+
 ### Performance & Architecture
 - **Lazy Drawer Content Loading**: Switched `dashboard` and `qspanel` drawer content loaders from eager instantiation (`active: true`) to active visibility gating (`active: root.shouldBeActive || closeGrace.running || root.visible`). Reduces steady-state idle CPU from 14.88% to 1.54% (-89.7%), frees 204.8 MB resident memory (RSS), and eliminates 18 idle threads with zero pop-in latency (53–131ms initialization within 400ms entrance slide).
 - **Single-Pass Analytical SDF Music Pill Glow**: Replaced heavyweight 3-layer `MultiEffect` Gaussian blur with a single-pass GPU-accelerated continuous Signed Distance Field (SDF) `ShaderEffect` for the dynamic media pill ambient glow, eliminating offscreen render passes and multi-layer fragment blending overhead.
@@ -26,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Active Video Wallpaper Thumbnail Boot Restoration**: Fixed cold-boot thumbnail generation for active video wallpapers when catalog prewarm is disabled.
 - **Wallpaper JSON Scheme Ingestion**: Normalized wallpaper color JSON payloads to prevent duplicate color scheme re-evaluations on boot.
+- **ContentWindow Focus Grab Active Condition**: Replaced deprecated `Config` reference with `GlobalConfig` to eliminate unattached property warnings on startup.
 
 ---
 

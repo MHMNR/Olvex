@@ -159,8 +159,8 @@ Singleton {
     function syncGaps(): void {
         if (typeof GameMode !== "undefined" && GameMode && GameMode.enabled)
             return;
-        const gap = GlobalConfig.border.gap ?? 6;
-        const rounding = GlobalConfig.border.drawerRounding;
+        const gap = GlobalConfig.border.gap ?? 5;
+        const rounding = Math.max(0, (GlobalConfig.border.rounding ?? 24) - gap);
         extras.applyOptions({
             "general:gaps_out": gap,
             "decoration:rounding": rounding

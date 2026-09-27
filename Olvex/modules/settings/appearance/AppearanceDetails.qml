@@ -22,7 +22,7 @@ Item {
 
         Loader {
             id: detailsLoader
-            onLoaded: if (item) height = Qt.binding(() => item ? (item["implicitHeight"] || 0) : 0);
+            onLoaded: { if (item) height = Qt.binding(() => item ? (item["implicitHeight"] || 0) : 0); }
                         anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right

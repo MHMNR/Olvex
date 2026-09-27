@@ -27,8 +27,8 @@ Item {
         floating: false,
         smoothing: 0,
         clampedThickness: 0,
-        gap: 6,
-        drawerRounding: 18
+        gap: 5,
+        drawerRounding: 19
     }
 
     anchors.top: parent.top
