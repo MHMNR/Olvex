@@ -356,17 +356,19 @@ Singleton {
     property string _lastIngestedData: ""
 
     function ingestWallpaperColors(data, isPreview) {
-        if (!isPreview && data && data === root._lastIngestedData)
-            return;
-
         const scheme = M3ColorMapper.parseSchemePayload(data);
         if (!scheme) {
             console.log("[Colours] Invalid wallpaper palette payload");
             return;
         }
+
+        const normalizedData = M3ColorMapper.stringifySchemePayload(data);
+        if (!isPreview && normalizedData && normalizedData === root._lastIngestedData)
+            return;
+
         console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"})`);
         if (!isPreview) {
-            root._lastIngestedData = data;
+            root._lastIngestedData = normalizedData;
             root.themeTransitioning = true;
             if (!bootPalette.applyScheme(scheme))
                 console.log("[Colours] bootPalette applyScheme failed");
