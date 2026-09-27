@@ -17,6 +17,8 @@ Item {
 
     required property ShellScreen screen
 
+    readonly property alias notifCard: notifCard
+
     property bool active: false
     property bool isDismissing: false
     property bool morphAnimating: expandTransition.running || collapseTransition.running || dismissAnimation.running
@@ -315,7 +317,7 @@ Item {
                 }
                 PropertyChanges {
                     target: cardBg
-                    color: Colours.tileFillElevated
+                    color: Colours.layer(Colours.palette.m3surfaceVariant, 0.25)
                 }
                 PropertyChanges {
                     target: cardContent

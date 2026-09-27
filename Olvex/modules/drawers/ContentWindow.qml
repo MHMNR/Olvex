@@ -60,7 +60,7 @@ StyledWindow {
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     readonly property real drawerRounding: hasFullscreen ? 0 : (safeBorder.drawerRounding ?? Math.max(0, safeBorder.rounding - (safeBorder.gap ?? 5)))
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
-    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
+    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || notifMorph.active || notifMorph.morphAnimating || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
 
     property real bottomBorderHeight: {
         if (hasFullscreen)
@@ -162,6 +162,7 @@ StyledWindow {
                                         || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating)
                                         || morph.active
                                         || notifMorph.active
+                                        || notifMorph.morphAnimating
 
     mask: (hasFullscreen || anyPanelActive) ? null : regions
 
@@ -376,6 +377,20 @@ StyledWindow {
                 group: drawerGroup
                 deformAmount: 0.05
                 radius: panels.overflowFlyoutContainer ? panels.overflowFlyoutContainer.radius : Tokens.rounding.large
+            }
+
+            BlobRect {
+                id: notifMorphBg
+
+                group: drawerGroup
+                x: notifMorph.notifCard ? notifMorph.notifCard.x : 0
+                y: notifMorph.notifCard ? notifMorph.notifCard.y : 0
+                width: implicitWidth
+                height: implicitHeight
+                implicitWidth: (notifMorph.active || notifMorph.morphAnimating) && notifMorph.notifCard ? notifMorph.notifCard.width : 0
+                implicitHeight: (notifMorph.active || notifMorph.morphAnimating) && notifMorph.notifCard ? notifMorph.notifCard.height : 0
+                radius: notifMorph.notifCard ? notifMorph.notifCard.radius : Tokens.rounding.large
+                deformScale: (0.05 * Config.appearance.deformScale) / 10000
             }
         }
     }
