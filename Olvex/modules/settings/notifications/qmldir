@@ -1,0 +1,7 @@
+module qs.modules.settings.notifications
+
+NotificationsBehavior 1.0 NotificationsBehavior.qml
+NotificationsDetails 1.0 NotificationsDetails.qml
+NotificationsList 1.0 NotificationsList.qml
+NotificationsPage 1.0 NotificationsPage.qml
+NotificationsToasts 1.0 NotificationsToasts.qml

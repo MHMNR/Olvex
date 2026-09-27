@@ -1,0 +1,10 @@
+module qs.modules.settings.sound
+
+SoundApps 1.0 SoundApps.qml
+SoundBehavior 1.0 SoundBehavior.qml
+SoundDetails 1.0 SoundDetails.qml
+SoundInput 1.0 SoundInput.qml
+SoundList 1.0 SoundList.qml
+SoundOutput 1.0 SoundOutput.qml
+SoundPage 1.0 SoundPage.qml
+SoundUiSounds 1.0 SoundUiSounds.qml

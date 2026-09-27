@@ -1,5 +1,7 @@
 pragma ComponentBehavior: Bound
 
+
+import "."
 import ".."
 import "../ui"
 import "../components"

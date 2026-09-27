@@ -1,0 +1,9 @@
+module qs.modules.settings.system
+
+SystemAdvanced 1.0 SystemAdvanced.qml
+SystemClock 1.0 SystemClock.qml
+SystemDetails 1.0 SystemDetails.qml
+SystemKeybinds 1.0 SystemKeybinds.qml
+SystemList 1.0 SystemList.qml
+SystemMedia 1.0 SystemMedia.qml
+SystemPage 1.0 SystemPage.qml

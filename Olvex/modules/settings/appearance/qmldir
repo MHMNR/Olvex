@@ -1,0 +1,13 @@
+module qs.modules.settings.appearance
+
+AppearanceDetails 1.0 AppearanceDetails.qml
+AppearanceFonts 1.0 AppearanceFonts.qml
+AppearanceList 1.0 AppearanceList.qml
+AppearanceLockscreen 1.0 AppearanceLockscreen.qml
+AppearanceMotion 1.0 AppearanceMotion.qml
+AppearancePage 1.0 AppearancePage.qml
+AppearancePane 1.0 AppearancePane.qml
+AppearanceShape 1.0 AppearanceShape.qml
+AppearanceTheme 1.0 AppearanceTheme.qml
+AppearanceTransparency 1.0 AppearanceTransparency.qml
+AppearanceWallpapers 1.0 AppearanceWallpapers.qml

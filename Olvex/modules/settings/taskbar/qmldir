@@ -1,0 +1,11 @@
+module qs.modules.settings.taskbar
+
+TaskbarBehavior 1.0 TaskbarBehavior.qml
+TaskbarBottomPanel 1.0 TaskbarBottomPanel.qml
+TaskbarDetails 1.0 TaskbarDetails.qml
+TaskbarList 1.0 TaskbarList.qml
+TaskbarPage 1.0 TaskbarPage.qml
+TaskbarPane 1.0 TaskbarPane.qml
+TaskbarStatus 1.0 TaskbarStatus.qml
+TaskbarWidgets 1.0 TaskbarWidgets.qml
+TaskbarWorkspaces 1.0 TaskbarWorkspaces.qml

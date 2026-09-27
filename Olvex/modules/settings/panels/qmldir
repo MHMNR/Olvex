@@ -1,0 +1,10 @@
+module qs.modules.settings.panels
+
+PanelsDashboard 1.0 PanelsDashboard.qml
+PanelsDetails 1.0 PanelsDetails.qml
+PanelsLauncher 1.0 PanelsLauncher.qml
+PanelsList 1.0 PanelsList.qml
+PanelsOSD 1.0 PanelsOSD.qml
+PanelsPage 1.0 PanelsPage.qml
+PanelsSession 1.0 PanelsSession.qml
+PanelsSidebar 1.0 PanelsSidebar.qml

@@ -1,0 +1,8 @@
+module qs.modules.settings.power
+
+PowerBattery 1.0 PowerBattery.qml
+PowerBehavior 1.0 PowerBehavior.qml
+PowerDetails 1.0 PowerDetails.qml
+PowerList 1.0 PowerList.qml
+PowerPage 1.0 PowerPage.qml
+PowerTimeouts 1.0 PowerTimeouts.qml
