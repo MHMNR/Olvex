@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Window
+import Quickshell
 import M3Shapes
 import Olvex.Components
 import Olvex.Config
@@ -86,47 +87,24 @@ Item {
         color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
     }
 
-    // ── Ambient Glow (soft bloom behind the album art) ────────────────────────
-    StyledClippingRect {
-        id: glowClip
+    // ── Ambient Glow (Single-Pass Analytical SDF ShaderEffect) ────────
+    ShaderEffect {
+        id: glowShader
         anchors.fill: parent
-        radius: 25
-        color: "transparent"
         z: -2
+        visible: opacity > 0.01
         opacity: root.hasActiveMedia ? 1 : 0
         Behavior on opacity { Anim { type: Anim.DefaultEffects } }
 
-        readonly property point glowCenter: Qt.point(
+        property color uAccentColor: Players.musicVisualizerAccent
+        property vector2d uLightPos: Qt.vector2d(
             layout.x + upperRow.x + artFrame.x + artFrame.width / 2,
             layout.y + upperRow.y + artFrame.y + artFrame.height / 2
         )
+        property vector2d uSize: Qt.vector2d(root.width, root.height)
+        property real uRadius: 25
 
-        Repeater {
-            model: [
-                { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 36 },
-                { mult: 1.6,  dark: 1.8, alpha: 0.16, bmax: 32 },
-                { mult: 1.05, dark: 2.2, alpha: 0.28, bmax: 24 }
-            ]
-            delegate: Rectangle {
-                id: glowLayer
-                required property var modelData
-                readonly property real d: root.artSize * modelData.mult
-                width: d
-                height: d
-                radius: 16 * modelData.mult
-                x: glowClip.glowCenter.x - d / 2
-                y: glowClip.glowCenter.y - d / 2
-                color: Qt.alpha(Qt.darker(Players.musicVisualizerAccent, modelData.dark), modelData.alpha)
-                antialiasing: true
-                layer.enabled: glowClip.opacity > 0.05 && (!root.lock || (root.lock.contentReady && !root.lock.unlocking))
-                layer.smooth: true
-                layer.effect: MultiEffect {
-                    blurEnabled: true
-                    blur: 1.0
-                    blurMax: glowLayer.modelData.bmax
-                }
-            }
-        }
+        fragmentShader: Quickshell.shellPath("assets/shaders/music_pill_glow.frag.qsb")
     }
 
     // ── Background Neon Wave Visualizer (anchored at bottom of card) ──────────

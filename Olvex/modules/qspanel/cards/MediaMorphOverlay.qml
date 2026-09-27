@@ -460,25 +460,11 @@ Item {
 
 
 
-            // Ambient glow — a soft, thumbnail-shaped light bloom behind the
-            // art. Three overlapping rounded-square discs (wide faint halo →
-            // body → hot core lifted toward white) are each individually
-            // blurred, then clipped to the card's rounded shape by this
-            // StyledClippingRect — a reliable stencil clip. (A MultiEffect
-            // mask was tried but rendered a hard SQUARE corner at the top-
-            // left; a per-disc blur inside a real rounded clip doesn't.)
-            // Each disc owns its blur so its texture is sized to itself and
-            // never corner-clips. Static, gated on playback (not expanded
-            // state) so the mini/compact pill gets the glow too — geometry
-            // already derives from musicIcon's live size, so it scales down
-            // to the compact art tile automatically.
-            StyledClippingRect {
-                id: glowClip
+            // ── Ambient Glow (Single-Pass Analytical SDF ShaderEffect) ────────
+            ShaderEffect {
+                id: glowShader
                 anchors.fill: parent
-                radius: musicPill.radius // the pill/card rounding
-                color: "transparent"
-                // Present whenever a player is loaded — not gated on isPlaying,
-                // so it doesn't disappear on pause.
+                visible: opacity > 0.01
                 opacity: Players.active !== null ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
@@ -487,34 +473,12 @@ Item {
                     }
                 }
 
-                Repeater {
-                    // widest/faintest first (behind) → hot core last (on top)
-                    model: [
-                        { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 56 }, // halo
-                        { mult: 1.6,  dark: 1.8, alpha: 0.16, bmax: 44 }, // body
-                        { mult: 1.05, dark: 2.2, alpha: 0.28, bmax: 30 }  // dark core
-                    ]
-                    delegate: Rectangle {
-                        id: glowLayer
-                        required property var modelData
-                        readonly property real d: musicIcon.width * modelData.mult
-                        width: d
-                        height: d
-                        // Shape the source like the album tile (its own
-                        // rounded-square radius, scaled) — not a circle.
-                        radius: musicIcon.radius * modelData.mult
-                        x: musicIcon.x + musicIcon.width / 2 - d / 2
-                        y: musicIcon.y + musicIcon.height / 2 - d / 2
-                        color: Qt.alpha(Qt.darker(root.musicAccent, modelData.dark), modelData.alpha)
-                        antialiasing: true
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            blurEnabled: true
-                            blur: 1.0
-                            blurMax: glowLayer.modelData.bmax
-                        }
-                    }
-                }
+                property color uAccentColor: root.musicAccent
+                property vector2d uLightPos: Qt.vector2d(musicIcon.x + musicIcon.width / 2, musicIcon.y + musicIcon.height / 2)
+                property vector2d uSize: Qt.vector2d(musicPill.width, musicPill.height)
+                property real uRadius: musicPill.radius
+
+                fragmentShader: Quickshell.shellPath("assets/shaders/music_pill_glow.frag.qsb")
             }
         }
 

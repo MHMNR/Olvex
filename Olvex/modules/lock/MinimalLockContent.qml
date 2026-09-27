@@ -445,51 +445,20 @@ Item {
                         }
                     }
 
-                    // Ambient glow — a soft, circular light bloom behind the
-                    // art (this pill's thumbnail is a circle, so the glow is
-                    // too). Three overlapping discs (wide faint halo → body →
-                    // hot core lifted toward white, since bright light
-                    // overwhelms hue at its source) are each individually
-                    // blurred into smooth domes, drawn directly inside
-                    // pillSurface — which is itself a StyledClippingRect, so
-                    // its reliable stencil clip already trims the glow to the
-                    // pill's rounded shape (no separate mask needed; a
-                    // MultiEffect mask rendered a hard square corner). Each
-                    // disc owns its blur so its texture never corner-clips.
-                    // Static, no per-frame cost.
-                    Item {
+                    // ── Ambient Glow (Single-Pass Analytical SDF ShaderEffect) ────────
+                    ShaderEffect {
+                        id: glowShader
                         anchors.fill: parent
-                        // Present whenever a player is loaded — not gated on
-                        // isPlaying, so it doesn't disappear on pause.
+                        visible: opacity > 0.01
                         opacity: Players.active !== null ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
-                        Repeater {
-                            // widest/faintest first (behind) → hot core last (top)
-                            model: [
-                                { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 56 }, // halo
-                                { mult: 1.6,  dark: 1.8, alpha: 0.16, bmax: 44 }, // body
-                                { mult: 1.05, dark: 2.2, alpha: 0.28, bmax: 30 }  // dark core
-                            ]
-                            delegate: Rectangle {
-                                id: glowLayer
-                                required property var modelData
-                                readonly property real d: artFrame.width * modelData.mult
-                                width: d
-                                height: d
-                                radius: d / 2 // circle, matching the round thumbnail
-                                x: artFrame.x + artFrame.width / 2 - d / 2
-                                y: artFrame.y + artFrame.height / 2 - d / 2
-                                color: Qt.alpha(Qt.darker(Players.musicVisualizerAccent, modelData.dark), modelData.alpha)
-                                antialiasing: true
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    blurEnabled: true
-                                    blur: 1.0
-                                    blurMax: glowLayer.modelData.bmax
-                                }
-                            }
-                        }
+                        property color uAccentColor: Players.musicVisualizerAccent
+                        property vector2d uLightPos: Qt.vector2d(artFrame.x + artFrame.width / 2, artFrame.y + artFrame.height / 2)
+                        property vector2d uSize: Qt.vector2d(pillSurface.width, pillSurface.height)
+                        property real uRadius: musicPill.expanded ? 28 : 24
+
+                        fragmentShader: Quickshell.shellPath("assets/shaders/music_pill_glow.frag.qsb")
                     }
 
                     // Stays loaded through the expand/collapse morph — anchors.fill
