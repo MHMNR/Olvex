@@ -658,14 +658,6 @@ Searcher {
         videoScanProc.running = true;
     }
 
-    Timer {
-        id: catalogPrewarmTimer
-        interval: 5000
-        repeat: false
-        running: true
-        onTriggered: root.ensureCatalog()
-    }
-
     Component.onCompleted: {
         console.log(`[Wallpapers] Initialized. Live Dir: ${liveWallpaperDir}`);
         if (root.isVideoPath(root.actualCurrent))
