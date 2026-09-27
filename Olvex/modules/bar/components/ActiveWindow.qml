@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Window
+import Quickshell
 import M3Shapes
 import Olvex
 import Olvex.Config
@@ -603,12 +604,12 @@ Item {
 
 
 
-        // ── Ambient Glow (Clipped to pill boundary) ─────────────────────
-        StyledClippingRect {
-            id: glowClip
+        // ── Ambient Glow (Single-Pass Analytical SDF ShaderEffect) ────────
+        ShaderEffect {
+            id: glowShader
             anchors.fill: parent
-            radius: musicPill.radius
-            color: "transparent"
+            z: 0
+            visible: opacity > 0.01
             opacity: root.playerActive ? 1 : 0
             Behavior on opacity {
                 SequentialAnimation {
@@ -620,32 +621,12 @@ Item {
                 }
             }
 
-            Repeater {
-                model: [
-                    { mult: 2.4,  dark: 1.5, alpha: 0.10, bmax: 56 }, // halo
-                    { mult: 1.6,  dark: 1.8, alpha: 0.16, bmax: 44 }, // body
-                    { mult: 1.05, dark: 2.2, alpha: 0.28, bmax: 30 }  // dark core
-                ]
-                delegate: Rectangle {
-                    id: glowLayer
-                    required property var modelData
-                    readonly property real d: artFrame.width * modelData.mult
-                    width: d
-                    height: d
-                    radius: d / 2
-                    // Center on the artFrame
-                    x: artFrame.x + artFrame.width / 2 - d / 2
-                    y: artFrame.y + artFrame.height / 2 - d / 2
-                    color: Qt.alpha(Qt.darker(root.musicAccent, modelData.dark), modelData.alpha)
-                    antialiasing: true
-                    layer.enabled: glowClip.opacity > 0.01
-                    layer.effect: MultiEffect {
-                        blurEnabled: true
-                        blur: 1.0
-                        blurMax: glowLayer.modelData.bmax
-                    }
-                }
-            }
+            property color uAccentColor: root.musicAccent
+            property vector2d uLightPos: Qt.vector2d(artFrame.x + artFrame.width / 2, artFrame.y + artFrame.height / 2)
+            property vector2d uSize: Qt.vector2d(musicPill.width, musicPill.height)
+            property real uRadius: musicPill.radius
+
+            fragmentShader: Quickshell.shellPath("assets/shaders/music_pill_glow.frag.qsb")
         }
 
         Item {
