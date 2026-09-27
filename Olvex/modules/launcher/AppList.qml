@@ -158,20 +158,12 @@ Item {
     }
 
     readonly property var modelValues: {
-        if (state !== "apps" || !rawModelValues) return rawModelValues;
+        if (state !== "apps" || !rawModelValues || sortMode === "recent") return rawModelValues;
         const list = rawModelValues.slice();
         if (sortMode === "az") {
-            return list.sort((a, b) => {
-                const nameA = (a && a.name) ? a.name : "";
-                const nameB = (b && b.name) ? b.name : "";
-                return nameA.localeCompare(nameB);
-            });
+            return list.sort((a, b) => (a?.name ?? "").localeCompare(b?.name ?? ""));
         } else if (sortMode === "za") {
-            return list.sort((a, b) => {
-                const nameA = (a && a.name) ? a.name : "";
-                const nameB = (b && b.name) ? b.name : "";
-                return nameB.localeCompare(nameA);
-            });
+            return list.sort((a, b) => (b?.name ?? "").localeCompare(a?.name ?? ""));
         }
         return list;
     }
