@@ -343,7 +343,12 @@ Singleton {
         _pendingWallPreview = false;
     }
 
+    property string _lastIngestedData: ""
+
     function ingestWallpaperColors(data, isPreview) {
+        if (!isPreview && data && data === root._lastIngestedData)
+            return;
+
         const scheme = M3ColorMapper.parseSchemePayload(data);
         if (!scheme) {
             console.log("[Colours] Invalid wallpaper palette payload");
@@ -351,6 +356,7 @@ Singleton {
         }
         console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"})`);
         if (!isPreview) {
+            root._lastIngestedData = data;
             root.themeTransitioning = true;
             if (!bootPalette.applyScheme(scheme))
                 console.log("[Colours] bootPalette applyScheme failed");
@@ -367,6 +373,7 @@ Singleton {
     function load(data, isPreview) { ingestWallpaperColors(data, isPreview) }
 
     function useFallbackPalette(): void {
+        root._lastIngestedData = "";
         const scheme = M3ColorMapper.fallbackScheme();
         bootPalette.applyScheme(scheme);
         bootSchemeMode = scheme.mode ?? "dark";
