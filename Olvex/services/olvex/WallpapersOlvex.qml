@@ -102,8 +102,10 @@ Searcher {
     }
 
     function ensureCatalog(): void {
-        if (!catalogReady)
+        if (!catalogReady) {
             catalogReady = true;
+            scanVideos();
+        }
     }
 
     function isVideoPath(path: string): bool {
@@ -637,26 +639,23 @@ Searcher {
         id: schemePersistProc
     }
 
-    Timer {
-        id: videoScanTimer
-        interval: 2000
-        repeat: false
-        onTriggered: {
-            videoScanProc.command = ["bash", "-lc", `
-                if [ -d '${liveWallpaperDir.replace(/'/g, "'\\''")}' ]; then
-                    find '${liveWallpaperDir.replace(/'/g, "'\\''")}' -maxdepth 1 -type f \\( -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.mov' -o -iname '*.avi' -o -iname '*.m4v' \\) | sort | while read -r video; do
-                        safe=$(echo "$video" | sed -e 's/[^A-Za-z0-9._-]/_/g')
-                        thumb="${videoThumbnailDir.replace(/'/g, "'\\''")}/$safe.jpg"
-                        if [ -s "$thumb" ]; then
-                            printf "%s|%s\\n" "$video" "$thumb"
-                        else
-                            printf "%s|\\n" "$video"
-                        fi
-                    done
-                fi
-            `];
-            videoScanProc.running = true;
-        }
+    function scanVideos(): void {
+        if (videoScanProc.running)
+            return;
+        videoScanProc.command = ["bash", "-lc", `
+            if [ -d '${liveWallpaperDir.replace(/'/g, "'\\''")}' ]; then
+                find '${liveWallpaperDir.replace(/'/g, "'\\''")}' -maxdepth 1 -type f \\( -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.mov' -o -iname '*.avi' -o -iname '*.m4v' \\) | sort | while read -r video; do
+                    safe=$(echo "$video" | sed -e 's/[^A-Za-z0-9._-]/_/g')
+                    thumb="${videoThumbnailDir.replace(/'/g, "'\\''")}/$safe.jpg"
+                    if [ -s "$thumb" ]; then
+                        printf "%s|%s\\n" "$video" "$thumb"
+                    else
+                        printf "%s|\\n" "$video"
+                    fi
+                done
+            fi
+        `];
+        videoScanProc.running = true;
     }
 
     Timer {
@@ -669,7 +668,8 @@ Searcher {
 
     Component.onCompleted: {
         console.log(`[Wallpapers] Initialized. Live Dir: ${liveWallpaperDir}`);
-        videoScanTimer.start();
+        if (root.isVideoPath(root.actualCurrent))
+            root.scanVideos();
     }
 
     Process {
