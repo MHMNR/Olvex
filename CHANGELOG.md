@@ -7,7 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.2] - 2026-09-27
+
+### Performance & Architecture
+- **Lazy Drawer Content Loading**: Switched `dashboard` and `qspanel` drawer content loaders from eager instantiation (`active: true`) to active visibility gating (`active: root.shouldBeActive || closeGrace.running || root.visible`). Reduces steady-state idle CPU from 14.88% to 1.54% (-89.7%), frees 204.8 MB resident memory (RSS), and eliminates 18 idle threads with zero pop-in latency (53–131ms initialization within 400ms entrance slide).
+- **Single-Pass Analytical SDF Music Pill Glow**: Replaced heavyweight 3-layer `MultiEffect` Gaussian blur with a single-pass GPU-accelerated continuous Signed Distance Field (SDF) `ShaderEffect` for the dynamic media pill ambient glow, eliminating offscreen render passes and multi-layer fragment blending overhead.
+- **On-Demand On-Screen Keyboard Instantiation**: Lazy-loaded the On-Screen Keyboard window on demand, preventing permanent resource allocation when the virtual keyboard is not in use.
+- **Subprocess Fork & Background Polling Elimination**:
+  - Eliminated continuous unlocked polling of `nvidia-smi`, `lm_sensors`, and `lsblk` by gating `SystemUsage` refcounts strictly to locked sessions (`LockState.locked`), eliminating 108 background process forks/minute.
+  - Reduced screen recorder idle status polling timer from 1s to 10s when not recording, eliminating 60 `wpctl`/`pkill` checks/minute.
+  - Deferred video wallpaper ffmpeg discovery to on-demand catalog requests, and auto-queued thumbnail generation for the active wallpaper on boot without background catalog prewarming.
+- **ActiveWindow Morph Dock Synchronization Gating**: Gated `syncMorphDock` debouncing and geometry change handlers (`onWidthChanged`, `onHeightChanged`, `onXChanged`, `onYChanged`) to active media player playback (`if (root.playerActive)`), eliminating redundant scene graph item coordinate resolution during idle.
+- **Colours Engine & Palette Memoization**:
+  - Memoized standard M3 `surfaceContainer` layer elevation levels with a reactive fast-path to prevent repeated full-palette queries.
+  - Deduplicated redundant consecutive palette evaluations and normalized JSON payloads in `ingestWallpaperColors`.
+  - Optimized application launcher `modelValues` evaluation to bypass redundant array cloning.
+
+### Fixed
+- **Active Video Wallpaper Thumbnail Boot Restoration**: Fixed cold-boot thumbnail generation for active video wallpapers when catalog prewarm is disabled.
+- **Wallpaper JSON Scheme Ingestion**: Normalized wallpaper color JSON payloads to prevent duplicate color scheme re-evaluations on boot.
+
+---
+
+
 ## [1.2.1] - 2026-09-20
+
 
 ### Added
 - **On-Screen Keyboard (OSK) Wayland Exclusive Zone**: Added dedicated "Exclusive Zone" toggle in OSK Settings. In docked mode, OSK automatically reserves layer-shell screen space so tiled and floating windows seamlessly adjust above the keyboard.
