@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.2] - 2026-09-27
+## [1.3.1] - 2026-09-27
+
+### Added
+- **Native C++ Keybindings Engine**: Migrated the keybindings engine from legacy Python subprocess execution to native Qt 6 C++ plugin architecture (`KeybindManager`, registered in `Olvex` QML module).
+- **Direct Hyprland UNIX Socket IPC**: Implemented low-level UNIX domain socket communication (`.socket.sock`) with instant query and command streaming, achieving sub-millisecond retrieval (<1ms) with zero subprocess fork overhead.
+- **Universal Dual-Backend Keybind Compatibility**: Added bidirectional synchronization and recursive AST parsing for both modular Lua setups (`hyprland/keybinds.lua`, `variables.lua`, `hl.bind`, `create_bind`, `hl.dsp.*`) and standard Hyprlang configurations (`keybinds.conf`, `hyprland.conf`).
+- **Live Dispatcher Resolution**: Correlates live Hyprland keybind tables to dynamically resolve `__lua` function callbacks to their actual dispatchers, arguments, and human-readable descriptions.
+
+### Fixed & Removed
+- **QML Sequence Object Parsing**: Fixed `QVariantList` type detection in `services/Keybinds.qml` to prevent sequence objects from being discarded.
+- **Purged Legacy Python Engine**: Removed deprecated `olvex.utils.keybinds` and `olvex.subcommands.keybinds` python modules and CLI parser subcommands.
+
+---
+
+## [1.3.0] - 2026-09-27
 
 ### Added
 - **Hyprland Lua Configuration Migration**: Full architectural migration of Hyprland configuration from legacy `.conf` (hyprlang) syntax to modular Lua scripting (`.config/hypr/hyprland.lua`, `animations.lua`, `decoration.lua`, `execs.lua`, `general.lua`, `gestures.lua`, `group.lua`, `input.lua`, `keybinds.lua`, `rules.lua`, `variables.lua`, `utils/functions.lua`, and dynamic `scheme/*.lua`). Refactored `services/Hypr.qml` and `Workspaces.qml` for real-time Lua IPC compatibility.

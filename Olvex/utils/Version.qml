@@ -9,10 +9,10 @@ Singleton {
     id: root
 
     readonly property string name: "Olvex Shell"
-    property string version: "1.2.2"
+    property string version: "1.3.1"
     property int major: 1
-    property int minor: 2
-    property int patch: 2
+    property int minor: 3
+    property int patch: 1
     property string channel: "Rolling"
     property string releaseType: ""
     property string buildId: "2026.09.27"
