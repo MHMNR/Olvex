@@ -203,7 +203,17 @@ Singleton {
             : alterColour(c, transparencyLayers, layer);
     }
 
+    // Declarative fast-path elevation properties for standard surface container
+    readonly property color _surfaceContainerLayer1: applyLayer(bootPalette.m3surfaceContainer, 1)
+    readonly property color _surfaceContainerLayer2: applyLayer(bootPalette.m3surfaceContainer, 2)
+    readonly property color _surfaceContainerLayer3: applyLayer(bootPalette.m3surfaceContainer, 3)
+
     function layer(c, layerLevel) {
+        if (c === bootPalette.m3surfaceContainer) {
+            if (layerLevel === 2 || layerLevel === undefined) return _surfaceContainerLayer2;
+            if (layerLevel === 1) return _surfaceContainerLayer1;
+            if (layerLevel === 3) return _surfaceContainerLayer3;
+        }
         return applyLayer(c, layerLevel);
     }
 
