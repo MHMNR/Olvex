@@ -223,7 +223,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: !Visibilities.areaPickerActive && ((visibilities.launcher && (Config.launcher.enabled ?? true)) || (visibilities.wallpaperLauncher && (Config.launcher.enabled ?? true)) || (visibilities.powermenu && (Config.powermenu.enabled ?? true)) || (visibilities.notificationcenter && (Config.notificationcenter.enabled ?? true)) || (visibilities.dashboard && (Config.dashboard.enabled ?? true)) || (panels.popouts.hasCurrent && panels.popouts.currentName.startsWith("traymenu")) || (panels.qspanel && panels.qspanel.needsKeyboard && visibilities.qspanel) || visibilities.clipboard)
+        active: !Visibilities.areaPickerActive && ((visibilities.launcher && (GlobalConfig.launcher.enabled ?? true)) || (visibilities.wallpaperLauncher && (GlobalConfig.launcher.enabled ?? true)) || (visibilities.powermenu && (GlobalConfig.powermenu.enabled ?? true)) || (visibilities.notificationcenter && (GlobalConfig.notificationcenter.enabled ?? true)) || (visibilities.dashboard && (GlobalConfig.dashboard.enabled ?? true)) || (panels.popouts.hasCurrent && panels.popouts.currentName.startsWith("traymenu")) || (panels.qspanel && panels.qspanel.needsKeyboard && visibilities.qspanel) || visibilities.clipboard)
         windows: [root]
         onActiveChanged: {
             if (active) {
