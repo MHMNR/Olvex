@@ -17,7 +17,7 @@ import "../qspanel/cards" as Cards
 StyledWindow {
     id: root
 
-    readonly property var safeBorder: (typeof Config !== "undefined" && Config && Config.border) ? Config.border : ((typeof GlobalConfig !== "undefined" && GlobalConfig.border) ? GlobalConfig.border : {
+    readonly property var safeBorder: GlobalConfig.border ?? {
         thickness: 0,
         rounding: 24,
         minThickness: 0,
@@ -26,7 +26,7 @@ StyledWindow {
         clampedThickness: 0,
         gap: 6,
         drawerRounding: 18
-    })
+    }
 
     readonly property bool _initApps: {
         Qt.application.name = "Olvex";
