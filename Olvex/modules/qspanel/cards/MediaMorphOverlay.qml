@@ -23,6 +23,8 @@ Item {
 
     required property ShellScreen screen
 
+    readonly property alias musicPill: musicPill
+
     // ── Backend state (untouched) ──────────────────────────────────────────────
     property bool active: false
     property bool docked: false
@@ -438,24 +440,19 @@ Item {
         layer.enabled: false
         state: "compact"
 
-        // ── Card background — matches pill: surfaceColor + m3surfaceTint tonal ──
+        // ── Card background — matches pill: surfaceColor exactly ──
         Rectangle {
+            id: cardBg
             anchors.fill: parent
             radius: musicPill.radius
             antialiasing: true
+            smooth: true
             color: Players.musicSurfaceColor
             Behavior on color {
                 ColorAnimation {
                     duration: 400
                     easing.type: Easing.OutCubic
                 }
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                radius: parent.radius
-                antialiasing: true
-                color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08)
             }
 
 
