@@ -45,7 +45,6 @@ Item {
         animate: true
         color: root.pam.isVerifying ? Colours.palette.m3secondary : Colours.palette.m3onSurfaceVariant
         textPointSize: Tokens.font.size.normal
-        font.family: Tokens.font.family.main
 
         opacity: (root.buffer && root.buffer.length > 0) ? 0 : 0.75
 
