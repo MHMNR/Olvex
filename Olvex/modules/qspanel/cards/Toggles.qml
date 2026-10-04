@@ -153,13 +153,53 @@ StyledRect {
                             isPanelVisible: root.visibilities.qspanel
                             id: wifiTile
                             Layout.fillWidth: true
-                            icon: "wifi"
-                            label: (Nmcli.wifiEnabled && Nmcli.active) ? Nmcli.active.ssid : qsTr("Wi-Fi")
-                            stateText: Nmcli.wifiEnabled ? qsTr("On") : qsTr("Off")
-                            checked: Nmcli.wifiEnabled
+                            icon: {
+                                if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return "lan";
+                                if (Nmcli.wifiEnabled && Nmcli.active) return "wifi";
+                                if (!Nmcli.hasWifiHw && Nmcli.hasEthernetHw) return "lan";
+                                return "wifi";
+                            }
+                            label: {
+                                if (!Nmcli.hasWifiHw && !Nmcli.hasEthernetHw) return qsTr("Internet");
+                                if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) {
+                                    return (Nmcli.activeEthernet.connection && Nmcli.activeEthernet.connection.length > 0) ? Nmcli.activeEthernet.connection : qsTr("Ethernet");
+                                }
+                                if (Nmcli.wifiEnabled && Nmcli.active && Nmcli.active.ssid) {
+                                    return Nmcli.active.ssid;
+                                }
+                                return qsTr("Internet");
+                            }
+                            stateText: {
+                                if (!Nmcli.hasWifiHw && !Nmcli.hasEthernetHw) {
+                                    return qsTr("Compatible HW not found");
+                                }
+                                if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) {
+                                    return qsTr("Connected");
+                                }
+                                if (Nmcli.hasWifiHw) {
+                                    if (Nmcli.wifiEnabled) {
+                                        return Nmcli.active ? qsTr("Connected") : qsTr("On");
+                                    }
+                                    return qsTr("Off");
+                                }
+                                if (Nmcli.hasEthernetHw) {
+                                    return qsTr("Disconnected");
+                                }
+                                return qsTr("Off");
+                            }
+                            disabled: !Nmcli.hasWifiHw && !Nmcli.hasEthernetHw
+                            checked: (Nmcli.hasWifiHw && Nmcli.wifiEnabled) || (Nmcli.hasEthernetHw && Nmcli.activeEthernet && Nmcli.activeEthernet.connected)
                             isExpanding: root.props.expansionActive === "network" || (root.props.isTransitioning && root.props.expansionSourceItem === wifiTile)
-                            onClicked: Nmcli.toggleWifi()
+                            onClicked: {
+                                if (!Nmcli.hasWifiHw && !Nmcli.hasEthernetHw) return;
+                                if (Nmcli.hasWifiHw) {
+                                    Nmcli.toggleWifi();
+                                } else if (Nmcli.hasEthernetHw) {
+                                    Nmcli.toggleEthernet();
+                                }
+                            }
                             onHeld: {
+                                if (!Nmcli.hasWifiHw && !Nmcli.hasEthernetHw) return;
                                 const pos = wifiTile.mapToItem(null, 0, 0);
                                 const localPos = wifiTile.mapToItem(root.contentRoot, 0, 0);
                                 root.props.expansionSource = Qt.rect(pos.x, pos.y, wifiTile.width, wifiTile.height);

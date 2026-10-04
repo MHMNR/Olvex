@@ -486,7 +486,7 @@ Item {
                 color: {
                     // displayprojection has no on/off state — always transparent
                     if (root.lastActiveType === "displayprojection") return "transparent";
-                    const on = root.lastActiveType === "network" ? Nmcli.wifiEnabled : (root.lastActiveType === "bluetooth" ? root.btEnabled : true);
+                    const on = root.lastActiveType === "network" ? ((Nmcli.hasWifiHw && Nmcli.wifiEnabled) || (Nmcli.hasEthernetHw && Nmcli.activeEthernet && Nmcli.activeEthernet.connected)) : (root.lastActiveType === "bluetooth" ? root.btEnabled : true);
                     if (root.active) {
                         return on ? Colours.palette.m3primary : "transparent";
                     } else {
@@ -496,7 +496,7 @@ Item {
                 
                 border.width: {
                     if (root.lastActiveType === "displayprojection") return 0;
-                    const on = root.lastActiveType === "network" ? Nmcli.wifiEnabled : (root.lastActiveType === "bluetooth" ? root.btEnabled : true);
+                    const on = root.lastActiveType === "network" ? ((Nmcli.hasWifiHw && Nmcli.wifiEnabled) || (Nmcli.hasEthernetHw && Nmcli.activeEthernet && Nmcli.activeEthernet.connected)) : (root.lastActiveType === "bluetooth" ? root.btEnabled : true);
                     return (root.active && !on) ? 2 : 0;
                 }
                 border.color: Colours.palette.m3outline
@@ -525,7 +525,12 @@ Item {
                 scale: 1
 
                 text: {
-                    if (root.lastActiveType === "network") return "wifi"
+                    if (root.lastActiveType === "network") {
+                        if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return "lan";
+                        if (Nmcli.wifiEnabled && Nmcli.active) return "wifi";
+                        if (!Nmcli.hasWifiHw && Nmcli.hasEthernetHw) return "lan";
+                        return "wifi";
+                    }
                     if (root.lastActiveType === "bluetooth") return "bluetooth"
                     if (root.lastActiveType === "powerprofile") {
                         const p = PowerProfiles.profile;
@@ -544,7 +549,7 @@ Item {
                 }
                 color: {
                     if (root.lastActiveType === "displayprojection") return Colours.palette.m3onSurface;
-                    const on = (root.lastActiveType === "network" ? Nmcli.wifiEnabled : (root.lastActiveType === "bluetooth" ? root.btEnabled : true));
+                    const on = (root.lastActiveType === "network" ? ((Nmcli.hasWifiHw && Nmcli.wifiEnabled) || (Nmcli.hasEthernetHw && Nmcli.activeEthernet && Nmcli.activeEthernet.connected)) : (root.lastActiveType === "bluetooth" ? root.btEnabled : true));
                     return on ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface;
                 }
 
@@ -581,51 +586,13 @@ Item {
                 StyledSwitch {
                     id: headerSwitch
                     padding: 0
-                    visible: root.lastActiveType !== "powerprofile" && root.lastActiveType !== "displayprojection"
-                    checked: root.lastActiveType === "network" ? Nmcli.wifiEnabled : (root.lastActiveType === "bluetooth" ? root.btEnabled : false)
+                    visible: root.lastActiveType === "bluetooth"
+                    checked: root.btEnabled
                     onToggled: {
-                        if (root.lastActiveType === "network") {
-                            Nmcli.enableWifi(checked)
-                        } else if (root.lastActiveType === "bluetooth") {
-                            const a = Bluetooth.defaultAdapter
-                            if (a) a.enabled = checked
+                        if (root.lastActiveType === "bluetooth") {
+                            const a = Bluetooth.defaultAdapter;
+                            if (a) a.enabled = checked;
                         }
-                    }
-                }
-
-                Item {
-                    id: wifiScanCtl
-                    visible: root.lastActiveType === "network"
-                    implicitWidth: 36
-                    implicitHeight: 36
-                    readonly property bool scanning: Nmcli.scanning
-                    readonly property bool canScan: Nmcli.wifiEnabled
-
-                    LoadingIndicator {
-                        anchors.centerIn: parent
-                        implicitSize: 30
-                        color: Colours.palette.m3primary
-                        animated: wifiScanCtl.scanning
-                        opacity: wifiScanCtl.scanning ? 1 : 0
-                        scale: wifiScanCtl.scanning ? 1 : 0.72
-                        visible: opacity > 0.01
-
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        Behavior on scale { Anim { type: Anim.DefaultSpatial } }
-                    }
-
-                    IconButton {
-                        anchors.centerIn: parent
-                        type: IconButton.Text
-                        icon: "refresh"
-                        inactiveOnColour: Colours.palette.m3primary
-                        disabled: !wifiScanCtl.canScan
-                        opacity: wifiScanCtl.scanning ? 0 : 1
-                        visible: opacity > 0.01
-                        enabled: wifiScanCtl.canScan && !wifiScanCtl.scanning
-
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        onClicked: if (Nmcli.wifiEnabled) Nmcli.rescanWifi()
                     }
                 }
 
@@ -683,7 +650,7 @@ Item {
             elide: Text.ElideRight
             
             text: {
-                if (root.lastActiveType === "network") return qsTr("Wi-Fi");
+                if (root.lastActiveType === "network") return qsTr("Internet");
                 if (root.lastActiveType === "bluetooth") return qsTr("Bluetooth");
                 if (root.lastActiveType === "powerprofile") return qsTr("Power Profile");
                 if (root.lastActiveType === "displayprojection") {
@@ -706,7 +673,7 @@ Item {
             font.bold: true
             color: Colours.palette.m3onSurface
             text: {
-                if (root.lastActiveType === "network") return qsTr("Wi-Fi");
+                if (root.lastActiveType === "network") return qsTr("Internet");
                 if (root.lastActiveType === "bluetooth") return qsTr("Bluetooth");
                 if (root.lastActiveType === "powerprofile") return qsTr("Power Profile");
                 if (root.lastActiveType === "displayprojection") return qsTr("Display Projection");
@@ -717,7 +684,18 @@ Item {
         StyledText {
             id: tileStateLabel
             text: {
-                if (root.lastActiveType === "network") return Nmcli.wifiEnabled ? qsTr("On") : qsTr("Off");
+                if (root.lastActiveType === "network") {
+                    if (!Nmcli.hasWifiHw && !Nmcli.hasEthernetHw) return qsTr("Compatible HW not found");
+                    if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return qsTr("Connected");
+                    if (Nmcli.hasWifiHw) {
+                        if (Nmcli.wifiEnabled) {
+                            return (Nmcli.active && Nmcli.active.ssid) ? Nmcli.active.ssid : qsTr("On");
+                        }
+                        return qsTr("Off");
+                    }
+                    if (Nmcli.hasEthernetHw) return qsTr("Disconnected");
+                    return qsTr("Off");
+                }
                 if (root.lastActiveType === "bluetooth") return root.btEnabled ? qsTr("On") : qsTr("Off");
                 if (root.lastActiveType === "powerprofile") return PowerProfile.toString(PowerProfiles.profile);
                 if (root.lastActiveType === "displayprojection") {

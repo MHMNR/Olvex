@@ -557,6 +557,17 @@ Item {
                                         selectedTextColor: Colours.palette.m3onPrimary
                                         clip: true
 
+                                        cursorDelegate: Item {
+                                            visible: network.showPasswordText && inlinePassInput.cursorVisible
+                                            width: visible ? 2 : 0
+                                            height: visible ? (inlinePassInput.height * 0.7) : 0
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                color: Colours.palette.m3primary
+                                                radius: 1
+                                            }
+                                        }
+
                                         Keys.onReturnPressed: network.submitInlineConnect(text)
                                         Keys.onEnterPressed: network.submitInlineConnect(text)
                                         Keys.onEscapePressed: network.cancelInline()

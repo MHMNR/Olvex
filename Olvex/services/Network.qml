@@ -11,8 +11,12 @@ Singleton {
     readonly property var active: (networks && networks.find) ? (networks.find(n => n.active) || null) : null
     property bool wifiEnabled: true
     readonly property bool scanning: Nmcli.scanning
+    readonly property bool hasWifiHw: Nmcli.hasWifiHw
+    readonly property bool hasEthernetHw: Nmcli.hasEthernetHw
+    readonly property bool hasInternetHw: Nmcli.hasInternetHw
     property var ethernetDevices: []
     readonly property var activeEthernet: (ethernetDevices && ethernetDevices.find) ? (ethernetDevices.find(d => d.connected) || null) : null
+    readonly property bool ethernetConnected: Nmcli.ethernetConnected
     property int ethernetDeviceCount: 0
     property bool ethernetProcessRunning: false
     property var ethernetDeviceDetails: null
@@ -241,6 +245,18 @@ Singleton {
                     root.ethernetDeviceDetails = null;
                 });
             }
+        });
+    }
+
+    function enableEthernet(enabled: bool) {
+        Nmcli.enableEthernet(enabled, () => {
+            getEthernetDevices();
+        });
+    }
+
+    function toggleEthernet() {
+        Nmcli.toggleEthernet(() => {
+            getEthernetDevices();
         });
     }
 

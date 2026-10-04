@@ -652,6 +652,17 @@ Item {
                                         selectedTextColor: Colours.palette.m3onPrimary
                                         clip: true
 
+                                        cursorDelegate: Item {
+                                            visible: menu.showPasswordText && configPassField.cursorVisible
+                                            width: visible ? 2 : 0
+                                            height: visible ? (configPassField.height * 0.7) : 0
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                color: Colours.palette.m3primary
+                                                radius: 1
+                                            }
+                                        }
+
                                         onTextChanged: {
                                             if (text !== menu.savedPassword) {
                                                 menu.isPasswordEditing = true;

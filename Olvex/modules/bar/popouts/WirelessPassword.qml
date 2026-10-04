@@ -211,6 +211,17 @@ StyledRect {
                         focus: true
                         clip: true
 
+                        cursorDelegate: Item {
+                            visible: root.showPasswordText && hiddenInput.cursorVisible
+                            width: visible ? 2 : 0
+                            height: visible ? (hiddenInput.height * 0.7) : 0
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Colours.palette.m3primary
+                                radius: 1
+                            }
+                        }
+
                         Keys.onPressed: event => {
                             if (event.key === Qt.Key_Escape) {
                                 event.accepted = true;

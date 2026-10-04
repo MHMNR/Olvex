@@ -10,6 +10,9 @@ Singleton {
     property var deviceStatus: null
     property var wirelessInterfaces: []
     property var ethernetInterfaces: []
+    readonly property bool hasWifiHw: Boolean(wirelessInterfaces && wirelessInterfaces.length > 0)
+    readonly property bool hasEthernetHw: Boolean(ethernetInterfaces && ethernetInterfaces.length > 0)
+    readonly property bool hasInternetHw: hasWifiHw || hasEthernetHw
     property bool isConnected: false
     property string activeInterface: ""
     property string activeConnection: ""
@@ -30,6 +33,7 @@ Singleton {
     property var ethernetDeviceDetails: null
     property var ethernetDevices: []
     readonly property var activeEthernet: ethernetDevices.find(d => d.connected) ?? null
+    readonly property bool ethernetConnected: Boolean(activeEthernet && activeEthernet.connected)
     property var activeProcesses: []
     property bool monitorEnabled: false
 
@@ -296,6 +300,38 @@ Singleton {
             if (callback)
                 callback(result);
         });
+    }
+
+    function enableEthernet(enabled: bool, callback) {
+        if (!root.hasEthernetHw) {
+            if (callback) callback({ success: false, error: "No ethernet hardware found" });
+            return;
+        }
+        const dev = root.ethernetInterfaces[0];
+        if (!dev || !dev.device) {
+            if (callback) callback({ success: false, error: "No ethernet device" });
+            return;
+        }
+        if (enabled) {
+            const conn = dev.connection && dev.connection.length > 0 ? dev.connection : "";
+            const cmd = conn.length > 0 
+                ? [root.nmcliCommandConnection, "up", conn] 
+                : [root.nmcliCommandDevice, "connect", dev.device];
+            executeCommand(cmd, result => {
+                getEthernetInterfaces(() => {});
+                if (callback) callback(result);
+            });
+        } else {
+            executeCommand([root.nmcliCommandDevice, "disconnect", dev.device], result => {
+                getEthernetInterfaces(() => {});
+                if (callback) callback(result);
+            });
+        }
+    }
+
+    function toggleEthernet(callback) {
+        const isConn = Boolean(root.activeEthernet && root.activeEthernet.connected);
+        enableEthernet(!isConn, callback);
     }
 
     function getAllInterfaces(callback) {
@@ -1186,10 +1222,11 @@ Singleton {
     }
 
     Component.onCompleted: {
+        getWirelessInterfaces(() => {});
+        getEthernetInterfaces(() => {});
         getWifiStatus(() => {});
         getNetworks(() => {});
         loadSavedConnections(() => {});
-        getEthernetInterfaces(() => {});
         setMonitorEnabled(true);
 
         Qt.callLater(() => {

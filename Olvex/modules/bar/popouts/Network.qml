@@ -72,62 +72,230 @@ ColumnLayout {
     Layout.fillWidth: true
     implicitWidth: parent ? parent.width : 340
 
-    // ── Wi-Fi Disabled / Empty State ─────────────────────────────────────────
+    // ── Ethernet Hardware & Switch Card ──────────────────────────────────────
     StyledRect {
-        id: offStateCard
-        visible: !Nmcli.wifiEnabled
+        id: ethernetCard
         Layout.fillWidth: true
-        Layout.preferredHeight: offCol.implicitHeight + Tokens.padding.large * 2
-        radius: Tokens.rounding.large
+        implicitHeight: 56
+        radius: Tokens.rounding.normal
         color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
 
-        ColumnLayout {
-            id: offCol
-            anchors.centerIn: parent
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Tokens.padding.normal
+            anchors.rightMargin: Tokens.padding.normal
             spacing: Tokens.spacing.normal
 
             StyledRect {
-                Layout.alignment: Qt.AlignHCenter
-                implicitWidth: 48
-                implicitHeight: 48
-                radius: Tokens.rounding.full
+                implicitWidth: 38
+                implicitHeight: 38
+                radius: Tokens.rounding.small
+                color: !Nmcli.hasEthernetHw
+                    ? Qt.alpha(Colours.palette.m3onSurface, 0.08)
+                    : (Nmcli.activeEthernet && Nmcli.activeEthernet.connected)
+                        ? Colours.palette.m3primary
+                        : Qt.alpha(Colours.palette.m3primary, 0.12)
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "lan"
+                    color: !Nmcli.hasEthernetHw
+                        ? Qt.alpha(Colours.palette.m3onSurface, 0.38)
+                        : (Nmcli.activeEthernet && Nmcli.activeEthernet.connected)
+                            ? Colours.palette.m3onPrimary
+                            : Colours.palette.m3primary
+                    iconPointSize: Tokens.font.size.normal
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("Ethernet")
+                    font.weight: Font.DemiBold
+                    textPointSize: Tokens.font.size.small
+                    color: !Nmcli.hasEthernetHw
+                        ? Qt.alpha(Colours.palette.m3onSurface, 0.38)
+                        : Colours.palette.m3onSurface
+                    elide: Text.ElideRight
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: {
+                        if (!Nmcli.hasEthernetHw) return qsTr("Compatible HW not found");
+                        if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) {
+                            const conn = Nmcli.activeEthernet.connection || qsTr("Connected");
+                            const spd = Nmcli.ethernetDeviceDetails?.speed ? ` • ${Nmcli.ethernetDeviceDetails.speed}` : "";
+                            return `${conn}${spd}`;
+                        }
+                        return qsTr("Disconnected");
+                    }
+                    textPointSize: Tokens.font.size.smaller - 1
+                    color: !Nmcli.hasEthernetHw
+                        ? Qt.alpha(Colours.palette.m3onSurface, 0.38)
+                        : Colours.palette.m3onSurfaceVariant
+                    elide: Text.ElideRight
+                }
+            }
+
+            StyledSwitch {
+                enabled: Nmcli.hasEthernetHw
+                checked: Boolean(Nmcli.hasEthernetHw && Nmcli.activeEthernet && Nmcli.activeEthernet.connected)
+                onToggled: Nmcli.enableEthernet(checked)
+            }
+        }
+    }
+
+    // ── Wi-Fi Hardware Missing State ─────────────────────────────────────────
+    StyledRect {
+        id: noWifiHwCard
+        visible: !Nmcli.hasWifiHw
+        Layout.fillWidth: true
+        implicitHeight: 56
+        radius: Tokens.rounding.normal
+        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Tokens.padding.normal
+            anchors.rightMargin: Tokens.padding.normal
+            spacing: Tokens.spacing.normal
+
+            StyledRect {
+                implicitWidth: 38
+                implicitHeight: 38
+                radius: Tokens.rounding.small
                 color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
                 MaterialIcon {
                     anchors.centerIn: parent
                     text: "wifi_off"
-                    iconPointSize: Tokens.font.size.large
-                    color: Colours.palette.m3onSurfaceVariant
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.38)
+                    iconPointSize: Tokens.font.size.normal
                 }
             }
 
             ColumnLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 4
+                Layout.fillWidth: true
+                spacing: 2
 
                 StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: qsTr("Wi-Fi is turned off")
+                    Layout.fillWidth: true
+                    text: qsTr("Wi-Fi")
                     font.weight: Font.DemiBold
-                    textPointSize: Tokens.font.size.normal
+                    textPointSize: Tokens.font.size.small
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.38)
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("Compatible HW not found")
+                    textPointSize: Tokens.font.size.smaller - 1
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.38)
+                }
+            }
+
+            StyledSwitch {
+                enabled: false
+                checked: false
+            }
+        }
+    }
+
+    // ── Wi-Fi Hardware Present: Header Switch Card ───────────────────────────
+    StyledRect {
+        id: wifiHeaderCard
+        visible: Nmcli.hasWifiHw
+        Layout.fillWidth: true
+        implicitHeight: 56
+        radius: Tokens.rounding.normal
+        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Tokens.padding.normal
+            anchors.rightMargin: Tokens.padding.normal
+            spacing: Tokens.spacing.normal
+
+            StyledRect {
+                implicitWidth: 38
+                implicitHeight: 38
+                radius: Tokens.rounding.small
+                color: Nmcli.wifiEnabled ? Qt.alpha(Colours.palette.m3primary, 0.12) : Qt.alpha(Colours.palette.m3onSurface, 0.08)
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: Nmcli.wifiEnabled ? "wifi" : "wifi_off"
+                    color: Nmcli.wifiEnabled ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                    iconPointSize: Tokens.font.size.normal
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("Wi-Fi")
+                    font.weight: Font.DemiBold
+                    textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurface
                 }
 
                 StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: qsTr("Turn on Wi-Fi to find networks")
-                    textPointSize: Tokens.font.size.smaller
+                    Layout.fillWidth: true
+                    text: Nmcli.wifiEnabled ? qsTr("On") : qsTr("Off")
+                    textPointSize: Tokens.font.size.smaller - 1
                     color: Colours.palette.m3onSurfaceVariant
                 }
             }
 
-            IconTextButton {
-                Layout.alignment: Qt.AlignHCenter
-                text: qsTr("Turn on Wi-Fi")
-                icon: "wifi"
-                inactiveColour: Colours.palette.m3primary
-                inactiveOnColour: Colours.palette.m3onPrimary
-                onClicked: Nmcli.enableWifi(true)
+            RowLayout {
+                spacing: Tokens.spacing.small
+                Layout.alignment: Qt.AlignVCenter
+
+                Item {
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    visible: Nmcli.wifiEnabled
+
+                    LoadingIndicator {
+                        anchors.centerIn: parent
+                        implicitSize: 24
+                        color: Colours.palette.m3primary
+                        animated: Nmcli.scanning
+                        opacity: Nmcli.scanning ? 1 : 0
+                        scale: Nmcli.scanning ? 1 : 0.72
+                        visible: opacity > 0.01
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        Behavior on scale { Anim { type: Anim.DefaultSpatial } }
+                    }
+
+                    IconButton {
+                        anchors.centerIn: parent
+                        type: IconButton.Text
+                        icon: "refresh"
+                        inactiveOnColour: Colours.palette.m3primary
+                        disabled: Nmcli.scanning
+                        opacity: Nmcli.scanning ? 0 : 1
+                        visible: opacity > 0.01
+                        enabled: Nmcli.wifiEnabled && !Nmcli.scanning
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        onClicked: Nmcli.rescanWifi()
+                    }
+                }
+
+                StyledSwitch {
+                    checked: Nmcli.wifiEnabled
+                    onToggled: Nmcli.enableWifi(checked)
+                }
             }
         }
     }
@@ -135,115 +303,11 @@ ColumnLayout {
     // ── Wi-Fi Enabled View ───────────────────────────────────────────────────
     ColumnLayout {
         id: wifiContainer
-        visible: Nmcli.wifiEnabled
+        visible: Nmcli.hasWifiHw && Nmcli.wifiEnabled
         Layout.fillWidth: true
-        spacing: Tokens.spacing.normal
+        spacing: Tokens.spacing.small
 
-        // ── Connected Network Hero Card ──────────────────────────────────────
-        ColumnLayout {
-            visible: root.activeNetwork !== null && (root.activeNetwork.ssid ? true : false)
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.extraSmall
-
-            StyledText {
-                text: qsTr("Connected")
-                textPointSize: Tokens.font.size.smaller
-                font.weight: Font.DemiBold
-                color: Colours.palette.m3primary
-                Layout.leftMargin: Tokens.padding.small
-            }
-
-            StyledRect {
-                id: activeCard
-                Layout.fillWidth: true
-                implicitHeight: 64
-                radius: Tokens.rounding.normal
-                color: Colours.palette.m3primaryContainer
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Tokens.padding.normal
-                    anchors.rightMargin: Tokens.padding.normal
-                    spacing: Tokens.spacing.normal
-
-                    // Connected Wi-Fi Icon Badge
-                    StyledRect {
-                        implicitWidth: 40
-                        implicitHeight: 40
-                        radius: Tokens.rounding.small
-                        color: Colours.palette.m3primary
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: root.activeNetwork ? Icons.getNetworkIcon(root.activeNetwork.strength, root.activeNetwork.isSecure) : "wifi"
-                            color: Colours.palette.m3onPrimary
-                            iconPointSize: Tokens.font.size.normal
-                        }
-                    }
-
-                    // Network info
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-
-                        StyledText {
-                            Layout.fillWidth: true
-                            text: root.activeNetwork ? root.activeNetwork.ssid : ""
-                            font.weight: Font.DemiBold
-                            textPointSize: Tokens.font.size.normal
-                            color: Colours.palette.m3onPrimaryContainer
-                            elide: Text.ElideRight
-                        }
-
-                        RowLayout {
-                            spacing: Tokens.spacing.extraSmall
-
-                            StyledText {
-                                text: qsTr("Connected")
-                                textPointSize: Tokens.font.size.smaller
-                                color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
-                            }
-
-                            StyledText {
-                                text: "•"
-                                textPointSize: Tokens.font.size.smaller
-                                color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.5)
-                            }
-
-                            StyledText {
-                                text: (root.activeNetwork ? root.activeNetwork.strength : 100) + "%"
-                                textPointSize: Tokens.font.size.smaller
-                                color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
-                            }
-                        }
-                    }
-
-                    // Disconnect Button
-                    StyledRect {
-                        id: activeDisconnectBtn
-                        implicitWidth: 36
-                        implicitHeight: 36
-                        radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.12)
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "link_off"
-                            color: Colours.palette.m3onPrimaryContainer
-                            iconPointSize: Tokens.font.size.normal
-                        }
-
-                        StateLayer {
-                            anchors.fill: parent
-                            color: Colours.palette.m3onPrimaryContainer
-                            onClicked: Nmcli.disconnectFromNetwork()
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Available Networks Header ────────────────────────────────────────
+        // ── Wi-Fi Networks Subheading ─────────────────────────────────────────
         RowLayout {
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
@@ -251,7 +315,7 @@ ColumnLayout {
             spacing: Tokens.spacing.small
 
             StyledText {
-                text: qsTr("Available Networks")
+                text: qsTr("Wi-Fi Networks")
                 textPointSize: Tokens.font.size.smaller
                 font.weight: Font.DemiBold
                 color: Colours.palette.m3onSurfaceVariant
@@ -260,6 +324,7 @@ ColumnLayout {
 
             // Count Badge
             StyledRect {
+                visible: (Nmcli.networks || []).length > 0
                 implicitWidth: countText.implicitWidth + 12
                 implicitHeight: 20
                 radius: Tokens.rounding.full
@@ -268,7 +333,7 @@ ColumnLayout {
                 StyledText {
                     id: countText
                     anchors.centerIn: parent
-                    text: `${Nmcli.networks.length}`
+                    text: `${(Nmcli.networks || []).length}`
                     textPointSize: Tokens.font.size.smaller - 2
                     font.weight: Font.Medium
                     color: Colours.palette.m3onSurfaceVariant
@@ -276,11 +341,11 @@ ColumnLayout {
             }
         }
 
-        // ── Available Networks List ──────────────────────────────────────────
+        // ── Wi-Fi Networks List ──────────────────────────────────────────────
         StyledFlickable {
             id: wifiScroll
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(wifiContent.implicitHeight, 300)
+            Layout.preferredHeight: Math.min(wifiContent.implicitHeight, 320)
             contentHeight: wifiContent.implicitHeight
             flickableDirection: Flickable.VerticalFlick
             clip: true
@@ -304,16 +369,33 @@ ColumnLayout {
 
                 Repeater {
                     model: ScriptModel {
-                        values: [...(Nmcli.networks || [])].filter(n => !n.active && (!root.activeNetwork || n.ssid !== root.activeNetwork.ssid)).sort((a, b) => b.strength - a.strength)
+                        values: {
+                            const list = [...(Nmcli.networks || [])];
+                            const activeSsid = root.activeNetwork ? root.activeNetwork.ssid : "";
+                            const hasActiveInList = activeSsid && list.some(n => n.ssid === activeSsid || n.active);
+                            let fullList = list;
+                            if (activeSsid && !hasActiveInList && root.activeNetwork) {
+                                fullList = [root.activeNetwork, ...list];
+                            }
+                            fullList.sort((a, b) => {
+                                const aActive = (a.active || (activeSsid && a.ssid === activeSsid));
+                                const bActive = (b.active || (activeSsid && b.ssid === activeSsid));
+                                if (aActive && !bActive) return -1;
+                                if (!aActive && bActive) return 1;
+                                return (b.strength || 0) - (a.strength || 0);
+                            });
+                            return fullList;
+                        }
                     }
 
                     StyledRect {
                         id: networkItem
-                        required property Nmcli.AccessPoint modelData
+                        required property var modelData
                         required property int index
 
+                        readonly property bool isActive: modelData.active || (root.activeNetwork && modelData.ssid === root.activeNetwork.ssid)
                         readonly property bool isEditing: root.editingSsid === modelData.ssid
-                        readonly property bool isConnecting: root.connectingToSsid === modelData.ssid || (root.selectedSsid === modelData.ssid && !modelData.active)
+                        readonly property bool isConnecting: root.connectingToSsid === modelData.ssid || (root.selectedSsid === modelData.ssid && !networkItem.isActive)
                         readonly property bool isSaved: Nmcli.hasSavedProfile(modelData.ssid)
                         property bool showPasswordText: false
                         property bool animatingMorph: false
@@ -370,7 +452,11 @@ ColumnLayout {
                         Layout.fillWidth: true
                         implicitHeight: networkItem.isEditing ? 104 : 52
                         radius: Tokens.rounding.normal
-                        color: networkItem.isEditing ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1) : Colours.layer(Colours.palette.m3surfaceContainer, 1)
+                        color: {
+                            if (networkItem.isEditing) return Colours.layer(Colours.palette.m3surfaceContainerHigh, 1);
+                            if (networkItem.isActive) return Colours.palette.m3primaryContainer;
+                            return Colours.layer(Colours.palette.m3surfaceContainer, 1);
+                        }
                         border.width: 0
                         border.color: "transparent"
                         clip: true
@@ -398,12 +484,12 @@ ColumnLayout {
                                 implicitWidth: 34
                                 implicitHeight: 34
                                 radius: Tokens.rounding.small
-                                color: Qt.alpha(Colours.palette.m3primary, 0.10)
+                                color: networkItem.isActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3primary, 0.10)
 
                                 MaterialIcon {
                                     anchors.centerIn: parent
                                     text: Icons.getNetworkIcon(networkItem.modelData.strength, networkItem.modelData.isSecure)
-                                    color: Colours.palette.m3primary
+                                    color: networkItem.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
                                     opacity: networkItem.isConnecting ? 0 : 1
                                     iconPointSize: Tokens.font.size.normal
 
@@ -413,7 +499,7 @@ ColumnLayout {
                                 LoadingIndicator {
                                     anchors.centerIn: parent
                                     implicitSize: 22
-                                    color: Colours.palette.m3primary
+                                    color: networkItem.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
                                     animated: networkItem.isConnecting
                                     opacity: networkItem.isConnecting ? 1 : 0
 
@@ -429,30 +515,54 @@ ColumnLayout {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: networkItem.modelData.ssid
-                                    font.weight: Font.Medium
+                                    font.weight: networkItem.isActive ? Font.DemiBold : Font.Medium
                                     textPointSize: Tokens.font.size.small
-                                    color: Colours.palette.m3onSurface
+                                    color: networkItem.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                                     elide: Text.ElideRight
                                 }
 
                                 RowLayout {
                                     spacing: Tokens.spacing.extraSmall
 
+                                    // When Active
                                     StyledText {
+                                        visible: networkItem.isActive
+                                        text: qsTr("Connected")
+                                        textPointSize: Tokens.font.size.smaller - 1
+                                        color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
+                                    }
+
+                                    StyledText {
+                                        visible: networkItem.isActive
+                                        text: "•"
+                                        textPointSize: Tokens.font.size.smaller - 1
+                                        color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.5)
+                                    }
+
+                                    StyledText {
+                                        visible: networkItem.isActive
+                                        text: `${networkItem.modelData.strength}%`
+                                        textPointSize: Tokens.font.size.smaller - 1
+                                        color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
+                                    }
+
+                                    // When Not Active
+                                    StyledText {
+                                        visible: !networkItem.isActive
                                         text: `${networkItem.modelData.strength}%`
                                         textPointSize: Tokens.font.size.smaller - 1
                                         color: Colours.palette.m3onSurfaceVariant
                                     }
 
                                     StyledText {
-                                        visible: networkItem.modelData.isSecure || networkItem.isSaved
+                                        visible: !networkItem.isActive && (networkItem.modelData.isSecure || networkItem.isSaved)
                                         text: "•"
                                         textPointSize: Tokens.font.size.smaller - 1
                                         color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.5)
                                     }
 
                                     StyledText {
-                                        visible: networkItem.isSaved
+                                        visible: !networkItem.isActive && networkItem.isSaved
                                         text: qsTr("Saved")
                                         textPointSize: Tokens.font.size.smaller - 1
                                         color: Colours.palette.m3primary
@@ -460,7 +570,7 @@ ColumnLayout {
                                     }
 
                                     StyledText {
-                                        visible: networkItem.modelData.isSecure && !networkItem.isSaved
+                                        visible: !networkItem.isActive && networkItem.modelData.isSecure && !networkItem.isSaved
                                         text: qsTr("Secured")
                                         textPointSize: Tokens.font.size.smaller - 1
                                         color: Colours.palette.m3onSurfaceVariant
@@ -468,8 +578,32 @@ ColumnLayout {
                                 }
                             }
 
+                            // Disconnect Button for Active network
+                            StyledRect {
+                                id: activeDisconnectBtn
+                                visible: networkItem.isActive
+                                implicitWidth: 32
+                                implicitHeight: 32
+                                radius: Tokens.rounding.full
+                                color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.12)
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "link_off"
+                                    color: Colours.palette.m3onPrimaryContainer
+                                    iconPointSize: Tokens.font.size.normal
+                                }
+
+                                StateLayer {
+                                    anchors.fill: parent
+                                    color: Colours.palette.m3onPrimaryContainer
+                                    onClicked: Nmcli.disconnectFromNetwork()
+                                }
+                            }
+
                             // Spacer to prevent SSID text from underlapping pill when pill is collapsed on top-right
                             Item {
+                                visible: !networkItem.isActive
                                 implicitWidth: !networkItem.isEditing ? (wifiPill.collapsedWidth) : 0
                                 implicitHeight: 1
                                 Behavior on implicitWidth {
@@ -484,6 +618,7 @@ ColumnLayout {
                             id: wifiPill
                             z: 2
                             clip: true
+                            visible: !networkItem.isActive
 
                             readonly property real collapsedWidth: wifiPillRow.implicitWidth + Tokens.padding.normal * 2
                             readonly property real expandedWidth: networkItem.width - Tokens.padding.normal * 2
@@ -501,7 +636,6 @@ ColumnLayout {
                             color: {
                                 if (networkItem.isEditing) return Qt.alpha(Colours.palette.m3onSurface, 0.12);
                                 if (networkItem.isConnecting) return Qt.alpha(Colours.palette.m3primary, 0.16);
-                                if (networkItem.modelData.active) return Colours.palette.m3primaryContainer;
                                 return Qt.alpha(Colours.palette.m3onSurface, 0.08);
                             }
 
@@ -595,6 +729,17 @@ ColumnLayout {
                                         selectionColor: Colours.palette.m3primary
                                         selectedTextColor: Colours.palette.m3onPrimary
                                         clip: true
+
+                                        cursorDelegate: Item {
+                                            visible: networkItem.showPasswordText && inlinePassInput.cursorVisible
+                                            width: visible ? 2 : 0
+                                            height: visible ? (inlinePassInput.height * 0.7) : 0
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                color: Colours.palette.m3primary
+                                                radius: 1
+                                            }
+                                        }
 
                                         Keys.onReturnPressed: networkItem.submitInlineConnect(text)
                                         Keys.onEnterPressed: networkItem.submitInlineConnect(text)
@@ -697,10 +842,10 @@ ColumnLayout {
                         // Background StateLayer for clicking the entire row
                         StateLayer {
                             anchors.fill: parent
-                            color: Colours.palette.m3onSurface
+                            color: networkItem.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                             preventStealing: false
-                            interactive: !networkItem.isConnecting
-                            disabled: networkItem.isConnecting || !Nmcli.wifiEnabled
+                            interactive: !networkItem.isConnecting && !networkItem.isActive
+                            disabled: networkItem.isConnecting || !Nmcli.wifiEnabled || networkItem.isActive
 
                             onClicked: {
                                 if (root.editingSsid !== "") {
@@ -777,7 +922,7 @@ ColumnLayout {
 
             StyledText {
                 Layout.fillWidth: true
-                text: qsTr("More Wi-Fi settings")
+                text: qsTr("More network settings")
                 font.weight: Font.Medium
                 textPointSize: Tokens.font.size.small
                 color: Colours.palette.m3onSurface
