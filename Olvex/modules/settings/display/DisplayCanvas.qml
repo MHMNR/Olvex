@@ -48,6 +48,12 @@ StyledClippingRect {
     property real panX: root.padNormal
     property real panY: root.padNormal
 
+    Behavior on viewScale {
+        Anim {
+            type: Anim.Emphasized
+        }
+    }
+
     // Helper functions for monitor canvas coordinates
     function getMonitorCanvasX(idx) {
         if (!monitors || idx < 0 || idx >= monitors.length) return Math.round(root.panX);

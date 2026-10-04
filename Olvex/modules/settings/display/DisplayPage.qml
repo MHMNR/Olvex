@@ -111,6 +111,7 @@ Item {
     }
 
     ColumnLayout {
+        id: pageLayout
         anchors.fill: parent
         anchors.margins: Tokens.padding ? Tokens.padding.normal : 12
         spacing: Tokens.spacing ? Tokens.spacing.normal : 12
@@ -119,11 +120,17 @@ Item {
         DisplayCanvas {
             id: displayCanvas
             Layout.fillWidth: true
-            Layout.preferredHeight: isFullscreen ? -1 : Math.min(320, Math.max(220, root.height * 0.35))
+            Layout.preferredHeight: isFullscreen ? pageLayout.height : Math.min(320, Math.max(220, root.height * 0.35))
             Layout.fillHeight: isFullscreen
             monitors: root.draftMonitors
             selectedIndex: root.selectedIndex
             draftWorkspaces: root.draftWorkspaces
+
+            Behavior on Layout.preferredHeight {
+                Anim {
+                    type: Anim.Emphasized
+                }
+            }
 
             onSelectMonitor: (idx) => {
                 root.selectedIndex = idx;
@@ -141,52 +148,60 @@ Item {
 
         // ── 2. Middle Section: Sub-Category Tabs (Segmented) ────
         Item {
-            visible: !displayCanvas.isFullscreen
+            visible: opacity > 0.01
+            opacity: displayCanvas.isFullscreen ? 0 : 1
             Layout.fillWidth: true
-            Layout.preferredHeight: 44
+            Layout.preferredHeight: displayCanvas.isFullscreen ? 0 : 44
+            clip: true
 
-                        RowLayout {
-                            anchors.fill: parent
+            Behavior on opacity { Anim { type: Anim.FastEffects } }
+            Behavior on Layout.preferredHeight { Anim { type: Anim.Emphasized } }
 
-                            Segmented {
-                                Layout.alignment: Qt.AlignLeft
-                                model: [
-                                    { label: qsTr("Display Properties"), icon: "display_settings", val: "display" },
-                                    { label: qsTr("Workspaces Binding"), icon: "grid_view", val: "workspaces" },
-                                    { label: qsTr("Profiles & Presets"), icon: "bookmarks", val: "profiles" }
-                                ]
-                                currentIndex: {
-                                    if (root.currentTab === "workspaces") return 1;
-                                    if (root.currentTab === "profiles") return 2;
-                                    return 0;
-                                }
-                                onSelected: (idx) => {
-                                    if (idx === 0) root.currentTab = "display";
-                                    else if (idx === 1) root.currentTab = "workspaces";
-                                    else if (idx === 2) root.currentTab = "profiles";
-                                }
-                            }
+            RowLayout {
+                anchors.fill: parent
 
-                            Item { Layout.fillWidth: true }
-
-                            // Quick status text
-                            StyledText {
-                                text: `${root.draftMonitors.length} ${qsTr("Display(s) Connected")}`
-                                textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                                color: Colours.palette.m3onSurfaceVariant
-                            }
-                        }
+                Segmented {
+                    Layout.alignment: Qt.AlignLeft
+                    model: [
+                        { label: qsTr("Display Properties"), icon: "display_settings", val: "display" },
+                        { label: qsTr("Workspaces Binding"), icon: "grid_view", val: "workspaces" },
+                        { label: qsTr("Profiles & Presets"), icon: "bookmarks", val: "profiles" }
+                    ]
+                    currentIndex: {
+                        if (root.currentTab === "workspaces") return 1;
+                        if (root.currentTab === "profiles") return 2;
+                        return 0;
                     }
+                    onSelected: (idx) => {
+                        if (idx === 0) root.currentTab = "display";
+                        else if (idx === 1) root.currentTab = "workspaces";
+                        else if (idx === 2) root.currentTab = "profiles";
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                // Quick status text
+                StyledText {
+                    text: `${root.draftMonitors.length} ${qsTr("Display(s) Connected")}`
+                    textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                    color: Colours.palette.m3onSurfaceVariant
+                }
+            }
+        }
 
         // ── 3. Bottom Section: Scrollable Inspector Content ─────
         StyledFlickable {
-            visible: !displayCanvas.isFullscreen
+            visible: opacity > 0.01
+            opacity: displayCanvas.isFullscreen ? 0 : 1
             Layout.fillWidth: true
             Layout.fillHeight: !displayCanvas.isFullscreen
             clip: true
             contentWidth: width
             contentHeight: activeTabItem.implicitHeight + 40
             boundsBehavior: Flickable.StopAtBounds
+
+            Behavior on opacity { Anim { type: Anim.FastEffects } }
 
             Item {
                 id: activeTabItem
@@ -283,9 +298,15 @@ Item {
 
         // ── 4. Sticky Bottom Action Bar (Apply & Test, Save, Revert)
         StyledRect {
-            visible: !displayCanvas.isFullscreen
+            visible: opacity > 0.01
+            opacity: displayCanvas.isFullscreen ? 0 : 1
             Layout.fillWidth: true
+            Layout.preferredHeight: displayCanvas.isFullscreen ? 0 : 56
             implicitHeight: 56
+            clip: true
+
+            Behavior on opacity { Anim { type: Anim.FastEffects } }
+            Behavior on Layout.preferredHeight { Anim { type: Anim.Emphasized } }
                         radius: Tokens.rounding ? Tokens.rounding.large : 16
                         color: Colours.palette.m3surfaceContainerHigh
                         border.width: 1
