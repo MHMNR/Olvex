@@ -205,10 +205,10 @@ Item {
             return undefined;
         const apps = DesktopEntries.applications.values;
         for (let i = 0; i < apps.length; i++) {
-            if (apps[i].id === contextMenuAppId)
+            if (apps[i].id === contextMenuAppId || apps[i].id.replace(/\.desktop$/i, "") === contextMenuAppId)
                 return apps[i];
         }
-        return undefined;
+        return DesktopEntries.heuristicLookup(contextMenuAppId);
     }
 
     // Trigger app launch morph: flying icon from launcher to pinned dock slot
@@ -564,7 +564,7 @@ Item {
                 height: Math.round(layout.itemSize + 18)
                 width: layout.width + 20
                 radius: Math.round(height * (20 / 70))
-                visible: pinnedModel.count > 0
+                visible: (pinnedModel.count > 0 || unpinnedModel.count > 0)
                 antialiasing: true
                 smooth: true
 
@@ -600,70 +600,126 @@ Item {
                     readonly property real maxAvailableWidth: Math.max(280, (root.screen ? root.screen.width : 1920) - 160)
 
                     readonly property var dockMetrics: {
-                        const removingOffset = (pinnedState.isRemoving && pinnedState.removingIndex >= 0 && pinnedState.removingIndex < pinnedModel.count) ? 1 : 0;
-                        const total = pinnedModel.count - removingOffset;
-                        if (total <= 0) {
-                            return { itemSize: 52, itemSpacing: 12, slotStep: 64, visibleCount: 0, hasOverflow: false, overflowCount: 0, totalWidth: 0 };
-                        }
                         const defaultSize = 52;
                         const defaultSpacing = 12;
                         const minSize = 36;
                         const shrinkSpacing = 8;
                         const maxW = layout.maxAvailableWidth;
 
-                        const stdWidth = total * defaultSize + (total - 1) * defaultSpacing;
+                        const removingOffset = (pinnedState.isRemoving && pinnedState.removingIndex >= 0 && pinnedState.removingIndex < pinnedModel.count) ? 1 : 0;
+                        const pCount = Math.max(0, pinnedModel.count - removingOffset);
+                        const uCount = unpinnedModel.count;
+                        const total = pCount + uCount;
+                        const hasSep = (pCount > 0 && uCount > 0);
+
+                        if (total <= 0) {
+                            return {
+                                itemSize: defaultSize,
+                                itemSpacing: defaultSpacing,
+                                slotStep: defaultSize + defaultSpacing,
+                                pinnedCount: 0,
+                                unpinnedCount: 0,
+                                visiblePinnedCount: 0,
+                                visibleCount: 0,
+                                hasSeparator: false,
+                                separatorWidth: 0,
+                                pinnedSectionWidth: 0,
+                                hasOverflow: false,
+                                overflowCount: 0,
+                                totalWidth: 0
+                            };
+                        }
+
+                        // 1. Check if standard size fits (all pinned + separator + all unpinned)
+                        const sepW_std = hasSep ? (defaultSpacing * 2 + 1) : 0;
+                        const pinnedW_std = pCount > 0 ? (pCount * defaultSize + (pCount - 1) * defaultSpacing) : 0;
+                        const unpinnedW_std = uCount > 0 ? (uCount * defaultSize + (uCount - 1) * defaultSpacing) : 0;
+                        const stdWidth = pinnedW_std + (hasSep ? sepW_std : 0) + unpinnedW_std;
+
                         if (stdWidth <= maxW) {
                             return {
                                 itemSize: defaultSize,
                                 itemSpacing: defaultSpacing,
                                 slotStep: defaultSize + defaultSpacing,
-                                visibleCount: total,
+                                pinnedCount: pCount,
+                                unpinnedCount: uCount,
+                                visiblePinnedCount: pCount,
+                                visibleCount: pCount,
+                                hasSeparator: hasSep,
+                                separatorWidth: sepW_std,
+                                pinnedSectionWidth: pinnedW_std,
                                 hasOverflow: false,
                                 overflowCount: 0,
                                 totalWidth: stdWidth
                             };
                         }
 
-                        // Try auto-shrinking all items down to minSize
-                        const candidateSize = (maxW - (total - 1) * shrinkSpacing) / total;
+                        // 2. Try auto-shrinking down to minSize
+                        const sepW_shrink = hasSep ? (shrinkSpacing * 2 + 1) : 0;
+                        const numGaps = (pCount > 0 ? (pCount - 1) : 0) + (uCount > 0 ? (uCount - 1) : 0);
+                        const candidateSize = (maxW - (hasSep ? sepW_shrink : 0) - numGaps * shrinkSpacing) / total;
+
                         if (candidateSize >= minSize) {
                             const sz = Math.max(minSize, Math.min(defaultSize, Math.floor(candidateSize)));
                             const sp = shrinkSpacing;
-                            const w = total * sz + (total - 1) * sp;
+                            const sepW = hasSep ? (sp * 2 + 1) : 0;
+                            const pinnedW = pCount > 0 ? (pCount * sz + (pCount - 1) * sp) : 0;
+                            const unpinnedW = uCount > 0 ? (uCount * sz + (uCount - 1) * sp) : 0;
+                            const w = pinnedW + (hasSep ? sepW : 0) + unpinnedW;
                             return {
                                 itemSize: sz,
                                 itemSpacing: sp,
                                 slotStep: sz + sp,
-                                visibleCount: total,
+                                pinnedCount: pCount,
+                                unpinnedCount: uCount,
+                                visiblePinnedCount: pCount,
+                                visibleCount: pCount,
+                                hasSeparator: hasSep,
+                                separatorWidth: sepW,
+                                pinnedSectionWidth: pinnedW,
                                 hasOverflow: false,
                                 overflowCount: 0,
                                 totalWidth: w
                             };
                         }
 
-                        // Overflow mode: fix size at minSize, calculate how many visible slots + 1 overflow button fit
+                        // 3. Overflow mode (pinned apps overflow into +N button, unpinned running apps remain visible)
                         const sz = minSize;
                         const sp = shrinkSpacing;
                         const step = sz + sp;
-                        // (vis + 1) * sz + vis * sp <= maxW => vis <= (maxW - sz) / step
-                        const maxVisible = Math.max(1, Math.min(total - 1, Math.floor((maxW - sz) / step)));
-                        const overflowCount = total - maxVisible;
-                        const w = (maxVisible + 1) * sz + maxVisible * sp;
+                        const sepW = hasSep ? (sp * 2 + 1) : 0;
+                        const unpinnedW = uCount > 0 ? (uCount * sz + (uCount - 1) * sp) : 0;
+                        const availableForPinned = maxW - (hasSep ? sepW : 0) - unpinnedW;
+                        const maxVisiblePinned = Math.max(1, Math.min(pCount - 1, Math.floor((availableForPinned - sz) / step)));
+                        const overflowCount = Math.max(0, pCount - maxVisiblePinned);
+                        const hasOverflow = overflowCount > 0;
+                        const visiblePinnedCount = hasOverflow ? maxVisiblePinned : pCount;
+                        const pinnedSectionWidth = hasOverflow
+                            ? (visiblePinnedCount * step + sz)
+                            : (pCount > 0 ? (pCount * sz + (pCount - 1) * sp) : 0);
+                        const totalW = pinnedSectionWidth + (hasSep ? sepW : 0) + unpinnedW;
 
                         return {
                             itemSize: sz,
                             itemSpacing: sp,
                             slotStep: step,
-                            visibleCount: maxVisible,
-                            hasOverflow: true,
+                            pinnedCount: pCount,
+                            unpinnedCount: uCount,
+                            visiblePinnedCount: visiblePinnedCount,
+                            visibleCount: visiblePinnedCount,
+                            hasSeparator: hasSep,
+                            separatorWidth: sepW,
+                            pinnedSectionWidth: pinnedSectionWidth,
+                            hasOverflow: hasOverflow,
                             overflowCount: overflowCount,
-                            totalWidth: w
+                            totalWidth: totalW
                         };
                     }
 
                     readonly property real itemSize: dockMetrics.itemSize
                     readonly property real itemSpacing: dockMetrics.itemSpacing
                     readonly property real slotStep: dockMetrics.slotStep
+                    readonly property int visiblePinnedCount: dockMetrics.visiblePinnedCount
                     readonly property int visibleCount: dockMetrics.visibleCount
                     readonly property bool hasOverflow: dockMetrics.hasOverflow
                     readonly property int overflowCount: dockMetrics.overflowCount
@@ -675,17 +731,27 @@ Item {
                     Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                     ListModel { id: pinnedModel }
+                    ListModel { id: unpinnedModel }
 
                     Connections {
                         target: root.visibilities
                         function onPinnedAppsChanged() {
                             if (!pinnedState.isDragging && !pinnedState.isLandingNow)
                                 pinnedState.syncModel(root.visibilities.pinnedApps || []);
+                            unpinnedState.syncUnpinned();
+                        }
+                    }
+
+                    Connections {
+                        target: Hypr
+                        function onToplevelUpdateCounterChanged() {
+                            unpinnedState.syncUnpinned();
                         }
                     }
 
                     Component.onCompleted: {
                         pinnedState.syncModel(root.visibilities.pinnedApps || []);
+                        unpinnedState.syncUnpinned();
                     }
 
                     QtObject {
@@ -829,6 +895,73 @@ Item {
                                 if (currentIndex > removingIndex) return (currentIndex - 1) * step;
                             }
                             return currentIndex * step;
+                        }
+
+                        function pinApp(appId) {
+                            if (!appId) return;
+                            const current = [...(root.visibilities.pinnedApps || [])];
+                            if (current.indexOf(appId) === -1) {
+                                current.push(appId);
+                                root.visibilities.pinnedApps = current;
+                            }
+                        }
+                    }
+
+                    QtObject {
+                        id: unpinnedState
+
+                        function isPinned(appClass) {
+                            const pinned = root.visibilities.pinnedApps || [];
+                            if (pinned.indexOf(appClass) !== -1) return true;
+                            for (let i = 0; i < pinned.length; i++) {
+                                const pId = pinned[i];
+                                if (pId === appClass) return true;
+                                if (pId.replace(/\.desktop$/i, "") === appClass) return true;
+                            }
+                            return false;
+                        }
+
+                        function syncUnpinned() {
+                            const toplevels = Hypr.toplevels?.values ?? [];
+                            const seen = new Set();
+                            const unpinnedList = [];
+
+                            for (let i = 0; i < toplevels.length; i++) {
+                                const t = toplevels[i];
+                                const ipc = t.lastIpcObject;
+                                if (!ipc || !ipc.class || ipc.class === "") continue;
+
+                                const appClass = ipc.class;
+                                if (appClass.startsWith("olvex") || appClass.startsWith("quickshell")) continue;
+
+                                if (seen.has(appClass)) continue;
+                                seen.add(appClass);
+
+                                if (!isPinned(appClass)) {
+                                    unpinnedList.push(appClass);
+                                }
+                            }
+
+                            for (let i = unpinnedModel.count - 1; i >= 0; i--) {
+                                const existingId = unpinnedModel.get(i).appId;
+                                if (unpinnedList.indexOf(existingId) === -1) {
+                                    unpinnedModel.remove(i);
+                                }
+                            }
+
+                            for (let j = 0; j < unpinnedList.length; j++) {
+                                const id = unpinnedList[j];
+                                let found = false;
+                                for (let i = 0; i < unpinnedModel.count; i++) {
+                                    if (unpinnedModel.get(i).appId === id) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    unpinnedModel.append({ "appId": id });
+                                }
+                            }
                         }
                     }
 
@@ -1137,18 +1270,239 @@ Item {
                             }
                         }
                     }
+
+                    // ── Vertical Divider between Pinned and Unpinned ──────────
+                    Rectangle {
+                        id: dockDivider
+                        visible: layout.dockMetrics.hasSeparator
+                        width: 1
+                        height: Math.round(layout.itemSize * 0.52)
+                        radius: 0.5
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: Qt.alpha(Colours.palette.m3onSurface, 0.22)
+                        opacity: visible ? 1 : 0
+
+                        x: layout.dockMetrics.pinnedSectionWidth + layout.dockMetrics.itemSpacing
+
+                        Behavior on x { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                    }
+
+                    // ── Unpinned Running Apps ─────────────────────────────────
+                    Repeater {
+                        model: unpinnedModel
+
+                        Item {
+                            id: unpinnedAppWrapper
+                            required property var model
+                            required property int index
+
+                            readonly property string appId: model.appId
+                            property var entry: {
+                                if (!appId) return undefined;
+                                const apps = DesktopEntries.applications.values;
+                                for (let i = 0; i < apps.length; i++) {
+                                    if (apps[i].id === appId || apps[i].id.replace(/\.desktop$/i, "") === appId)
+                                        return apps[i];
+                                }
+                                return DesktopEntries.heuristicLookup(appId);
+                            }
+
+                            readonly property string cachedIcon: {
+                                if (entry && entry.icon)
+                                    return Icons.resolveIcon(entry.icon, "application-x-executable");
+                                return Icons.getAppIcon(appId, "application-x-executable");
+                            }
+
+                            width: layout.itemSize
+                            height: layout.itemSize
+
+                            property int runningInstances: 0
+
+                            function normalizeAddress(addr) {
+                                if (!addr) return "";
+                                const str = String(addr);
+                                return str.startsWith("0x") ? str : "0x" + str;
+                            }
+
+                            function updateRunningCount() {
+                                if (!appId) { runningInstances = 0; return; }
+                                const toplevels = Hypr.toplevels?.values ?? [];
+                                let count = 0;
+                                for (let i = 0; i < toplevels.length; i++) {
+                                    const ipc = toplevels[i].lastIpcObject;
+                                    if (ipc && ipc.class === appId) count++;
+                                }
+                                runningInstances = count;
+                            }
+
+                            Connections {
+                                target: Hypr
+                                function onToplevelUpdateCounterChanged() { unpinnedAppWrapper.updateRunningCount(); }
+                            }
+
+                            Component.onCompleted: updateRunningCount()
+
+                            x: {
+                                const sepW = layout.dockMetrics.hasSeparator ? layout.dockMetrics.separatorWidth : 0;
+                                return layout.dockMetrics.pinnedSectionWidth + sepW + index * layout.slotStep;
+                            }
+                            y: (layout.height - height) / 2
+                            z: 0
+
+                            Behavior on x { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
+                            Behavior on y { SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 } }
+
+                            Rectangle {
+                                id: unpinnedIconBg
+                                objectName: "unpinnedIconBg"
+                                anchors.centerIn: parent
+                                width: layout.itemSize
+                                height: layout.itemSize
+                                radius: Math.round(layout.itemSize * (12 / 52))
+                                smooth: false
+                                antialiasing: true
+
+                                color: "transparent"
+                                border.color: "transparent"
+                                border.width: 1
+
+                                scale: unpinnedMouseArea.containsMouse ? 1.1 : 1.0
+
+                                Behavior on scale {
+                                    SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 }
+                                }
+                                Behavior on color {
+                                    ColorAnimation { duration: Tokens.anim.durations.small; easing: Tokens.anim.standard }
+                                }
+
+                                IconImage {
+                                    id: unpinnedIcon
+                                    asynchronous: true
+                                    source: unpinnedAppWrapper.cachedIcon
+                                    anchors.fill: parent
+                                    anchors.margins: Math.max(3, Math.round(layout.itemSize * (6 / 52)))
+                                    smooth: true
+
+                                    SequentialAnimation {
+                                        id: unpinnedIconAnim
+                                        ScaleAnimator {
+                                            target: unpinnedIcon; from: 1.0; to: 1.4
+                                            duration: Tokens.anim.durations.small; easing: Tokens.anim.emphasized
+                                        }
+                                        ScaleAnimator {
+                                            target: unpinnedIcon; from: 1.4; to: 1.0
+                                            duration: Tokens.anim.durations.normal; easing: Tokens.anim.emphasized
+                                        }
+                                    }
+                                }
+
+                                // Running instances indicator bar
+                                Item {
+                                    anchors.top: unpinnedIconBg.bottom
+                                    anchors.topMargin: 2
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: layout.itemSize
+                                    height: unpinnedAppWrapper.runningInstances > 0 ? 3 : 0
+                                    visible: unpinnedAppWrapper.runningInstances > 0
+
+                                    Behavior on height { Anim { type: Anim.DefaultSpatial } }
+
+                                    Row {
+                                        anchors.fill: parent
+                                        spacing: unpinnedAppWrapper.runningInstances > 1 ? 1 : 0
+                                        Repeater {
+                                            model: Math.max(1, unpinnedAppWrapper.runningInstances)
+                                            Rectangle {
+                                                width: (layout.itemSize - (unpinnedAppWrapper.runningInstances > 1 ? (unpinnedAppWrapper.runningInstances - 1) : 0)) / Math.max(1, unpinnedAppWrapper.runningInstances)
+                                                height: 3; radius: 1.5
+                                                color: Colours.palette.m3primary
+                                                Behavior on color { ColorAnimation { duration: Tokens.anim.durations.small } }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: unpinnedMouseArea
+                                anchors.fill: parent
+                                anchors.margins: -4
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                hoverEnabled: true
+                                cursorShape: Qt.ArrowCursor
+
+                                onPressed: mouse => {
+                                    if (root.contextMenuVisible && mouse.button === Qt.LeftButton) {
+                                        root.hideContextMenu();
+                                    }
+                                    if (root.overflowFlyoutVisible) {
+                                        root.overflowFlyoutVisible = false;
+                                    }
+                                    if (mouse.button === Qt.RightButton) {
+                                        root.showContextMenu(appId, unpinnedIconBg);
+                                    }
+                                }
+                                onContainsMouseChanged: {
+                                    if (containsMouse)
+                                        pinnedState.hoveredAppIcon = unpinnedAppWrapper;
+                                    else if (pinnedState.hoveredAppIcon === unpinnedAppWrapper)
+                                        pinnedState.hoveredAppIcon = null;
+                                }
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        unpinnedIconAnim.start();
+                                        const toplevels = Hypr.toplevels?.values ?? [];
+                                        const matches = [];
+                                        for (let i = 0; i < toplevels.length; i++) {
+                                            const ipc = toplevels[i].lastIpcObject;
+                                            if (ipc && ipc.class === appId) matches.push(toplevels[i]);
+                                        }
+                                        if (matches.length === 0) {
+                                            if (unpinnedAppWrapper.entry)
+                                                LauncherServices.Apps.launch(unpinnedAppWrapper.entry);
+                                        } else if (matches.length === 1) {
+                                            const ipc = matches[0].lastIpcObject;
+                                            const addr = unpinnedAppWrapper.normalizeAddress(ipc.address);
+                                            const wsId = ipc.workspace?.id ?? 1;
+                                            Hypr.dispatch(`workspace ${wsId}`);
+                                            Hypr.dispatch(`focuswindow address:${addr}`);
+                                        } else {
+                                            const activeWindow = Hyprland.activeToplevel;
+                                            const activeIpc = activeWindow?.lastIpcObject;
+                                            const activeAddr = unpinnedAppWrapper.normalizeAddress(activeIpc?.address);
+                                            let activeIndex = -1;
+                                            for (let i = 0; i < matches.length; i++) {
+                                                const matchIpc = matches[i].lastIpcObject;
+                                                const matchAddr = unpinnedAppWrapper.normalizeAddress(matchIpc?.address);
+                                                if (matchAddr === activeAddr) { activeIndex = i; break; }
+                                            }
+                                            const targetWindow = activeIndex === -1 ? matches[0] : matches[(activeIndex + 1) % matches.length];
+                                            const targetIpc = targetWindow.lastIpcObject;
+                                            const targetAddr = unpinnedAppWrapper.normalizeAddress(targetIpc?.address);
+                                            const targetWsId = targetIpc?.workspace?.id ?? 1;
+                                            Hypr.dispatch(`workspace ${targetWsId}`);
+                                            Hypr.dispatch(`focuswindow address:${targetAddr}`);
+                                        }
+                                        root.visibilities.bottomPanel = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Overflow Button on Dock
                     Item {
                         id: overflowBtn
                         visible: layout.hasOverflow
                         width: layout.itemSize
                         height: layout.itemSize
-                        x: layout.visibleCount * layout.slotStep
+                        x: layout.dockMetrics.visiblePinnedCount * layout.slotStep
                         y: (layout.height - height) / 2
                         z: 10
 
                         Behavior on x {
-                            enabled: pinnedState.isDragging || pinnedState.isRemoving
                             SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 }
                         }
 
@@ -1255,7 +1609,7 @@ Item {
         property real savedStartRadius: Tokens.rounding.small
         property real radius: savedStartRadius
 
-        readonly property int overflowItemCount: layout.hasOverflow ? (pinnedModel.count - layout.visibleCount) : 0
+        readonly property int overflowItemCount: layout.hasOverflow ? layout.dockMetrics.overflowCount : 0
         readonly property real endW: 260
         readonly property real endH: Math.min(overflowItemCount * 40 + 58, 380)
         readonly property real endX: {
@@ -1599,12 +1953,12 @@ Item {
                                 spacing: 2
 
                                 Repeater {
-                                    model: layout.hasOverflow ? (pinnedModel.count - layout.visibleCount) : 0
+                                    model: layout.hasOverflow ? layout.dockMetrics.overflowCount : 0
 
                                     Item {
                                         id: overflowRow
                                         required property int index
-                                        readonly property int realIndex: layout.visibleCount + index
+                                        readonly property int realIndex: layout.dockMetrics.visiblePinnedCount + index
                                         readonly property string appId: realIndex < pinnedModel.count ? pinnedModel.get(realIndex).appId : ""
                                         readonly property var entry: {
                                             if (!appId) return undefined;
@@ -2133,9 +2487,10 @@ Item {
                         }
                     }
 
-                    // "Remove from Panel"
+                    // "Remove from Panel" / "Pin to Panel"
                     StyledRect {
                         id: removeItem
+                        readonly property bool isPinned: (root.visibilities.pinnedApps || []).indexOf(root.contextMenuAppId) !== -1
                         readonly property bool active: removeState.containsMouse || removeState.pressed
 
                         Layout.fillWidth: true
@@ -2190,7 +2545,11 @@ Item {
                             onClicked: {
                                 const appId = root.contextMenuAppId;
                                 root.hideContextMenu();
-                                pinnedState.unpinApp(appId);
+                                if (removeItem.isPinned) {
+                                    pinnedState.unpinApp(appId);
+                                } else {
+                                    pinnedState.pinApp(appId);
+                                }
                             }
                         }
 
@@ -2221,7 +2580,7 @@ Item {
                                 Layout.alignment: Qt.AlignVCenter
                                 Layout.preferredWidth: root.contextMenuIconCell
                                 Layout.preferredHeight: root.contextMenuIconCell
-                                text: "keep_off"
+                                text: removeItem.isPinned ? "keep_off" : "keep"
                                 iconPointSize: Tokens.font.size.normal
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -2231,7 +2590,7 @@ Item {
                             StyledText {
                                 Layout.alignment: Qt.AlignVCenter
                                 Layout.fillWidth: true
-                                text: qsTr("Remove from Panel")
+                                text: removeItem.isPinned ? qsTr("Remove from Panel") : qsTr("Pin to Panel")
                                 textPixelSize: 14
                                 elide: Text.ElideRight
                                 horizontalAlignment: Text.AlignLeft
