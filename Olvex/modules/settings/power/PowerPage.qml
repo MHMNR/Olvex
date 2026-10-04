@@ -10,6 +10,7 @@ import "../../../components/controls"
 import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Services.UPower
 import Olvex.Config
 import qs.services
 
@@ -19,12 +20,13 @@ Item {
     property Session session
     signal back
     property string activeSection: "battery"
+    readonly property bool hasBattery: UPower.displayDevice && UPower.displayDevice.isPresent
 
     SettingsPage {
         anchors.fill: parent
         title: qsTr("Power & Idle")
-        subtitle: qsTr("Sleep, idle actions and battery")
-        icon: "battery_charging_full"
+        subtitle: root.hasBattery ? qsTr("Sleep, idle actions and battery") : qsTr("Sleep, idle actions and performance")
+        icon: root.hasBattery ? "battery_charging_full" : "bolt"
         accent: Colours.palette.m3secondary
         onBack: root.back()
         hostMode: true

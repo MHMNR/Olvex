@@ -17,7 +17,7 @@ ColumnLayout {
 
     property Session session
     spacing: Tokens.spacing.large
-    implicitHeight: heroCard.implicitHeight + modeSection.implicitHeight + protectionSection.implicitHeight + (spacing * 2)
+    implicitHeight: heroCard.implicitHeight + modeSection.implicitHeight + (protectionSection.visible ? (protectionSection.implicitHeight + spacing) : 0) + spacing
 
     readonly property bool hasBattery: UPower.displayDevice && UPower.displayDevice.isPresent
     readonly property real battPercent: hasBattery ? Math.round(UPower.displayDevice.percentage * 100) : 100
@@ -78,6 +78,7 @@ ColumnLayout {
                 readonly property real fillFraction: Math.min(1.0, Math.max(0, root.battPercent / 100.0))
 
                 readonly property color stateColor: {
+                    if (!root.hasBattery) return Colours.palette.m3primary;
                     if (root.isCharging) return root.batGreen;
                     if (root.isPowerSaver) return root.batYellow;
                     if (root.isLow) return Colours.palette.m3error;
@@ -85,6 +86,7 @@ ColumnLayout {
                 }
 
                 readonly property color outlineColor: {
+                    if (!root.hasBattery) return Qt.alpha(Colours.palette.m3outlineVariant, 0.50);
                     if (root.isCharging) return Qt.alpha(root.batGreen, 0.55);
                     if (root.isPowerSaver) return Qt.alpha(root.batYellow, 0.65);
                     if (root.isLow) return Qt.alpha(Colours.palette.m3error, 0.55);
@@ -92,6 +94,7 @@ ColumnLayout {
                 }
 
                 readonly property color trackColor: {
+                    if (!root.hasBattery) return Colours.light ? Colours.tileFill : Qt.alpha(Colours.palette.m3onSurface, 0.12);
                     if (root.isCharging) return Qt.alpha(root.batGreen, 0.12);
                     if (root.isPowerSaver) return Qt.alpha(root.batYellow, 0.12);
                     if (root.isLow) return Qt.alpha(Colours.palette.m3error, 0.12);
@@ -148,12 +151,12 @@ ColumnLayout {
 
                     // Inside Status Icon
                     MaterialIcon {
-                        visible: root.isCharging || root.isPowerSaver
+                        visible: !root.hasBattery || root.isCharging || root.isPowerSaver
                         anchors.centerIn: parent
-                        text: root.isCharging ? "bolt" : "energy_savings_leaf"
+                        text: !root.hasBattery ? "power" : (root.isCharging ? "bolt" : "energy_savings_leaf")
                         iconPointSize: root.isCharging ? 12 : 10
                         fill: 1
-                        color: root.isCharging ? "#ffffff" : "#1c1c1e"
+                        color: !root.hasBattery ? Colours.palette.m3onPrimary : (root.isCharging ? "#ffffff" : "#1c1c1e")
                         z: 2
 
                         Behavior on color { CAnim {} }
@@ -183,10 +186,10 @@ ColumnLayout {
 
             // Right Status Text Pill (Matches Screenshot)
             StyledText {
-                text: root.isCharging ? qsTr("AC Adapter") : (root.isPowerSaver ? qsTr("Battery Saver") : qsTr("Discharging"))
+                text: root.hasBattery ? (root.isCharging ? qsTr("AC Adapter") : (root.isPowerSaver ? qsTr("Battery Saver") : qsTr("Discharging"))) : qsTr("AC Main")
                 font.weight: Font.Normal
                 textPointSize: Tokens.font.size.small
-                color: root.isCharging ? root.batGreen : (root.isPowerSaver ? root.batYellow : Colours.palette.m3onSurfaceVariant)
+                color: root.hasBattery ? (root.isCharging ? root.batGreen : (root.isPowerSaver ? root.batYellow : Colours.palette.m3onSurfaceVariant)) : Colours.palette.m3onSurfaceVariant
                 Layout.rightMargin: Tokens.padding.small
             }
         }
@@ -204,7 +207,7 @@ ColumnLayout {
             title: qsTr("Energy profile")
             description: qsTr("Balance system performance and battery endurance")
             descriptionColor: Qt.alpha(Colours.palette.m3secondary, 0.65)
-            divider: true
+            divider: root.hasBattery
             
             Segmented {
                 Layout.preferredWidth: 320
@@ -220,6 +223,7 @@ ColumnLayout {
         }
 
         SettingRow {
+            visible: root.hasBattery
             title: qsTr("Automatic battery saver")
             description: qsTr("Turn on power saver mode when battery drops below 20%")
             descriptionColor: Qt.alpha(Colours.palette.m3secondary, 0.65)
@@ -232,6 +236,7 @@ ColumnLayout {
 
     Section {
         id: protectionSection
+        visible: root.hasBattery
         Layout.fillWidth: true
         title: qsTr("Battery Protection & Critical Actions")
         description: qsTr("Automated actions when battery charge drops to critical levels")

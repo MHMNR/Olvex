@@ -14,6 +14,9 @@ Item {
 
     required property PopoutState popouts
 
+    readonly property var activeMonitor: Brightness.getMonitor("active") ?? (Brightness.monitors.length > 0 ? Brightness.monitors[0] : null)
+    readonly property bool hasBacklight: Boolean(activeMonitor && !isNaN(activeMonitor.brightness) && activeMonitor.brightness >= 0)
+
     implicitWidth: layout.implicitWidth + Tokens.padding.normal * 2
     implicitHeight: layout.implicitHeight + Tokens.padding.normal * 2
 
@@ -96,6 +99,45 @@ Item {
 
                 value: Audio.volume
                 onMoved: Audio.setVolume(value)
+
+                Behavior on value {
+                    enabled: !pressed
+                    Anim {}
+                }
+            }
+        }
+
+        StyledText {
+            visible: root.hasBacklight
+            Layout.topMargin: Tokens.spacing.smaller
+            Layout.bottomMargin: -Tokens.spacing.small / 2
+            text: qsTr("Brightness (%1)").arg(`${Math.round((root.activeMonitor?.brightness ?? 0) * 100)}%`)
+            font.weight: 500
+        }
+
+        CustomMouseArea {
+            visible: root.hasBacklight
+            Layout.fillWidth: true
+            implicitHeight: Tokens.padding.normal * 3
+
+            onWheel: event => {
+                if (!root.activeMonitor) return;
+                if (event.angleDelta.y > 0)
+                    root.activeMonitor.setBrightness(root.activeMonitor.brightness + 0.05);
+                else if (event.angleDelta.y < 0)
+                    root.activeMonitor.setBrightness(root.activeMonitor.brightness - 0.05);
+            }
+
+            StyledSlider {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                implicitHeight: parent.implicitHeight
+
+                value: root.activeMonitor?.brightness ?? 0
+                onMoved: {
+                    if (root.activeMonitor)
+                        root.activeMonitor.setBrightness(value);
+                }
 
                 Behavior on value {
                     enabled: !pressed
