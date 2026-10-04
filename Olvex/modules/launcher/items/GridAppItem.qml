@@ -20,8 +20,9 @@ Item {
     required property int revealEpoch
     required property bool revealPending
     required property int index
+    property bool contextMenuOpen: false
 
-    signal contextMenuRequested(sourceItem: Item)
+    signal contextMenuRequested(sourceItem: Item, item: Item)
     signal mouseActivated(item: Item)
 
     // Called by Content.qml on Enter key press when this item is selected
@@ -39,11 +40,11 @@ Item {
     height: 120
 
     readonly property bool isSelected: gridView.currentIndex === index
-    readonly property bool isHovered: gridView.hoveredItem === root
+    readonly property bool isHovered: !contextMenuOpen && (gridView.hoveredItem === root)
     readonly property bool isFavourite: root.modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.id)
 
     onIsSelectedChanged: {
-        if (isSelected && !revealPending)
+        if (isSelected && !revealPending && !contextMenuOpen)
             scaleBounce.restart();
     }
 
@@ -103,7 +104,7 @@ Item {
             onClicked: mouse => {
                 if (mouse.button === Qt.RightButton) {
                     root.mouseActivated(root);
-                    root.contextMenuRequested(stateLayer);
+                    root.contextMenuRequested(stateLayer, root);
                 } else {
                     root.select();
                 }
@@ -113,14 +114,16 @@ Item {
         MouseArea {
             id: mouseArea
             anchors.fill: parent
-            hoverEnabled: true
+            hoverEnabled: !root.contextMenuOpen
+            enabled: !root.contextMenuOpen
             acceptedButtons: Qt.NoButton
 
             onEntered: {
-                root.mouseActivated(root);
+                if (!root.contextMenuOpen)
+                    root.mouseActivated(root);
             }
             onExited: {
-                if (gridView.hoveredItem === root)
+                if (!root.contextMenuOpen && gridView.hoveredItem === root)
                     gridView.hoveredItem = null;
             }
         }

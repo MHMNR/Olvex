@@ -20,6 +20,7 @@ Item {
     // Shared context menu state — single menu instance slides between items
     property DesktopEntry sharedMenuEntry: null
     property Item sharedMenuAttachTo: null
+    property Item sharedMenuItem: null
     property bool keyboardHighlightActive: false
 
     readonly property int appsRowHeight: 120
@@ -185,12 +186,15 @@ Item {
     }
 
     function showMouseHighlight(item: Item) {
+        if (sharedContextMenu.expanded) return;
         keyboardHighlightActive = false;
         appGrid.currentIndex = item.index;
         appGrid.hoveredItem = item;
     }
 
     function decrementCurrentIndex() {
+        if (sharedContextMenu.expanded)
+            sharedContextMenu.expanded = false;
         if (state === "apps") {
             showKeyboardHighlight();
             appGrid.currentIndex = Math.max(0, appGrid.currentIndex - appsColumns);
@@ -201,6 +205,8 @@ Item {
     }
 
     function incrementCurrentIndex() {
+        if (sharedContextMenu.expanded)
+            sharedContextMenu.expanded = false;
         if (state === "apps") {
             showKeyboardHighlight();
             appGrid.currentIndex = Math.min(appGrid.count - 1, appGrid.currentIndex + appsColumns);
@@ -211,6 +217,8 @@ Item {
     }
 
     function moveLeft() {
+        if (sharedContextMenu.expanded)
+            sharedContextMenu.expanded = false;
         if (state === "apps") {
             showKeyboardHighlight();
             appGrid.currentIndex = Math.max(0, appGrid.currentIndex - 1);
@@ -221,6 +229,8 @@ Item {
     }
 
     function moveRight() {
+        if (sharedContextMenu.expanded)
+            sharedContextMenu.expanded = false;
         if (state === "apps") {
             showKeyboardHighlight();
             appGrid.currentIndex = Math.min(appGrid.count - 1, appGrid.currentIndex + 1);
@@ -754,10 +764,16 @@ Item {
         StyledRect {
             id: gridFocusMarker
 
-            // Prefer hover; keyboard nav clears hover so currentItem wins
+            // Prefer hover; keyboard nav clears hover so currentItem wins; context menu locks focus on target item
             readonly property Item targetItem: {
                 if (root.state !== "apps" || !root.visibilities.launcher)
                     return null;
+                if (sharedContextMenu.expanded) {
+                    if (root.sharedMenuItem)
+                        return root.sharedMenuItem;
+                    if (appGrid.currentItem)
+                        return appGrid.currentItem;
+                }
                 if (appGrid.hoveredItem)
                     return appGrid.hoveredItem;
                 if (appGrid.currentItem)
@@ -870,12 +886,14 @@ Item {
             gridView: appGrid
             revealEpoch: root.revealEpoch
             revealPending: root.revealPending
+            contextMenuOpen: sharedContextMenu.expanded
 
             onMouseActivated: item => root.showMouseHighlight(item)
 
-            onContextMenuRequested: (src) => {
+            onContextMenuRequested: (src, item) => {
                 root.sharedMenuEntry = modelData;
                 root.sharedMenuAttachTo = src;
+                root.sharedMenuItem = item;
                 sharedContextMenu.expanded = true;
             }
         }
@@ -923,6 +941,17 @@ Item {
                 }
             }
         ]
+    }
+
+    Connections {
+        target: sharedContextMenu
+        function onExpandedChanged() {
+            if (!sharedContextMenu.expanded) {
+                root.sharedMenuItem = null;
+                appGrid.hoveredItem = null;
+            }
+            gridFocusMarker.retarget(true);
+        }
     }
 
     StyledScrollBar {

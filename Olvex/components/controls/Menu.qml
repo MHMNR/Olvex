@@ -11,6 +11,7 @@ import qs.services
 MouseArea {
     id: root
     z: 999
+    hoverEnabled: expanded
 
     enum Side {
         Top,
