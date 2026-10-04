@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
+import Olvex
 import qs.components
 import qs.services
 import Olvex.Services
@@ -185,19 +186,22 @@ Item {
             Logo {
                 anchors.centerIn: parent
                 visible: SysInfo.isOlvexLogo
-                implicitWidth: 18
-                implicitHeight: 18
+                width: 22
+                height: 18
                 topColour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : Colours.palette.m3primary
                 bottomColour: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : Colours.palette.m3tertiary
             }
 
-            StyledText {
-                anchors.fill: parent
+            Text {
+                anchors.centerIn: parent
                 visible: !SysInfo.isOlvexLogo && !SysInfo.hasCustomImage
+                anchors.horizontalCenterOffset: (typeof CUtils !== "undefined" && typeof CUtils.glyphHOffset === "function") ? CUtils.glyphHOffset(text, font.pixelSize, font.family) : 0.0
+                anchors.verticalCenterOffset: (typeof CUtils !== "undefined" && typeof CUtils.glyphVOffset === "function") ? CUtils.glyphVOffset(text, font.pixelSize, font.family) : 0.0
                 text: SysInfo.osGlyph || "\uf17c"
                 color: (root.visualPressed || root.toggled) ? Colours.palette.m3onPrimary : keyText.color
                 font.family: Tokens.font.family.mono
-                textPixelSize: 18
+                font.pixelSize: 18
+                renderType: Text.QtRendering
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }

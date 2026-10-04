@@ -12,6 +12,9 @@ Item {
     property DrawerVisibilities visibilities: null
     readonly property bool isLauncherOpen: visibilities ? visibilities.launcher : (Visibilities.getForActive() ? Visibilities.getForActive().launcher : false)
 
+    width: implicitWidth
+    height: implicitHeight
+
     implicitWidth: Tokens.sizes.bar.innerWidth
     implicitHeight: Tokens.sizes.bar.innerWidth
 

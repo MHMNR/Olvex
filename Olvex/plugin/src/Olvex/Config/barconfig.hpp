@@ -152,6 +152,28 @@ public:
         : ConfigObject(parent) {}
 };
 
+class BarQuickOrb : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(bool, autoRevealVolume, true)
+    CONFIG_PROPERTY(bool, autoRevealBrightness, true)
+    CONFIG_PROPERTY(bool, autoRevealMic, true)
+    CONFIG_PROPERTY(int, autoHideDelay, 2600)
+    CONFIG_PROPERTY(bool, showPercentage, true)
+    CONFIG_PROPERTY(bool, showMediaVolume, true)
+    CONFIG_PROPERTY(bool, showUiSounds, true)
+    CONFIG_PROPERTY(bool, showMicrophone, true)
+    CONFIG_PROPERTY(bool, showBrightness, true)
+    CONFIG_PROPERTY(bool, showDeviceSwitchers, true)
+    CONFIG_PROPERTY(bool, showNightLight, true)
+
+public:
+    explicit BarQuickOrb(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
 class BarConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
@@ -168,6 +190,7 @@ class BarConfig : public ConfigObject {
     CONFIG_SUBOBJECT(BarClock, clock)
     CONFIG_SUBOBJECT(BarNetSpeed, netSpeed)
     CONFIG_SUBOBJECT(BarBottomPanel, bottomPanel)
+    CONFIG_SUBOBJECT(BarQuickOrb, quickOrb)
     CONFIG_PROPERTY(QVariantList, entries,
         {
             vmap({ { u"id"_s, u"workspaces"_s }, { u"enabled"_s, true } }),
@@ -191,7 +214,8 @@ public:
         , m_status(new BarStatus(this))
         , m_clock(new BarClock(this))
         , m_netSpeed(new BarNetSpeed(this))
-        , m_bottomPanel(new BarBottomPanel(this)) {}
+        , m_bottomPanel(new BarBottomPanel(this))
+        , m_quickOrb(new BarQuickOrb(this)) {}
 };
 
 } // namespace olvex::config

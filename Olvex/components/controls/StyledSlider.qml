@@ -88,12 +88,18 @@ T.Slider {
     // Keyboard support
     Keys.onLeftPressed: event => {
         const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 100;
+        const prev = root.value;
         root.value = Math.max(root.from, root.value - step);
+        if (root.value !== prev)
+            root.moved();
         event.accepted = true;
     }
     Keys.onRightPressed: event => {
         const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 100;
+        const prev = root.value;
         root.value = Math.min(root.to, root.value + step);
+        if (root.value !== prev)
+            root.moved();
         event.accepted = true;
     }
 
@@ -103,10 +109,13 @@ T.Slider {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: event => {
             const step = root.stepSize > 0 ? root.stepSize : (root.to - root.from) / 50;
+            const prev = root.value;
             if (event.angleDelta.y > 0)
                 root.value = Math.min(root.to, root.value + step);
             else if (event.angleDelta.y < 0)
                 root.value = Math.max(root.from, root.value - step);
+            if (root.value !== prev)
+                root.moved();
         }
     }
 

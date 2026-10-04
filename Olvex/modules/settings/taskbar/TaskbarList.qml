@@ -19,6 +19,7 @@ Item {
 
     readonly property var sections: [
         { id: "behavior", label: qsTr("Bar & Behavior"), icon: "dock" },
+        { id: "quickorb", label: qsTr("Quick Orb"), icon: "adjust" },
         { id: "status", label: qsTr("Status Icons"), icon: "tune" },
         { id: "workspaces", label: qsTr("Workspaces"), icon: "grid_view" },
         { id: "widgets", label: qsTr("Widgets & Tray"), icon: "widgets" },

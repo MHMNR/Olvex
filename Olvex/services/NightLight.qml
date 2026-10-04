@@ -76,7 +76,7 @@ Singleton {
     }
 
     function applyState() {
-        const targetTemp = root.autoSchedule ? calculateAutoTemp() : root.temperature;
+        const targetTemp = root.temperature;
         const isEnabled = root.enabled ? "1" : "0";
 
         runCommand(`
@@ -94,10 +94,15 @@ Singleton {
                     pkill -9 hyprsunset 2>/dev/null || true
                 fi
             elif command -v gammastep >/dev/null 2>&1; then
-                pkill -9 gammastep 2>/dev/null || true
                 if [ "$ENABLED" = "1" ] && [ "$TARGET_TEMP" -lt 6500 ]; then
+                    OLD_PIDS=$(pgrep -x gammastep)
                     nohup gammastep -O "$TARGET_TEMP" >/dev/null 2>&1 &
+                    sleep 0.05
+                    if [ -n "$OLD_PIDS" ]; then
+                        kill -9 $OLD_PIDS 2>/dev/null || true
+                    fi
                 else
+                    pkill -9 gammastep 2>/dev/null || true
                     gammastep -x >/dev/null 2>&1 || true
                 fi
             elif command -v wlsunset >/dev/null 2>&1; then
@@ -111,7 +116,7 @@ Singleton {
 
     Timer {
         id: debounceApply
-        interval: 80
+        interval: 60
         repeat: false
         onTriggered: root.applyState()
     }

@@ -12,12 +12,12 @@ Text {
     // Guarded — see StyledText.qml for why: Tokens may not be attached yet on
     // the very first construction tick, transiently producing "Unable to
     // assign [undefined] to int" otherwise.
-    property int animateDuration: Tokens?.anim?.durations?.normal ?? 300
+    property int animateDuration: (Tokens && Tokens.anim && Tokens.anim.durations) ? Tokens.anim.durations.normal : 300
     property real fill
     property int grade: Colours.light ? 0 : -25
-    property real iconPointSize: Tokens?.font?.size?.larger ?? 18
+    property real iconPointSize: (Tokens && Tokens.font && Tokens.font.size) ? Tokens.font.size.larger : 18
 
-    readonly property int iconPixelSize: Math.max(12, Math.round((iconPointSize > 0 ? iconPointSize : (Tokens?.font?.size?.larger ?? 18)) * 96 / 72))
+    readonly property int iconPixelSize: Math.max(12, Math.round((iconPointSize > 0 ? iconPointSize : ((Tokens && Tokens.font && Tokens.font.size) ? Tokens.font.size.larger : 18)) * 96 / 72))
 
     renderType: Text.NativeRendering
     textFormat: Text.PlainText
@@ -25,8 +25,9 @@ Text {
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignHCenter
 
-    font.family: Tokens?.font?.family?.material ?? "Material Symbols Rounded"
+    font.family: (Tokens && Tokens.font && Tokens.font.family && Tokens.font.family.material) ? Tokens.font.family.material : "Material Symbols Rounded"
     font.pixelSize: iconPixelSize
+    font.features: ({ "liga": 1 })
     font.variableAxes: ({
             FILL: fill.toFixed(1),
             GRAD: grade,

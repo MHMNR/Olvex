@@ -19,6 +19,9 @@ Item {
     implicitWidth: 24
     implicitHeight: 20
 
+    width: implicitWidth
+    height: implicitHeight
+
     Shape {
         anchors.centerIn: parent
         width: root.designWidth
