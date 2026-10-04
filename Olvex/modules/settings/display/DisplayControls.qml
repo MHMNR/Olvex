@@ -501,6 +501,17 @@ Item {
                 }
             }
 
+            // Variable Frame Rate (VFR)
+            SettingRow {
+                title: qsTr("Variable Frame Rate (VFR)")
+                description: qsTr("Redraw display only when screen content changes (conserves GPU & CPU power)")
+
+                StyledSwitch {
+                    checked: DisplayManager.vfrEnabled
+                    onToggled: DisplayManager.setVfr(checked)
+                }
+            }
+
             // Description matching
             SettingRow {
                 title: qsTr("Identify by Description")

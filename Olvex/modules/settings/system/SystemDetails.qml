@@ -44,6 +44,7 @@ Item {
         id: detailsLoader
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
+        asynchronous: true
         
         onLoaded: {
             if (item) {

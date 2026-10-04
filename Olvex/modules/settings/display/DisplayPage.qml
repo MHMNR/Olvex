@@ -25,15 +25,16 @@ Item {
     property bool useDescription: DisplayManager.useDescription
     property bool hasUnsavedChanges: false
 
-    // Identify overlay instance
-    IdentifyOverlay {
-        id: idOverlay
+    // Identify overlay instance (lazy loaded on demand only)
+    Loader {
+        active: DisplayManager.identifyActive
+        sourceComponent: IdentifyOverlay {}
     }
 
     // Initialize/sync drafts from DisplayManager
     function syncFromService() {
         draftMonitors = DisplayManager.deepCopyMonitors();
-        draftWorkspaces = JSON.parse(JSON.stringify(DisplayManager.workspaces || []));
+        draftWorkspaces = DisplayManager.workspaces ? DisplayManager.workspaces.map(w => Object.assign({}, w)) : [];
         useDescription = DisplayManager.useDescription;
         if (selectedIndex >= draftMonitors.length) {
             selectedIndex = 0;
@@ -66,7 +67,7 @@ Item {
     // Auto align helper
     function autoAlign(alignment) {
         if (!draftMonitors || draftMonitors.length === 0) return;
-        const copy = JSON.parse(JSON.stringify(draftMonitors));
+        const copy = DisplayManager.deepCopyMonitors(draftMonitors);
         let curX = 0;
         let curY = 0;
 
@@ -92,7 +93,7 @@ Item {
         const offsetX = target.x;
         const offsetY = target.y;
 
-        const copy = JSON.parse(JSON.stringify(draftMonitors));
+        const copy = DisplayManager.deepCopyMonitors(draftMonitors);
         for (let i = 0; i < copy.length; i++) {
             copy[i].x = Math.max(0, copy[i].x - offsetX);
             copy[i].y = Math.max(0, copy[i].y - offsetY);
@@ -208,8 +209,8 @@ Item {
                 width: parent.width
                 implicitHeight: {
                     if (root.currentTab === "display") return displayControls.implicitHeight;
-                    if (root.currentTab === "workspaces") return workspacesTab.implicitHeight;
-                    return profilesTab.implicitHeight;
+                    if (root.currentTab === "workspaces") return workspacesTabLoader.item ? workspacesTabLoader.item.implicitHeight : 300;
+                    return profilesTabLoader.item ? profilesTabLoader.item.implicitHeight : 300;
                 }
 
                 // Tab 1: Display Properties Controls
@@ -224,7 +225,7 @@ Item {
                     useDescription: root.useDescription
 
                     onMonitorUpdated: (updated) => {
-                        const copy = JSON.parse(JSON.stringify(root.draftMonitors));
+                        const copy = DisplayManager.deepCopyMonitors(root.draftMonitors);
                         copy[root.selectedIndex] = updated;
                         root.draftMonitors = copy;
                         root.hasUnsavedChanges = true;
@@ -242,55 +243,63 @@ Item {
                 }
 
                 // Tab 2: Workspaces Binding
-                WorkspacesTab {
-                    id: workspacesTab
-                    visible: root.currentTab === "workspaces"
+                Loader {
+                    id: workspacesTabLoader
+                    active: root.currentTab === "workspaces"
+                    visible: active
                     width: parent.width
-                    monitors: root.draftMonitors
-                    workspaces: DisplayManager.workspaces
-                    draftWorkspaces: root.draftWorkspaces
+                    sourceComponent: WorkspacesTab {
+                        width: workspacesTabLoader.width
+                        monitors: root.draftMonitors
+                        workspaces: DisplayManager.workspaces
+                        draftWorkspaces: root.draftWorkspaces
 
-                    onWorkspaceBound: (wsNum, monName, isDef) => {
-                        const copy = JSON.parse(JSON.stringify(root.draftWorkspaces || []));
-                        const idx = copy.findIndex(w => w.workspace === wsNum);
-                        if (idx >= 0) {
-                            copy[idx].monitor = monName;
-                            copy[idx].isDefault = isDef;
-                        } else {
-                            copy.push({ workspace: wsNum, monitor: monName, isDefault: isDef });
+                        onWorkspaceBound: (wsNum, monName, isDef) => {
+                            const copy = (root.draftWorkspaces || []).map(w => Object.assign({}, w));
+                            const idx = copy.findIndex(w => w.workspace === wsNum);
+                            if (idx >= 0) {
+                                copy[idx].monitor = monName;
+                                copy[idx].isDefault = isDef;
+                            } else {
+                                copy.push({ workspace: wsNum, monitor: monName, isDefault: isDef });
+                            }
+                            root.draftWorkspaces = copy;
+                            root.hasUnsavedChanges = true;
                         }
-                        root.draftWorkspaces = copy;
-                        root.hasUnsavedChanges = true;
-                    }
 
-                    onWorkspaceUnbound: (wsNum) => {
-                        const copy = (root.draftWorkspaces || []).filter(w => w.workspace !== wsNum);
-                        root.draftWorkspaces = copy;
-                        root.hasUnsavedChanges = true;
+                        onWorkspaceUnbound: (wsNum) => {
+                            const copy = (root.draftWorkspaces || []).filter(w => w.workspace !== wsNum).map(w => Object.assign({}, w));
+                            root.draftWorkspaces = copy;
+                            root.hasUnsavedChanges = true;
+                        }
                     }
                 }
 
                 // Tab 3: Profiles & Presets
-                ProfilesTab {
-                    id: profilesTab
-                    visible: root.currentTab === "profiles"
+                Loader {
+                    id: profilesTabLoader
+                    active: root.currentTab === "profiles"
+                    visible: active
                     width: parent.width
-                    profiles: DisplayManager.profiles
-                    activeProfileName: DisplayManager.activeProfileName
+                    sourceComponent: ProfilesTab {
+                        width: profilesTabLoader.width
+                        profiles: DisplayManager.profiles
+                        activeProfileName: DisplayManager.activeProfileName
 
-                    onSaveCurrentProfileRequested: (name) => {
-                        DisplayManager.saveProfile(name, root.draftMonitors, root.draftWorkspaces, root.useDescription);
-                        DisplayManager.loadProfiles();
-                    }
+                        onSaveCurrentProfileRequested: (name) => {
+                            DisplayManager.saveProfile(name, root.draftMonitors, root.draftWorkspaces, root.useDescription);
+                            DisplayManager.loadProfiles();
+                        }
 
-                    onLoadProfileRequested: (pObj) => {
-                        DisplayManager.applyProfile(pObj);
-                        root.syncFromService();
-                    }
+                        onLoadProfileRequested: (pObj) => {
+                            DisplayManager.applyProfile(pObj);
+                            root.syncFromService();
+                        }
 
-                    onDeleteProfileRequested: (name) => {
-                        DisplayManager.deleteProfile(name);
-                        DisplayManager.loadProfiles();
+                        onDeleteProfileRequested: (name) => {
+                            DisplayManager.deleteProfile(name);
+                            DisplayManager.loadProfiles();
+                        }
                     }
                 }
             }
@@ -440,17 +449,20 @@ Item {
                     }
                 }
 
-    // ── Safety Countdown Modal Dialog ───────────────────────────
-    SafetyModal {
+    // ── Safety Countdown Modal Dialog (Lazy loaded) ─────────────
+    Loader {
         active: DisplayManager.safetyActive
-        secondsRemaining: DisplayManager.safetySecondsRemaining
-        onConfirmClicked: {
-            DisplayManager.confirmSafetyApply();
-            root.syncFromService();
-        }
-        onRevertClicked: {
-            DisplayManager.revertSafetyApply();
-            root.syncFromService();
+        sourceComponent: SafetyModal {
+            active: DisplayManager.safetyActive
+            secondsRemaining: DisplayManager.safetySecondsRemaining
+            onConfirmClicked: {
+                DisplayManager.confirmSafetyApply();
+                root.syncFromService();
+            }
+            onRevertClicked: {
+                DisplayManager.revertSafetyApply();
+                root.syncFromService();
+            }
         }
     }
 }
