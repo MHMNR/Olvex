@@ -758,10 +758,14 @@ Item {
                         id: pinnedState
                         property string draggedAppId: ""
                         property int draggedOriginalIndex: -1
+                        property bool draggedFromOverflow: false
+                        property string dragIconSource: ""
                         property Item hoveredAppIcon: null
                         property int hoverTargetSlot: -1
                         property real dragStartX: 0
                         property real dragStartY: 0
+                        property real dragRootX: 0
+                        property real dragRootY: 0
                         property bool isDragging: false
                         property bool isLandingNow: false
                         property string landingAppId: ""
@@ -846,37 +850,65 @@ Item {
                                 root.visibilities.pinnedApps = pinned;
                             }
                         }
-                        function startDrag(appId, index, startX, startY) {
+                        function startDrag(appId, index, startX, startY, rootX = 0, rootY = 0, iconSource = "") {
                             if (isRemoving) commitRemoval();
-                            draggedAppId = appId; draggedOriginalIndex = index;
-                            dragStartX = startX; dragStartY = startY;
-                            hoverTargetSlot = index; isDragging = false;
+                            draggedAppId = appId;
+                            draggedOriginalIndex = index;
+                            draggedFromOverflow = (index >= layout.dockMetrics.visiblePinnedCount);
+                            dragIconSource = iconSource;
+                            dragStartX = startX;
+                            dragStartY = startY;
+                            dragRootX = rootX || startX;
+                            dragRootY = rootY || startY;
+                            hoverTargetSlot = draggedFromOverflow ? 0 : index;
+                            isDragging = false;
                         }
-                        function updateDrag(mouseX, mouseY) {
+                        function updateDrag(mouseX, mouseY, rootX = 0, rootY = 0) {
                             if (!isDragging) {
                                 const dx = mouseX - dragStartX, dy = mouseY - dragStartY;
                                 if (Math.sqrt(dx*dx + dy*dy) > dragThreshold) isDragging = true;
                             }
-                            if (isDragging)
-                                hoverTargetSlot = Math.max(0, Math.min(layout.visibleCount - 1, Math.round((mouseX - layout.x) / layout.slotStep)));
+                            if (isDragging) {
+                                if (rootX !== 0 || rootY !== 0) {
+                                    dragRootX = rootX;
+                                    dragRootY = rootY;
+                                }
+                                hoverTargetSlot = Math.max(0, Math.min(layout.dockMetrics.visiblePinnedCount - 1, Math.round(mouseX / layout.slotStep)));
+                            }
                         }
                         function endDrag() {
                             if (isDragging && draggedOriginalIndex !== hoverTargetSlot) {
                                 const from = draggedOriginalIndex, to = hoverTargetSlot, appId = draggedAppId;
-                                isDragging = false; isLandingNow = true; landingAppId = appId;
+                                isDragging = false;
+                                draggedFromOverflow = false;
+                                dragIconSource = "";
+                                isLandingNow = true;
+                                landingAppId = appId;
                                 pinnedModel.move(from, to, 1);
                                 const newOrder = [];
                                 for (let i = 0; i < pinnedModel.count; i++) newOrder.push(pinnedModel.get(i).appId);
                                 root.visibilities.pinnedApps = newOrder;
-                                draggedAppId = ""; draggedOriginalIndex = -1; hoverTargetSlot = -1;
+                                draggedAppId = "";
+                                draggedOriginalIndex = -1;
+                                hoverTargetSlot = -1;
                                 landingEndTimer.restart();
                             } else {
-                                draggedAppId = ""; draggedOriginalIndex = -1; hoverTargetSlot = -1;
-                                isDragging = false; isLandingNow = false;
+                                draggedAppId = "";
+                                draggedOriginalIndex = -1;
+                                hoverTargetSlot = -1;
+                                draggedFromOverflow = false;
+                                dragIconSource = "";
+                                isDragging = false;
+                                isLandingNow = false;
                             }
                         }
                         function cancelDrag() {
-                            draggedAppId = ""; draggedOriginalIndex = -1; hoverTargetSlot = -1; isDragging = false;
+                            draggedAppId = "";
+                            draggedOriginalIndex = -1;
+                            hoverTargetSlot = -1;
+                            draggedFromOverflow = false;
+                            dragIconSource = "";
+                            isDragging = false;
                         }
                         function getTargetX(currentIndex) {
                             const step = layout.slotStep;
@@ -1005,6 +1037,25 @@ Item {
                         Behavior on y { enabled: pinnedHoverHighlight.opacity > 0; SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
                         Behavior on width { SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
                         Behavior on height { SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
+                        Behavior on opacity { NumberAnimation { duration: 150 } }
+                    }
+
+                    // Slot drop target highlight on dock during drag
+                    Rectangle {
+                        id: slotDropHighlight
+                        visible: pinnedState.isDragging && pinnedState.hoverTargetSlot >= 0
+                        opacity: visible ? 1 : 0
+                        width: layout.itemSize
+                        height: layout.itemSize
+                        radius: Math.round(layout.itemSize * (12 / 52))
+                        color: Colours.layer(Colours.palette.m3primary, 0.18)
+                        border.color: Colours.palette.m3primary
+                        border.width: 1.5
+                        x: pinnedState.hoverTargetSlot * layout.slotStep
+                        y: (layout.height - height) / 2
+                        z: 2
+
+                        Behavior on x { SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
                         Behavior on opacity { NumberAnimation { duration: 150 } }
                     }
 
@@ -1584,7 +1635,7 @@ Item {
     // Global backdrop to close overflow flyout when clicking outside
     MouseArea {
         id: overflowDismissBackdrop
-        visible: root.overflowFlyoutVisible
+        visible: root.overflowFlyoutVisible && !pinnedState.isDragging
         anchors.fill: parent
         z: 9997
         acceptedButtons: Qt.AllButtons
@@ -1596,6 +1647,8 @@ Item {
     // ── More Apps Container Transform Overlay ─────────────────────────────────
     Item {
         id: overflowFlyout
+        opacity: (pinnedState.isDragging && pinnedState.draggedFromOverflow) ? 0.35 : 1.0
+        Behavior on opacity { NumberAnimation { duration: 180 } }
 
         readonly property point currentBtnPoint: {
             if (!layout.hasOverflow || !overflowBtn) return Qt.point(0, 0);
@@ -1946,6 +1999,7 @@ Item {
                             flickableDirection: Flickable.VerticalFlick
                             edgeFades: false
                             smoothWheel: true
+                            interactive: !pinnedState.isDragging
 
                             Column {
                                 id: overflowCol
@@ -1993,38 +2047,69 @@ Item {
                                         width: overflowCol.width
                                         implicitHeight: 38
                                         height: implicitHeight
+                                        opacity: (pinnedState.draggedAppId === overflowRow.appId && pinnedState.isDragging) ? 0.3 : 1.0
 
-                                        StateLayer {
-                                            id: overflowRowState
+                                        Behavior on opacity { NumberAnimation { duration: 150 } }
+
+                                        MouseArea {
+                                            id: rowMouseArea
                                             anchors.fill: parent
-                                            radius: Tokens.rounding.small
-                                            color: Colours.palette.m3onSurface
-                                            showHoverBackground: false
-                                            hoverEnabled: false
+                                            hoverEnabled: true
                                             acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                            onClicked: mouse => {
+                                            cursorShape: pinnedState.isDragging ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+                                            property bool isPressing: false
+
+                                            onContainsMouseChanged: {
+                                                if (containsMouse && !pinnedState.isDragging)
+                                                    root.overflowHoveredItem = overflowRow;
+                                                else if (root.overflowHoveredItem === overflowRow)
+                                                    root.overflowHoveredItem = null;
+                                            }
+
+                                            onPressed: mouse => {
                                                 if (mouse.button === Qt.LeftButton) {
-                                                    if (overflowRow.entry) {
-                                                        LauncherServices.Apps.launch(overflowRow.entry);
-                                                        root.overflowFlyoutVisible = false;
-                                                        root.visibilities.bottomPanel = false;
-                                                    }
+                                                    isPressing = true;
+                                                    const ptLayout = overflowRow.mapToItem(layout, mouse.x, mouse.y);
+                                                    const ptRoot = overflowRow.mapToItem(root, mouse.x, mouse.y);
+                                                    pinnedState.startDrag(overflowRow.appId, overflowRow.realIndex, ptLayout.x, ptLayout.y, ptRoot.x, ptRoot.y, overflowRow.cachedIcon);
                                                 } else if (mouse.button === Qt.RightButton) {
                                                     root.overflowFlyoutVisible = false;
                                                     root.showContextMenu(overflowRow.appId, overflowRow);
                                                 }
                                             }
-                                        }
 
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            acceptedButtons: Qt.NoButton
-                                            onContainsMouseChanged: {
-                                                if (containsMouse)
-                                                    root.overflowHoveredItem = overflowRow;
-                                                else if (root.overflowHoveredItem === overflowRow)
-                                                    root.overflowHoveredItem = null;
+                                            onPositionChanged: mouse => {
+                                                if (isPressing && pinnedState.draggedAppId === overflowRow.appId) {
+                                                    const ptLayout = overflowRow.mapToItem(layout, mouse.x, mouse.y);
+                                                    const ptRoot = overflowRow.mapToItem(root, mouse.x, mouse.y);
+                                                    pinnedState.updateDrag(ptLayout.x, ptLayout.y, ptRoot.x, ptRoot.y);
+                                                }
+                                            }
+
+                                            onReleased: mouse => {
+                                                if (mouse.button === Qt.LeftButton) {
+                                                    if (pinnedState.draggedAppId === overflowRow.appId) {
+                                                        if (pinnedState.isDragging) {
+                                                            pinnedState.endDrag();
+                                                            root.overflowFlyoutVisible = false;
+                                                        } else {
+                                                            pinnedState.cancelDrag();
+                                                            if (overflowRow.entry) {
+                                                                LauncherServices.Apps.launch(overflowRow.entry);
+                                                                root.overflowFlyoutVisible = false;
+                                                                root.visibilities.bottomPanel = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    isPressing = false;
+                                                }
+                                            }
+
+                                            onCanceled: {
+                                                if (pinnedState.draggedAppId === overflowRow.appId) {
+                                                    pinnedState.cancelDrag();
+                                                }
+                                                isPressing = false;
                                             }
                                         }
 
@@ -2065,6 +2150,41 @@ Item {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Floating Drag Avatar when dragging an app from overflow flyout to dock
+    Item {
+        id: floatingDragAvatar
+        visible: pinnedState.isDragging && pinnedState.draggedFromOverflow && pinnedState.dragIconSource !== ""
+        width: layout.itemSize
+        height: layout.itemSize
+        x: pinnedState.dragRootX - width / 2
+        y: pinnedState.dragRootY - height / 2
+        z: 10001
+        opacity: visible ? 1.0 : 0.0
+
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: Math.round(layout.itemSize * (12 / 52))
+            color: Colours.layer(Colours.palette.m3surfaceVariant, 0.95)
+            border.color: Colours.palette.m3primary
+            border.width: 1.5
+            scale: 1.2
+            antialiasing: true
+            smooth: true
+
+            Behavior on scale { SpringAnimation { spring: 7.0; damping: 0.68; mass: 1.0; epsilon: 0.005 } }
+
+            IconImage {
+                anchors.fill: parent
+                anchors.margins: Math.max(3, Math.round(layout.itemSize * (6 / 52)))
+                asynchronous: true
+                source: pinnedState.dragIconSource
+                smooth: true
             }
         }
     }
