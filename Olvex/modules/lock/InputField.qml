@@ -20,10 +20,10 @@ Item {
 
     Connections {
         function onBufferChanged() {
-            if (root.pam.buffer.length === 0) {
+            if ((root.pam?.buffer?.length ?? 0) === 0) {
                 placeholder.animate = true;
             }
-            root.buffer = root.pam.buffer;
+            root.buffer = root.pam?.buffer ?? "";
             cursor.resetBlink();
         }
         target: root.pam
@@ -35,15 +35,15 @@ Item {
         anchors.centerIn: parent
 
         text: {
-            if (root.pam.isVerifying)
+            if (root.pam?.isVerifying)
                 return qsTr("Verifying...");
-            if (root.pam.state === "max")
+            if (root.pam?.state === "max")
                 return qsTr("You have reached the maximum number of tries");
             return qsTr("Enter password");
         }
 
         animate: true
-        color: root.pam.isVerifying ? Colours.palette.m3secondary : Colours.palette.m3onSurfaceVariant
+        color: root.pam?.isVerifying ? Colours.palette.m3secondary : Colours.palette.m3onSurfaceVariant
         textPointSize: Tokens.font.size.normal
 
         opacity: (root.buffer && root.buffer.length > 0) ? 0 : 0.75

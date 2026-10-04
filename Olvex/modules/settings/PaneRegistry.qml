@@ -13,9 +13,9 @@ QtObject {
     // accentRole: key on Colours.palette
     // Grid: 6 cols. Dual look heroes with asymmetric widths (true bento).
     //   r0–1: Appearance w6h2
-    //   r2:   Network | Sound | Taskbar
-    //   r3:   Notifs  | Panels | Power
-    //   r4:   System  | About
+    //   r2:   Network w3h1 | Sound w3h1
+    //   r3:   Taskbar w2h1 | Notifs w2h1 | Panels w2h1
+    //   r4:   Power w2h1   | System w2h1 | About w2h1
     readonly property var categories: [
         {
             id: "appearance",
@@ -41,7 +41,7 @@ QtObject {
             kind: "network",
             c: 0,
             r: 2,
-            w: 2,
+            w: 3,
             h: 1,
             component: "network/NetworkPage.qml"
         },
@@ -53,9 +53,9 @@ QtObject {
             sub: "Audio and inputs",
             accentRole: "m3secondary",
             kind: "sound",
-            c: 2,
+            c: 3,
             r: 2,
-            w: 2,
+            w: 3,
             h: 1,
             component: "sound/SoundPage.qml"
         },
@@ -67,8 +67,8 @@ QtObject {
             sub: "Bottom dock & items",
             accentRole: "m3primary",
             kind: "taskbar",
-            c: 4,
-            r: 2,
+            c: 0,
+            r: 3,
             w: 2,
             h: 1,
             component: "taskbar/TaskbarPage.qml"
@@ -81,7 +81,7 @@ QtObject {
             sub: "Do not disturb",
             accentRole: "m3primary",
             kind: "notifs",
-            c: 0,
+            c: 2,
             r: 3,
             w: 2,
             h: 1,
@@ -95,7 +95,7 @@ QtObject {
             sub: "Layout & behavior",
             accentRole: "m3secondary",
             kind: "panels",
-            c: 2,
+            c: 4,
             r: 3,
             w: 2,
             h: 1,
@@ -109,8 +109,8 @@ QtObject {
             sub: "Sleep & idle",
             accentRole: "m3secondary",
             kind: "power",
-            c: 4,
-            r: 3,
+            c: 0,
+            r: 4,
             w: 2,
             h: 1,
             component: "power/PowerPage.qml"
@@ -120,12 +120,12 @@ QtObject {
             label: "system",
             icon: "tune",
             title: "System",
-            sub: "Apps, clock & media",
+            sub: "Displays, clock & apps",
             accentRole: "m3primary",
             kind: "system",
-            c: 0,
+            c: 2,
             r: 4,
-            w: 3,
+            w: 2,
             h: 1,
             component: "system/SystemPage.qml"
         },
@@ -137,9 +137,9 @@ QtObject {
             sub: "Version, system info and links",
             accentRole: "m3primary",
             kind: "about",
-            c: 3,
+            c: 4,
             r: 4,
-            w: 3,
+            w: 2,
             h: 1,
             component: "about/AboutPage.qml"
         }

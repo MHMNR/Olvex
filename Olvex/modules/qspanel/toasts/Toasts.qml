@@ -68,9 +68,10 @@ Item {
 
         readonly property bool previewHidden: {
             let extraHidden = 0;
-            for (let i = 0; i < index; i++)
-                if (Toaster.toasts[i].closed)
+            for (let i = 0; i < index; i++) {
+                if (Toaster.toasts[i] && Toaster.toasts[i].closed)
                     extraHidden++;
+            }
             return index >= Config.qspanel.maxToasts + extraHidden;
         }
 

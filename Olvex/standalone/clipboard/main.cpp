@@ -652,18 +652,34 @@ public:
             return;
 
         const QString id = entryId(entry);
+        QByteArray data;
         if (!id.isEmpty()) {
-            const QString cmd = QStringLiteral("cliphist %1decode %2 | wl-copy")
-                                    .arg(cliphistDbShellPrefix(), id);
-            runBash(cmd);
+            QProcess decodeProc;
+            decodeProc.setProgram(QStringLiteral("cliphist"));
+            decodeProc.setArguments(cliphistArgs({QStringLiteral("decode"), id}));
+            decodeProc.start();
+            if (decodeProc.waitForFinished(3000) && decodeProc.exitCode() == 0) {
+                data = decodeProc.readAllStandardOutput();
+            }
         } else {
-            QProcess proc;
-            proc.setProgram(QStringLiteral("bash"));
-            proc.setArguments({QStringLiteral("-lc"), QStringLiteral("cliphist %1decode | wl-copy").arg(cliphistDbShellPrefix())});
-            proc.start();
-            proc.write(entry.toUtf8());
-            proc.closeWriteChannel();
-            proc.waitForFinished(3000);
+            QProcess decodeProc;
+            decodeProc.setProgram(QStringLiteral("cliphist"));
+            decodeProc.setArguments(cliphistArgs({QStringLiteral("decode")}));
+            decodeProc.start();
+            decodeProc.write(entry.toUtf8());
+            decodeProc.closeWriteChannel();
+            if (decodeProc.waitForFinished(3000) && decodeProc.exitCode() == 0) {
+                data = decodeProc.readAllStandardOutput();
+            }
+        }
+
+        if (!data.isEmpty()) {
+            QProcess copyProc;
+            copyProc.setProgram(QStringLiteral("wl-copy"));
+            copyProc.start();
+            copyProc.write(data);
+            copyProc.closeWriteChannel();
+            copyProc.waitForFinished(3000);
         }
         scheduleRefresh();
     }
@@ -685,26 +701,22 @@ public:
         if (entry.isEmpty())
             return;
 
-        const QString id = entryId(entry);
-        if (!id.isEmpty()) {
-            const QString cmd = QStringLiteral("cliphist %1delete %2")
-                                    .arg(cliphistDbShellPrefix(), id);
-            runBash(cmd);
-        } else {
-            QProcess proc;
-            proc.setProgram(QStringLiteral("bash"));
-            proc.setArguments({QStringLiteral("-lc"), QStringLiteral("cliphist %1delete").arg(cliphistDbShellPrefix())});
-            proc.start();
-            proc.write(entry.toUtf8());
-            proc.closeWriteChannel();
-            proc.waitForFinished(3000);
-        }
+        QProcess proc;
+        proc.setProgram(QStringLiteral("cliphist"));
+        proc.setArguments(cliphistArgs({QStringLiteral("delete")}));
+        proc.start();
+        proc.write(entry.toUtf8());
+        proc.closeWriteChannel();
+        proc.waitForFinished(3000);
         refresh();
     }
 
     Q_INVOKABLE void wipe() {
-        const QString cmd = QStringLiteral("cliphist %1wipe").arg(cliphistDbShellPrefix());
-        runBash(cmd);
+        QProcess proc;
+        proc.setProgram(QStringLiteral("cliphist"));
+        proc.setArguments(cliphistArgs({QStringLiteral("wipe")}));
+        proc.start();
+        proc.waitForFinished(3000);
         refresh();
     }
 
@@ -851,33 +863,55 @@ public:
         if (m_pendingImageDecode.contains(key))
             return;
 
-        QDir().mkpath(QFileInfo(outPngPath).absolutePath());
         m_pendingImageDecode.insert(key);
+        m_imageDecodeQueue.append({id, outPngPath});
+        processNextImageDecode();
+    }
 
-        auto *proc = new QProcess(this);
-        proc->setProgram(QStringLiteral("cliphist"));
-        proc->setArguments(cliphistArgs({QStringLiteral("decode"), id}));
-        connect(proc, &QProcess::finished, this, [this, id, outPngPath, key, proc](int exitCode, QProcess::ExitStatus st) {
-            m_pendingImageDecode.remove(key);
-            bool ok = false;
-            if (st == QProcess::NormalExit && exitCode == 0) {
-                const QByteArray data = proc->readAllStandardOutput();
-                if (!data.isEmpty()) {
-                    QFile out(outPngPath);
-                    if (out.open(QIODevice::WriteOnly | QIODevice::Truncate)
-                        && out.write(data) == data.size()) {
-                        out.close();
-                        ok = true;
-                    } else {
-                        out.close();
-                        QFile::remove(outPngPath);
+    void processNextImageDecode() {
+        while (m_activeImageDecodes < kMaxConcurrentImageDecodes && !m_imageDecodeQueue.isEmpty()) {
+            const ImageDecodeTask task = m_imageDecodeQueue.takeFirst();
+            const QString id = task.id;
+            const QString outPngPath = task.outPngPath;
+            const QString key = id + QLatin1Char('\n') + outPngPath;
+
+            const QFileInfo existing(outPngPath);
+            if (existing.isFile() && existing.size() > 0) {
+                m_pendingImageDecode.remove(key);
+                emit imageDecoded(id, outPngPath, true);
+                continue;
+            }
+
+            QDir().mkpath(QFileInfo(outPngPath).absolutePath());
+            m_activeImageDecodes++;
+
+            auto *proc = new QProcess(this);
+            proc->setProgram(QStringLiteral("cliphist"));
+            proc->setArguments(cliphistArgs({QStringLiteral("decode"), id}));
+            connect(proc, &QProcess::finished, this, [this, id, outPngPath, key, proc](int exitCode, QProcess::ExitStatus st) {
+                m_pendingImageDecode.remove(key);
+                m_activeImageDecodes--;
+                bool ok = false;
+                if (st == QProcess::NormalExit && exitCode == 0) {
+                    const QByteArray data = proc->readAllStandardOutput();
+                    if (!data.isEmpty()) {
+                        QFile out(outPngPath);
+                        if (out.open(QIODevice::WriteOnly | QIODevice::Truncate)
+                            && out.write(data) == data.size()) {
+                            out.close();
+                            ok = true;
+                        } else {
+                            out.close();
+                            QFile::remove(outPngPath);
+                        }
                     }
                 }
-            }
-            emit imageDecoded(id, outPngPath, ok);
-            proc->deleteLater();
-        });
-        proc->start();
+                emit imageDecoded(id, outPngPath, ok);
+                proc->deleteLater();
+                processNextImageDecode();
+            });
+            proc->start();
+        }
     }
 
 signals:
@@ -1021,6 +1055,11 @@ private:
     }
 
 private:
+    struct ImageDecodeTask {
+        QString id;
+        QString outPngPath;
+    };
+
     QProcess m_refreshProc;
     QFileSystemWatcher m_dbWatcher;
     QTimer m_refreshDebounce;
@@ -1029,6 +1068,9 @@ private:
     QVariantList m_items;
     QSet<QString> m_pendingTextDecode;
     QSet<QString> m_pendingImageDecode;
+    QList<ImageDecodeTask> m_imageDecodeQueue;
+    int m_activeImageDecodes = 0;
+    static constexpr int kMaxConcurrentImageDecodes = 3;
     bool m_loading = false;
     bool m_error = false;
     bool m_refreshPending = false;

@@ -1,0 +1,9 @@
+module qs.modules.settings.display
+
+DisplayPage 1.0 DisplayPage.qml
+DisplayCanvas 1.0 DisplayCanvas.qml
+DisplayControls 1.0 DisplayControls.qml
+WorkspacesTab 1.0 WorkspacesTab.qml
+ProfilesTab 1.0 ProfilesTab.qml
+SafetyModal 1.0 SafetyModal.qml
+IdentifyOverlay 1.0 IdentifyOverlay.qml

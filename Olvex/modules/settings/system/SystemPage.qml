@@ -15,14 +15,14 @@ import qs.services
 Item {
     id: root
 
+    property string activeSection: "display"
     property Session session
     signal back
-    property string activeSection: "clock"
 
     SettingsPage {
         anchors.fill: parent
         title: qsTr("System Settings")
-        subtitle: qsTr("Clock, keybindings and system options")
+        subtitle: qsTr("Displays, clock, keybindings and system options")
         icon: "tune"
         accent: Colours.palette.m3primary
         onBack: root.back()

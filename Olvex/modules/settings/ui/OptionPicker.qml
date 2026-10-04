@@ -129,8 +129,12 @@ Item {
 
     function pick(i: int): void {
         if (i < 0 || i >= root.count) return;
-        if (root.currentIndex !== i) root.currentIndex = i;
+        const prev = root.currentIndex;
         root.selected(i);
+        // Only assign manually if external property binding didn't update currentIndex
+        if (root.currentIndex === prev && prev !== i) {
+            root.currentIndex = i;
+        }
         root.expanded = false;
         root.morphState = "closed";
         closeGrace.restart();

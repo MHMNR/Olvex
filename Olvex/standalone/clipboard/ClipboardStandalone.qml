@@ -1028,9 +1028,6 @@ Window {
                 decoded: it.decoded || false,
                 edited: it.edited || false
             })
-            if (it.isImage && (!it.imagePath || it.imagePath.length === 0)) {
-                requestDecodeClipImageById(it.entryId)
-            }
         }
 
         if (selectedIndex >= clipListModel.count)
@@ -1218,6 +1215,9 @@ Window {
             previewAppliedText = ""
             resetPreviewHistory("")
             bumpPreview()
+            if (clip && clip.isImage && (!clip.imagePath || clip.imagePath.length === 0)) {
+                requestDecodeClipImageById(clip.entryId)
+            }
         }
     }
 

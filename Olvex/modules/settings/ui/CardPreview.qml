@@ -6,6 +6,7 @@ import "../../../components"
 import "../../../components/controls"
 import "../../../components/containers"
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Shapes
 import Olvex.Config
 import qs.services
@@ -85,6 +86,8 @@ Item {
             switch (root.kind) {
             case "appearance":
                 return cAppearance;
+            case "display":
+                return cDisplay;
             case "wallpaper":
                 return cWallpaper;
             case "sound":
@@ -1150,6 +1153,56 @@ Item {
                     bg: Qt.alpha(Colours.palette.m3onSurface, 0.1)
                     maxLabelW: 72
                     maxWidth: parent.width
+                }
+            }
+        }
+    }
+
+    Component {
+        id: cDisplay
+
+        Item {
+            anchors.fill: parent
+
+            Row {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 6
+
+                Repeater {
+                    model: DisplayManager.monitors.length > 0 ? DisplayManager.monitors : [ { name: "eDP-1", refreshRate: 144 } ]
+
+                    delegate: StyledRect {
+                        required property var modelData
+                        required property int index
+
+                        implicitWidth: index === 0 ? 54 : 44
+                        implicitHeight: index === 0 ? 36 : 30
+                        radius: Tokens.rounding.small
+                        color: index === 0 ? Qt.alpha(root.accent, 0.22) : Qt.alpha(Colours.palette.m3onSurface, 0.1)
+                        border.width: index === 0 ? 1.5 : 1
+                        border.color: index === 0 ? root.accent : Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            spacing: 1
+
+                            StyledText {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: parent.parent.modelData.name || "DP-1"
+                                textPointSize: Tokens.font.size.smaller - 3
+                                font.weight: Font.Bold
+                                color: parent.parent.index === 0 ? root.accent : Colours.palette.m3onSurface
+                            }
+
+                            StyledText {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: `${Math.round(parent.parent.modelData.refreshRate || 60)}Hz`
+                                textPointSize: Tokens.font.size.smaller - 4
+                                color: Colours.palette.m3onSurfaceVariant
+                            }
+                        }
+                    }
                 }
             }
         }

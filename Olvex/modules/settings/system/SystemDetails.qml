@@ -56,12 +56,13 @@ Item {
                     
         source: {
             switch(root.activeSection) {
+                case "display": return "../display/DisplayPage.qml";
                 case "keybinds": return "SystemKeybinds.qml";
                 case "apps": return "SystemKeybinds.qml";
                 case "clock": return "SystemClock.qml";
                 case "media": return "SystemMedia.qml";
                 case "advanced": return "SystemAdvanced.qml";
-                default: return "SystemKeybinds.qml";
+                default: return "../display/DisplayPage.qml";
             }
         }
     }

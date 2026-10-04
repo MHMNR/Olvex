@@ -17,6 +17,7 @@ Item {
     signal sectionSelected(string section)
 
     readonly property var sections: [
+        { id: "display", label: qsTr("Displays"), icon: "desktop_windows" },
         { id: "clock", label: qsTr("Clock & Date"), icon: "schedule" },
         { id: "keybinds", label: qsTr("Keybindings"), icon: "keyboard" },
         { id: "media", label: qsTr("Media Controls"), icon: "play_circle" },

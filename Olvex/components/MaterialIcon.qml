@@ -22,6 +22,8 @@ Text {
     renderType: Text.NativeRendering
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
+    verticalAlignment: Text.AlignVCenter
+    horizontalAlignment: Text.AlignHCenter
 
     font.family: Tokens?.font?.family?.material ?? "Material Symbols Rounded"
     font.pixelSize: iconPixelSize
