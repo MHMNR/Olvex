@@ -53,42 +53,25 @@ Item {
             elide: Text.ElideRight
         }
 
-        Loader {
-            id: clearBtnLoader
-            asynchronous: true
+        StyledRect {
+            id: clearBtn
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: active ? 32 : 0
+            width: 32
             height: 32
+            radius: width / 2
 
             scale: root.notifCount > 0 ? 1 : 0.5
             opacity: root.notifCount > 0 ? 1 : 0
-            active: opacity > 0
+            visible: opacity > 0.01
+            enabled: root.notifCount > 0
 
-            sourceComponent: StyledRect {
-                anchors.fill: parent
-                radius: width / 2
-                color: Qt.alpha(Colours.palette.m3onSurface, clearHover.containsMouse ? 0.12 : 0.06)
-                border.width: 0
-                border.color: "transparent"
+            color: Qt.alpha(Colours.palette.m3onSurface, clearHover.containsMouse ? 0.12 : 0.06)
+            border.width: 0
+            border.color: "transparent"
 
-                Behavior on color {
-                    CAnim {}
-                }
-
-                StateLayer {
-                    id: clearHover
-                    radius: parent.width / 2
-                    color: Colours.palette.m3onSurface
-                    onClicked: clearTimer.start()
-                }
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "delete_sweep"
-                    color: Colours.palette.m3onSurface
-                    iconPointSize: Tokens.font.size.normal
-                }
+            Behavior on color {
+                CAnim {}
             }
 
             Behavior on scale {
@@ -101,6 +84,24 @@ Item {
                 Anim {
                     duration: Tokens.anim.durations.expressiveFastSpatial
                 }
+            }
+
+            StateLayer {
+                id: clearHover
+                anchors.fill: parent
+                radius: parent.width / 2
+                color: Colours.palette.m3onSurface
+                disabled: root.notifCount === 0
+                onClicked: {
+                    Notifs.clearAll();
+                }
+            }
+
+            MaterialIcon {
+                anchors.centerIn: parent
+                text: "delete_sweep"
+                color: Colours.palette.m3onSurface
+                iconPointSize: Tokens.font.size.normal
             }
         }
     }
@@ -197,30 +198,5 @@ Item {
             }
         }
     }
-
-    Timer {
-        id: clearTimer
-
-        repeat: true
-        triggeredOnStart: true
-        interval: Math.max(15, Math.min(80, 69.8 - 12.3 * Math.log(Notifs.notClosed.length)))
-        onTriggered: {
-            const first = Notifs.notClosed[0];
-            if (!first) {
-                stop();
-                return;
-            }
-
-            const appName = first.appName;
-            let cleared = 0;
-            for (const n of Notifs.notClosed.filter(n => n.appName === appName)) {
-                n.close();
-                cleared++;
-                if (cleared > 30) {
-                    interval = 5;
-                    return;
-                }
-            }
-        }
-    }
 }
+

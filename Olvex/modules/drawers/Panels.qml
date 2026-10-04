@@ -772,6 +772,12 @@ Item {
                         unpinnedState.syncUnpinned();
                     }
 
+                    Timer {
+                        id: clearPinnedHoverTimer
+                        interval: 75
+                        onTriggered: pinnedState.hoveredAppIcon = null
+                    }
+
                     QtObject {
                         id: pinnedState
                         property string draggedAppId: ""
@@ -779,11 +785,6 @@ Item {
                         property bool draggedFromOverflow: false
                         property string dragIconSource: ""
                         property Item hoveredAppIcon: null
-                        Timer {
-                            id: clearPinnedHoverTimer
-                            interval: 75
-                            onTriggered: pinnedState.hoveredAppIcon = null
-                        }
                         property int hoverTargetSlot: -1
                         property real dragStartX: 0
                         property real dragStartY: 0

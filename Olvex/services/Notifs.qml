@@ -240,21 +240,28 @@ Singleton {
         }
     }
 
+    function clearAll(): void {
+        const items = root.list.slice();
+        for (let i = 0; i < items.length; i++) {
+            const notif = items[i];
+            if (notif && typeof notif.close === "function") {
+                notif.close();
+            }
+        }
+        root.dismissBarNotif();
+    }
+
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
         name: "clearNotifs"
         description: "Clear all notifications"
-        onPressed: {
-            for (const notif of root.list.slice())
-                notif.close();
-        }
+        onPressed: root.clearAll()
     }
 
     IpcHandler {
         function clear(): void {
-            for (const notif of root.list.slice())
-                notif.close();
+            root.clearAll();
         }
 
         function isDndEnabled(): bool {
