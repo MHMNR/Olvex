@@ -60,7 +60,7 @@ StyledWindow {
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     readonly property real drawerRounding: hasFullscreen ? 0 : (safeBorder.drawerRounding ?? Math.max(0, safeBorder.rounding - (safeBorder.gap ?? 5)))
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
-    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || morph.morphAnimating || notifMorph.active || notifMorph.morphAnimating || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
+    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || morph.morphAnimating || notifMorph.active || notifMorph.morphAnimating || audioBrightnessMorph.active || audioBrightnessMorph.morphAnimating || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
 
     property real bottomBorderHeight: {
         if (hasFullscreen)
@@ -164,6 +164,8 @@ StyledWindow {
                                         || morph.morphAnimating
                                         || notifMorph.active
                                         || notifMorph.morphAnimating
+                                        || audioBrightnessMorph.active
+                                        || audioBrightnessMorph.morphAnimating
 
     mask: (hasFullscreen || anyPanelActive) ? null : regions
 
@@ -201,7 +203,9 @@ StyledWindow {
     Shortcut {
         sequence: "Escape"
         onActivated: {
-            if (visibilities.wallpaperLauncher)
+            if (audioBrightnessMorph && (audioBrightnessMorph.active || audioBrightnessMorph.morphAnimating))
+                audioBrightnessMorph.collapse();
+            else if (visibilities.wallpaperLauncher)
                 visibilities.wallpaperLauncher = false;
             else if (visibilities.launcher)
                 visibilities.launcher = false;
@@ -407,6 +411,20 @@ StyledWindow {
                 radius: notifMorph.notifCard ? notifMorph.notifCard.radius : Tokens.rounding.large
                 deformScale: (0.05 * Config.appearance.deformScale) / 10000
             }
+
+            BlobRect {
+                id: audioBrightnessMorphBg
+
+                group: drawerGroup
+                x: audioBrightnessMorph.morphCard ? audioBrightnessMorph.morphCard.x : 0
+                y: audioBrightnessMorph.morphCard ? audioBrightnessMorph.morphCard.y : 0
+                width: implicitWidth
+                height: implicitHeight
+                implicitWidth: (audioBrightnessMorph.active || audioBrightnessMorph.morphAnimating) && audioBrightnessMorph.morphCard ? audioBrightnessMorph.morphCard.width : 0
+                implicitHeight: (audioBrightnessMorph.active || audioBrightnessMorph.morphAnimating) && audioBrightnessMorph.morphCard ? audioBrightnessMorph.morphCard.height : 0
+                radius: audioBrightnessMorph.morphCard ? audioBrightnessMorph.morphCard.radius : Tokens.rounding.large
+                deformScale: (0.05 * Config.appearance.deformScale) / 10000
+            }
         }
     }
 
@@ -553,6 +571,7 @@ StyledWindow {
                 popouts: panels.popouts
                 mediaMorph: morph
                 notificationMorph: notifMorph
+                audioBrightnessMorph: audioBrightnessMorph
 
                 fullscreen: root.hasFullscreen
                 safeBorder: root.safeBorder
@@ -645,7 +664,7 @@ StyledWindow {
         // Dismiss layer: closes tray popout menu when clicking outside it
         MouseArea {
             anchors.fill: parent
-            enabled: panels.popouts.hasCurrent && !morph.active
+            enabled: panels.popouts.hasCurrent && !morph.active && !notifMorph.active && !audioBrightnessMorph.active
             hoverEnabled: false
             z: 46
             propagateComposedEvents: true
@@ -675,6 +694,12 @@ StyledWindow {
 
         Cards.NotificationMorphOverlay {
             id: notifMorph
+
+            screen: root.screen
+        }
+
+        Cards.AudioBrightnessMorphOverlay {
+            id: audioBrightnessMorph
 
             screen: root.screen
         }

@@ -25,7 +25,7 @@ Item {
     property bool sourceMuted
     property real brightness
 
-    function show(): void {
+    function show() {
         visibilities.flyouts = true;
         timer.restart();
     }
@@ -35,7 +35,7 @@ Item {
         muted = Audio.muted;
         sourceVolume = Audio.sourceVolume;
         sourceMuted = Audio.sourceMuted;
-        brightness = root.monitor?.brightness ?? 0;
+        brightness = (root.monitor && typeof root.monitor.brightness === "number") ? root.monitor.brightness : 0;
     }
 
     visible: offsetScale < 1
@@ -53,27 +53,19 @@ Item {
     }
 
     Connections {
-        function onMutedChanged(): void {
-            if (root.Config.flyouts.enableVolume ?? true)
-                root.show();
+        function onMutedChanged() {
             root.muted = Audio.muted;
         }
 
-        function onVolumeChanged(): void {
-            if (root.Config.flyouts.enableVolume ?? true)
-                root.show();
+        function onVolumeChanged() {
             root.volume = Audio.volume;
         }
 
-        function onSourceMutedChanged(): void {
-            if (root.Config.flyouts.enableMicrophone ?? false)
-                root.show();
+        function onSourceMutedChanged() {
             root.sourceMuted = Audio.sourceMuted;
         }
 
-        function onSourceVolumeChanged(): void {
-            if (root.Config.flyouts.enableMicrophone ?? false)
-                root.show();
+        function onSourceVolumeChanged() {
             root.sourceVolume = Audio.sourceVolume;
         }
 
@@ -81,10 +73,8 @@ Item {
     }
 
     Connections {
-        function onBrightnessChanged(): void {
-            if (root.Config.flyouts.enableBrightness ?? true)
-                root.show();
-            root.brightness = root.monitor?.brightness ?? 0;
+        function onBrightnessChanged() {
+            root.brightness = (root.monitor && typeof root.monitor.brightness === "number") ? root.monitor.brightness : 0;
         }
 
         target: root.monitor

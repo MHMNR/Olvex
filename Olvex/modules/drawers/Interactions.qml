@@ -151,6 +151,28 @@ CustomMouseArea {
             event.accepted = true;
             return;
         }
+        // Top-right corner: Brightness scroll
+        if (event.x >= width - 100 && event.y <= 100 && Config.bar.scrollActions.brightness) {
+            const monitor = Brightness.getMonitorForScreen(screen);
+            if (monitor) {
+                const curB = typeof monitor.brightness === "number" ? monitor.brightness : 0;
+                if (event.angleDelta.y > 0)
+                    monitor.setBrightness(Math.min(1.0, curB + GlobalConfig.services.brightnessIncrement));
+                else if (event.angleDelta.y < 0)
+                    monitor.setBrightness(Math.max(0, curB - GlobalConfig.services.brightnessIncrement));
+            }
+            event.accepted = true;
+            return;
+        }
+        // Bottom-right corner: Sound / Volume scroll
+        if (event.x >= width - 100 && event.y >= height - 100 && Config.bar.scrollActions.volume) {
+            if (event.angleDelta.y > 0)
+                Audio.incrementVolume();
+            else if (event.angleDelta.y < 0)
+                Audio.decrementVolume();
+            event.accepted = true;
+            return;
+        }
         if (visibilities.launcher
                 && inBottomPanel(panels.launcher, event.x, event.y)
                 && withinPanelWidth(panels.launcher, event.x, event.y)) {

@@ -17,6 +17,7 @@ Item {
     required property var safeBorder
     property var mediaMorph
     property var notificationMorph
+    property var audioBrightnessMorph
 
     readonly property bool disabled: Strings.testRegexList(Config.bar.excludedScreens, screen.name)
 
@@ -96,6 +97,7 @@ Item {
             fullscreen: root.fullscreen
             mediaMorph: root.mediaMorph
             notificationMorph: root.notificationMorph
+            audioBrightnessMorph: root.audioBrightnessMorph
         }
     }
 }

@@ -20,14 +20,17 @@ ColumnLayout {
     property real workspacePush: 0
     property real wsPushForce: 0
     property real notifPushForce: 0
+    property real audioPushForce: 0
     readonly property real downwardPushForce: {
         const ws = (typeof root.wsPushForce === "number" && !isNaN(root.wsPushForce)) ? root.wsPushForce : 0;
         const notif = (typeof root.notifPushForce === "number" && !isNaN(root.notifPushForce)) ? root.notifPushForce : 0;
-        return ws + notif;
+        const audio = (typeof root.audioPushForce === "number" && !isNaN(root.audioPushForce)) ? root.audioPushForce : 0;
+        return ws + notif + audio;
     }
     readonly property real cascadeForce: Math.min(22, root.downwardPushForce)
     property var mediaMorph
     property var notificationMorph
+    property var audioBrightnessMorph
     readonly property int vPadding: Tokens.padding.large
     readonly property alias osIcon: osIconWrapper
 
@@ -69,6 +72,24 @@ ColumnLayout {
             pos.x, pos.y, pill.width, pill.height,
             iconPos.x - pos.x, iconPos.y - pos.y, iW, iH,
             notifData
+        );
+    }
+
+    function expandAudioBrightnessMorphFromPill(pill, iconItem, metric) {
+        const morph = root.audioBrightnessMorph;
+        if (!morph || !pill || pill.width <= 0 || pill.height <= 0)
+            return;
+
+        const anchor = morph.parent ?? morph;
+        const pos = pill.mapToItem(anchor, 0, 0);
+        const iconPos = iconItem ? iconItem.mapToItem(anchor, 0, 0) : pos;
+        const iW = iconItem ? iconItem.width : pill.width;
+        const iH = iconItem ? iconItem.height : pill.height;
+
+        morph.start(
+            pos.x, pos.y, pill.width, pill.height,
+            iconPos.x - pos.x, iconPos.y - pos.y, iW, iH,
+            metric
         );
     }
     // OS/launcher icon is pinned to the bar bottom — never part of reorderable entries.
@@ -150,19 +171,19 @@ ColumnLayout {
                 Hypr.dispatch(`togglespecialworkspace ${specialWs.slice(8)}`);
             else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? (mon && mon.activeWorkspace ? mon.activeWorkspace.id : 1) : Hypr.activeWsId) > 1)
                 Hypr.dispatch(`workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
-        } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
-            // Volume scroll on top half
-            if (angleDelta.y > 0)
-                Audio.incrementVolume();
-            else if (angleDelta.y < 0)
-                Audio.decrementVolume();
-        } else if (Config.bar.scrollActions.brightness) {
-            // Brightness scroll on bottom half
+        } else if (y < screen.height / 2 && Config.bar.scrollActions.brightness) {
+            // Brightness scroll on top half (top corner / top region)
             const monitor = Brightness.getMonitorForScreen(screen);
             if (angleDelta.y > 0)
                 monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
             else if (angleDelta.y < 0)
                 monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
+        } else if (Config.bar.scrollActions.volume) {
+            // Sound / Volume scroll on bottom half (bottom corner / bottom region)
+            if (angleDelta.y > 0)
+                Audio.incrementVolume();
+            else if (angleDelta.y < 0)
+                Audio.decrementVolume();
         }
     }
 

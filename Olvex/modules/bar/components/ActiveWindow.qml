@@ -473,7 +473,7 @@ Item {
     // the title spans whatever the pill actually rendered, not a calc against
     // the full bar height. 64px floor keeps the title legible if the bar is
     // crushed by a fully-expanded workspace pill.
-    readonly property int titleSlotHeight: Math.max(64, root.height - icon.height - Tokens.spacing.small * 4)
+    readonly property int titleSlotHeight: Math.max(64, root.height - icon.height - Tokens.spacing.small * 4 - Math.round((root.musicPillWidth + Tokens.spacing.small) * audioCircle.animatedRevealProgress))
 
     readonly property bool isNotificationPushed: Notifs.hasBarNotif
 
@@ -560,6 +560,24 @@ Item {
         when: root.bar !== undefined && root.bar !== null
     }
 
+    // Audio / Brightness Reactive Circle (pops up below ActiveWindow pill on volume/brightness change)
+    AudioBrightnessCircle {
+        id: audioCircle
+        bar: root.bar
+        monitor: root.monitor
+        circleSize: root.musicPillWidth
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        z: 4
+    }
+
+    Binding {
+        target: root.bar
+        property: "audioPushForce"
+        value: audioCircle.animatedRevealProgress * 8
+        when: root.bar !== undefined && root.bar !== null
+    }
+
     // Bottom: Active Window / Music Pill (shrinks symmetrically from top/bottom to center capsule, expands back to full height)
     StyledRect {
         id: musicPill
@@ -592,14 +610,16 @@ Item {
             }
         }
 
+        readonly property real audioGap: Tokens.spacing.normal
+        readonly property real audioReservedSpace: (audioCircle.circleSize + audioGap) * audioCircle.animatedRevealProgress
         readonly property real p: root.animatedMorphProgress
         readonly property real n: root.animatedNotifProgress
 
-        readonly property real baseH: (root.height * (1.0 - p) + root.musicPillHeight * p) + (animatedKineticShift * (1.0 - n) * (1.0 - p))
-        readonly property real baseY: (p * Math.max(0, (root.height - root.musicPillHeight) / 2)) + (animatedKineticShift * (p * 0.65))
+        readonly property real baseH: Math.max(root.musicPillWidth, (root.height - audioReservedSpace) * (1.0 - p) + root.musicPillHeight * p) + (animatedKineticShift * (1.0 - n) * (1.0 - p))
+        readonly property real baseY: (p * Math.max(0, (root.height - audioReservedSpace - root.musicPillHeight) / 2)) + (animatedKineticShift * (p * 0.65))
 
         height: baseH * (1.0 - n) + root.musicPillWidth * n
-        y: baseY * (1.0 - n) + (Math.max(0, root.height - root.musicPillWidth) + animatedKineticShift) * n
+        y: baseY * (1.0 - n) + (Math.max(0, root.height - root.musicPillWidth - audioReservedSpace) + animatedKineticShift) * n
         width: parent ? parent.width : ((root.playerActive || root.isNotificationPushed) ? root.musicPillWidth : Tokens.sizes.bar.innerWidth)
 
         property real pillAlpha: 1

@@ -11,11 +11,11 @@ import qs.modules.settings
 Scope {
     id: root
 
-    readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
+    readonly property bool hasFullscreen: (Hypr.focusedWorkspace && Hypr.focusedWorkspace.toplevels && Hypr.focusedWorkspace.toplevels.values) ? Hypr.focusedWorkspace.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) : false
     property bool launcherKeyPressed: false
     property var lastPressed: ({})
 
-    function shouldTrigger(name: string): bool {
+    function shouldTrigger(name) {
         if (name === "launcherInterrupt") return true;
         const now = Date.now();
         const last = lastPressed[name] || 0;
@@ -176,7 +176,7 @@ Scope {
     }
 
     IpcHandler {
-        function toggle(drawer: string): void {
+        function toggle(drawer: string) {
             if (list().split("\n").includes(drawer)) {
                 if (root.hasFullscreen && ["launcher", "powermenu", "dashboard"].includes(drawer))
                     return;
@@ -192,7 +192,7 @@ Scope {
             return Object.keys(visibilities).filter(k => typeof visibilities[k] === "boolean").join("\n");
         }
 
-        function openWallpapers(): void {
+        function openWallpapers() {
             const visibilities = Visibilities.getForActive();
             visibilities.launcherSearchText = `${Config.launcher.actionPrefix}wallpaper `;
             visibilities.launcher = true;
@@ -202,7 +202,7 @@ Scope {
     }
 
     IpcHandler {
-        function open(page: string, section: string): void {
+        function open(page: string, section: string) {
             const props = {};
             if (page) props.active = page;
             if (section) props.activeSection = section;
@@ -213,19 +213,19 @@ Scope {
     }
 
     IpcHandler {
-        function info(title: string, message: string, icon: string): void {
+        function info(title: string, message: string, icon: string) {
             Toaster.toast(title, message, icon, Toast.Info);
         }
 
-        function success(title: string, message: string, icon: string): void {
+        function success(title: string, message: string, icon: string) {
             Toaster.toast(title, message, icon, Toast.Success);
         }
 
-        function warn(title: string, message: string, icon: string): void {
+        function warn(title: string, message: string, icon: string) {
             Toaster.toast(title, message, icon, Toast.Warning);
         }
 
-        function error(title: string, message: string, icon: string): void {
+        function error(title: string, message: string, icon: string) {
             Toaster.toast(title, message, icon, Toast.Error);
         }
 
@@ -234,17 +234,17 @@ Scope {
 
     IpcHandler {
         target: "resizer"
-        function pip(): void {
+        function pip() {
             WindowResizer.pipActiveWindow();
         }
-        function pipWindow(address: string): void {
+        function pipWindow(address: string) {
             WindowResizer.pipWindow(address);
         }
     }
 
     IpcHandler {
         target: "charging"
-        function ripple(): void {
+        function ripple() {
             Visibilities.triggerChargingRipple();
         }
     }
