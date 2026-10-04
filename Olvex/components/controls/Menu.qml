@@ -34,6 +34,11 @@ MouseArea {
     property bool expanded
     property bool highlightActive: false
     property Item hoveredItem: null
+    Timer {
+        id: clearHoverTimer
+        interval: 75
+        onTriggered: root.hoveredItem = null
+    }
     // Cap popup height; content scrolls when items exceed this (font lists, etc.)
     property real maxHeight: 320
     // Only for font-family pickers — NEVER set item text as font.family otherwise
@@ -44,6 +49,7 @@ MouseArea {
 
     onExpandedChanged: {
         if (!expanded) {
+            clearHoverTimer.stop();
             hoveredItem = null;
         }
         if (expanded && parent) {
@@ -179,14 +185,14 @@ MouseArea {
 
                 x: {
                     const _ = _scroll;
-                    return target ? target.mapToItem(menuSurface, 0, 0).x : 0;
+                    return target ? target.mapToItem(menuSurface, 0, 0).x : x;
                 }
                 y: {
                     const _ = _scroll;
-                    return target ? target.mapToItem(menuSurface, 0, 0).y : 0;
+                    return target ? target.mapToItem(menuSurface, 0, 0).y : y;
                 }
-                width: target ? target.width : 0
-                height: target ? target.height : 0
+                width: target ? target.width : width
+                height: target ? target.height : height
 
                 Behavior on x {
                     enabled: hoverHighlight.opacity > 0
@@ -299,12 +305,13 @@ MouseArea {
                                 hoverEnabled: true
                                 acceptedButtons: Qt.NoButton
                                 onEntered: {
+                                    clearHoverTimer.stop();
                                     if (root.expanded)
                                         root.hoveredItem = item;
                                 }
                                 onExited: {
                                     if (root.hoveredItem === item)
-                                        root.hoveredItem = null;
+                                        clearHoverTimer.restart();
                                 }
                             }
 

@@ -119,12 +119,19 @@ Item {
             acceptedButtons: Qt.NoButton
 
             onEntered: {
-                if (!root.contextMenuOpen)
+                if (!root.contextMenuOpen) {
+                    if (gridView.clearHoverTimer)
+                        gridView.clearHoverTimer.stop();
                     root.mouseActivated(root);
+                }
             }
             onExited: {
-                if (!root.contextMenuOpen && gridView.hoveredItem === root)
-                    gridView.hoveredItem = null;
+                if (!root.contextMenuOpen && gridView.hoveredItem === root) {
+                    if (gridView.clearHoverTimer)
+                        gridView.clearHoverTimer.restart();
+                    else
+                        gridView.hoveredItem = null;
+                }
             }
         }
 

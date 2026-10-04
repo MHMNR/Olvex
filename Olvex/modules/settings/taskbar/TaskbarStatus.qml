@@ -65,43 +65,6 @@ ColumnLayout {
         }
     }
 
-    Section {
-        Layout.fillWidth: true
-        title: qsTr("Popouts")
-        description: qsTr("Interactive areas on the bar")
-        icon: "ads_click"
-        accentColor: root.accent
-
-
-
-        SettingRow {
-            title: qsTr("Tray popout")
-            description: qsTr("Expand system tray overflow panel")
-            descriptionColor: Qt.alpha(root.accent, 0.65)
-            divider: true
-            StyledSwitch {
-                checked: Config.bar.popouts.tray ?? true
-                onToggled: {
-                    GlobalConfig.bar.popouts.tray = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-
-        SettingRow {
-            title: qsTr("Status icons popout")
-            description: qsTr("Expand status indicators popup on hover")
-            descriptionColor: Qt.alpha(root.accent, 0.65)
-            divider: false
-            StyledSwitch {
-                checked: Config.bar.popouts.systemPill ?? false
-                onToggled: {
-                    GlobalConfig.bar.popouts.systemPill = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-    }
 
     Section {
         Layout.fillWidth: true

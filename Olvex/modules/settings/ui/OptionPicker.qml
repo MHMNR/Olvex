@@ -477,6 +477,11 @@ Item {
                 }
                 
                 property int hoveredIndex: -1
+                Timer {
+                    id: clearHoverTimer
+                    interval: 75
+                    onTriggered: list.hoveredIndex = -1
+                }
 
                 // Floating M3 hover highlight pill
                 Rectangle {
@@ -484,7 +489,7 @@ Item {
                     z: -1
                     width: list.width
                     height: root.rowHeight
-                    y: list.hoveredIndex * root.rowHeight
+                    y: list.hoveredIndex >= 0 ? list.hoveredIndex * root.rowHeight : y
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
                     radius: Tokens.rounding.small
                     opacity: {
@@ -604,11 +609,18 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         onContainsMouseChanged: {
-                            if (containsMouse) list.hoveredIndex = row.index;
-                            else if (list.hoveredIndex === row.index) list.hoveredIndex = -1;
+                            if (containsMouse) {
+                                clearHoverTimer.stop();
+                                list.hoveredIndex = row.index;
+                            } else if (list.hoveredIndex === row.index) {
+                                clearHoverTimer.restart();
+                            }
                         }
                         onPositionChanged: {
-                            if (list.hoveredIndex !== row.index) list.hoveredIndex = row.index;
+                            if (list.hoveredIndex !== row.index) {
+                                clearHoverTimer.stop();
+                                list.hoveredIndex = row.index;
+                            }
                         }
                         onClicked: root.pick(row.originalIndex)
                     }

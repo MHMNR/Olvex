@@ -495,7 +495,7 @@ Item {
 
                     Timer {
                         id: clearHoverTimer
-                        interval: 100
+                        interval: 75
                         onTriggered: expandedMenuArea.hoveredItem = null
                     }
 
@@ -515,10 +515,10 @@ Item {
                         border.width: 0
                         radius: Tokens.rounding.small
 
-                        x: target ? target.mapToItem(expandedMenuArea, 0, 0).x : 0
-                        y: target ? target.mapToItem(expandedMenuArea, 0, 0).y : 0
-                        width: target ? target.width : 0
-                        height: target ? target.height : 0
+                        x: target ? target.mapToItem(expandedMenuArea, 0, 0).x : x
+                        y: target ? target.mapToItem(expandedMenuArea, 0, 0).y : y
+                        width: target ? target.width : width
+                        height: target ? target.height : height
 
                         Behavior on x {
                             enabled: sortHoverHighlight.opacity > 0
@@ -654,9 +654,16 @@ Item {
         anchors.topMargin: 4
         clip: true
 
+        Timer {
+            id: clearGridHoverTimer
+            interval: 75
+            onTriggered: appGrid.hoveredItem = null
+        }
+
         GridView {
             id: appGrid
             property Item hoveredItem: null
+            readonly property var clearHoverTimer: clearGridHoverTimer
 
             anchors.fill: parent
             z: 1

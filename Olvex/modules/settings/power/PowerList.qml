@@ -38,6 +38,14 @@ Item {
     ]
 
     
+    property Item hoveredItem: null
+
+    Timer {
+        id: clearHoverTimer
+        interval: 75
+        onTriggered: root.hoveredItem = null
+    }
+
     StyledRect {
         id: highlightRect
         x: colLayout.x + Tokens.padding.small
@@ -48,6 +56,61 @@ Item {
         
         Behavior on y {
             Anim { type: Anim.FastSpatial }
+        }
+    }
+
+    // Sliding hover highlight marker
+    StyledRect {
+        id: hoverHighlightRect
+        z: 0
+        visible: opacity > 0.001
+        opacity: (root.hoveredItem !== null && !root.hoveredItem.isActive) ? (root.hoveredItem.isPressed ? 0.12 : 0.08) : 0
+        color: Colours.palette.m3onSurface
+        radius: height / 2
+
+        x: root.hoveredItem ? root.hoveredItem.mapToItem(root, 0, 0).x : x
+        y: root.hoveredItem ? root.hoveredItem.mapToItem(root, 0, 0).y : y
+        width: root.hoveredItem ? root.hoveredItem.width : width
+        height: root.hoveredItem ? root.hoveredItem.height : height
+
+        Behavior on x {
+            enabled: hoverHighlightRect.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on y {
+            enabled: hoverHighlightRect.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on width {
+            enabled: hoverHighlightRect.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on height {
+            enabled: hoverHighlightRect.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on opacity {
+            NumberAnimation { duration: 150 }
         }
     }
 
@@ -62,10 +125,13 @@ Item {
 
             delegate: Item {
                 id: delegateRoot
+                Layout.fillWidth: true
+                implicitHeight: 40
 
                 required property var modelData
 
                 readonly property bool isActive: root.activeSection === delegateRoot.modelData.id
+                readonly property bool isPressed: segMa.pressed
 
                 onIsActiveChanged: {
                     if (isActive) {
@@ -77,10 +143,6 @@ Item {
                         highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
                     }
                 }
-
-
-                Layout.fillWidth: true
-                implicitHeight: 40
 
                 RowLayout {
                     anchors.fill: parent
@@ -110,22 +172,19 @@ Item {
                         }
                     }
                 }
-                StyledRect {
-                    anchors.fill: parent
-                    radius: height / 2
-                    color: Colours.palette.m3onSurface
-                    opacity: segMa.pressed ? 0.1 : (segMa.containsMouse && !delegateRoot.isActive ? 0.08 : 0)
-
-                    Behavior on opacity {
-                        Anim { type: Anim.FastEffects }
-                    }
-                }
 
                 MouseArea {
                     id: segMa
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
+                    onEntered: {
+                        clearHoverTimer.stop();
+                        root.hoveredItem = delegateRoot;
+                    }
+                    onExited: {
+                        clearHoverTimer.restart();
+                    }
                     onClicked: root.sectionSelected(delegateRoot.modelData.id)
                 }
             }

@@ -64,6 +64,18 @@ Item {
 
     property bool overflowFlyoutVisible: false
     property Item overflowHoveredItem: null
+    Timer {
+        id: clearOverflowHoverTimer
+        interval: 75
+        onTriggered: root.overflowHoveredItem = null
+    }
+
+    onOverflowFlyoutVisibleChanged: {
+        if (!overflowFlyoutVisible) {
+            clearOverflowHoverTimer.stop();
+            overflowHoveredItem = null;
+        }
+    }
 
     // Focus to receive key events
     focus: true
@@ -130,6 +142,11 @@ Item {
     property real contextMenuY: 0
     property var contextMenuWindows: []  // List of running windows for this app
     property Item contextMenuHoveredItem: null
+    Timer {
+        id: clearContextMenuHoverTimer
+        interval: 75
+        onTriggered: root.contextMenuHoveredItem = null
+    }
     readonly property int contextMenuWidth: 240
     readonly property int contextMenuRowHeight: 40
     readonly property int contextMenuIconCell: 20
@@ -187,6 +204,7 @@ Item {
     function hideContextMenu() {
         contextMenuVisible = false;
         contextMenuCanAnimateMove = false;
+        clearContextMenuHoverTimer.stop();
         contextMenuHoveredItem = null;
         // Delay clearing the data so animation can complete
         menuFadeOutTimer.restart();
@@ -761,6 +779,11 @@ Item {
                         property bool draggedFromOverflow: false
                         property string dragIconSource: ""
                         property Item hoveredAppIcon: null
+                        Timer {
+                            id: clearPinnedHoverTimer
+                            interval: 75
+                            onTriggered: pinnedState.hoveredAppIcon = null
+                        }
                         property int hoverTargetSlot: -1
                         property real dragStartX: 0
                         property real dragStartY: 0
@@ -1031,8 +1054,8 @@ Item {
                         width: layout.itemSize
                         height: layout.itemSize
                         radius: Math.round(layout.itemSize * (12 / 52))
-                        x: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.x : 0
-                        y: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.y + (pinnedState.hoveredAppIcon.height - height) / 2 : 0
+                        x: pinnedState.hoveredAppIcon ? pinnedState.hoveredAppIcon.x : x
+                        y: pinnedState.hoveredAppIcon ? (pinnedState.hoveredAppIcon.y + (pinnedState.hoveredAppIcon.height - height) / 2) : y
                         Behavior on x { enabled: pinnedHoverHighlight.opacity > 0; SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
                         Behavior on y { enabled: pinnedHoverHighlight.opacity > 0; SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
                         Behavior on width { SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 } }
@@ -1262,10 +1285,12 @@ Item {
                                     }
                                 }
                                 onContainsMouseChanged: {
-                                    if (containsMouse && !pinnedState.isDragging)
+                                    if (containsMouse && !pinnedState.isDragging) {
+                                        clearPinnedHoverTimer.stop();
                                         pinnedState.hoveredAppIcon = appWrapper;
-                                    else if (pinnedState.hoveredAppIcon === appWrapper)
-                                        pinnedState.hoveredAppIcon = null;
+                                    } else if (pinnedState.hoveredAppIcon === appWrapper) {
+                                        clearPinnedHoverTimer.restart();
+                                    }
                                 }
                                 onPositionChanged: mouse => {
                                     if (isPressing && pinnedState.draggedAppId === appId)
@@ -1496,10 +1521,12 @@ Item {
                                     }
                                 }
                                 onContainsMouseChanged: {
-                                    if (containsMouse)
+                                    if (containsMouse && !pinnedState.isDragging) {
+                                        clearPinnedHoverTimer.stop();
                                         pinnedState.hoveredAppIcon = unpinnedAppWrapper;
-                                    else if (pinnedState.hoveredAppIcon === unpinnedAppWrapper)
-                                        pinnedState.hoveredAppIcon = null;
+                                    } else if (pinnedState.hoveredAppIcon === unpinnedAppWrapper) {
+                                        clearPinnedHoverTimer.restart();
+                                    }
                                 }
                                 onClicked: mouse => {
                                     if (mouse.button === Qt.LeftButton) {
@@ -1961,14 +1988,14 @@ Item {
 
                             x: {
                                 const _ = _scroll;
-                                return target ? target.mapToItem(listContainer, 0, 0).x : 0;
+                                return target ? target.mapToItem(listContainer, 0, 0).x : x;
                             }
                             y: {
                                 const _ = _scroll;
-                                return target ? target.mapToItem(listContainer, 0, 0).y : 0;
+                                return target ? target.mapToItem(listContainer, 0, 0).y : y;
                             }
-                            width: target ? target.width : 0
-                            height: target ? target.height : 0
+                            width: target ? target.width : width
+                            height: target ? target.height : height
 
                             Behavior on x {
                                 enabled: overflowHoverHighlight.opacity > 0
@@ -2060,10 +2087,12 @@ Item {
                                             property bool isPressing: false
 
                                             onContainsMouseChanged: {
-                                                if (containsMouse && !pinnedState.isDragging)
+                                                if (containsMouse && !pinnedState.isDragging) {
+                                                    clearOverflowHoverTimer.stop();
                                                     root.overflowHoveredItem = overflowRow;
-                                                else if (root.overflowHoveredItem === overflowRow)
-                                                    root.overflowHoveredItem = null;
+                                                } else if (root.overflowHoveredItem === overflowRow) {
+                                                    clearOverflowHoverTimer.restart();
+                                                }
                                             }
 
                                             onPressed: mouse => {
@@ -2269,10 +2298,10 @@ Item {
                 radius: Tokens.rounding.small
 
                 // Position it matching the hoveredItem
-                x: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.mapToItem(parent, 0, 0).x : 0
-                y: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.mapToItem(parent, 0, 0).y : 0
-                width: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.width : 0
-                height: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.height : 0
+                x: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.mapToItem(parent, 0, 0).x : x
+                y: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.mapToItem(parent, 0, 0).y : y
+                width: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.width : width
+                height: root.contextMenuHoveredItem ? root.contextMenuHoveredItem.height : height
 
                 Behavior on x {
                     enabled: contextMenuHoverHighlight.opacity > 0
@@ -2402,13 +2431,14 @@ Item {
                                 hoverEnabled: true
                                 acceptedButtons: Qt.NoButton
                                 onEntered: {
+                                    clearContextMenuHoverTimer.stop();
                                     if (root.contextMenuVisible) {
                                         root.contextMenuHoveredItem = windowItem;
                                     }
                                 }
                                 onExited: {
                                     if (root.contextMenuHoveredItem === windowItem) {
-                                        root.contextMenuHoveredItem = null;
+                                        clearContextMenuHoverTimer.restart();
                                     }
                                 }
                             }
@@ -2566,13 +2596,14 @@ Item {
                             hoverEnabled: true
                             acceptedButtons: Qt.NoButton
                             onEntered: {
+                                clearContextMenuHoverTimer.stop();
                                 if (root.contextMenuVisible) {
                                     root.contextMenuHoveredItem = openItem;
                                 }
                             }
                             onExited: {
                                 if (root.contextMenuHoveredItem === openItem) {
-                                    root.contextMenuHoveredItem = null;
+                                    clearContextMenuHoverTimer.restart();
                                 }
                             }
                         }
@@ -2678,13 +2709,14 @@ Item {
                             hoverEnabled: true
                             acceptedButtons: Qt.NoButton
                             onEntered: {
+                                clearContextMenuHoverTimer.stop();
                                 if (root.contextMenuVisible) {
                                     root.contextMenuHoveredItem = removeItem;
                                 }
                             }
                             onExited: {
                                 if (root.contextMenuHoveredItem === removeItem) {
-                                    root.contextMenuHoveredItem = null;
+                                    clearContextMenuHoverTimer.restart();
                                 }
                             }
                         }

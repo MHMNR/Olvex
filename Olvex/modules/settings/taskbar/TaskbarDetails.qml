@@ -32,7 +32,6 @@ Item {
                 switch(root.activeSection) {
                     case "behavior": return "TaskbarBehavior.qml";
                     case "quickorb": return "TaskbarQuickOrb.qml";
-                    case "status": return "TaskbarStatus.qml";
                     case "workspaces": return "TaskbarWorkspaces.qml";
                     case "widgets": return "TaskbarWidgets.qml";
                     case "bottomPanel": return "TaskbarBottomPanel.qml";

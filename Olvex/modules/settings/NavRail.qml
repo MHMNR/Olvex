@@ -21,6 +21,69 @@ Item {
     implicitWidth: layout.implicitWidth + Tokens.padding.larger * 4
     implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
 
+    property Item hoveredItem: null
+
+    Timer {
+        id: clearHoverTimer
+        interval: 75
+        onTriggered: root.hoveredItem = null
+    }
+
+    // Sliding hover highlight marker
+    StyledRect {
+        id: hoverHighlight
+        visible: opacity > 0.001
+        opacity: (root.hoveredItem !== null && root.hoveredItem.parent && !root.hoveredItem.parent.active) ? 0.08 : 0
+        color: Colours.palette.m3onSurface
+        radius: Tokens.rounding.full
+        z: 0
+
+        x: root.hoveredItem ? root.hoveredItem.mapToItem(root, 0, 0).x : x
+        y: root.hoveredItem ? root.hoveredItem.mapToItem(root, 0, 0).y : y
+        width: root.hoveredItem ? root.hoveredItem.width : width
+        height: root.hoveredItem ? root.hoveredItem.height : height
+
+        Behavior on x {
+            enabled: hoverHighlight.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on y {
+            enabled: hoverHighlight.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on width {
+            enabled: hoverHighlight.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on height {
+            enabled: hoverHighlight.opacity > 0
+            SpringAnimation {
+                spring: 7.0
+                damping: 0.8
+                mass: 1.0
+                epsilon: 0.005
+            }
+        }
+        Behavior on opacity {
+            NumberAnimation { duration: 150 }
+        }
+    }
+
     ColumnLayout {
         id: layout
 
@@ -176,6 +239,14 @@ Item {
             implicitHeight: icon.implicitHeight + Tokens.padding.small
 
             StateLayer {
+                showHoverBackground: false
+                onEntered: {
+                    clearHoverTimer.stop();
+                    root.hoveredItem = background;
+                }
+                onExited: {
+                    clearHoverTimer.restart();
+                }
                 onClicked: {
                     // Prevent tab switching during initial opening animation to avoid blank pages
                     if (!root.initialOpeningComplete) {
