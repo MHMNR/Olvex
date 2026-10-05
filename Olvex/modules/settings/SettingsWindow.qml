@@ -54,170 +54,344 @@ Item {
             height: 76
             z: 10
 
-            RowLayout {
+            readonly property var activeCat: PaneRegistry.getById(session.currentId || session.pageId)
+            readonly property color activeAccent: activeCat ? PaneRegistry.accentFor(activeCat) : Colours.palette.m3primary
+            readonly property bool inSubpage: session.currentId !== "" || (session.pageId !== "" && !stack.returning)
+
+            // Home Header (Settings icon + Title)
+            Item {
+                id: homeHeader
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: Tokens.padding.large * 2
-                spacing: Tokens.spacing.normal
+                implicitWidth: homeHeaderRow.implicitWidth
+                implicitHeight: homeHeaderRow.implicitHeight
+                opacity: !topbar.inSubpage ? 1.0 : 0.0
+                visible: opacity > 0.001
+                enabled: !topbar.inSubpage
 
-                MaterialIcon {
-                    text: "settings"
-                    fill: 1
-                    color: Colours.palette.m3primary
-                    iconPointSize: Tokens.font.size.large
-                }
-
-                // title-large shell chrome — regular face
-                StyledText {
-                    text: qsTr("Settings")
-                    font.weight: Font.Normal
-                    font.letterSpacing: -0.15
-                    color: Colours.palette.m3onSurface
-                    textPointSize: Tokens.font.size.large
-                }
-            }
-
-            // search (Lockscreen cardstyle input field)
-            StyledRect {
-                id: search
-
-                anchors.centerIn: parent
-                implicitWidth: 380
-                implicitHeight: 46
-                radius: Tokens.rounding.full
-                color: searchInput.activeFocus 
-                    ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
-                    : (searchHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.15) : Qt.alpha(Colours.palette.m3onSurface, 0.12))
-
-                border.width: 0
-                border.color: "transparent"
-
-                scale: 1.0
-
-                Behavior on color { CAnim {} }
-                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutBack } }
-
-                HoverHandler {
-                    id: searchHover
-                    cursorShape: Qt.IBeamCursor
-                }
-
-                TapHandler {
-                    onTapped: {
-                        searchInput.forceActiveFocus();
-                        search.scale = 0.98;
-                        pulseTimer.restart();
-                    }
-                }
-
-                Timer {
-                    id: pulseTimer
-                    interval: 120
-                    onTriggered: search.scale = 1.0
-                }
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                 RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 10
+                    id: homeHeaderRow
+                    anchors.centerIn: parent
                     spacing: Tokens.spacing.normal
 
                     MaterialIcon {
-                        id: searchIcon
-                        Layout.alignment: Qt.AlignVCenter
-                        text: "search"
-                        color: searchInput.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                        text: "settings"
+                        fill: 1
+                        color: Colours.palette.m3primary
                         iconPointSize: Tokens.font.size.large
-                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    // title-large shell chrome — regular face
+                    StyledText {
+                        text: qsTr("Settings")
+                        font.weight: Font.Normal
+                        font.letterSpacing: -0.15
+                        color: Colours.palette.m3onSurface
+                        textPointSize: Tokens.font.size.large
+                    }
+                }
+            }
+
+            // Page Sub-Header (Back button + Icon Badge + Breadcrumbs)
+            Item {
+                id: pageHeader
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Tokens.padding.large * 2
+                implicitWidth: pageHeaderRow.implicitWidth
+                implicitHeight: pageHeaderRow.implicitHeight
+                opacity: topbar.inSubpage ? 1.0 : 0.0
+                visible: opacity > 0.001
+                enabled: topbar.inSubpage
+
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                RowLayout {
+                    id: pageHeaderRow
+                    anchors.centerIn: parent
+                    spacing: Tokens.spacing.normal
+
+                    // Back Button
+                    StyledRect {
+                        implicitWidth: 40
+                        implicitHeight: 40
+                        radius: Tokens.rounding.full
+                        color: backBtnMa.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.12) :
+                               backBtnMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) :
+                               Colours.palette.m3surfaceContainerHigh
 
                         Behavior on color { CAnim {} }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        clip: true
-
-                        TextInput {
-                            id: searchInput
-                            anchors.fill: parent
-                            verticalAlignment: TextInput.AlignVCenter
-                            color: Colours.palette.m3onSurface
-                            selectionColor: Qt.alpha(Colours.palette.m3primary, 0.3)
-                            selectedTextColor: Colours.palette.m3onSurface
-                            font.family: Tokens.font.family.sans
-                            font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
-                            selectByMouse: true
-                            cursorVisible: activeFocus
-                            onTextChanged: session.query = text
-
-                            cursorDelegate: Rectangle {
-                                width: 2
-                                height: searchInput.font.pixelSize * 1.2
-                                radius: 1
-                                color: Colours.palette.m3primary
-                                SequentialAnimation on opacity {
-                                    loops: Animation.Infinite
-                                    running: searchInput.activeFocus
-                                    NumberAnimation { to: 1.0; duration: 80 }
-                                    PauseAnimation   { duration: 520 }
-                                    NumberAnimation { to: 0.0; duration: 80 }
-                                    PauseAnimation   { duration: 380 }
-                                }
-                            }
-                        }
-
-                        StyledText {
-                            anchors.fill: parent
-                            verticalAlignment: Text.AlignVCenter
-                            text: qsTr("Search settings…")
-                            color: Colours.palette.m3outline
-                            font.family: Tokens.font.family.sans
-                            font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
-                            visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
-                            opacity: searchInput.text.length === 0 ? 0.75 : 0
-                            Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        }
-                    }
-
-                    StyledRect {
-                        id: clearBtn
-                        Layout.alignment: Qt.AlignVCenter
-                        implicitWidth: 28
-                        implicitHeight: 28
-                        radius: 14
-                        color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-                        visible: searchInput.text.length > 0
-                        opacity: searchInput.text.length > 0 ? 1 : 0
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                         MaterialIcon {
                             anchors.centerIn: parent
-                            text: "close"
-                            color: Colours.palette.m3onSurfaceVariant
-                            iconPointSize: 14
-                            verticalAlignment: Text.AlignVCenter
+                            text: "arrow_back"
+                            color: Colours.palette.m3onSurface
+                            iconPointSize: Tokens.font.size.larger
                         }
 
-                        StateLayer {
-                            radius: parent.radius
-                            color: Colours.palette.m3primary
-                            onClicked: {
-                                searchInput.text = "";
-                                searchInput.forceActiveFocus();
+                        MouseArea {
+                            id: backBtnMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: session.goHome()
+                        }
+                    }
+
+                    // Category Icon Badge
+                    StyledRect {
+                        implicitWidth: 40
+                        implicitHeight: 40
+                        radius: Tokens.rounding.large
+                        color: Qt.alpha(topbar.activeAccent, 0.18)
+
+                        Behavior on color { CAnim {} }
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: topbar.activeCat ? topbar.activeCat.icon : "settings"
+                            fill: 1
+                            color: topbar.activeAccent
+                            iconPointSize: Tokens.font.size.large
+                        }
+                    }
+
+                    // Breadcrumb hierarchy: Settings › Category
+                    RowLayout {
+                        spacing: Tokens.spacing.extraSmall
+                        Layout.alignment: Qt.AlignVCenter
+
+                        // Clickable "Settings" breadcrumb
+                        Item {
+                            implicitWidth: breadcrumbHomeText.implicitWidth + (Tokens.padding.small * 2)
+                            implicitHeight: 32
+
+                            StyledRect {
+                                anchors.fill: parent
+                                radius: Tokens.rounding.small
+                                color: breadcrumbHomeMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
+                                Behavior on color { CAnim {} }
                             }
+
+                            StyledText {
+                                id: breadcrumbHomeText
+                                anchors.centerIn: parent
+                                text: qsTr("Settings")
+                                color: Colours.palette.m3onSurfaceVariant
+                                font.weight: Font.Normal
+                                font.letterSpacing: -0.1
+                                textPointSize: Tokens.font.size.normal
+                            }
+
+                            MouseArea {
+                                id: breadcrumbHomeMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: session.goHome()
+                            }
+                        }
+
+                        MaterialIcon {
+                            text: "chevron_right"
+                            color: Colours.palette.m3outlineVariant
+                            iconPointSize: 16
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        StyledText {
+                            text: topbar.activeCat ? topbar.activeCat.title : ""
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: -0.2
+                            color: Colours.palette.m3onSurface
+                            textPointSize: Tokens.font.size.large
+                            Layout.alignment: Qt.AlignVCenter
                         }
                     }
                 }
             }
 
-            // light/dark toggle + close
+            // right controls: expandable search pill + light/dark toggle + close
             RowLayout {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.rightMargin: Tokens.padding.large * 2
                 spacing: Tokens.spacing.normal
 
+                // ── Expandable Search Pill (Circle 46px → 340px input field) ──
+                StyledRect {
+                    id: searchPill
+
+                    property bool searchExpanded: false
+                    readonly property bool searchActive: searchExpanded || (searchInput && (searchInput.text.length > 0 || searchInput.activeFocus))
+
+                    implicitWidth: searchActive ? 340 : 46
+                    implicitHeight: 46
+                    radius: Tokens.rounding.full
+                    clip: true
+
+                    color: searchActive
+                        ? (searchInput.activeFocus ? Qt.alpha(Colours.palette.m3onSurface, 0.18) : (searchHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.15) : Qt.alpha(Colours.palette.m3onSurface, 0.12)))
+                        : (searchHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : Colours.palette.m3surfaceContainerHigh)
+
+                    Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
+                    Behavior on color { CAnim {} }
+
+                    HoverHandler {
+                        id: searchHover
+                        cursorShape: searchPill.searchActive ? Qt.IBeamCursor : Qt.PointingHandCursor
+                    }
+
+                    // Collapsed Search Circle Trigger
+                    MouseArea {
+                        anchors.fill: parent
+                        visible: !searchPill.searchActive
+                        enabled: !searchPill.searchActive
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            searchPill.searchExpanded = true;
+                            Qt.callLater(() => searchInput.forceActiveFocus());
+                        }
+                    }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "search"
+                        fill: 1
+                        color: Colours.palette.m3onSurface
+                        iconPointSize: Tokens.font.size.larger
+                        visible: !searchPill.searchActive
+                        opacity: !searchPill.searchActive ? 1.0 : 0.0
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                    }
+
+                    // Expanded Search Bar
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 16
+                        anchors.rightMargin: 8
+                        spacing: Tokens.spacing.normal
+                        visible: searchPill.searchActive
+                        opacity: searchPill.searchActive ? 1.0 : 0.0
+
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                        MaterialIcon {
+                            id: searchIcon
+                            Layout.alignment: Qt.AlignVCenter
+                            text: "search"
+                            color: searchInput.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                            iconPointSize: Tokens.font.size.large
+                            verticalAlignment: Text.AlignVCenter
+
+                            Behavior on color { CAnim {} }
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+
+                            TextInput {
+                                id: searchInput
+                                anchors.fill: parent
+                                verticalAlignment: TextInput.AlignVCenter
+                                color: Colours.palette.m3onSurface
+                                selectionColor: Qt.alpha(Colours.palette.m3primary, 0.3)
+                                selectedTextColor: Colours.palette.m3onSurface
+                                font.family: Tokens.font.family.sans
+                                font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                                selectByMouse: true
+                                cursorVisible: activeFocus
+
+                                onTextChanged: {
+                                    session.query = text;
+                                    if (text.length > 0 && session.currentId !== "") {
+                                        session.goHome();
+                                    }
+                                }
+
+                                Keys.onEscapePressed: {
+                                    if (text.length > 0) {
+                                        text = "";
+                                    } else {
+                                        searchPill.searchExpanded = false;
+                                        focus = false;
+                                    }
+                                }
+
+                                cursorDelegate: Rectangle {
+                                    width: 2
+                                    height: searchInput.font.pixelSize * 1.2
+                                    radius: 1
+                                    color: Colours.palette.m3primary
+                                    SequentialAnimation on opacity {
+                                        loops: Animation.Infinite
+                                        running: searchInput.activeFocus
+                                        NumberAnimation { to: 1.0; duration: 80 }
+                                        PauseAnimation   { duration: 520 }
+                                        NumberAnimation { to: 0.0; duration: 80 }
+                                        PauseAnimation   { duration: 380 }
+                                    }
+                                }
+                            }
+
+                            StyledText {
+                                anchors.fill: parent
+                                verticalAlignment: Text.AlignVCenter
+                                text: qsTr("Search settings…")
+                                color: Colours.palette.m3outline
+                                font.family: Tokens.font.family.sans
+                                font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                                visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
+                                opacity: searchInput.text.length === 0 ? 0.75 : 0
+                                Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            }
+                        }
+
+                        StyledRect {
+                            id: clearBtn
+                            Layout.alignment: Qt.AlignVCenter
+                            implicitWidth: 30
+                            implicitHeight: 30
+                            radius: Tokens.rounding.full
+                            color: clearBtnMa.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.12) :
+                                   clearBtnMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
+
+                            Behavior on color { CAnim {} }
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "close"
+                                color: Colours.palette.m3onSurfaceVariant
+                                iconPointSize: 16
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            MouseArea {
+                                id: clearBtnMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (searchInput.text.length > 0) {
+                                        searchInput.text = "";
+                                        searchInput.forceActiveFocus();
+                                    } else {
+                                        searchPill.searchExpanded = false;
+                                        searchInput.focus = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 2. Light/Dark Toggle
                 StyledRect {
                     implicitWidth: modeRow.implicitWidth + Tokens.padding.large * 2
                     implicitHeight: 46
@@ -260,6 +434,7 @@ Item {
                     }
                 }
 
+                // 3. Close Button
                 StyledRect {
                     implicitWidth: 46
                     implicitHeight: 46
@@ -549,6 +724,7 @@ Item {
                                 onClicked: {
                                     session.openFrom(resultRow, resultRow.modelData.id, stack);
                                     searchInput.text = "";
+                                    searchPill.searchExpanded = false;
                                 }
                             }
                         }

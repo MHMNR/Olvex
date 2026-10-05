@@ -1,4 +1,3 @@
-
 import ".."
 import "../ui"
 import "."
@@ -23,6 +22,8 @@ Item {
     }
 
     property Component overlayComponent: null
+    property alias collapsed: splitLayout.collapsed
+    property alias splitLayout: splitLayout
 
     SplitPaneLayout {
         id: splitLayout

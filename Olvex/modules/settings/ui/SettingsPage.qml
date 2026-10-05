@@ -37,109 +37,11 @@ Item {
         z: -1
     }
 
-    Item {
-        id: header
-
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 80
-        z: 2
-
-        RowLayout {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: Tokens.padding.large
-            anchors.right: parent.right
-            anchors.rightMargin: Tokens.padding.large
-            spacing: Tokens.spacing.normal
-
-            StyledRect {
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
-                radius: Tokens.rounding.full
-                color: Colours.palette.m3surfaceContainerHigh
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: "arrow_back"
-                    iconPointSize: Tokens.font.size.larger
-                }
-
-                StateLayer {
-                    radius: parent.radius
-                    color: Colours.palette.m3onSurface
-                    onClicked: root.back()
-                }
-            }
-
-            StyledRect {
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
-                radius: Tokens.rounding.large
-                color: Qt.alpha(root.accent, 0.18)
-
-                MaterialIcon {
-                    anchors.centerIn: parent
-                    text: root.icon
-                    fill: 1
-                    color: root.accent
-                    iconPointSize: Tokens.font.size.large
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 4
-
-                // title-large — size carries hierarchy, regular weight (no bold cut)
-                StyledText {
-                    text: root.title
-                    font.weight: Font.Normal
-                    font.letterSpacing: -0.2
-                    lineHeight: 1.15
-                    lineHeightMode: Text.ProportionalHeight
-                    color: Colours.palette.m3onSurface
-                    textPointSize: Tokens.font.size.large
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                }
-
-                // body-medium page context
-                StyledText {
-                    visible: !!root.subtitle
-                    text: root.subtitle
-                    color: Colours.palette.m3onSurfaceVariant
-                    font.weight: Font.Normal
-                    font.letterSpacing: 0.1
-                    lineHeight: 1.3
-                    lineHeightMode: Text.ProportionalHeight
-                    textPointSize: Tokens.font.size.smaller
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                }
-            }
-        }
-
-        Rectangle {
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
-            opacity: !root.hostMode && flick.contentY > 4 ? 1 : 0
-
-            Behavior on opacity {
-                Anim { type: Anim.FastEffects }
-            }
-        }
-    }
-
     StyledFlickable {
         id: flick
 
         visible: !root.hostMode
-        anchors.top: header.bottom
+        anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -176,12 +78,11 @@ Item {
         id: hostContainer
 
         visible: root.hostMode
-        anchors.top: header.bottom
+        anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: Tokens.padding.normal
-        anchors.topMargin: 0
+        anchors.margins: 0
 
         Loader {
             anchors.fill: parent
