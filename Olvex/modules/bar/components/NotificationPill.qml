@@ -564,10 +564,11 @@ Item {
             anchors.top: shrinkingBg.bottom
             anchors.topMargin: 6
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 4
+            anchors.bottomMargin: 6
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.margins: 4
+            anchors.leftMargin: 2
+            anchors.rightMargin: 2
             clip: true
             visible: !shrinkingPill.isCompactCircle && shrinkingPill.textAlpha > 0.01
             opacity: shrinkingPill.textAlpha
@@ -640,10 +641,11 @@ Item {
             anchors.top: incomingBg.bottom
             anchors.topMargin: 6
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 4
+            anchors.bottomMargin: 6
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.margins: 4
+            anchors.leftMargin: 2
+            anchors.rightMargin: 2
             clip: true
             visible: !incomingPill.isCompactCircle && incomingPill.textAlpha > 0.01
             opacity: incomingPill.textAlpha
@@ -759,13 +761,6 @@ Item {
                 opacity: (Notifs.notifMorphRendering && Notifs.activeMorphNotif && ((notif && Notifs.activeMorphNotif.id === notif.id) || (olderCircleDelegate.notifId && Notifs.activeMorphNotif.id === olderCircleDelegate.notifId))) ? 0 : 
                          isOverflowed ? 0 : 1
                 visible: !isAnimatingThis && opacity > 0.01
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Math.round(root.pillMorphDuration * 0.4)
-                        easing: Tokens.anim.expressiveSubtleSpatial
-                    }
-                }
 
                 Behavior on color {
                     CAnim {
@@ -1022,10 +1017,11 @@ Item {
             anchors.top: topAppBg.bottom
             anchors.topMargin: 6
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 4
+            anchors.bottomMargin: 6
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.margins: 4
+            anchors.leftMargin: 2
+            anchors.rightMargin: 2
             clip: true
             visible: root.hasNotif && !topPill.isCompactCircle
             opacity: (root.hasNotif && !topPill.isCompactCircle) ? 1.0 : 0.0
@@ -1111,7 +1107,6 @@ Item {
 
         required property string text
         property color color: Colours.palette.m3onSurface
-        property color fadeColor: Colours.tPalette.m3surfaceContainer
         property real textPointSize: Tokens.font.size.smaller
         property bool running: true
 
@@ -1123,15 +1118,17 @@ Item {
             marqueeAnim.restart();
         }
 
-        readonly property real speed: 26
+        readonly property real speed: 28
+        readonly property real loopSpacing: 28
         readonly property bool needsMarquee: width > 0 && primaryLabel.implicitWidth > width + 2
+        readonly property real loopDistance: primaryLabel.implicitWidth + loopSpacing
 
         Row {
             id: marqueeRow
-            spacing: 24
+            spacing: marqueeRoot.loopSpacing
             property real scrollX: 0
 
-            x: marqueeRoot.needsMarquee ? scrollX : 0
+            x: marqueeRoot.needsMarquee ? scrollX : Math.max(0, Math.round((marqueeRoot.width - primaryLabel.implicitWidth) / 2))
             height: parent.height
 
             StyledText {
@@ -1159,48 +1156,19 @@ Item {
             }
         }
 
-        Rectangle {
-            z: 2
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 8
-            visible: marqueeRoot.needsMarquee
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: marqueeRoot.fadeColor }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-        }
-
-        Rectangle {
-            z: 2
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 8
-            visible: marqueeRoot.needsMarquee
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "transparent" }
-                GradientStop { position: 1.0; color: marqueeRoot.fadeColor }
-            }
-        }
-
         SequentialAnimation {
             id: marqueeAnim
             running: marqueeRoot.running && marqueeRoot.needsMarquee && marqueeRoot.visible && marqueeRoot.width > 0
             loops: Animation.Infinite
 
-            PauseAnimation { duration: 1500 }
+            PauseAnimation { duration: 1600 }
             NumberAnimation {
                 target: marqueeRow
                 property: "scrollX"
-                to: -(primaryLabel.implicitWidth + marqueeRow.spacing)
-                duration: Math.max(2500, primaryLabel.implicitWidth * 1000 / marqueeRoot.speed)
+                to: -marqueeRoot.loopDistance
+                duration: Math.max(1200, marqueeRoot.loopDistance * 1000 / marqueeRoot.speed)
                 easing.type: Easing.Linear
             }
-            PauseAnimation { duration: 800 }
             PropertyAction {
                 target: marqueeRow
                 property: "scrollX"
