@@ -930,9 +930,14 @@ Item {
                     }
 
                     MaterialIcon {
-                        text: root.showAddNetwork ? "expand_less" : "expand_more"
+                        text: "expand_more"
                         color: Colours.palette.m3onSurfaceVariant
                         iconPointSize: Tokens.font.size.large
+                        rotation: root.showAddNetwork ? 180 : 0
+
+                        Behavior on rotation {
+                            Anim { type: Anim.DefaultSpatial }
+                        }
                     }
                 }
 
@@ -943,74 +948,51 @@ Item {
                 }
             }
 
-            Column {
-                width: parent.width
-                visible: root.showAddNetwork
-                spacing: Tokens.spacing.normal
+            Item {
+                id: addNetworkContainer
+                width: parent ? parent.width : 0
+                height: root.showAddNetwork ? addNetworkCol.implicitHeight : 0
+                implicitHeight: height
+                clip: true
+                opacity: root.showAddNetwork ? 1 : 0
+                visible: height > 0 || opacity > 0.01
 
-                SettingRow {
-                    title: qsTr("Network name")
-                    description: qsTr("SSID of the hidden or manual network")
-                    divider: true
-                    
-                    StyledRect {
-                        width: 200
-                        implicitHeight: 34
-                        radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-                        border.width: 0
-
-                        TextInput {
-                            id: addSsidField
-                            anchors.fill: parent
-                            anchors.leftMargin: Tokens.padding.normal
-                            anchors.rightMargin: Tokens.padding.normal
-                            verticalAlignment: TextInput.AlignVCenter
-                            color: Colours.palette.m3onSurface
-                            font.family: Tokens.font.family.sans
-                            font.pointSize: Tokens.font.size.small
-                            selectByMouse: true
-                            selectionColor: Colours.palette.m3primary
-                            selectedTextColor: Colours.palette.m3onPrimary
-                            clip: true
-
-                            StyledText {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: qsTr("SSID")
-                                color: Colours.palette.m3outline
-                                font.family: Tokens.font.family.sans
-                                textPointSize: Tokens.font.size.small
-                                visible: !addSsidField.text && !addSsidField.activeFocus
-                            }
-                        }
-                    }
+                Behavior on height {
+                    Anim { type: Anim.DefaultSpatial }
                 }
 
-                SettingRow {
-                    title: qsTr("Password")
-                    description: qsTr("Leave empty for open networks")
-                    divider: false
-                    
-                    StyledRect {
-                        width: 200
-                        implicitHeight: 34
-                        radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-                        border.width: 0
+                Behavior on opacity {
+                    Anim { type: Anim.FastEffects }
+                }
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: Tokens.padding.normal
-                            anchors.rightMargin: 4
-                            spacing: Tokens.spacing.extraSmall
+                Column {
+                    id: addNetworkCol
+                    width: parent ? parent.width : 0
+                    spacing: Tokens.spacing.normal
+                    y: root.showAddNetwork ? 0 : -8
+
+                    Behavior on y {
+                        Anim { type: Anim.DefaultSpatial }
+                    }
+
+                    SettingRow {
+                        title: qsTr("Network name")
+                        description: qsTr("SSID of the hidden or manual network")
+                        divider: true
+                        
+                        StyledRect {
+                            width: 200
+                            implicitHeight: 34
+                            radius: Tokens.rounding.full
+                            color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                            border.width: 0
 
                             TextInput {
-                                id: addPasswordField
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
+                                id: addSsidField
+                                anchors.fill: parent
+                                anchors.leftMargin: Tokens.padding.normal
+                                anchors.rightMargin: Tokens.padding.normal
                                 verticalAlignment: TextInput.AlignVCenter
-                                echoMode: TextInput.Password
                                 color: Colours.palette.m3onSurface
                                 font.family: Tokens.font.family.sans
                                 font.pointSize: Tokens.font.size.small
@@ -1018,42 +1000,88 @@ Item {
                                 selectionColor: Colours.palette.m3primary
                                 selectedTextColor: Colours.palette.m3onPrimary
                                 clip: true
-                                Keys.onReturnPressed: root.submitAddNetwork()
-                                Keys.onEnterPressed: root.submitAddNetwork()
 
                                 StyledText {
                                     anchors.left: parent.left
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: qsTr("Optional")
+                                    text: qsTr("SSID")
                                     color: Colours.palette.m3outline
                                     font.family: Tokens.font.family.sans
                                     textPointSize: Tokens.font.size.small
-                                    visible: !addPasswordField.text && !addPasswordField.activeFocus
+                                    visible: !addSsidField.text && !addSsidField.activeFocus
                                 }
                             }
                         }
                     }
-                }
 
-                Row {
-                    anchors.right: parent.right
-                    StyledRect {
-                        implicitWidth: joinLbl.implicitWidth + Tokens.padding.large * 2
-                        implicitHeight: 36
-                        radius: Tokens.rounding.full
-                        color: Colours.palette.m3primary
-                        StyledText {
-                            id: joinLbl
-                            anchors.centerIn: parent
-                            text: qsTr("Join")
-                            color: Colours.palette.m3onPrimary
-                            font.weight: Font.Normal
-                            textPointSize: Tokens.font.size.small
+                    SettingRow {
+                        title: qsTr("Password")
+                        description: qsTr("Leave empty for open networks")
+                        divider: false
+                        
+                        StyledRect {
+                            width: 200
+                            implicitHeight: 34
+                            radius: Tokens.rounding.full
+                            color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                            border.width: 0
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: Tokens.padding.normal
+                                anchors.rightMargin: 4
+                                spacing: Tokens.spacing.extraSmall
+
+                                TextInput {
+                                    id: addPasswordField
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    echoMode: TextInput.Password
+                                    color: Colours.palette.m3onSurface
+                                    font.family: Tokens.font.family.sans
+                                    font.pointSize: Tokens.font.size.small
+                                    selectByMouse: true
+                                    selectionColor: Colours.palette.m3primary
+                                    selectedTextColor: Colours.palette.m3onPrimary
+                                    clip: true
+                                    Keys.onReturnPressed: root.submitAddNetwork()
+                                    Keys.onEnterPressed: root.submitAddNetwork()
+
+                                    StyledText {
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: qsTr("Optional")
+                                        color: Colours.palette.m3outline
+                                        font.family: Tokens.font.family.sans
+                                        textPointSize: Tokens.font.size.small
+                                        visible: !addPasswordField.text && !addPasswordField.activeFocus
+                                    }
+                                }
+                            }
                         }
-                        StateLayer {
-                            radius: parent.radius
-                            color: Colours.palette.m3onPrimary
-                            onClicked: root.submitAddNetwork()
+                    }
+
+                    Row {
+                        anchors.right: parent.right
+                        StyledRect {
+                            implicitWidth: joinLbl.implicitWidth + Tokens.padding.large * 2
+                            implicitHeight: 36
+                            radius: Tokens.rounding.full
+                            color: Colours.palette.m3primary
+                            StyledText {
+                                id: joinLbl
+                                anchors.centerIn: parent
+                                text: qsTr("Join")
+                                color: Colours.palette.m3onPrimary
+                                font.weight: Font.Normal
+                                textPointSize: Tokens.font.size.small
+                            }
+                            StateLayer {
+                                radius: parent.radius
+                                color: Colours.palette.m3onPrimary
+                                onClicked: root.submitAddNetwork()
+                            }
                         }
                     }
                 }
