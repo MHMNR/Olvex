@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-10-05
+
+### Added
+- **Display Settings & Canvas Management**:
+  - Full graphical multi-monitor manager with visual positioning canvas and live drag-and-drop arrangement.
+  - Controls for resolution, scale, refresh rate, rotation, and mirror modes.
+  - Variable Frame Rate (VFR) toggle integration with Hyprland backend.
+  - Smooth animation transitions and fullscreen canvas preview mode.
+- **Quick Orb Widget & Settings**:
+  - Floating Quick Orb component with configurable triggers and positions.
+  - Dedicated settings pane with audio/brightness auto-reveal controls.
+  - Reactive Audio/Brightness circle indicator integrated directly into the bar.
+- **Dock Unpinned Running Apps & Overflow Drag-and-Drop**:
+  - Real-time tracking and icon representation of active unpinned windows on the bottom dock panel.
+  - Dynamic drag-to-pin support allowing apps to be dragged directly from the overflow flyout to the dock.
+  - Dynamic dock metrics layout with automated overflow calculation.
+- **Ethernet Management**:
+  - Ethernet interface detection, link state reporting, and IP configuration via `Nmcli` service.
+  - Dedicated Ethernet status and settings UI in network controls.
+- **Media & Notification Morph Overlays**:
+  - Expressive spring-based morph cards for music player and notification previews.
+  - Single-pass SDF shader background effects replacing ambient glow repeaters for superior GPU efficiency.
+- **Adaptive Hardware Integration**:
+  - Graceful UI fallback and adaptation for desktop setups lacking batteries or lid switches.
+
+### Improved & Refactored
+- **Gliding Hover Highlights**:
+  - Fluid, spring-animated hover pill highlights (`SpringAnimation` spring: 7.0, damping: 0.8) across Navigation Rails, Settings Sub-lists, generic Dropdown Menus, Taskbar Context Menus, and App Launcher.
+  - Debounced hover clearing (75ms) with coordinate retention to eliminate cursor exit jitter between list items.
+- **Notification Clearing Logic**:
+  - Replaced asynchronous loader and complex timer loops with a direct `Notifs.clearAll()` service method.
+  - Instant responsive button interactions and synchronized exit animations.
+- **M3 Expressive Motion Physics**:
+  - Synchronized M3 spring curves (`[0.2, 0, 0, 1]`) and responsive state layer ripple feedback.
+
+### Fixed
+- Fixed notification "Clear All" button intermittently dropping clicks or stalling in QS Panel.
+- Fixed slow-hover coordinate jumping glitch when moving mouse across adjacent menu and list delegates.
+- Fixed app launcher grid context menu focus retention when right-clicking items.
+- Fixed password dot input alignment and custom cursor shape handling on lockscreen.
+- Disabled problematic VRR in Hyprland misc configuration to prevent panel flickering.
+
+---
+
 ## [1.3.1] - 2026-09-27
 
 ### Added
