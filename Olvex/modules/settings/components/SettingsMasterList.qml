@@ -1,5 +1,3 @@
-pragma ComponentBehavior: Bound
-
 import ".."
 import "../ui"
 import "."
@@ -18,6 +16,10 @@ Item {
     required property var sections
     property string activeSection: ""
     signal sectionSelected(string section)
+
+    property var session: null
+    property string flashSection: session ? (session.flashSection || "") : ""
+    property int flashCount: session ? (session.flashCount || 0) : 0
 
     readonly property bool isCollapsed: width < 100
 
@@ -142,9 +144,42 @@ Item {
                         highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
                     }
                 }
+
+                // ── Android-style Highlight Flash Overlay ──
+                StyledRect {
+                    id: flashOverlay
+                    anchors.fill: parent
+                    radius: height / 2
+                    color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                    opacity: 0
+                    z: 2
+                    visible: opacity > 0.001
+
+                    SequentialAnimation {
+                        id: flashAnim
+                        PauseAnimation { duration: 120 }
+                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.55; duration: 150; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.15; duration: 200; easing.type: Easing.InOutQuad }
+                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.45; duration: 160; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.0; duration: 850; easing.type: Easing.OutCubic }
+                    }
+                }
+
+                Connections {
+                    target: root
+                    function onFlashCountChanged() {
+                        if (root.flashSection === delegateRoot.modelData.id && root.flashCount > 0) {
+                            flashAnim.restart();
+                        }
+                    }
+                }
+
                 Component.onCompleted: {
                     if (isActive) {
                         highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
+                    }
+                    if (root.flashSection === delegateRoot.modelData.id && root.flashCount > 0) {
+                        flashAnim.restart();
                     }
                 }
 

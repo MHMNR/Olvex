@@ -20,6 +20,9 @@ QtObject {
     property string currentId: "" // "" → home
     property string pageId: ""
     property string activeSection: ""
+    property string flashSection: ""
+    property int flashCount: 0
+    signal flashRequested(string section)
     property string query: ""
     property rect srcRect: Qt.rect(0, 0, 0, 0)
     property bool modalActive: false
@@ -68,12 +71,24 @@ QtObject {
 
     function openPageAndSection(page, section) {
         activeSection = section || "";
+        flashSection = section || "";
+        flashCount++;
+        flashRequested(flashSection);
         open(page);
     }
 
     function openPageAndSectionFrom(item, page, section, stackItem) {
         activeSection = section || "";
+        flashSection = section || "";
+        flashCount++;
+        flashRequested(flashSection);
         openFrom(item, page, stackItem);
+    }
+
+    function triggerFlash(section) {
+        flashSection = section || "";
+        flashCount++;
+        flashRequested(flashSection);
     }
 
     function openFrom(item, id, stackItem) {

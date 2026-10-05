@@ -16,6 +16,7 @@ Item {
     required property Component rightDetailsComponent
     required property Component rightSettingsComponent
 
+    property var session: null
     property var activeItem: null
     property var paneIdGenerator: function (item) {
         return item ? String(item) : "";
@@ -48,6 +49,9 @@ Item {
                 Component.onCompleted: {
                     targetComponent = getComponentForPane();
                     nextComponent = targetComponent;
+                    if (root.session && root.session.flashCount > 0) {
+                        detailsFlashAnim.restart();
+                    }
                 }
 
                 onPaneChanged: {
@@ -67,6 +71,36 @@ Item {
 
                     clip: false
                     sourceComponent: rightPaneItem.targetComponent
+                }
+
+                // ── Android-style Flash Highlight on Target Content ──
+                StyledRect {
+                    id: detailsFlashOverlay
+                    anchors.fill: parent
+                    anchors.margins: Tokens.padding.small
+                    radius: Tokens.rounding.large
+                    color: Qt.alpha(Colours.palette.m3primary, 0.14)
+                    border.color: Qt.alpha(Colours.palette.m3primary, 0.55)
+                    border.width: 2
+                    opacity: 0
+                    z: 50
+                    visible: opacity > 0.001
+
+                    SequentialAnimation {
+                        id: detailsFlashAnim
+                        PauseAnimation { duration: 160 }
+                        NumberAnimation { target: detailsFlashOverlay; property: "opacity"; to: 1.0; duration: 160; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: detailsFlashOverlay; property: "opacity"; to: 0.25; duration: 240; easing.type: Easing.InOutQuad }
+                        NumberAnimation { target: detailsFlashOverlay; property: "opacity"; to: 0.90; duration: 180; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: detailsFlashOverlay; property: "opacity"; to: 0.0; duration: 900; easing.type: Easing.OutCubic }
+                    }
+                }
+
+                Connections {
+                    target: root.session ?? null
+                    function onFlashRequested() {
+                        detailsFlashAnim.restart();
+                    }
                 }
 
                 Behavior on paneId {

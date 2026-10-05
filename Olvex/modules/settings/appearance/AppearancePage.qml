@@ -39,13 +39,13 @@ Item {
     hostComponent: Component {
         SplitPaneWithDetails {
             anchors.fill: parent
-            
-            // Dummy activeItem since our pane relies on activeSection string
+            session: root.session
             activeItem: root.activeSection
             paneIdGenerator: function (item) { return String(item); }
 
             leftContent: Component {
                 AppearanceList {
+                    session: root.session
                     activeSection: root.activeSection
                     onSectionSelected: (sec) => {
                         root.activeSection = sec;

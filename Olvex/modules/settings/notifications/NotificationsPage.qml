@@ -38,11 +38,13 @@ Item {
         hostComponent: Component {
             SplitPaneWithDetails {
                 anchors.fill: parent
+                session: root.session
                 activeItem: root.activeSection
                 paneIdGenerator: function (item) { return String(item); }
 
                 leftContent: Component {
                     NotificationsList {
+                        session: root.session
                         activeSection: root.activeSection
                         onSectionSelected: (sec) => {
                             root.activeSection = sec;
