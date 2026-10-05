@@ -66,6 +66,16 @@ QtObject {
         currentId = id;
     }
 
+    function openPageAndSection(page, section) {
+        activeSection = section || "";
+        open(page);
+    }
+
+    function openPageAndSectionFrom(item, page, section, stackItem) {
+        activeSection = section || "";
+        openFrom(item, page, stackItem);
+    }
+
     function openFrom(item, id, stackItem) {
         if (!item || !stackItem) {
             open(id);

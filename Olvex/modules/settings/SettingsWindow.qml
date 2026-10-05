@@ -34,6 +34,18 @@ Item {
 
     signal close
 
+    function activateSearchResult(item) {
+        if (!item)
+            return;
+        session.openPageAndSection(item.pageId, item.sectionId);
+        if (searchInput)
+            searchInput.text = "";
+        session.query = "";
+        searchPill.searchExpanded = false;
+        if (searchInput)
+            searchInput.focus = false;
+    }
+
     // Floating default size: spacious bento (1160x880)
     implicitWidth: root.floating ? 1160 : screen.height * Tokens.sizes.settings.heightMult * Tokens.sizes.settings.ratio
     implicitHeight: root.floating ? 880 : screen.height * Tokens.sizes.settings.heightMult
@@ -52,7 +64,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 76
-            z: 10
+            z: 130
 
             readonly property var activeCat: PaneRegistry.getById(session.currentId || session.pageId)
             readonly property color activeAccent: activeCat ? PaneRegistry.accentFor(activeCat) : Colours.palette.m3primary
@@ -226,6 +238,7 @@ Item {
                     id: searchPill
 
                     property bool searchExpanded: false
+                    property int selectedIndex: 0
                     readonly property bool searchActive: searchExpanded || (searchInput && (searchInput.text.length > 0 || searchInput.activeFocus))
 
                     implicitWidth: searchActive ? 340 : 46
@@ -310,17 +323,53 @@ Item {
 
                                 onTextChanged: {
                                     session.query = text;
-                                    if (text.length > 0 && session.currentId !== "") {
-                                        session.goHome();
+                                    searchPill.selectedIndex = 0;
+                                }
+
+                                Keys.onDownPressed: event => {
+                                    if (searchFlyout.visible && searchFlyout.resultsCount > 0) {
+                                        searchPill.selectedIndex = (searchPill.selectedIndex + 1) % searchFlyout.resultsCount;
+                                        searchFlyout.ensureVisible(searchPill.selectedIndex);
+                                        event.accepted = true;
                                     }
                                 }
 
-                                Keys.onEscapePressed: {
+                                Keys.onUpPressed: event => {
+                                    if (searchFlyout.visible && searchFlyout.resultsCount > 0) {
+                                        searchPill.selectedIndex = (searchPill.selectedIndex - 1 + searchFlyout.resultsCount) % searchFlyout.resultsCount;
+                                        searchFlyout.ensureVisible(searchPill.selectedIndex);
+                                        event.accepted = true;
+                                    }
+                                }
+
+                                Keys.onReturnPressed: event => {
+                                    if (searchFlyout.visible && searchFlyout.resultsCount > 0) {
+                                        const item = searchFlyout.results[searchPill.selectedIndex] || searchFlyout.results[0];
+                                        if (item) {
+                                            root.activateSearchResult(item);
+                                            event.accepted = true;
+                                        }
+                                    }
+                                }
+
+                                Keys.onEnterPressed: event => {
+                                    if (searchFlyout.visible && searchFlyout.resultsCount > 0) {
+                                        const item = searchFlyout.results[searchPill.selectedIndex] || searchFlyout.results[0];
+                                        if (item) {
+                                            root.activateSearchResult(item);
+                                            event.accepted = true;
+                                        }
+                                    }
+                                }
+
+                                Keys.onEscapePressed: event => {
                                     if (text.length > 0) {
                                         text = "";
+                                        event.accepted = true;
                                     } else {
                                         searchPill.searchExpanded = false;
                                         focus = false;
+                                        event.accepted = true;
                                     }
                                 }
 
@@ -596,19 +645,17 @@ Item {
                 anchors.fill: parent
                 clip: true
                 contentWidth: width
-                contentHeight: (session.query === "" ? bento.height : resultsCol.height) + Tokens.padding.large * 3
+                contentHeight: bento.height + Tokens.padding.large * 3
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: !stack.transformActive && !stack.pageOpen
-                // No layer.enable — first-frame layer capture was open hitch/delay
                 layer.enabled: false
-                // Keep home painted under morph, hide when page is fully open
                 visible: !stack.pageOpen || stack.transformActive
                 opacity: 1
 
                 Item {
                     id: bento
 
-                    visible: session.query === ""
+                    visible: true
                     x: Tokens.padding.large * 2
                     y: Tokens.padding.large * 1.2
                     width: parent.width - Tokens.padding.large * 4
@@ -641,118 +688,6 @@ Item {
                             containerHidden: session.pageId === modelData.id
                             animsFrozen: session.pageId === modelData.id
                             onClicked: session.openFrom(bcard, modelData.id, stack)
-                        }
-                    }
-                }
-
-                Column {
-                    id: resultsCol
-
-                    visible: session.query !== ""
-                    x: Tokens.padding.large * 2
-                    y: Tokens.padding.large * 1.2
-                    width: parent.width - Tokens.padding.large * 4
-                    spacing: Tokens.spacing.small
-
-                    Repeater {
-                        model: PaneRegistry.categories.filter(c => session.matches(c))
-
-                        delegate: StyledRect {
-                            id: resultRow
-
-                            required property var modelData
-
-                            width: resultsCol.width
-                            implicitHeight: 66
-                            radius: Tokens.rounding.normal
-                            color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-
-                            StyledRect {
-                                id: rIcon
-
-                                anchors.left: parent.left
-                                anchors.leftMargin: Tokens.padding.large
-                                anchors.verticalCenter: parent.verticalCenter
-                                implicitWidth: 44
-                                implicitHeight: 44
-                                radius: Tokens.rounding.normal
-                                color: Qt.alpha(PaneRegistry.accentFor(resultRow.modelData), 0.2)
-
-                                MaterialIcon {
-                                    anchors.centerIn: parent
-                                    text: resultRow.modelData.icon
-                                    fill: 1
-                                    color: PaneRegistry.accentFor(resultRow.modelData)
-                                    iconPointSize: Tokens.font.size.large
-                                }
-                            }
-
-                            Column {
-                                anchors.left: rIcon.right
-                                anchors.leftMargin: Tokens.spacing.normal
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 3
-
-                                StyledText {
-                                    text: resultRow.modelData.title
-                                    font.weight: Font.Normal
-                                    font.letterSpacing: -0.05
-                                    color: Colours.palette.m3onSurface
-                                    textPointSize: Tokens.font.size.larger
-                                }
-                                StyledText {
-                                    text: resultRow.modelData.sub
-                                    color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Normal
-                                    font.letterSpacing: 0.1
-                                    textPointSize: Tokens.font.size.small
-                                }
-                            }
-
-                            MaterialIcon {
-                                anchors.right: parent.right
-                                anchors.rightMargin: Tokens.padding.large
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "chevron_right"
-                                color: Colours.palette.m3onSurfaceVariant
-                                iconPointSize: Tokens.font.size.large
-                            }
-
-                            StateLayer {
-                                radius: parent.radius
-                                color: PaneRegistry.accentFor(resultRow.modelData)
-                                onClicked: {
-                                    session.openFrom(resultRow, resultRow.modelData.id, stack);
-                                    searchInput.text = "";
-                                    searchPill.searchExpanded = false;
-                                }
-                            }
-                        }
-                    }
-
-                    Item {
-                        visible: PaneRegistry.categories.filter(c => session.matches(c)).length === 0
-                        width: parent.width
-                        height: 200
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: Tokens.spacing.normal
-
-                            MaterialIcon {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: "search_off"
-                                color: Colours.palette.m3outlineVariant
-                                iconPointSize: Tokens.font.size.extraLarge
-                            }
-                            StyledText {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: qsTr("No settings match \"%1\"").arg(session.query)
-                                color: Colours.palette.m3onSurfaceVariant
-                                font.weight: Font.Normal
-                                font.letterSpacing: 0.05
-                                textPointSize: Tokens.font.size.larger
-                            }
                         }
                     }
                 }
@@ -842,6 +777,41 @@ Item {
                             loadPage(session.pageId);
                     }
                 }
+            }
+        }
+
+        // ── Search Flyout Backdrop (closes flyout on outside click) ─────
+        MouseArea {
+            id: searchBackdrop
+            anchors.fill: parent
+            z: 110
+            visible: searchFlyout.visible && searchFlyout.opacity > 0.01
+            onClicked: {
+                if (searchInput)
+                    searchInput.text = "";
+                session.query = "";
+                searchPill.searchExpanded = false;
+                if (searchInput)
+                    searchInput.focus = false;
+            }
+        }
+
+        // ── Floating Dropdown Search Flyout ─────────────────────────────
+        Chrome.SettingsSearchFlyout {
+            id: searchFlyout
+            session: root.session
+            query: searchInput ? searchInput.text : ""
+            selectedIndex: searchPill.selectedIndex
+            anchors.top: topbar.bottom
+            anchors.topMargin: -8
+            anchors.right: parent.right
+            anchors.rightMargin: Tokens.padding.large * 2
+            z: 120
+            visible: opacity > 0.001
+            opacity: (searchInput && searchInput.text.trim().length > 0 && searchPill.searchActive) ? 1.0 : 0.0
+
+            onItemActivated: item => {
+                root.activateSearchResult(item);
             }
         }
     }
