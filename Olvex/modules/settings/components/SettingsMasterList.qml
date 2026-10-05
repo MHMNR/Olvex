@@ -13,13 +13,10 @@ import qs.services
 Item {
     id: root
 
+    property Session session: null
     required property var sections
     property string activeSection: ""
     signal sectionSelected(string section)
-
-    property var session: null
-    property string flashSection: session ? (session.flashSection || "") : ""
-    property int flashCount: session ? (session.flashCount || 0) : 0
 
     readonly property bool isCollapsed: width < 100
 
@@ -31,6 +28,14 @@ Item {
         onTriggered: root.hoveredItem = null
     }
 
+    Connections {
+        target: root.session ?? null
+        function onHighlightTimestampChanged() {
+            if (tabFlashAnim)
+                tabFlashAnim.restart();
+        }
+    }
+
     // Active tab sliding highlight pill
     StyledRect {
         id: highlightRect
@@ -40,6 +45,27 @@ Item {
         radius: height / 2
         color: Colours.palette.m3primary
         z: 0
+
+        // Android Flash Glow on active tab
+        StyledRect {
+            id: tabFlashGlow
+            anchors.centerIn: parent
+            width: parent.width + 10
+            height: parent.height + 8
+            radius: height / 2
+            color: Qt.alpha(Colours.palette.m3primary, 0.45)
+            opacity: 0.0
+            z: -1
+            visible: opacity > 0.001
+
+            SequentialAnimation {
+                id: tabFlashAnim
+                PauseAnimation { duration: 300 }
+                NumberAnimation { target: tabFlashGlow; property: "opacity"; from: 0.0; to: 1.0; duration: 160; easing.type: Easing.OutQuad }
+                PauseAnimation { duration: 220 }
+                NumberAnimation { target: tabFlashGlow; property: "opacity"; from: 1.0; to: 0.0; duration: 650; easing.type: Easing.OutCubic }
+            }
+        }
 
         Behavior on x {
             NumberAnimation {
@@ -144,42 +170,9 @@ Item {
                         highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
                     }
                 }
-
-                // ── Android-style Highlight Flash Overlay ──
-                StyledRect {
-                    id: flashOverlay
-                    anchors.fill: parent
-                    radius: height / 2
-                    color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
-                    opacity: 0
-                    z: 2
-                    visible: opacity > 0.001
-
-                    SequentialAnimation {
-                        id: flashAnim
-                        PauseAnimation { duration: 120 }
-                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.55; duration: 150; easing.type: Easing.OutQuad }
-                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.15; duration: 200; easing.type: Easing.InOutQuad }
-                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.45; duration: 160; easing.type: Easing.OutQuad }
-                        NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.0; duration: 850; easing.type: Easing.OutCubic }
-                    }
-                }
-
-                Connections {
-                    target: root
-                    function onFlashCountChanged() {
-                        if (root.flashSection === delegateRoot.modelData.id && root.flashCount > 0) {
-                            flashAnim.restart();
-                        }
-                    }
-                }
-
                 Component.onCompleted: {
                     if (isActive) {
                         highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
-                    }
-                    if (root.flashSection === delegateRoot.modelData.id && root.flashCount > 0) {
-                        flashAnim.restart();
                     }
                 }
 

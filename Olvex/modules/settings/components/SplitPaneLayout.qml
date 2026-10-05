@@ -14,6 +14,7 @@ import qs.services
 Item {
     id: root
 
+    property Session session: null
     property Component leftContent: null
     property Component rightContent: null
     property real leftWidthRatio: 0.24
@@ -221,6 +222,51 @@ Item {
                 Component.onCompleted: {
                     for (const key in root.rightLoaderProperties) {
                         rightLoader[key] = root.rightLoaderProperties[key];
+                    }
+                }
+            }
+
+            // ── Android-style Search Deep Link Flash Highlight Layer ──
+            StyledRect {
+                id: flashHighlightLayer
+                anchors.fill: parent
+                radius: parent.radius
+                color: Qt.alpha(Colours.palette.m3primary, 0.20)
+                border.color: Qt.alpha(Colours.palette.m3primary, 0.50)
+                border.width: 1.5
+                opacity: 0.0
+                z: 200
+                visible: opacity > 0.001
+
+                SequentialAnimation {
+                    id: flashAnim
+                    running: false
+
+                    PauseAnimation { duration: 320 }
+                    NumberAnimation {
+                        target: flashHighlightLayer
+                        property: "opacity"
+                        from: 0.0
+                        to: 1.0
+                        duration: 160
+                        easing.type: Easing.OutQuad
+                    }
+                    PauseAnimation { duration: 250 }
+                    NumberAnimation {
+                        target: flashHighlightLayer
+                        property: "opacity"
+                        from: 1.0
+                        to: 0.0
+                        duration: 750
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Connections {
+                    target: root.session ?? null
+                    function onHighlightTimestampChanged() {
+                        if (flashAnim)
+                            flashAnim.restart();
                     }
                 }
             }

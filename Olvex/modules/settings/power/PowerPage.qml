@@ -46,7 +46,6 @@ Item {
 
                 leftContent: Component {
                     PowerList {
-                        session: root.session
                         activeSection: root.activeSection
                         onSectionSelected: (sec) => {
                             root.activeSection = sec;

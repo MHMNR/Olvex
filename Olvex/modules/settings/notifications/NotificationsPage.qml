@@ -44,7 +44,6 @@ Item {
 
                 leftContent: Component {
                     NotificationsList {
-                        session: root.session
                         activeSection: root.activeSection
                         onSectionSelected: (sec) => {
                             root.activeSection = sec;

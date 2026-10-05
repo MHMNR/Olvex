@@ -56,39 +56,32 @@ Item {
                 color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
                 border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
                 border.width: 1
+                clip: true
 
-                // ── Android-style Flash Highlight ──
                 StyledRect {
                     id: aboutFlashOverlay
                     anchors.fill: parent
                     radius: parent.radius
-                    color: Qt.alpha(Colours.palette.m3primary, 0.14)
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.55)
-                    border.width: 2
-                    opacity: 0
-                    z: 50
+                    color: Qt.alpha(Colours.palette.m3primary, 0.20)
+                    border.color: Qt.alpha(Colours.palette.m3primary, 0.50)
+                    border.width: 1.5
+                    opacity: 0.0
+                    z: 100
                     visible: opacity > 0.001
 
                     SequentialAnimation {
                         id: aboutFlashAnim
-                        PauseAnimation { duration: 160 }
-                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; to: 1.0; duration: 160; easing.type: Easing.OutQuad }
-                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; to: 0.25; duration: 240; easing.type: Easing.InOutQuad }
-                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; to: 0.90; duration: 180; easing.type: Easing.OutQuad }
-                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; to: 0.0; duration: 900; easing.type: Easing.OutCubic }
+                        PauseAnimation { duration: 320 }
+                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; from: 0.0; to: 1.0; duration: 160; easing.type: Easing.OutQuad }
+                        PauseAnimation { duration: 250 }
+                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; from: 1.0; to: 0.0; duration: 750; easing.type: Easing.OutCubic }
                     }
-                }
 
-                Connections {
-                    target: root.session ?? null
-                    function onFlashRequested() {
-                        aboutFlashAnim.restart();
-                    }
-                }
-
-                Component.onCompleted: {
-                    if (root.session && root.session.flashCount > 0) {
-                        aboutFlashAnim.restart();
+                    Connections {
+                        target: root.session ?? null
+                        function onHighlightTimestampChanged() {
+                            aboutFlashAnim.restart();
+                        }
                     }
                 }
 

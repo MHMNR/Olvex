@@ -18,6 +18,8 @@ import qs.services
 Item {
     id: root
 
+    property Session session: null
+    property string highlightKey: ""
     property string title: ""
     property string description: ""
     property string icon: ""
@@ -132,6 +134,51 @@ Item {
             showHoverBackground: true
             showRipple: true
             onClicked: root.clicked()
+        }
+    }
+
+    // ── Android-style Row Highlight Flash ──────────────────────────
+    StyledRect {
+        id: rowFlashOverlay
+        anchors.fill: parent
+        anchors.margins: 2
+        radius: Tokens.rounding.normal
+        color: Qt.alpha(Colours.palette.m3primary, 0.22)
+        border.color: Qt.alpha(Colours.palette.m3primary, 0.55)
+        border.width: 1.5
+        opacity: 0.0
+        z: 10
+        visible: opacity > 0.001
+
+        SequentialAnimation {
+            id: rowFlashAnim
+            PauseAnimation { duration: 350 }
+            NumberAnimation {
+                target: rowFlashOverlay
+                property: "opacity"
+                from: 0.0
+                to: 1.0
+                duration: 160
+                easing.type: Easing.OutQuad
+            }
+            PauseAnimation { duration: 250 }
+            NumberAnimation {
+                target: rowFlashOverlay
+                property: "opacity"
+                from: 1.0
+                to: 0.0
+                duration: 750
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Connections {
+            target: root.session ?? null
+            function onHighlightTimestampChanged() {
+                if (root.highlightKey !== "" && root.session && (root.session.highlightKey === root.highlightKey || (root.title && root.session.highlightKey.toLowerCase() === root.title.toLowerCase()))) {
+                    rowFlashAnim.restart();
+                }
+            }
         }
     }
 }

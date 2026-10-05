@@ -43,7 +43,6 @@ Item {
 
                 leftContent: Component {
                     NetworkList {
-                        session: root.session
                         activeSection: root.activeSection
                         onSectionSelected: (sec) => {
                             root.activeSection = sec;
