@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Olvex Shell & Hyprland Automated Environment Setup
-# Universal V2 Architecture
+# Universal V2 Architecture - Polished & Arch TTY Friendly
 
 set -euo pipefail
 
-# Standard POSIX ANSI Terminal Colors
+# Standard POSIX ANSI Terminal Colors (100% Linux Console & TTY Safe)
 CLR_CYAN='\033[0;36m'
 CLR_BLUE='\033[0;34m'
 CLR_GREEN='\033[0;32m'
@@ -14,6 +14,47 @@ CLR_MAGENTA='\033[0;35m'
 CLR_BOLD='\033[1m'
 CLR_DIM='\033[2m'
 CLR_RESET='\033[0m'
+
+# Terminal Character Set & TTY Capability Detection
+IS_TTY=false
+if [ "${TERM:-}" = "linux" ] || [ -z "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || [ ! -t 1 ]; then
+    IS_TTY=true
+fi
+
+# Glyphs and Box-drawing tokens (Safe for pure Linux Console /dev/tty1 and GUI terminals)
+if [ "$IS_TTY" = true ]; then
+    GLYPH_INFO="[i]"
+    GLYPH_OK="[+]"
+    GLYPH_WARN="[!]"
+    GLYPH_ERR="[x]"
+    GLYPH_BULLET="*"
+    GLYPH_ARROW=">"
+    GLYPH_RADIO_ON="(*)"
+    GLYPH_RADIO_OFF="( )"
+    BOX_TL="+"
+    BOX_TR="+"
+    BOX_BL="+"
+    BOX_BR="+"
+    BOX_H="-"
+    BOX_V="|"
+    BOX_DIV="+"
+else
+    GLYPH_INFO="ℹ"
+    GLYPH_OK="✔"
+    GLYPH_WARN="▲"
+    GLYPH_ERR="✖"
+    GLYPH_BULLET="•"
+    GLYPH_ARROW="❯"
+    GLYPH_RADIO_ON="◉"
+    GLYPH_RADIO_OFF="○"
+    BOX_TL="╭"
+    BOX_TR="╮"
+    BOX_BL="╰"
+    BOX_BR="╯"
+    BOX_H="─"
+    BOX_V="│"
+    BOX_DIV="├"
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 TARGET_HYPR="${HOME}/.config/hypr"
@@ -49,15 +90,38 @@ banner() {
     echo -e "         ${CLR_MAGENTA}Desktop Environment Deployment Manager v2${CLR_RESET}\n"
 }
 
-section_header() {
-    local title="$1"
-    echo -e "\n${CLR_CYAN}${CLR_BOLD}--- [ ${title} ] ───────────────────────────────────────────${CLR_RESET}"
+repeat_str() {
+    local char="$1"
+    local count="${2:-0}"
+    [ "$count" -le 0 ] && return 0
+    local pattern
+    pattern="$(printf "%${count}s" "")"
+    echo -n "${pattern// /$char}"
 }
 
-log_info() { echo -e "${CLR_BLUE}[INFO]${CLR_RESET} $1"; }
-log_success() { echo -e "${CLR_GREEN}[OK]${CLR_RESET} $1"; }
-log_warn() { echo -e "${CLR_YELLOW}[WARN]${CLR_RESET} $1"; }
-log_error() { echo -e "${CLR_RED}[ERROR]${CLR_RESET} $1"; }
+section_header() {
+    local title="$1"
+    local step_tag="${2:-}"
+    local width=64
+    local label="$title"
+    if [ -n "$step_tag" ]; then
+        label="${step_tag} ${title}"
+    fi
+    local label_len=${#label}
+    local fill_len=$((width - label_len - 8))
+    [ $fill_len -lt 4 ] && fill_len=4
+    local fill_line
+    fill_line="$(repeat_str "${BOX_H}" "$fill_len")"
+    local prefix_line
+    prefix_line="$(repeat_str "${BOX_H}" 3)"
+
+    echo -e "\n${CLR_CYAN}${CLR_BOLD}${prefix_line} [ ${label} ] ${fill_line}${CLR_RESET}"
+}
+
+log_info() { echo -e " ${CLR_BLUE}${GLYPH_INFO}${CLR_RESET} $1"; }
+log_success() { echo -e " ${CLR_GREEN}${GLYPH_OK}${CLR_RESET} $1"; }
+log_warn() { echo -e " ${CLR_YELLOW}${GLYPH_WARN}${CLR_RESET} $1"; }
+log_error() { echo -e " ${CLR_RED}${GLYPH_ERR}${CLR_RESET} $1"; }
 
 confirm() {
     if [ "${NOCONFIRM:-false}" = true ]; then
@@ -71,10 +135,96 @@ confirm() {
     else
         hint="y/N"
     fi
-    echo -ne "${CLR_BOLD}${prompt}${CLR_RESET} [${CLR_CYAN}${hint}${CLR_RESET}]: "
+    echo -ne " ${CLR_BOLD}${prompt}${CLR_RESET} [${CLR_CYAN}${hint}${CLR_RESET}]: "
     read -rp "" resp
     resp="${resp:-$default}"
     [[ "$resp" =~ ^[Yy]$ ]]
+}
+
+select_menu() {
+    local prompt="$1"
+    local default_idx="${2:-0}"
+    shift 2
+    local options=("$@")
+    local count=${#options[@]}
+    local selected=$default_idx
+
+    # If non-interactive or noconfirm, return default immediately
+    if [ "${NOCONFIRM:-false}" = true ] || [ ! -t 0 ]; then
+        echo "$((selected + 1))"
+        return 0
+    fi
+
+    # Output interactive menu to stderr so stdout only captures the return index
+    local out_fd=2
+
+    echo -e " ${CLR_BOLD}${prompt}${CLR_RESET} ${CLR_DIM}(Use ↑/↓ arrows or number, Enter to select)${CLR_RESET}" >&$out_fd
+
+    render_options() {
+        for ((i=0; i<count; i++)); do
+            local opt_num=$((i + 1))
+            if [ $i -eq $selected ]; then
+                echo -e "   ${CLR_CYAN}${CLR_BOLD}${GLYPH_ARROW} ${GLYPH_RADIO_ON} [${opt_num}] ${options[$i]}${CLR_RESET}\033[K" >&$out_fd
+            else
+                echo -e "     ${CLR_DIM}${GLYPH_RADIO_OFF} [${opt_num}] ${options[$i]}${CLR_RESET}\033[K" >&$out_fd
+            fi
+        done
+    }
+
+    # Hide cursor
+    echo -ne "\033[?25l" >&$out_fd
+    trap 'echo -ne "\033[?25h" >&2; exit 130' INT TERM
+
+    render_options
+
+    while true; do
+        local key=""
+        local key2=""
+        IFS= read -rsn1 key < /dev/tty || true
+        if [[ "$key" == $'\x1b' ]]; then
+            read -rsn2 -t 0.1 key2 < /dev/tty || true
+            key="$key$key2"
+        fi
+
+        case "$key" in
+            $'\x1b[A'|[kK]) # Up arrow or 'k'
+                if [ $selected -gt 0 ]; then
+                    ((selected--))
+                else
+                    selected=$((count - 1))
+                fi
+                echo -ne "\033[${count}A" >&$out_fd
+                render_options
+                ;;
+            $'\x1b[B'|[jJ]) # Down arrow or 'j'
+                if [ $selected -lt $((count - 1)) ]; then
+                    ((selected++))
+                else
+                    selected=0
+                fi
+                echo -ne "\033[${count}A" >&$out_fd
+                render_options
+                ;;
+            [1-9]) # Number shortcut
+                local num=$((key - 1))
+                if [ $num -ge 0 ] && [ $num -lt $count ]; then
+                    selected=$num
+                    echo -ne "\033[${count}A" >&$out_fd
+                    render_options
+                    break
+                fi
+                ;;
+            "") # Enter key
+                break
+                ;;
+        esac
+    done
+
+    # Restore cursor
+    echo -ne "\033[?25h" >&$out_fd
+    trap - INT TERM
+
+    echo "$((selected + 1))"
 }
 
 check_environment() {
@@ -135,16 +285,10 @@ select_and_ensure_aur_helper() {
     fi
 
     log_warn "No supported AUR helper (yay/paru) found."
-    echo -e " ${CLR_BOLD}Select an AUR helper to build and install:${CLR_RESET}"
-    echo -e "   [1] yay-bin  (Precompiled binary - Recommended)"
-    echo -e "   [2] paru-bin (Rust-based AUR helper)"
-    
-    local choice="1"
-    if [ "${NOCONFIRM:-false}" = false ]; then
-        echo -ne " ${CLR_BOLD}Selection [1/2] (Default: 1): ${CLR_RESET}"
-        read -rp "" choice
-        choice="${choice:-1}"
-    fi
+    local aur_choice
+    aur_choice="$(select_menu "Select an AUR helper to compile and install:" 0 \
+        "yay-bin  (Precompiled binary - Recommended)" \
+        "paru-bin (Rust-based AUR helper)")"
 
     log_info "Installing toolchain dependencies (base-devel, git, cmake, ninja)..."
     sudo -H pacman -S --needed --noconfirm base-devel git cmake ninja || true
@@ -152,7 +296,7 @@ select_and_ensure_aur_helper() {
     local tmp_dir
     tmp_dir="$(mktemp -d)"
 
-    if [[ "$choice" == "2" ]]; then
+    if [[ "$aur_choice" == "2" ]]; then
         log_info "Compiling paru-bin..."
         git clone https://aur.archlinux.org/paru-bin.git "$tmp_dir/paru-bin"
         ( cd "$tmp_dir/paru-bin" && makepkg -si --noconfirm )
@@ -259,7 +403,7 @@ probe_hardware_drivers() {
     fi
 
     # 3. Audio Stack (Pipewire)
-    DETECTED_HARDWARE+=("PipeWire Modern Audio Stack")
+    DETECTED_HARDWARE+=("PipeWire Audio Stack")
     DRIVER_PKGS+=(pipewire wireplumber pipewire-pulse pipewire-alsa pipewire-audio)
     if echo "$lspci_out" | grep -qi "sof-audio" || echo "$lsmod_out" | grep -qi "snd_sof"; then
         DETECTED_HARDWARE+=("Sound Open Firmware (SOF DSP)")
@@ -283,7 +427,7 @@ probe_hardware_drivers() {
 
     echo -e "       ${CLR_BOLD}Detected Hardware:${CLR_RESET}"
     for item in "${DETECTED_HARDWARE[@]}"; do
-        echo -e "         • ${CLR_CYAN}${item}${CLR_RESET}"
+        echo -e "         ${GLYPH_BULLET} ${CLR_CYAN}${item}${CLR_RESET}"
     done
 }
 
@@ -291,7 +435,7 @@ prompt_user_configuration() {
     section_header "Installer Configuration Wizard"
     echo -e " ${CLR_DIM}Configure all options upfront. Once verified, installation runs uninterrupted.${CLR_RESET}\n"
 
-    # 1. Config Overwrite
+    # Check for existing configuration folders
     local existing_configs=()
     if [[ -d "${SCRIPT_DIR}/.config" ]]; then
         for item in "${SCRIPT_DIR}/.config"/*; do
@@ -306,23 +450,31 @@ prompt_user_configuration() {
         existing_configs+=("~/.config/hypr")
     fi
 
+    local step=1
+    local total_steps=4
     if [ ${#existing_configs[@]} -gt 0 ]; then
-        echo -e " ${CLR_YELLOW}[1/5] Existing configurations detected in ~/.config/:${CLR_RESET}"
+        total_steps=5
+    fi
+
+    # 1. Config Overwrite (Only asked if existing configs are found)
+    if [ ${#existing_configs[@]} -gt 0 ]; then
+        echo -e " ${CLR_YELLOW}[${step}/${total_steps}] Existing configurations detected in ~/.config/:${CLR_RESET}"
         for c in "${existing_configs[@]}"; do
-            echo -e "       • ${CLR_CYAN}${c}${CLR_RESET}"
+            echo -e "       ${GLYPH_BULLET} ${CLR_CYAN}${c}${CLR_RESET}"
         done
         if confirm "      Overwrite these configuration paths with installer defaults? (timestamped backup will be created)" "Y"; then
             CONF_OVERWRITE=true
         else
             CONF_OVERWRITE=false
         fi
+        echo ""
+        ((step++))
     else
         CONF_OVERWRITE=true
     fi
-    echo ""
 
     # 2. Hardware Drivers
-    echo -e " ${CLR_BOLD}[2/5] Hardware Driver Auto-Detection:${CLR_RESET}"
+    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Hardware Driver Auto-Detection:${CLR_RESET}"
     if confirm "      Automatically detect, install, and configure all hardware drivers (GPU, Audio, Bluetooth, CPU Microcode)?" "N"; then
         CONF_DRIVERS=true
         probe_hardware_drivers
@@ -331,29 +483,25 @@ prompt_user_configuration() {
         log_info "Hardware driver auto-detection skipped."
     fi
     echo ""
+    ((step++))
 
     # 3. Login Method
-    echo -e " ${CLR_BOLD}[3/5] Login & Session Management:${CLR_RESET}"
-    echo -e "       ${CLR_GREEN}[1] Display Manager (Recommended)${CLR_RESET}"
-    echo -e "       [2] Autologin TTY + Autostart Hyprland (systemd service)"
-    echo -e "       [3] Manual (Console login, start Hyprland manually)"
-    
-    CONF_LOGIN_METHOD=1
-    if [ "${NOCONFIRM:-false}" = false ]; then
-        read -rp "      Enter choice [1-3] (default: 1): " user_choice
-        CONF_LOGIN_METHOD="${user_choice:-1}"
-    fi
+    local login_choice
+    login_choice="$(select_menu "[${step}/${total_steps}] Login & Session Management:" 0 \
+        "Display Manager (Recommended)" \
+        "Autologin TTY1 + Autostart Hyprland (systemd user service)" \
+        "Manual (Console login, start Hyprland manually)")"
+    CONF_LOGIN_METHOD="$login_choice"
 
     if [[ "$CONF_LOGIN_METHOD" == "1" ]]; then
-        echo -e "\n       ${CLR_BOLD}Select Display Manager to install:${CLR_RESET}"
-        echo -e "         ${CLR_GREEN}[1] SDDM (Recommended for Qt6/Quickshell/Wayland)${CLR_RESET}"
-        echo -e "         [2] greetd + tuigreet (Lightweight Wayland greeter)"
-        echo -e "         [3] GDM (GNOME Display Manager)"
-        echo -e "         [4] Ly (Minimal TUI display manager)"
-        if [ "${NOCONFIRM:-false}" = false ]; then
-            read -rp "        Enter choice [1-4] (default: 1): " user_dm
-            CONF_DM_CHOICE="${user_dm:-1}"
-        fi
+        local dm_choice
+        dm_choice="$(select_menu "Select Display Manager to install:" 0 \
+            "SDDM (Recommended for Qt6/Quickshell/Wayland)" \
+            "greetd + tuigreet (Lightweight Wayland greeter)" \
+            "GDM (GNOME Display Manager)" \
+            "Ly (Minimal TUI display manager)")"
+        CONF_DM_CHOICE="$dm_choice"
+
         case "$CONF_DM_CHOICE" in
             2) DM_PKGS=(greetd greetd-tuigreet) ;;
             3) DM_PKGS=(gdm) ;;
@@ -362,9 +510,10 @@ prompt_user_configuration() {
         esac
     fi
     echo ""
+    ((step++))
 
     # 4. Default Shell
-    echo -e " ${CLR_BOLD}[4/5] Default Shell Selection:${CLR_RESET}"
+    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Default Shell Selection:${CLR_RESET}"
     CONF_SET_FISH=false
     if [[ "$(basename "${SHELL:-bash}")" != "fish" ]]; then
         if confirm "      Set Fish as your default user shell?" "Y"; then
@@ -374,9 +523,10 @@ prompt_user_configuration() {
         log_info "Fish is already your default shell."
     fi
     echo ""
+    ((step++))
 
     # 5. Post-installation session action
-    echo -e " ${CLR_BOLD}[5/5] Post-Installation Action:${CLR_RESET}"
+    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Post-Installation Action:${CLR_RESET}"
     CONF_SESSION_ACTION="none"
     if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x Hyprland &>/dev/null; then
         if confirm "      Hyprland is currently running. Reload Hyprland and restart Olvex Shell when finished?" "Y"; then
@@ -506,18 +656,18 @@ run_preflight_and_verification() {
     section_header "Installation Plan Summary"
     echo -e " ${CLR_BOLD}The installer will execute the following plan:${CLR_RESET}"
     if [ "$CONF_OVERWRITE" = true ]; then
-        echo -e "   • Configuration Deployment : ${CLR_GREEN}Deploy defaults (auto-backup existing)${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Configuration Deployment : ${CLR_GREEN}Deploy defaults (auto-backup existing)${CLR_RESET}"
     else
-        echo -e "   • Configuration Deployment : ${CLR_YELLOW}Preserve existing configurations${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Configuration Deployment : ${CLR_YELLOW}Preserve existing configurations${CLR_RESET}"
     fi
 
     if [ "$CONF_DRIVERS" = true ]; then
-        echo -e "   • Hardware Drivers         : ${CLR_GREEN}Enabled (${#DETECTED_HARDWARE[@]} components detected)${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Hardware Drivers         : ${CLR_GREEN}Enabled (${#DETECTED_HARDWARE[@]} components detected)${CLR_RESET}"
         for d in "${DETECTED_HARDWARE[@]}"; do
             echo -e "       - ${CLR_CYAN}${d}${CLR_RESET}"
         done
     else
-        echo -e "   • Hardware Drivers         : ${CLR_YELLOW}Skipped${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Hardware Drivers         : ${CLR_YELLOW}Skipped${CLR_RESET}"
     fi
 
     case "$CONF_LOGIN_METHOD" in
@@ -526,29 +676,29 @@ run_preflight_and_verification() {
             [[ "$CONF_DM_CHOICE" == "2" ]] && dm_name="greetd + tuigreet"
             [[ "$CONF_DM_CHOICE" == "3" ]] && dm_name="GDM"
             [[ "$CONF_DM_CHOICE" == "4" ]] && dm_name="Ly"
-            echo -e "   • Login Method             : ${CLR_GREEN}Display Manager (${dm_name})${CLR_RESET}"
+            echo -e "   ${GLYPH_BULLET} Login Method             : ${CLR_GREEN}Display Manager (${dm_name})${CLR_RESET}"
             ;;
         2)
-            echo -e "   • Login Method             : ${CLR_GREEN}Autologin TTY1 + Hyprland User Service (linger)${CLR_RESET}"
+            echo -e "   ${GLYPH_BULLET} Login Method             : ${CLR_GREEN}Autologin TTY1 + Hyprland User Service (linger)${CLR_RESET}"
             ;;
         3)
-            echo -e "   • Login Method             : ${CLR_YELLOW}Manual console login${CLR_RESET}"
+            echo -e "   ${GLYPH_BULLET} Login Method             : ${CLR_YELLOW}Manual console login${CLR_RESET}"
             ;;
     esac
 
     if [ "$CONF_SET_FISH" = true ]; then
-        echo -e "   • Default Shell            : ${CLR_GREEN}Change to Fish (/usr/bin/fish)${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Default Shell            : ${CLR_GREEN}Change to Fish (/usr/bin/fish)${CLR_RESET}"
     else
-        echo -e "   • Default Shell            : ${CLR_YELLOW}Keep current ($(basename "${SHELL:-bash}"))${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Default Shell            : ${CLR_YELLOW}Keep current ($(basename "${SHELL:-bash}"))${CLR_RESET}"
     fi
 
     case "$CONF_SESSION_ACTION" in
-        reload) echo -e "   • Post-Install Action      : ${CLR_GREEN}Reload Hyprland & Restart Olvex Shell${CLR_RESET}" ;;
-        launch) echo -e "   • Post-Install Action      : ${CLR_GREEN}Launch Hyprland session (start-hyprland)${CLR_RESET}" ;;
-        *) echo -e "   • Post-Install Action      : ${CLR_YELLOW}None (display summary and manual commands)${CLR_RESET}" ;;
+        reload) echo -e "   ${GLYPH_BULLET} Post-Install Action      : ${CLR_GREEN}Reload Hyprland & Restart Olvex Shell${CLR_RESET}" ;;
+        launch) echo -e "   ${GLYPH_BULLET} Post-Install Action      : ${CLR_GREEN}Launch Hyprland session (start-hyprland)${CLR_RESET}" ;;
+        *) echo -e "   ${GLYPH_BULLET} Post-Install Action      : ${CLR_YELLOW}None (display summary and manual commands)${CLR_RESET}" ;;
     esac
 
-    echo -e "   • Missing Packages         : ${CLR_BOLD}${#ALL_MISSING_PKGS[@]} package(s) to install${CLR_RESET}"
+    echo -e "   ${GLYPH_BULLET} Missing Packages         : ${CLR_BOLD}${#ALL_MISSING_PKGS[@]} package(s) to install${CLR_RESET}"
     if [ ${#ALL_MISSING_PKGS[@]} -gt 0 ]; then
         echo -e "     ${CLR_DIM}${ALL_MISSING_PKGS[*]}${CLR_RESET}"
     fi
@@ -561,8 +711,6 @@ run_preflight_and_verification() {
 }
 
 deploy_system_configurations() {
-    section_header "Deploying System Configurations"
-
     if [ "$CONF_OVERWRITE" = true ]; then
         if [[ -d "${SCRIPT_DIR}/.config" ]]; then
             for item in "${SCRIPT_DIR}/.config"/*; do
@@ -610,8 +758,6 @@ deploy_system_configurations() {
 }
 
 build_and_setup_olvex() {
-    section_header "Compiling C++ Plugins & System Integration"
-    
     local build_dir="${TARGET_LOCAL}/build"
     rm -rf "$build_dir"
     mkdir -p "$build_dir"
@@ -678,8 +824,6 @@ EOF
 }
 
 apply_driver_configurations() {
-    section_header "Applying Driver Configurations"
-
     if [ "${HAS_NVIDIA:-false}" = true ]; then
         log_info "Configuring NVIDIA kernel modesetting (/etc/modprobe.d/nvidia.conf)..."
         sudo mkdir -p /etc/modprobe.d
@@ -700,8 +844,6 @@ EOF
 }
 
 apply_login_method() {
-    section_header "Applying Login & Session Configuration"
-
     case "$CONF_LOGIN_METHOD" in
         1)
             apply_display_manager
@@ -864,8 +1006,6 @@ if p.exists():
 }
 
 bootstrap_scheme_and_themes() {
-    section_header "Bootstrapping M3 Schemes & Themes"
-    
     log_info "Generating initial Olvex Material 3 scheme..."
     if command -v olvex &>/dev/null; then
         olvex scheme set -n default 2>/dev/null || true
@@ -890,7 +1030,6 @@ bootstrap_scheme_and_themes() {
 }
 
 universal_permission_sweep() {
-    section_header "Universal Root Ownership Sweep"
     log_info "Sweeping ${HOME} for root-polluted files and restoring user ownership..."
     
     # Finds any file/directory inside HOME owned by root and safely chowns it to the user.
@@ -901,8 +1040,6 @@ universal_permission_sweep() {
 }
 
 apply_post_install_actions() {
-    section_header "Post-Installation Tasks"
-
     # Shell prompt
     if [ "$CONF_SET_FISH" = true ] && command -v fish &>/dev/null; then
         if [[ "$(basename "${SHELL:-bash}")" != "fish" ]]; then
@@ -935,57 +1072,79 @@ apply_post_install_actions() {
 }
 
 display_final_summary() {
-    section_header "Installation Summary"
-    
-    echo -e " ${CLR_GREEN}${CLR_BOLD}Olvex Shell and Hyprland environment deployed successfully.${CLR_RESET}\n"
-    echo -e " ${CLR_BOLD}Target Paths:${CLR_RESET}"
-    echo -e "   • Hyprland Config  : ${CLR_CYAN}${TARGET_HYPR}${CLR_RESET}"
-    echo -e "   • Olvex Shell Core : ${CLR_CYAN}${TARGET_LOCAL}${CLR_RESET}"
-    echo -e "   • Quickshell Config: ${CLR_CYAN}${TARGET_QSCONF}${CLR_RESET}"
-    echo -e "   • Binary Location  : ${CLR_CYAN}${TARGET_BIN}/olvex${CLR_RESET}\n"
-    
-    echo -e " ${CLR_DIM}Note: The source installer directory can now be moved or removed safely.${CLR_RESET}\n"
+    local width=64
+    local fill_line
+    fill_line="$(repeat_str "${BOX_H}" $((width - 30)))"
+    local bot_line
+    bot_line="$(repeat_str "${BOX_H}" $((width - 2)))"
 
-    echo -e " ${CLR_BOLD}Management Commands:${CLR_RESET}"
-    echo -e "   • Start Shell     : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
-    echo -e "   • Restart Shell   : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
-    echo -e "   • Toggle Launcher : ${CLR_YELLOW}olvex shell drawers toggle launcher${CLR_RESET}"
-    echo -e "   • Reload Hyprland : ${CLR_YELLOW}hyprctl reload${CLR_RESET}"
-    echo -e "   • Launch Hyprland : ${CLR_YELLOW}start-hyprland${CLR_RESET}\n"
+    echo -e "\n${CLR_CYAN}${CLR_BOLD}${BOX_TL}${BOX_H}${BOX_H} [ Installation Complete ] ${fill_line}${BOX_TR}${CLR_RESET}"
+    echo -e " ${BOX_V} ${CLR_GREEN}${CLR_BOLD}${GLYPH_OK} Olvex Shell and Hyprland deployed successfully.${CLR_RESET}"
+    echo -e " ${BOX_V}"
+    echo -e " ${BOX_V} ${CLR_BOLD}Target Paths:${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Hyprland Config   : ${CLR_CYAN}${TARGET_HYPR}${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Olvex Shell Core  : ${CLR_CYAN}${TARGET_LOCAL}${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Quickshell Config : ${CLR_CYAN}${TARGET_QSCONF}${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Binary Location   : ${CLR_CYAN}${TARGET_BIN}/olvex${CLR_RESET}"
+    echo -e " ${BOX_V}"
+    echo -e " ${BOX_V} ${CLR_BOLD}Management Commands:${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Start Shell      : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Restart Shell    : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Toggle Launcher  : ${CLR_YELLOW}olvex shell drawers toggle launcher${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Reload Hyprland  : ${CLR_YELLOW}hyprctl reload${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Rebuild Shell    : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_BL}${bot_line}${BOX_BR}${CLR_RESET}\n"
 }
 
 execute_all_changes() {
     cd "${HOME}" || true
+    local total_exec_steps=7
+    [ "$CONF_DRIVERS" = true ] && ((total_exec_steps++))
+    local current_step=1
 
     # 1. Install missing packages with zero interruptions
     if [ ${#ALL_MISSING_PKGS[@]} -gt 0 ]; then
-        section_header "Installing Dependencies"
-        log_info "Invoking ${AUR_HELPER}..."
+        section_header "Installing Dependencies" "[${current_step}/${total_exec_steps}]"
+        log_info "Invoking ${AUR_HELPER} to install ${#ALL_MISSING_PKGS[@]} package(s)..."
         install_pkgs "${ALL_MISSING_PKGS[@]}"
         log_success "Dependencies successfully installed."
+        ((current_step++))
     fi
 
     # 2. Deploy system configurations
+    section_header "Deploying System Configurations" "[${current_step}/${total_exec_steps}]"
     deploy_system_configurations
+    ((current_step++))
 
     # 3. Build & Setup Olvex
+    section_header "Compiling C++ Plugins & System Integration" "[${current_step}/${total_exec_steps}]"
     build_and_setup_olvex
+    ((current_step++))
 
     # 4. Apply Driver Configurations
     if [ "$CONF_DRIVERS" = true ]; then
+        section_header "Applying Driver Configurations" "[${current_step}/${total_exec_steps}]"
         apply_driver_configurations
+        ((current_step++))
     fi
 
     # 5. Apply Login Method
+    section_header "Applying Login & Session Configuration" "[${current_step}/${total_exec_steps}]"
     apply_login_method
+    ((current_step++))
 
     # 6. Bootstrap Themes
+    section_header "Bootstrapping M3 Schemes & Themes" "[${current_step}/${total_exec_steps}]"
     bootstrap_scheme_and_themes
+    ((current_step++))
 
     # 7. Sweep permissions
+    section_header "Universal Root Ownership Sweep" "[${current_step}/${total_exec_steps}]"
     universal_permission_sweep
+    ((current_step++))
 
     # 8. Post-installation actions
+    section_header "Post-Installation Tasks" "[${current_step}/${total_exec_steps}]"
     apply_post_install_actions
 
     # 9. Final summary
@@ -1096,12 +1255,12 @@ EOF
     systemctl --user reset-failed "$ydotool_svc" 2>/dev/null || true
     systemctl --user restart "$ydotool_svc" 2>/dev/null || true
 
-    echo -e "\n${CLR_GREEN}${CLR_BOLD}✅ Build & Installation complete!${CLR_RESET}\n"
+    echo -e "\n${CLR_GREEN}${CLR_BOLD}${GLYPH_OK} Build & Installation complete!${CLR_RESET}\n"
     echo -e " ${CLR_BOLD}Management Commands:${CLR_RESET}"
-    echo -e "   • Start Shell     : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
-    echo -e "   • Restart Shell   : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
-    echo -e "   • Quickshell CLI  : ${CLR_YELLOW}qs -c olvex${CLR_RESET}"
-    echo -e "   • Rebuild Shell   : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}\n"
+    echo -e "   ${GLYPH_BULLET} Start Shell     : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
+    echo -e "   ${GLYPH_BULLET} Restart Shell   : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
+    echo -e "   ${GLYPH_BULLET} Quickshell CLI  : ${CLR_YELLOW}qs -c olvex${CLR_RESET}"
+    echo -e "   ${GLYPH_BULLET} Rebuild Shell   : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}\n"
 }
 
 show_help() {
