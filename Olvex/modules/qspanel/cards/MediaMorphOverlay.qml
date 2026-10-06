@@ -81,8 +81,9 @@ Item {
     // The overlay handles the full morph animation both ways
     readonly property bool overlayRendering: root.active || root.morphAnimating
     readonly property bool mediaVisualizerWarm: root.overlayRendering
-    readonly property bool mediaVisualizerActive: root.mediaVisualizerWarm && Players.activeIsPlaying
-    readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "overlay"
+    readonly property bool mediaVisualizerActive: root.mediaVisualizerWarm && (Players.activeIsPlaying || Players.isPlaying)
+    readonly property string visualizerOwnerId: "overlay:" + ((root.screen && root.screen.name) ? root.screen.name : "default")
+    readonly property bool ownsVisualizer: VisualizerState.isOwnerActive(root.visualizerOwnerId) || VisualizerState.visibleOwner === "overlay"
     // Experiment: match the monitor's native refresh rate instead of a fixed
     // 60fps cap, now that the play-button spin/wavy-line pinning is removed.
     readonly property real _screenHz: Screen.refreshRate > 0 ? Screen.refreshRate : 60
@@ -329,18 +330,25 @@ Item {
     }
 
     function syncVisualizerOwner() {
-        VisualizerState.request("overlay", 30, root.mediaVisualizerActive);
+        VisualizerState.request(root.visualizerOwnerId, 30, root.mediaVisualizerActive);
     }
 
     // ── Connections / lifecycle ────────────────────────────────────────────────
     Connections {
         target: Players
         function onActiveChanged() {
+            root.syncVisualizerOwner();
             if (!Players.active) {
                 root.active = false;
                 root.resetDockLayout();
             } else
                 root.resetDockLayout();
+        }
+        function onIsPlayingChanged() {
+            root.syncVisualizerOwner();
+        }
+        function onActiveIsPlayingChanged() {
+            root.syncVisualizerOwner();
         }
     }
 
@@ -365,7 +373,7 @@ Item {
 
     Component.onDestruction: {
         Players.unregisterMediaMorph(root.screen.name, root);
-        VisualizerState.release("overlay");
+        VisualizerState.release(root.visualizerOwnerId);
     }
 
     Timer {

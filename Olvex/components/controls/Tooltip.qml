@@ -61,20 +61,7 @@ Popup {
     }
 
     // Popup properties - doesn't affect layout
-    parent: {
-        let p = target;
-        // Walk up to find the root Item (usually has anchors.fill: parent)
-        while (p && p.parent) {
-            const parentItem = p.parent;
-            // Check if this looks like a root pane Item
-            if (parentItem && parentItem.anchors && parentItem.anchors.fill !== undefined) {
-                return parentItem;
-            }
-            p = parentItem;
-        }
-        // Fallback
-        return target.parent?.parent?.parent ?? target.parent?.parent ?? target.parent ?? target;
-    }
+    parent: Overlay.overlay
 
     visible: tooltipVisible
     modal: false
@@ -122,6 +109,7 @@ Popup {
         color: Colours.palette.m3surfaceContainerHighest
         radius: GlobalConfig.appearance.rounding.small
         antialiasing: true
+        border.width: 0
 
         // Add elevation for depth
         Elevation {

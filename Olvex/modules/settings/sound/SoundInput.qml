@@ -132,7 +132,6 @@ Item {
             Layout.fillWidth: true
             title: qsTr("Microphone")
             description: qsTr("Master input level and mute")
-            icon: "mic"
             divider: true
             
             Row {

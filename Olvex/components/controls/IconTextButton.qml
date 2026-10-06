@@ -26,7 +26,7 @@ StyledRect {
     property alias iconLabel: iconLabel
     property alias label: label
 
-    property bool internalChecked
+    property bool internalChecked: checked
     property color activeColour: type === IconTextButton.Filled ? Colours.palette.m3primary : Colours.palette.m3secondary
     property color inactiveColour: {
         if (!toggle && type === IconTextButton.Filled)
@@ -35,8 +35,18 @@ StyledRect {
             return Colours.transparencyEnabled ? Qt.alpha(Colours.palette.m3secondaryContainer, 0.50) : Colours.palette.m3secondaryContainer;
         return Colours.tPalette.m3surfaceContainer;
     }
-    property color activeOnColour: type === IconTextButton.Filled ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondary
-    property color inactiveOnColour: type === IconTextButton.Filled ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
+    property color activeOnColour: {
+        if (type === IconTextButton.Text)
+            return Colours.palette.m3primary;
+        return type === IconTextButton.Filled ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondary;
+    }
+    property color inactiveOnColour: {
+        if (!toggle && type === IconTextButton.Filled)
+            return Colours.palette.m3onPrimary;
+        if (type === IconTextButton.Text)
+            return Colours.palette.m3primary;
+        return type === IconTextButton.Filled ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer;
+    }
 
     signal clicked
 

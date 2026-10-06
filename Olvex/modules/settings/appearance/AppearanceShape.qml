@@ -87,11 +87,9 @@ ColumnLayout {
                 minSegmentWidth: 100
                 implicitHeight: 42
                 model: [{
-                        label: qsTr("Hugging"),
-                        icon: "align_horizontal_left"
+                        label: qsTr("Hugging")
                     }, {
-                        label: qsTr("Floating"),
-                        icon: "picture_in_picture_center"
+                        label: qsTr("Floating")
                     }]
                 currentIndex: GlobalConfig.border.floating ? 1 : 0
                 onSelected: i => {

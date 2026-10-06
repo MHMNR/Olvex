@@ -13,6 +13,7 @@ Singleton {
     id: root
 
     // ── Palette ─────────────────────────────────────
+    signal themePaletteUpdated
     property bool themeTransitioning: false
 
     M3ExpressivePalette {
@@ -347,6 +348,7 @@ Singleton {
         if (scheme) {
             bootPalette.applyScheme(scheme);
             bootSchemeMode = scheme.mode ?? "dark";
+            root.themePaletteUpdated();
             console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary}`);
         }
         _pendingWallColors = "";
@@ -376,6 +378,7 @@ Singleton {
                 bootSchemeMode = scheme.mode ?? "dark";
                 bootSchemeName = scheme.name ?? "dynamic";
                 bootSchemeFlavour = scheme.flavour ?? "default";
+                root.themePaletteUpdated();
                 console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary} (scheme: ${bootSchemeName} ${bootSchemeFlavour})`);
             }
             Qt.callLater(() => { root.themeTransitioning = false; });
@@ -389,6 +392,7 @@ Singleton {
         const scheme = M3ColorMapper.fallbackScheme();
         bootPalette.applyScheme(scheme);
         bootSchemeMode = scheme.mode ?? "dark";
+        root.themePaletteUpdated();
         console.log("[Colours] Using fallback palette");
     }
 

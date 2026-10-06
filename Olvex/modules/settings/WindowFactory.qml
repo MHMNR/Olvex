@@ -30,8 +30,8 @@ Singleton {
             property alias currentId: cc.currentId
             property alias activeSection: cc.activeSection
 
-            // Solid opaque surface matching theme mode; Hyprland natively clips window corners.
-            color: Colours.palette.m3surface
+            // Transparent window background for glass transparency + Hyprland blur
+            color: "transparent"
 
             onVisibleChanged: {
                 if (!visible)

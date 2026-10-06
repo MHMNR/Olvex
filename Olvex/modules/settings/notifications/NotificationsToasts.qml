@@ -91,7 +91,6 @@ Item {
             SettingRow {
                 title: qsTr("USB devices")
                 description: qsTr("USB flash drives and storage devices connected or removed")
-                icon: "usb"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.usbDevices ?? true
@@ -105,7 +104,6 @@ Item {
             SettingRow {
                 title: qsTr("Bluetooth devices")
                 description: qsTr("Bluetooth headphones, mice, and accessories connected or disconnected")
-                icon: "bluetooth"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.bluetoothDevices ?? true
@@ -119,7 +117,6 @@ Item {
             SettingRow {
                 title: qsTr("Headphones & audio jack")
                 description: qsTr("Wired headphones plugged in or disconnected")
-                icon: "headphones"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.headphones ?? true
@@ -133,7 +130,6 @@ Item {
             SettingRow {
                 title: qsTr("Charging state")
                 description: qsTr("Charger plugged in or removed")
-                icon: "bolt"
                 divider: false
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.chargingChanged ?? true
@@ -154,7 +150,6 @@ Item {
             SettingRow {
                 title: qsTr("Audio output changed")
                 description: qsTr("Default output speaker or device switched")
-                icon: "speaker"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.audioOutputChanged ?? true
@@ -168,7 +163,6 @@ Item {
             SettingRow {
                 title: qsTr("Audio input changed")
                 description: qsTr("Default microphone or recording source switched")
-                icon: "mic"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.audioInputChanged ?? true
@@ -182,7 +176,6 @@ Item {
             SettingRow {
                 title: qsTr("Now playing")
                 description: qsTr("Show alert when a new media track starts playing")
-                icon: "music_note"
                 divider: false
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.nowPlaying ?? false
@@ -203,7 +196,6 @@ Item {
             SettingRow {
                 title: qsTr("Caps lock")
                 description: qsTr("Caps lock toggled on or off")
-                icon: "keyboard_capslock"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.capsLockChanged ?? true
@@ -217,7 +209,6 @@ Item {
             SettingRow {
                 title: qsTr("Num lock")
                 description: qsTr("Num lock toggled on or off")
-                icon: "pin"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.numLockChanged ?? true
@@ -231,7 +222,6 @@ Item {
             SettingRow {
                 title: qsTr("Keyboard layout")
                 description: qsTr("Active keyboard layout changed")
-                icon: "keyboard"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.kbLayoutChanged ?? true
@@ -245,7 +235,6 @@ Item {
             SettingRow {
                 title: qsTr("Game mode")
                 description: qsTr("Game mode toggled on or off")
-                icon: "sports_esports"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.gameModeChanged ?? true
@@ -259,7 +248,6 @@ Item {
             SettingRow {
                 title: qsTr("Do not disturb")
                 description: qsTr("DND toggled on or off")
-                icon: "do_not_disturb_on"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.dndChanged ?? true
@@ -273,7 +261,6 @@ Item {
             SettingRow {
                 title: qsTr("VPN state")
                 description: qsTr("VPN connected or disconnected")
-                icon: "vpn_lock"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.vpnChanged ?? true
@@ -287,7 +274,6 @@ Item {
             SettingRow {
                 title: qsTr("Configuration loaded")
                 description: qsTr("Shell configuration reloaded successfully")
-                icon: "rule_settings"
                 divider: false
                 StyledSwitch {
                     checked: GlobalConfig.qspanel.toasts.configLoaded ?? true

@@ -92,37 +92,74 @@ Item {
         anchors.right: parent.right
         spacing: Tokens.spacing ? Tokens.spacing.large : 16
 
-        // ── Monitor Summary Card ────────────────────────────────────────────
+        // ── Hero Monitor Identity Card ──────────────────────────────────────
         StyledRect {
             width: parent.width
-            implicitHeight: headerRow.implicitHeight + (Tokens.padding ? Tokens.padding.normal : 12) * 2
+            implicitHeight: heroContent.implicitHeight + (Tokens.padding ? Tokens.padding.large : 16) * 2
             radius: Tokens.rounding ? Tokens.rounding.large : 16
-            color: Colours.palette.m3surfaceContainerHigh
+            color: Colours.palette.m3surfaceContainerHighest
+            border.width: 0
 
             RowLayout {
-                id: headerRow
+                id: heroContent
                 anchors.fill: parent
-                anchors.margins: Tokens.padding ? Tokens.padding.normal : 12
-                spacing: Tokens.spacing ? Tokens.spacing.normal : 12
+                anchors.margins: Tokens.padding ? Tokens.padding.large : 16
+                spacing: Tokens.spacing ? Tokens.spacing.large : 16
 
-                MaterialIcon {
-                    text: root.monitor && root.monitor.name.startsWith("eDP") ? "laptop" : "desktop_windows"
-                    fill: 1
-                    color: Colours.palette.m3primary
-                    iconPointSize: Tokens.font ? Tokens.font.size.extraLarge : 20
+                // Device Icon Squircle
+                StyledRect {
+                    Layout.preferredWidth: 48
+                    Layout.preferredHeight: 48
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: Tokens.rounding ? Tokens.rounding.normal : 12
+                    color: (root.monitor && !root.monitor.disabled)
+                           ? Colours.palette.m3primaryContainer
+                           : Colours.palette.m3surfaceContainerHigh
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: root.monitor && root.monitor.name.startsWith("eDP") ? "laptop" : "desktop_windows"
+                        fill: 1
+                        color: (root.monitor && !root.monitor.disabled) ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                        iconPointSize: Tokens.font ? Tokens.font.size.large : 20
+                    }
                 }
 
+                // Details & Badges
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 2
+                    spacing: 5
 
-                    StyledText {
-                        text: root.monitor ? root.monitor.name : "Display"
-                        font.weight: Font.Bold
-                        textPointSize: Tokens.font ? Tokens.font.size.large : 16
-                        color: Colours.palette.m3onSurface
+                    RowLayout {
+                        spacing: 8
+                        Layout.fillWidth: true
+
+                        StyledText {
+                            text: root.monitor ? root.monitor.name : qsTr("Display")
+                            font.weight: Font.Bold
+                            textPointSize: Tokens.font ? Tokens.font.size.large : 16
+                            color: Colours.palette.m3onSurface
+                        }
+
+                        // Friendly tag
+                        StyledRect {
+                            implicitWidth: tagText.implicitWidth + 12
+                            implicitHeight: 22
+                            radius: Tokens.rounding ? Tokens.rounding.full : 999
+                            color: Qt.alpha(Colours.palette.m3secondary, 0.22)
+
+                            StyledText {
+                                id: tagText
+                                anchors.centerIn: parent
+                                text: root.monitor && root.monitor.name.startsWith("eDP") ? qsTr("Built-in Screen") : qsTr("External Display")
+                                textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 2
+                                font.weight: Font.Medium
+                                color: Colours.palette.m3secondary
+                            }
+                        }
                     }
 
+                    // Description / Make & Model
                     StyledText {
                         text: root.monitor && root.monitor.description
                               ? root.monitor.description
@@ -132,453 +169,538 @@ Item {
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                     }
+
+                    // Metadata Specs Row (Inline with bullet separators)
+                    RowLayout {
+                        spacing: 8
+                        Layout.topMargin: 2
+
+                        // Primary Tag
+                        RowLayout {
+                            visible: root.monitor && root.monitor.x === 0 && root.monitor.y === 0
+                            spacing: 8
+
+                            StyledText {
+                                text: qsTr("★ Primary")
+                                textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                                font.weight: Font.Bold
+                                color: Colours.palette.m3primary
+                            }
+
+                            StyledText {
+                                text: "•"
+                                font.weight: Font.Bold
+                                textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                                color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.4)
+                            }
+                        }
+
+                        // Resolution & Refresh Rate
+                        StyledText {
+                            visible: !!root.monitor
+                            text: root.monitor ? `${root.monitor.width}×${root.monitor.height} @ ${Math.round(root.monitor.refreshRate || 60)}Hz` : ""
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            font.weight: Font.Medium
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+
+                        // Bullet
+                        StyledText {
+                            visible: !!root.monitor
+                            text: "•"
+                            font.weight: Font.Bold
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.4)
+                        }
+
+                        // Scale
+                        StyledText {
+                            visible: !!root.monitor
+                            text: root.monitor ? `${Math.round((root.monitor.scale || 1.0) * 100)}% Scale` : ""
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            font.weight: Font.Medium
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+
+                        // Bullet
+                        StyledText {
+                            visible: !!root.monitor
+                            text: "•"
+                            font.weight: Font.Bold
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.4)
+                        }
+
+                        // Active / Disabled Status
+                        StyledText {
+                            text: (root.monitor && !root.monitor.disabled) ? qsTr("Active") : qsTr("Disabled")
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            font.weight: Font.Medium
+                            color: (root.monitor && !root.monitor.disabled) ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                        }
+                    }
                 }
 
-                // Layout containing switches
+                // Master Toggle on Right
                 ColumnLayout {
-                    spacing: 4
                     Layout.alignment: Qt.AlignVCenter
+                    spacing: 4
 
                     StyledSwitch {
-                        Layout.alignment: Qt.AlignRight
+                        Layout.alignment: Qt.AlignHCenter
                         checked: root.monitor ? !root.monitor.disabled : true
                         onToggled: {
                             root.updateField("disabled", !checked);
                         }
                     }
+
                     StyledText {
-                        text: qsTr("Enabled")
+                        text: qsTr("Use Display")
                         color: Colours.palette.m3onSurfaceVariant
                         textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 2
-                        Layout.alignment: Qt.AlignRight
+                        Layout.alignment: Qt.AlignHCenter
                     }
+                }
+            }
+        }
+
+        // ── Controls Container (Dimmed when monitor is disabled) ───────────
+        Column {
+            width: parent.width
+            spacing: Tokens.spacing ? Tokens.spacing.large : 16
+            opacity: (root.monitor && !root.monitor.disabled) ? 1.0 : 0.45
+            enabled: (root.monitor && !root.monitor.disabled)
+
+            Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+            // ── Section 1: Resolution & Display Modes ──────────────────────
+            Section {
+                title: qsTr("Resolution & Display Modes")
+                icon: "display_settings"
+                accentColor: Colours.palette.m3primary
+
+                // Modes Dropdown
+                SettingRow {
+                    title: qsTr("Resolution & Refresh Rate")
+                    description: qsTr("Hardware-supported display modes")
+                    visible: !(root.monitor && root.monitor.customMode)
+
+                    OptionPicker {
+                        id: modePicker
+                        model: {
+                            if (!root.monitor || !root.monitor.availableModes) return [];
+                            return root.monitor.availableModes.map(m => ({ label: m, val: m }));
+                        }
+                        currentIndex: {
+                            if (!root.monitor || !root.monitor.availableModes) return 0;
+                            const idx = root.monitor.availableModes.findIndex(m => m.startsWith(`${root.monitor.width}x${root.monitor.height}`));
+                            return idx >= 0 ? idx : 0;
+                        }
+                        onSelected: (idx) => {
+                            const mStr = root.monitor.availableModes[idx];
+                            if (mStr) {
+                                // Parse "1920x1080@144.00Hz"
+                                const match = mStr.match(/^(\d+)x(\d+)@([0-9.]+)Hz/);
+                                if (match) {
+                                    const copy = JSON.parse(JSON.stringify(root.monitor));
+                                    copy.width = parseInt(match[1]);
+                                    copy.height = parseInt(match[2]);
+                                    copy.refreshRate = parseFloat(match[3]);
+                                    const isRot = (copy.transform === 1 || copy.transform === 3 || copy.transform === 5 || copy.transform === 7);
+                                    copy.logicalWidth = Math.round((isRot ? copy.height : copy.width) / copy.scale);
+                                    copy.logicalHeight = Math.round((isRot ? copy.width : copy.height) / copy.scale);
+                                    root.monitorUpdated(copy);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Custom Mode Toggle
+                SettingRow {
+                    title: qsTr("Custom Resolution Mode")
+                    description: qsTr("Manually specify custom resolution and refresh rate")
 
                     StyledSwitch {
-                        Layout.alignment: Qt.AlignRight
+                        checked: root.monitor ? !!root.monitor.customMode : false
+                        onToggled: root.updateField("customMode", checked)
+                    }
+                }
+
+                // Custom inputs row (Width, Height, Hz)
+                Item {
+                    visible: root.monitor && root.monitor.customMode
+                    implicitWidth: parent.width
+                    implicitHeight: 48
+
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: Tokens.spacing ? Tokens.spacing.normal : 12
+
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("Width (e.g. 1920)")
+                            text: root.monitor ? String(root.monitor.width) : "1920"
+                            onTextEdited: {
+                                const v = parseInt(text);
+                                if (v > 200) root.updateField("width", v);
+                            }
+                        }
+
+                        StyledText {
+                            text: "×"
+                            font.weight: Font.Bold
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("Height (e.g. 1080)")
+                            text: root.monitor ? String(root.monitor.height) : "1080"
+                            onTextEdited: {
+                                const v = parseInt(text);
+                                if (v > 200) root.updateField("height", v);
+                            }
+                        }
+
+                        StyledText {
+                            text: "@"
+                            font.weight: Font.Bold
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
+
+                        StyledTextField {
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("Hz (e.g. 144)")
+                            text: root.monitor ? String(root.monitor.refreshRate) : "60"
+                            onTextEdited: {
+                                const v = parseFloat(text);
+                                if (v > 20) root.updateField("refreshRate", v);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Section 2: Scaling & Orientation ───────────────────────────
+            Section {
+                title: qsTr("Scale & Orientation")
+                icon: "aspect_ratio"
+                accentColor: Colours.palette.m3secondary
+
+                // Scaling Chips
+                SettingRow {
+                    title: qsTr("Display Scaling")
+                    description: qsTr("Fractional scale factor for interface sizing")
+
+                    RowLayout {
+                        spacing: 6
+                        Repeater {
+                            model: root.scalePresets
+                            delegate: StyledRect {
+                                required property var modelData
+                                implicitWidth: 46
+                                implicitHeight: 32
+                                radius: Tokens.rounding ? Tokens.rounding.small : 8
+                                readonly property bool isSelected: root.monitor && Math.abs(root.monitor.scale - modelData.val) < 0.01
+
+                                color: isSelected ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHigh
+                                border.width: 0
+
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: parent.modelData.label
+                                    textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 2
+                                    font.weight: parent.isSelected ? Font.Bold : Font.Normal
+                                    color: parent.isSelected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                                }
+
+                                StateLayer {
+                                    radius: parent.radius
+                                    onClicked: root.updateField("scale", parent.modelData.val)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Precision Scale Adjustment
+                SettingRow {
+                    title: qsTr("Fine Scale Adjustment")
+                    description: qsTr("Custom fractional scale multiplier")
+
+                    CustomSpinBox {
+                        value: root.monitor ? Number(root.monitor.scale) : 1.0
+                        min: 0.5
+                        max: 4.0
+                        step: 0.05
+                        onValueModified: v => {
+                            root.updateField("scale", Number(v.toFixed(2)));
+                        }
+                    }
+                }
+
+                // Orientation / Rotation
+                SettingRow {
+                    title: qsTr("Orientation")
+                    description: qsTr("Display rotation and layout transform")
+
+                    OptionPicker {
+                        model: root.transformOptions
+                        currentIndex: {
+                            if (!root.monitor) return 0;
+                            const t = root.monitor.transform || 0;
+                            const idx = root.transformOptions.findIndex(o => o.val === t);
+                            return idx >= 0 ? idx : 0;
+                        }
+                        onSelected: (idx) => {
+                            root.updateField("transform", root.transformOptions[idx].val);
+                        }
+                    }
+                }
+
+                // Scale Filter
+                SettingRow {
+                    title: qsTr("Scaling Filter")
+                    description: qsTr("Filtering algorithm for non-integer scales")
+
+                    OptionPicker {
+                        model: root.scaleFilterOptions
+                        currentIndex: {
+                            if (!root.monitor || !root.monitor.scaleFilter) return 0;
+                            const idx = root.scaleFilterOptions.findIndex(o => o.val === root.monitor.scaleFilter);
+                            return idx >= 0 ? idx : 0;
+                        }
+                        onSelected: (idx) => {
+                            root.updateField("scaleFilter", root.scaleFilterOptions[idx].val);
+                        }
+                    }
+                }
+            }
+
+            // ── Section 3: Layout, Position & Mirroring ────────────────────
+            Section {
+                title: qsTr("Layout & Position")
+                icon: "crop_rotate"
+                accentColor: Colours.palette.m3tertiary
+
+                // Set Primary Button
+                SettingRow {
+                    title: qsTr("Primary Display")
+                    description: (root.monitor && root.monitor.x === 0 && root.monitor.y === 0)
+                                 ? qsTr("This monitor is designated as the primary origin (0, 0)")
+                                 : qsTr("Set this monitor as primary origin and shift others")
+
+                    TextButton {
+                        text: (root.monitor && root.monitor.x === 0 && root.monitor.y === 0) ? qsTr("Primary ★") : qsTr("Make Primary")
+                        enabled: !(root.monitor && root.monitor.x === 0 && root.monitor.y === 0)
+                        onClicked: root.setAsPrimaryRequested()
+                    }
+                }
+
+                // Manual Position X and Y
+                SettingRow {
+                    title: qsTr("Coordinates (X, Y)")
+                    description: qsTr("Logical desktop layout offset in pixels")
+
+                    RowLayout {
+                        spacing: Tokens.spacing ? Tokens.spacing.large : 16
+
+                        RowLayout {
+                            spacing: 6
+                            StyledText {
+                                text: "X:"
+                                font.weight: Font.Bold
+                                color: Colours.palette.m3onSurfaceVariant
+                            }
+
+                            CustomSpinBox {
+                                value: root.monitor ? Math.round(root.monitor["x"]) : 0
+                                min: 0
+                                max: 30000
+                                step: 10
+                                onValueModified: v => root.updateField("x", v)
+                            }
+                        }
+
+                        RowLayout {
+                            spacing: 6
+                            StyledText {
+                                text: "Y:"
+                                font.weight: Font.Bold
+                                color: Colours.palette.m3onSurfaceVariant
+                            }
+
+                            CustomSpinBox {
+                                value: root.monitor ? Math.round(root.monitor["y"]) : 0
+                                min: 0
+                                max: 30000
+                                step: 10
+                                onValueModified: v => root.updateField("y", v)
+                            }
+                        }
+                    }
+                }
+
+                // Mirroring
+                SettingRow {
+                    title: qsTr("Mirror Display")
+                    description: qsTr("Duplicate output from another connected monitor")
+
+                    OptionPicker {
+                        model: {
+                            const opts = [{ label: qsTr("None (Extended)"), val: "" }];
+                            if (root.allMonitors) {
+                                for (let i = 0; i < root.allMonitors.length; i++) {
+                                    const m = root.allMonitors[i];
+                                    if (root.monitor && m.name !== root.monitor.name) {
+                                        opts.push({ label: m.name, val: m.name });
+                                    }
+                                }
+                            }
+                            return opts;
+                        }
+                        currentIndex: {
+                            if (!root.monitor || !root.monitor.mirrorOf) return 0;
+                            if (!root.allMonitors) return 0;
+                            let found = 0;
+                            for (let i = 0; i < root.allMonitors.length; i++) {
+                                if (root.allMonitors[i].name === root.monitor.mirrorOf) {
+                                    found = i + 1;
+                                    break;
+                                }
+                            }
+                            return found;
+                        }
+                        onSelected: (idx) => {
+                            if (idx === 0) {
+                                root.updateField("mirrorOf", "");
+                            } else {
+                                const opt = model[idx];
+                                root.updateField("mirrorOf", opt ? opt.val : "");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Section 4: Power, Color & Advanced ─────────────────────────
+            Section {
+                title: qsTr("Power, Color & Advanced")
+                icon: "tune"
+                accentColor: Colours.palette.m3outline
+
+                // Screen Power (DPMS)
+                SettingRow {
+                    title: qsTr("Screen Power (DPMS)")
+                    description: qsTr("Put display into low-power sleep mode without removing from layout")
+
+                    StyledSwitch {
                         checked: root.monitor ? root.monitor.dpmsStatus : true
                         onToggled: {
                             root.updateField("dpmsStatus", checked);
                         }
                     }
-                    StyledText {
-                        text: qsTr("Screen Power")
-                        color: Colours.palette.m3onSurfaceVariant
-                        textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 2
-                        Layout.alignment: Qt.AlignRight
-                    }
                 }
-            }
-        }
 
-        // ── Section 1: Resolution, Modes & Scaling ──────────────────────────
-        Section {
-            title: qsTr("Resolution & Display Modes")
-            icon: "display_settings"
-            accentColor: Colours.palette.m3primary
+                // Variable Refresh Rate (VRR / Adaptive Sync)
+                SettingRow {
+                    title: qsTr("Variable Refresh Rate (VRR)")
+                    description: qsTr("Adaptive sync / FreeSync / G-Sync mode")
 
-            // Modes Dropdown
-            SettingRow {
-                title: qsTr("Resolution & Refresh Rate")
-                description: qsTr("Hardware-supported display modes")
-                visible: !(root.monitor && root.monitor.customMode)
-
-                OptionPicker {
-                    id: modePicker
-                    model: {
-                        if (!root.monitor || !root.monitor.availableModes) return [];
-                        return root.monitor.availableModes.map(m => ({ label: m, val: m }));
-                    }
-                    currentIndex: {
-                        if (!root.monitor || !root.monitor.availableModes) return 0;
-                        const target = `${root.monitor.width}x${root.monitor.height}@${Math.round(root.monitor.refreshRate)}.00Hz`;
-                        const idx = root.monitor.availableModes.findIndex(m => m.startsWith(`${root.monitor.width}x${root.monitor.height}`));
-                        return idx >= 0 ? idx : 0;
-                    }
-                    onSelected: (idx) => {
-                        const mStr = root.monitor.availableModes[idx];
-                        if (mStr) {
-                            // Parse "1920x1080@144.00Hz"
-                            const match = mStr.match(/^(\d+)x(\d+)@([0-9.]+)Hz/);
-                            if (match) {
-                                const copy = JSON.parse(JSON.stringify(root.monitor));
-                                copy.width = parseInt(match[1]);
-                                copy.height = parseInt(match[2]);
-                                copy.refreshRate = parseFloat(match[3]);
-                                const isRot = (copy.transform === 1 || copy.transform === 3 || copy.transform === 5 || copy.transform === 7);
-                                copy.logicalWidth = Math.round((isRot ? copy.height : copy.width) / copy.scale);
-                                copy.logicalHeight = Math.round((isRot ? copy.width : copy.height) / copy.scale);
-                                root.monitorUpdated(copy);
-                            }
+                    OptionPicker {
+                        model: root.vrrOptions
+                        currentIndex: {
+                            if (!root.monitor) return 0;
+                            const v = root.monitor.vrr || 0;
+                            const idx = root.vrrOptions.findIndex(o => o.val === v);
+                            return idx >= 0 ? idx : 0;
+                        }
+                        onSelected: (idx) => {
+                            root.updateField("vrr", root.vrrOptions[idx].val);
                         }
                     }
                 }
-            }
 
-            // Custom Mode Toggle
-            SettingRow {
-                title: qsTr("Custom Resolution Mode")
-                description: qsTr("Manually specify resolution and refresh rate")
+                // Variable Frame Rate (VFR)
+                SettingRow {
+                    title: qsTr("Variable Frame Rate (VFR)")
+                    description: qsTr("Redraw display only when screen content changes (conserves GPU & CPU power)")
 
-                StyledSwitch {
-                    checked: root.monitor ? !!root.monitor.customMode : false
-                    onToggled: root.updateField("customMode", checked)
+                    StyledSwitch {
+                        checked: DisplayManager.vfrEnabled
+                        onToggled: DisplayManager.setVfr(checked)
+                    }
                 }
-            }
 
-            // Custom inputs row (Width, Height, Hz)
-            Item {
-                visible: root.monitor && root.monitor.customMode
-                implicitWidth: parent.width
-                implicitHeight: 48
+                // Description matching
+                SettingRow {
+                    title: qsTr("Identify by Description")
+                    description: qsTr("Save config using hardware description instead of port name (prevents dock swap)")
 
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: Tokens.spacing ? Tokens.spacing.normal : 12
+                    StyledSwitch {
+                        checked: root.useDescription
+                        onToggled: root.useDescriptionToggled(checked)
+                    }
+                }
 
-                    StyledTextField {
-                        Layout.fillWidth: true
-                        placeholderText: qsTr("Width (e.g. 1920)")
-                        text: root.monitor ? String(root.monitor.width) : "1920"
-                        onTextEdited: {
-                            const v = parseInt(text);
-                            if (v > 200) root.updateField("width", v);
+                // Color Management Preset
+                SettingRow {
+                    title: qsTr("Color Management Mode")
+                    description: qsTr("Hyprland experimental color profiles (cm)")
+
+                    OptionPicker {
+                        model: root.colorModeOptions
+                        currentIndex: {
+                            if (!root.monitor || !root.monitor.colorManagementPreset) return 0;
+                            const idx = root.colorModeOptions.findIndex(o => o.val === root.monitor.colorManagementPreset);
+                            return idx >= 0 ? idx : 0;
                         }
-                    }
-
-                    StyledText {
-                        text: "×"
-                        font.weight: Font.Bold
-                        color: Colours.palette.m3onSurfaceVariant
-                    }
-
-                    StyledTextField {
-                        Layout.fillWidth: true
-                        placeholderText: qsTr("Height (e.g. 1080)")
-                        text: root.monitor ? String(root.monitor.height) : "1080"
-                        onTextEdited: {
-                            const v = parseInt(text);
-                            if (v > 200) root.updateField("height", v);
-                        }
-                    }
-
-                    StyledText {
-                        text: "@"
-                        font.weight: Font.Bold
-                        color: Colours.palette.m3onSurfaceVariant
-                    }
-
-                    StyledTextField {
-                        Layout.fillWidth: true
-                        placeholderText: qsTr("Hz (e.g. 144)")
-                        text: root.monitor ? String(root.monitor.refreshRate) : "60"
-                        onTextEdited: {
-                            const v = parseFloat(text);
-                            if (v > 20) root.updateField("refreshRate", v);
+                        onSelected: (idx) => {
+                            root.updateField("colorManagementPreset", root.colorModeOptions[idx].val);
                         }
                     }
                 }
-            }
 
-            // Scaling Chips + Precision Slider
-            SettingRow {
-                title: qsTr("Display Scaling")
-                description: qsTr("Fractional scale factor for high-DPI displays")
+                // 10-bit color
+                SettingRow {
+                    title: qsTr("10-Bit Color Depth")
+                    description: qsTr("Enable high dynamic range 10-bit buffer format (bitdepth, 10)")
 
-                RowLayout {
-                    spacing: 6
-                    Repeater {
-                        model: root.scalePresets
-                        delegate: StyledRect {
-                            required property var modelData
-                            implicitWidth: 46
-                            implicitHeight: 32
-                            radius: Tokens.rounding ? Tokens.rounding.small : 8
-                            readonly property bool isSelected: root.monitor && Math.abs(root.monitor.scale - modelData.val) < 0.01
-
-                            color: isSelected ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHigh
-                            border.width: 1
-                            border.color: isSelected ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
-
-                            StyledText {
-                                anchors.centerIn: parent
-                                text: parent.modelData.label
-                                textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 2
-                                font.weight: parent.isSelected ? Font.Bold : Font.Normal
-                                color: parent.isSelected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                            }
-
-                            StateLayer {
-                                radius: parent.radius
-                                onClicked: root.updateField("scale", parent.modelData.val)
-                            }
-                        }
+                    StyledSwitch {
+                        checked: root.monitor ? !!root.monitor.tenBit : false
+                        onToggled: root.updateField("tenBit", checked)
                     }
                 }
-            }
 
-            // Precision Scale Adjustment
-            SettingRow {
-                title: qsTr("Fine Scale Adjustment")
-                description: qsTr("Adjust fractional scale factor")
+                // SDR Brightness
+                SettingRow {
+                    title: qsTr("SDR Brightness Factor")
+                    description: `${root.monitor ? (root.monitor.sdrBrightness || 1.0).toFixed(2) : "1.00"}x`
 
-                CustomSpinBox {
-                    value: root.monitor ? Number(root.monitor.scale) : 1.0
-                    min: 0.5
-                    max: 4.0
-                    step: 0.05
-                    onValueModified: v => {
-                        root.updateField("scale", Number(v.toFixed(2)));
+                    StyledSlider {
+                        implicitWidth: 200
+                        from: 0.2
+                        to: 2.0
+                        stepSize: 0.05
+                        value: root.monitor ? (root.monitor.sdrBrightness || 1.0) : 1.0
+                        onMoved: root.updateField("sdrBrightness", Number(value.toFixed(2)))
                     }
                 }
-            }
 
-            // Scale Filter
-            SettingRow {
-                title: qsTr("Scaling Filter")
-                description: qsTr("Algorithm used for fractional scaling")
+                // SDR Saturation
+                SettingRow {
+                    title: qsTr("SDR Saturation Factor")
+                    description: `${root.monitor ? (root.monitor.sdrSaturation || 1.0).toFixed(2) : "1.00"}x`
 
-                OptionPicker {
-                    model: root.scaleFilterOptions
-                    currentIndex: {
-                        if (!root.monitor || !root.monitor.scaleFilter) return 0;
-                        const idx = root.scaleFilterOptions.findIndex(o => o.val === root.monitor.scaleFilter);
-                        return idx >= 0 ? idx : 0;
+                    StyledSlider {
+                        implicitWidth: 200
+                        from: 0.0
+                        to: 2.0
+                        stepSize: 0.05
+                        value: root.monitor ? (root.monitor.sdrSaturation || 1.0) : 1.0
+                        onMoved: root.updateField("sdrSaturation", Number(value.toFixed(2)))
                     }
-                    onSelected: (idx) => {
-                        root.updateField("scaleFilter", root.scaleFilterOptions[idx].val);
-                    }
-                }
-            }
-        }
-
-        // ── Section 2: Layout, Orientation & Mirroring ──────────────────────
-        Section {
-            title: qsTr("Layout & Position")
-            icon: "crop_rotate"
-            accentColor: Colours.palette.m3secondary
-
-            // Set Primary Button
-            SettingRow {
-                title: qsTr("Primary Display")
-                description: (root.monitor && root.monitor.x === 0 && root.monitor.y === 0)
-                             ? qsTr("This monitor is at the origin (0, 0)")
-                             : qsTr("Set this monitor as primary origin")
-
-                TextButton {
-                    text: (root.monitor && root.monitor.x === 0 && root.monitor.y === 0) ? qsTr("Primary ★") : qsTr("Make Primary")
-                    enabled: !(root.monitor && root.monitor.x === 0 && root.monitor.y === 0)
-                    onClicked: root.setAsPrimaryRequested()
-                }
-            }
-
-            // Manual Position X and Y
-            SettingRow {
-                title: qsTr("Coordinates (X, Y)")
-                description: qsTr("Logical desktop layout offset in pixels")
-
-                RowLayout {
-                    spacing: Tokens.spacing ? Tokens.spacing.large : 16
-
-                    RowLayout {
-                        spacing: 6
-                        StyledText {
-                            text: "X:"
-                            font.weight: Font.Bold
-                            color: Colours.palette.m3onSurfaceVariant
-                        }
-
-                        CustomSpinBox {
-                            value: root.monitor ? Math.round(root.monitor["x"]) : 0
-                            min: 0
-                            max: 30000
-                            step: 10
-                            onValueModified: v => root.updateField("x", v)
-                        }
-                    }
-
-                    RowLayout {
-                        spacing: 6
-                        StyledText {
-                            text: "Y:"
-                            font.weight: Font.Bold
-                            color: Colours.palette.m3onSurfaceVariant
-                        }
-
-                        CustomSpinBox {
-                            value: root.monitor ? Math.round(root.monitor["y"]) : 0
-                            min: 0
-                            max: 30000
-                            step: 10
-                            onValueModified: v => root.updateField("y", v)
-                        }
-                    }
-                }
-            }
-
-            // Orientation / Rotation
-            SettingRow {
-                title: qsTr("Orientation")
-                description: qsTr("Display rotation and transform")
-
-                OptionPicker {
-                    model: root.transformOptions
-                    currentIndex: {
-                        if (!root.monitor) return 0;
-                        const t = root.monitor.transform || 0;
-                        const idx = root.transformOptions.findIndex(o => o.val === t);
-                        return idx >= 0 ? idx : 0;
-                    }
-                    onSelected: (idx) => {
-                        root.updateField("transform", root.transformOptions[idx].val);
-                    }
-                }
-            }
-
-            // Mirroring
-            SettingRow {
-                title: qsTr("Mirror Display")
-                description: qsTr("Duplicate content from another connected monitor")
-
-                OptionPicker {
-                    model: {
-                        const opts = [{ label: qsTr("None (Extended)"), val: "" }];
-                        if (root.allMonitors) {
-                            for (let i = 0; i < root.allMonitors.length; i++) {
-                                const m = root.allMonitors[i];
-                                if (root.monitor && m.name !== root.monitor.name) {
-                                    opts.push({ label: m.name, val: m.name });
-                                }
-                            }
-                        }
-                        return opts;
-                    }
-                    currentIndex: {
-                        if (!root.monitor || !root.monitor.mirrorOf) return 0;
-                        if (!root.allMonitors) return 0;
-                        let found = 0;
-                        for (let i = 0; i < root.allMonitors.length; i++) {
-                            if (root.allMonitors[i].name === root.monitor.mirrorOf) {
-                                found = i + 1;
-                                break;
-                            }
-                        }
-                        return found;
-                    }
-                    onSelected: (idx) => {
-                        if (idx === 0) {
-                            root.updateField("mirrorOf", "");
-                        } else {
-                            const opt = model[idx];
-                            root.updateField("mirrorOf", opt ? opt.val : "");
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Section 3: Advanced, VRR & Identification ───────────────────────
-        Section {
-            title: qsTr("Advanced & Color")
-            icon: "tune"
-            accentColor: Colours.palette.m3tertiary
-
-            // Variable Refresh Rate (VRR / Adaptive Sync)
-            SettingRow {
-                title: qsTr("Variable Refresh Rate (VRR)")
-                description: qsTr("Adaptive sync / FreeSync / G-Sync mode")
-
-                OptionPicker {
-                    model: root.vrrOptions
-                    currentIndex: {
-                        if (!root.monitor) return 0;
-                        const v = root.monitor.vrr || 0;
-                        const idx = root.vrrOptions.findIndex(o => o.val === v);
-                        return idx >= 0 ? idx : 0;
-                    }
-                    onSelected: (idx) => {
-                        root.updateField("vrr", root.vrrOptions[idx].val);
-                    }
-                }
-            }
-
-            // Variable Frame Rate (VFR)
-            SettingRow {
-                title: qsTr("Variable Frame Rate (VFR)")
-                description: qsTr("Redraw display only when screen content changes (conserves GPU & CPU power)")
-
-                StyledSwitch {
-                    checked: DisplayManager.vfrEnabled
-                    onToggled: DisplayManager.setVfr(checked)
-                }
-            }
-
-            // Description matching
-            SettingRow {
-                title: qsTr("Identify by Description")
-                description: qsTr("Save config using hardware description instead of port name (prevents dock swap)")
-
-                StyledSwitch {
-                    checked: root.useDescription
-                    onToggled: root.useDescriptionToggled(checked)
-                }
-            }
-
-            // Color Management Preset
-            SettingRow {
-                title: qsTr("Color Management Mode")
-                description: qsTr("Hyprland experimental color profiles (cm)")
-
-                OptionPicker {
-                    model: root.colorModeOptions
-                    currentIndex: {
-                        if (!root.monitor || !root.monitor.colorManagementPreset) return 0;
-                        const idx = root.colorModeOptions.findIndex(o => o.val === root.monitor.colorManagementPreset);
-                        return idx >= 0 ? idx : 0;
-                    }
-                    onSelected: (idx) => {
-                        root.updateField("colorManagementPreset", root.colorModeOptions[idx].val);
-                    }
-                }
-            }
-
-            // 10-bit color
-            SettingRow {
-                title: qsTr("10-Bit Color Depth")
-                description: qsTr("Enable high dynamic range 10-bit buffer format (bitdepth, 10)")
-
-                StyledSwitch {
-                    checked: root.monitor ? !!root.monitor.tenBit : false
-                    onToggled: root.updateField("tenBit", checked)
-                }
-            }
-
-            // SDR Brightness
-            SettingRow {
-                title: qsTr("SDR Brightness Factor")
-                description: `${root.monitor ? (root.monitor.sdrBrightness || 1.0).toFixed(2) : "1.00"}x`
-
-                StyledSlider {
-                    implicitWidth: 200
-                    from: 0.2
-                    to: 2.0
-                    stepSize: 0.05
-                    value: root.monitor ? (root.monitor.sdrBrightness || 1.0) : 1.0
-                    onMoved: root.updateField("sdrBrightness", Number(value.toFixed(2)))
-                }
-            }
-
-            // SDR Saturation
-            SettingRow {
-                title: qsTr("SDR Saturation Factor")
-                description: `${root.monitor ? (root.monitor.sdrSaturation || 1.0).toFixed(2) : "1.00"}x`
-
-                StyledSlider {
-                    implicitWidth: 200
-                    from: 0.0
-                    to: 2.0
-                    stepSize: 0.05
-                    value: root.monitor ? (root.monitor.sdrSaturation || 1.0) : 1.0
-                    onMoved: root.updateField("sdrSaturation", Number(value.toFixed(2)))
                 }
             }
         }

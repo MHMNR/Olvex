@@ -213,9 +213,9 @@ ColumnLayout {
                 Layout.preferredWidth: 320
                 minSegmentWidth: 90
                 model: [
-                    { label: qsTr("Saver"), icon: "energy_savings_leaf" },
-                    { label: qsTr("Balanced"), icon: "balance" },
-                    { label: qsTr("Performance"), icon: "speed" }
+                    { label: qsTr("Saver") },
+                    { label: qsTr("Balanced") },
+                    { label: qsTr("Performance") }
                 ]
                 currentIndex: root.activePowerProfile
                 onSelected: i => root.setPowerProfile(i)

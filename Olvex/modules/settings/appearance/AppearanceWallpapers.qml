@@ -83,11 +83,9 @@ ColumnLayout {
                 id: sourceSeg
                 minSegmentWidth: 88
                 model: [{
-                        label: qsTr("Static"),
-                        icon: "image"
+                        label: qsTr("Static")
                     }, {
-                        label: qsTr("Live"),
-                        icon: "movie"
+                        label: qsTr("Live")
                     }]
                 currentIndex: root.wallpaperMode === "live" ? 1 : 0
                 onSelected: i => root.setWallpaperMode(i === 1 ? "live" : "static")

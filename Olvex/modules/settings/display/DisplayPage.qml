@@ -164,9 +164,9 @@ Item {
                 Segmented {
                     Layout.alignment: Qt.AlignLeft
                     model: [
-                        { label: qsTr("Display Properties"), icon: "display_settings", val: "display" },
-                        { label: qsTr("Workspaces Binding"), icon: "grid_view", val: "workspaces" },
-                        { label: qsTr("Profiles & Presets"), icon: "bookmarks", val: "profiles" }
+                        { label: qsTr("Display Properties"), val: "display" },
+                        { label: qsTr("Workspaces Binding"), val: "workspaces" },
+                        { label: qsTr("Profiles & Presets"), val: "profiles" }
                     ]
                     currentIndex: {
                         if (root.currentTab === "workspaces") return 1;
@@ -316,137 +316,112 @@ Item {
 
             Behavior on opacity { Anim { type: Anim.FastEffects } }
             Behavior on Layout.preferredHeight { Anim { type: Anim.Emphasized } }
-                        radius: Tokens.rounding ? Tokens.rounding.large : 16
+            radius: Tokens.rounding ? Tokens.rounding.large : 16
+            color: Colours.palette.m3surfaceContainerHighest
+            border.width: 0
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: Tokens.padding ? Tokens.padding.large : 16
+                anchors.rightMargin: Tokens.padding ? Tokens.padding.large : 16
+                spacing: Tokens.spacing ? Tokens.spacing.normal : 12
+
+                // Left: Sync status text
+                StyledText {
+                    text: root.hasUnsavedChanges ? qsTr("Unsaved display adjustments") : qsTr("Display configuration in sync")
+                    textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                    font.weight: Font.Medium
+                    color: root.hasUnsavedChanges ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                Item { Layout.fillWidth: true }
+
+                // Right: Actions
+                RowLayout {
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 8
+
+                    // Revert Button
+                    StyledRect {
+                        implicitWidth: revertText.implicitWidth + (Tokens.padding ? Tokens.padding.large : 16) * 2
+                        implicitHeight: 38
+                        radius: Tokens.rounding ? Tokens.rounding.full : 999
                         color: Colours.palette.m3surfaceContainerHigh
-                        border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+                        opacity: root.hasUnsavedChanges ? 1 : 0.5
+                        enabled: root.hasUnsavedChanges
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: Tokens.padding ? Tokens.padding.normal : 12
-                            anchors.rightMargin: Tokens.padding ? Tokens.padding.normal : 12
-                            spacing: Tokens.spacing ? Tokens.spacing.normal : 12
+                        StyledText {
+                            id: revertText
+                            anchors.centerIn: parent
+                            text: qsTr("Revert")
+                            font.weight: Font.Medium
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            color: Colours.palette.m3onSurface
+                        }
 
-                            // Unsaved changes indicator
-                            StyledRect {
-                                visible: root.hasUnsavedChanges
-                                implicitWidth: 10
-                                implicitHeight: 10
-                                radius: Tokens.rounding ? Tokens.rounding.full : 999
-                                color: Colours.palette.m3tertiary
-                            }
+                        StateLayer {
+                            radius: parent.radius
+                            onClicked: root.syncFromService()
+                        }
+                    }
 
-                            StyledText {
-                                text: root.hasUnsavedChanges ? qsTr("Unsaved display adjustments") : qsTr("Display configuration in sync")
-                                textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                                color: Colours.palette.m3onSurfaceVariant
-                            }
+                    // Apply & Test Button (With 10s countdown modal)
+                    StyledRect {
+                        implicitWidth: applyText.implicitWidth + (Tokens.padding ? Tokens.padding.large : 16) * 2
+                        implicitHeight: 38
+                        radius: Tokens.rounding ? Tokens.rounding.full : 999
+                        color: Colours.palette.m3secondaryContainer
 
-                            Item { Layout.fillWidth: true }
+                        StyledText {
+                            id: applyText
+                            anchors.centerIn: parent
+                            text: qsTr("Apply & Test")
+                            font.weight: Font.Bold
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            color: Colours.palette.m3onSecondaryContainer
+                        }
 
-                            // Revert Button
-                            StyledRect {
-                                implicitWidth: revertRow.implicitWidth + (Tokens.padding ? Tokens.padding.normal : 12) * 2
-                                implicitHeight: 38
-                                radius: Tokens.rounding ? Tokens.rounding.full : 999
-                                color: Colours.palette.m3surfaceContainerHighest
-                                opacity: root.hasUnsavedChanges ? 1 : 0.6
-                                enabled: root.hasUnsavedChanges
-
-                                RowLayout {
-                                    id: revertRow
-                                    anchors.centerIn: parent
-                                    spacing: 6
-                                    MaterialIcon {
-                                        text: "undo"
-                                        iconPointSize: Tokens.font ? Tokens.font.size.small : 12
-                                        color: Colours.palette.m3onSurface
-                                    }
-                                    StyledText {
-                                        text: qsTr("Revert")
-                                        font.weight: Font.Medium
-                                        textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                                        color: Colours.palette.m3onSurface
-                                    }
-                                }
-
-                                StateLayer {
-                                    radius: parent.radius
-                                    onClicked: root.syncFromService()
-                                }
-                            }
-
-                            // Apply & Test Button (With 10s countdown modal)
-                            StyledRect {
-                                implicitWidth: applyRow.implicitWidth + (Tokens.padding ? Tokens.padding.normal : 12) * 2
-                                implicitHeight: 38
-                                radius: Tokens.rounding ? Tokens.rounding.full : 999
-                                color: Colours.palette.m3secondaryContainer
-
-                                RowLayout {
-                                    id: applyRow
-                                    anchors.centerIn: parent
-                                    spacing: 6
-                                    MaterialIcon {
-                                        text: "play_arrow"
-                                        iconPointSize: Tokens.font ? Tokens.font.size.small : 12
-                                        color: Colours.palette.m3onSecondaryContainer
-                                    }
-                                    StyledText {
-                                        text: qsTr("Apply & Test")
-                                        font.weight: Font.Bold
-                                        textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                                        color: Colours.palette.m3onSecondaryContainer
-                                    }
-                                }
-
-                                StateLayer {
-                                    radius: parent.radius
-                                    onClicked: {
-                                        DisplayManager.startSafetyApply(
-                                            root.draftMonitors,
-                                            root.draftWorkspaces,
-                                            root.useDescription
-                                        );
-                                    }
-                                }
-                            }
-
-                            // Save Permanently Button
-                            StyledRect {
-                                implicitWidth: saveRow.implicitWidth + (Tokens.padding ? Tokens.padding.normal : 12) * 2
-                                implicitHeight: 38
-                                radius: Tokens.rounding ? Tokens.rounding.full : 999
-                                color: Colours.palette.m3primary
-
-                                RowLayout {
-                                    id: saveRow
-                                    anchors.centerIn: parent
-                                    spacing: 6
-                                    MaterialIcon {
-                                        text: "save"
-                                        iconPointSize: Tokens.font ? Tokens.font.size.small : 12
-                                        color: Colours.palette.m3onPrimary
-                                    }
-                                    StyledText {
-                                        text: qsTr("Save")
-                                        font.weight: Font.Bold
-                                        textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                                        color: Colours.palette.m3onPrimary
-                                    }
-                                }
-
-                                StateLayer {
-                                    radius: parent.radius
-                                    onClicked: {
-                                        DisplayManager.applyLive(root.draftMonitors, root.draftWorkspaces, root.useDescription);
-                                        DisplayManager.saveConfiguration(root.draftMonitors, root.draftWorkspaces, root.useDescription);
-                                        root.hasUnsavedChanges = false;
-                                    }
-                                }
+                        StateLayer {
+                            radius: parent.radius
+                            onClicked: {
+                                DisplayManager.startSafetyApply(
+                                    root.draftMonitors,
+                                    root.draftWorkspaces,
+                                    root.useDescription
+                                );
                             }
                         }
                     }
+
+                    // Save Permanently Button
+                    StyledRect {
+                        implicitWidth: saveText.implicitWidth + (Tokens.padding ? Tokens.padding.large : 16) * 2
+                        implicitHeight: 38
+                        radius: Tokens.rounding ? Tokens.rounding.full : 999
+                        color: Colours.palette.m3primary
+
+                        StyledText {
+                            id: saveText
+                            anchors.centerIn: parent
+                            text: qsTr("Save")
+                            font.weight: Font.Bold
+                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                            color: Colours.palette.m3onPrimary
+                        }
+
+                        StateLayer {
+                            radius: parent.radius
+                            onClicked: {
+                                DisplayManager.applyLive(root.draftMonitors, root.draftWorkspaces, root.useDescription);
+                                DisplayManager.saveConfiguration(root.draftMonitors, root.draftWorkspaces, root.useDescription);
+                                root.hasUnsavedChanges = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
                 }
 
     // ── Safety Countdown Modal Dialog (Lazy loaded) ─────────────

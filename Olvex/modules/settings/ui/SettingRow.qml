@@ -137,48 +137,97 @@ Item {
         }
     }
 
-    // ── Android-style Row Highlight Flash ──────────────────────────
+    // ── Ultra-sanitize for robust string matching ──────────────────────────
+    function ultraSanitize(str) {
+        if (!str) return "";
+        return String(str).toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function isTargetHighlighted() {
+        if (!PaneRegistry.highlightTimestamp || (Date.now() - PaneRegistry.highlightTimestamp > 4000))
+            return false;
+
+        const hTitle = ultraSanitize(PaneRegistry.highlightTitle);
+        const hId = ultraSanitize(PaneRegistry.highlightId);
+        const hKey = ultraSanitize(PaneRegistry.highlightKey);
+
+        if (!hTitle && !hId && !hKey)
+            return false;
+
+        const myKey = ultraSanitize(root.highlightKey);
+        const myTitle = ultraSanitize(root.title);
+
+        // 1. Exact match on explicit highlightKey
+        if (myKey && (myKey === hKey || myKey === hId || myKey === hTitle))
+            return true;
+
+        // 2. Exact match on row title
+        if (myTitle && hTitle) {
+            if (myTitle === hTitle)
+                return true;
+            // Also allow matching if hTitle ends with or starts with myTitle (e.g. "Dark / Light Mode" -> "Mode")
+            if (myTitle.length >= 3 && (hTitle.endsWith(myTitle) || hTitle.startsWith(myTitle)))
+                return true;
+        }
+
+        // 3. Exact match on ID suffix (e.g. appearance_theme_mode -> mode)
+        if (myTitle && hId && hId.endsWith(myTitle))
+            return true;
+
+        return false;
+    }
+
+    function triggerFlash() {
+        if (rowFlashAnim.running)
+            rowFlashAnim.stop();
+        rowFlashAnim.restart();
+    }
+
+    // ── Android-style Row Highlight Flash (3 Pulses) ──────────────────────
     StyledRect {
         id: rowFlashOverlay
         anchors.fill: parent
-        anchors.margins: 2
+        anchors.margins: -2
         radius: Tokens.rounding.normal
-        color: Qt.alpha(Colours.palette.m3primary, 0.22)
-        border.color: Qt.alpha(Colours.palette.m3primary, 0.55)
-        border.width: 1.5
+        color: Qt.alpha(Colours.palette.m3primary, 0.24)
+        border.width: 0
+        border.color: "transparent"
         opacity: 0.0
         z: 10
         visible: opacity > 0.001
 
+        MouseArea { anchors.fill: parent; enabled: false }
+
         SequentialAnimation {
             id: rowFlashAnim
-            PauseAnimation { duration: 350 }
-            NumberAnimation {
-                target: rowFlashOverlay
-                property: "opacity"
-                from: 0.0
-                to: 1.0
-                duration: 160
-                easing.type: Easing.OutQuad
-            }
-            PauseAnimation { duration: 250 }
-            NumberAnimation {
-                target: rowFlashOverlay
-                property: "opacity"
-                from: 1.0
-                to: 0.0
-                duration: 750
-                easing.type: Easing.OutCubic
+            running: false
+            PauseAnimation { duration: 240 }
+            NumberAnimation { target: rowFlashOverlay; property: "opacity"; from: 0.0; to: 1.0; duration: 120; easing.type: Easing.OutQuad }
+            PauseAnimation { duration: 60 }
+            NumberAnimation { target: rowFlashOverlay; property: "opacity"; from: 1.0; to: 0.15; duration: 140; easing.type: Easing.InOutQuad }
+            NumberAnimation { target: rowFlashOverlay; property: "opacity"; from: 0.15; to: 1.0; duration: 120; easing.type: Easing.OutQuad }
+            PauseAnimation { duration: 60 }
+            NumberAnimation { target: rowFlashOverlay; property: "opacity"; from: 1.0; to: 0.15; duration: 140; easing.type: Easing.InOutQuad }
+            NumberAnimation { target: rowFlashOverlay; property: "opacity"; from: 0.15; to: 1.0; duration: 120; easing.type: Easing.OutQuad }
+            PauseAnimation { duration: 100 }
+            NumberAnimation { target: rowFlashOverlay; property: "opacity"; from: 1.0; to: 0.0; duration: 600; easing.type: Easing.OutCubic }
+        }
+    }
+
+    // PaneRegistry is a pragma Singleton imported via "..".
+    // This Connections block fires on every page, regardless of Loader depth.
+    Connections {
+        target: PaneRegistry
+        function onHighlightTimestampChanged() {
+            if (root.isTargetHighlighted()) {
+                root.triggerFlash();
             }
         }
+    }
 
-        Connections {
-            target: root.session ?? null
-            function onHighlightTimestampChanged() {
-                if (root.highlightKey !== "" && root.session && (root.session.highlightKey === root.highlightKey || (root.title && root.session.highlightKey.toLowerCase() === root.title.toLowerCase()))) {
-                    rowFlashAnim.restart();
-                }
-            }
+    Component.onCompleted: {
+        if (root.isTargetHighlighted()) {
+            root.triggerFlash();
         }
     }
 }

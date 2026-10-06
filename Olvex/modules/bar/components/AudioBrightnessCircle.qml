@@ -63,7 +63,7 @@ Item {
 
     Timer {
         id: autoHideTimer
-        interval: Config.bar.quickOrb.autoHideDelay
+        interval: root.Config.bar.quickOrb.autoHideDelay
         repeat: false
         onTriggered: {
             if (!root.isHovered && !root.isOverlayRendering) {

@@ -12,7 +12,7 @@ Singleton {
 
     property var values: []
     property string visibleOwner: ""
-    property bool isActive: visibleOwner !== ""
+    property bool isActive: visibleOwner !== "" || (Players.active !== null && (Players.isPlaying || Players.activeIsPlaying))
     property bool isSettled: true
     readonly property bool publishesValues: visibleOwner.indexOf("background:") === 0
     // Experiment: match the monitor's native refresh rate instead of a fixed
@@ -41,6 +41,44 @@ Singleton {
         target: Audio.cava
         property: "qmlValuePublishing"
         value: root.publishesValues
+    }
+
+    function isOwnerActive(owner: string): bool {
+        if (!owner || !_requests[owner])
+            return false;
+
+        const reqKeys = Object.keys(_requests);
+
+        // 1. If lock screen is requesting, lock screen has exclusive priority
+        const hasLock = reqKeys.some(k => k === "lockPill" || k.startsWith("lock"));
+        if (hasLock)
+            return owner === "lockPill" || owner.startsWith("lock");
+
+        // Parse category and screen from owner (e.g. "pill:DP-1", "overlay:DP-1", "background:DP-1", or "pill")
+        const parts = owner.split(":");
+        const category = parts[0];
+        const screenName = parts.length > 1 ? parts.slice(1).join(":") : "";
+
+        // 2. Overlay has top priority on its screen
+        if (category === "overlay")
+            return true;
+
+        // 3. Pill is active unless overlay is active on this screen
+        if (category === "pill") {
+            if (_requests["overlay:" + screenName] || (screenName === "" && _requests["overlay"]))
+                return false;
+            return true;
+        }
+
+        // 4. Background is active unless overlay or pill is active on this screen
+        if (category === "background") {
+            if (_requests["overlay:" + screenName] || (screenName === "" && _requests["overlay"]) ||
+                _requests["pill:" + screenName] || (screenName === "" && _requests["pill"]))
+                return false;
+            return true;
+        }
+
+        return visibleOwner === owner || visibleOwner.startsWith(category);
     }
 
     function request(owner: string, priority: int, active: bool): void {
@@ -136,12 +174,7 @@ Singleton {
         onTriggered: root.publishPending(false)
     }
 
-    Loader {
-        active: root.isActive
-        sourceComponent: Item {
-            ServiceRef {
-                service: Audio.cava
-            }
-        }
+    ServiceRef {
+        service: root.isActive ? Audio.cava : null
     }
 }

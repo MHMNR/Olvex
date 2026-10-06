@@ -43,11 +43,9 @@ ColumnLayout {
                 minSegmentWidth: 104
                 implicitHeight: 42
                 model: [{
-                        label: qsTr("Card"),
-                        icon: "credit_card"
+                        label: qsTr("Card")
                     }, {
-                        label: qsTr("Minimal"),
-                        icon: "crop_square"
+                        label: qsTr("Minimal")
                     }]
                 currentIndex: (GlobalConfig.lock.style || "card") === "minimal" ? 1 : 0
                 onSelected: i => {

@@ -39,7 +39,7 @@ Item {
     readonly property int artSize: 72
 
     // ── Background visualizer ownership ──────────────────────────────────────
-    readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "lockPill"
+    readonly property bool ownsVisualizer: VisualizerState.isOwnerActive("lockPill") || VisualizerState.visibleOwner === "lockPill"
     readonly property real _screenHz: Screen.refreshRate > 0 ? Screen.refreshRate : 60
     readonly property int visualizerFrameInterval: Math.max(1, Math.round(1000 / root._screenHz))
     property bool visualizerLoaded: root.hasActiveMedia

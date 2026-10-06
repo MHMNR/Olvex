@@ -15,26 +15,35 @@ StyledRect {
     property string query: ""
     property int selectedIndex: 0
 
+    property int hoveredIndex: -1
+
+    onQueryChanged: root.hoveredIndex = -1
+
+    Timer {
+        id: clearHoverTimer
+        interval: 80
+        onTriggered: root.hoveredIndex = -1
+    }
+
     readonly property var results: PaneRegistry.search(query)
     readonly property int resultsCount: results.length
 
     signal itemActivated(var item)
     signal closeRequested()
 
-    implicitWidth: 440
+    implicitWidth: 520
     implicitHeight: {
         if (query.trim() === "")
             return 0;
         if (resultsCount === 0)
             return 210;
-        const listH = Math.min(resultsCount * 68, 410);
+        const listH = Math.min(resultsCount * 64, 420);
         return listH + headerItem.height + 24;
     }
 
     radius: Tokens.rounding.large
     color: Colours.palette.m3surfaceContainerHigh
-    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
-    border.width: 1
+    border.width: 0
     clip: true
 
     Behavior on implicitHeight { Anim { type: Anim.DefaultSpatial } }
@@ -75,6 +84,14 @@ StyledRect {
             escaped = escaped.replace(regex, `<font color="${accentHex}"><b>$1</b></font>`);
         }
         return escaped;
+    }
+
+    function formatAndroidPath(item) {
+        if (!item || !item.breadcrumb) return "";
+        const rawParts = item.breadcrumb.split("›").map(s => s.trim()).filter(s => s.length > 0);
+        const cleanParts = rawParts.filter(p => p.toLowerCase() !== "settings");
+        if (cleanParts.length === 0) return "";
+        return cleanParts.join(" › ");
     }
 
     ColumnLayout {
@@ -121,7 +138,7 @@ StyledRect {
             }
         }
 
-        // ── Results List ──
+        // ── Results List (Android 2-Line Pattern with Moving Highlights) ──
         ListView {
             id: resultsList
             Layout.fillWidth: true
@@ -131,6 +148,66 @@ StyledRect {
             spacing: 4
             model: root.results
             visible: root.resultsCount > 0
+
+            // Moving Focus / Selection Indicator Pill
+            StyledRect {
+                id: focusHighlight
+                parent: resultsList.contentItem
+                width: resultsList.width
+                height: 60
+                radius: Tokens.rounding.normal
+                color: Qt.alpha(Colours.palette.m3primary, 0.16)
+                border.width: 0
+                z: 0
+                visible: root.resultsCount > 0 && root.selectedIndex >= 0 && root.selectedIndex < root.resultsCount
+
+                x: 0
+                y: (root.selectedIndex >= 0 && root.selectedIndex < root.resultsCount)
+                    ? root.selectedIndex * (60 + resultsList.spacing)
+                    : 0
+
+                Behavior on y {
+                    SpringAnimation {
+                        spring: 7.0
+                        damping: 0.8
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+            }
+
+            // Moving Hover Highlight Indicator Pill
+            StyledRect {
+                id: hoverHighlight
+                parent: resultsList.contentItem
+                width: resultsList.width
+                height: 60
+                radius: Tokens.rounding.normal
+                color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+                border.width: 0
+                z: 0
+                visible: opacity > 0.001
+                opacity: (root.hoveredIndex >= 0 && root.hoveredIndex !== root.selectedIndex && root.hoveredIndex < root.resultsCount) ? 1.0 : 0.0
+
+                x: 0
+                y: (root.hoveredIndex >= 0 && root.hoveredIndex < root.resultsCount)
+                    ? root.hoveredIndex * (60 + resultsList.spacing)
+                    : y
+
+                Behavior on y {
+                    enabled: hoverHighlight.opacity > 0
+                    SpringAnimation {
+                        spring: 7.0
+                        damping: 0.8
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
 
             delegate: StyledRect {
                 id: itemCard
@@ -142,36 +219,37 @@ StyledRect {
                 readonly property color itemAccent: Colours.palette[modelData.accentRole] || Colours.palette.m3primary
 
                 width: resultsList.width
-                implicitHeight: 64
+                implicitHeight: 60
                 radius: Tokens.rounding.normal
-
-                color: isSelected
-                    ? Qt.alpha(Colours.palette.m3primary, 0.16)
-                    : (cardHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent")
-
-                border.color: isSelected ? Qt.alpha(itemAccent, 0.4) : "transparent"
-                border.width: isSelected ? 1 : 0
-
-                Behavior on color { CAnim {} }
-                Behavior on border.color { CAnim {} }
+                color: "transparent"
+                border.width: 0
+                z: 1
 
                 HoverHandler {
                     id: cardHover
                     cursorShape: Qt.PointingHandCursor
+                    onHoveredChanged: {
+                        if (hovered) {
+                            clearHoverTimer.stop();
+                            root.hoveredIndex = itemCard.index;
+                        } else if (root.hoveredIndex === itemCard.index) {
+                            clearHoverTimer.restart();
+                        }
+                    }
                 }
 
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: 10
-                    anchors.rightMargin: 10
+                    anchors.rightMargin: 12
                     spacing: 12
 
-                    // Icon Badge
+                    // Icon Squircle Badge
                     StyledRect {
                         implicitWidth: 38
                         implicitHeight: 38
                         radius: Tokens.rounding.small
-                        color: Qt.alpha(itemCard.itemAccent, 0.18)
+                        color: Qt.alpha(itemCard.itemAccent, 0.16)
                         Layout.alignment: Qt.AlignVCenter
 
                         MaterialIcon {
@@ -183,51 +261,28 @@ StyledRect {
                         }
                     }
 
-                    // Content Column
+                    // Text Hierarchy Column (Line 1: Title, Line 2: Breadcrumb)
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
-                        spacing: 2
+                        spacing: 3
 
-                        // Breadcrumb & Title Row
-                        RowLayout {
+                        // Line 1: Main Title with Query Highlight
+                        Text {
+                            text: root.highlightQuery(itemCard.modelData.title, root.query, Colours.palette.m3primary)
+                            textFormat: Text.RichText
+                            color: Colours.palette.m3onSurface
+                            font.family: Tokens.font.family.sans
+                            font.pixelSize: Math.max(13, Math.round(Tokens.font.size.normal * 96 / 72))
+                            font.weight: Font.DemiBold
+                            elide: Text.ElideRight
                             Layout.fillWidth: true
-                            spacing: 6
-
-                            // Title with Highlighted Query Terms
-                            Text {
-                                text: root.highlightQuery(itemCard.modelData.title, root.query, Colours.palette.m3primary)
-                                textFormat: Text.RichText
-                                color: Colours.palette.m3onSurface
-                                font.family: Tokens.font.family.sans
-                                font.pixelSize: Math.max(13, Math.round(Tokens.font.size.normal * 96 / 72))
-                                font.weight: Font.DemiBold
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
-                            }
-
-                            // Tiny Category Chip
-                            StyledRect {
-                                implicitWidth: breadcrumbText.implicitWidth + 10
-                                implicitHeight: 18
-                                radius: Tokens.rounding.full
-                                color: Qt.alpha(Colours.palette.m3onSurface, 0.06)
-
-                                StyledText {
-                                    id: breadcrumbText
-                                    anchors.centerIn: parent
-                                    text: itemCard.modelData.breadcrumb.split("›").pop().trim()
-                                    color: Colours.palette.m3onSurfaceVariant
-                                    font.weight: Font.Normal
-                                    textPointSize: Tokens.font.size.smaller - 1
-                                }
-                            }
                         }
 
-                        // Subtitle / Description
+                        // Line 2: Clean Android-style Breadcrumb Path
                         StyledText {
-                            text: itemCard.modelData.sub
-                            color: Colours.palette.m3onSurfaceVariant
+                            text: root.formatAndroidPath(itemCard.modelData)
+                            color: Colours.palette.m3outline
                             font.weight: Font.Normal
                             textPointSize: Tokens.font.size.small
                             elide: Text.ElideRight
@@ -235,7 +290,7 @@ StyledRect {
                         }
                     }
 
-                    // Right Key Hint / Chevron
+                    // Right Selection Indicator
                     StyledRect {
                         implicitWidth: itemCard.isSelected ? enterRow.implicitWidth + 12 : 24
                         implicitHeight: 24
@@ -266,7 +321,7 @@ StyledRect {
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "chevron_right"
-                            color: Colours.palette.m3outlineVariant
+                            color: Qt.alpha(Colours.palette.m3outline, 0.4)
                             iconPointSize: 16
                             visible: !itemCard.isSelected
                         }

@@ -8,7 +8,6 @@ import "../../../components/controls"
 import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Dialogs
 import Olvex.Config
 import qs.services
 import qs.components.filedialog
@@ -47,9 +46,10 @@ ColumnLayout {
 
     Process {
         id: installProc
-        command: ["bash", "-c", `mkdir -p ~/.local/share/fonts && cp '${root.installPath}' ~/.local/share/fonts/ && fc-cache -f`]
+        command: ["bash", "-c", "mkdir -p ~/.local/share/fonts && cp \"$1\" ~/.local/share/fonts/ && fc-cache -f", "--", root.installPath]
         onExited: {
             Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Font Installed"), qsTr("Successfully installed %1").arg(root.pendingFontName)]);
+            fontListProc.running = false;
             fontListProc.running = true;
         }
     }
@@ -82,8 +82,10 @@ ColumnLayout {
         onAccepted: path => {
             let urlPath = path;
             if (urlPath.startsWith("file://")) {
-                urlPath = urlPath.substring(7);
+                urlPath = decodeURIComponent(urlPath.substring(7));
             }
+            if (!urlPath) return;
+
             root.installPath = urlPath;
             let srcName = urlPath.split('/').pop().replace(/\.(ttf|otf)$/i, "");
             root.pendingFontName = srcName;

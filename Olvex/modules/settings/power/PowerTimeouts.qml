@@ -95,7 +95,6 @@ ColumnLayout {
                 id: innerDpms
                 width: parent.width
                 title: qsTr("Delay before turning off")
-                icon: "subdirectory_arrow_right"
                 divider: true
                 CustomSpinBox {
                     value: root.getTimeoutMinutes("dpms off", 5)
@@ -137,7 +136,6 @@ ColumnLayout {
                 id: innerLock
                 width: parent.width
                 title: qsTr("Delay before locking")
-                icon: "subdirectory_arrow_right"
                 divider: true
                 CustomSpinBox {
                     value: root.getTimeoutMinutes("lock", 3)
@@ -179,7 +177,6 @@ ColumnLayout {
                 id: innerSuspend
                 width: parent.width
                 title: qsTr("Delay before sleeping")
-                icon: "subdirectory_arrow_right"
                 divider: false
                 CustomSpinBox {
                     value: root.getTimeoutMinutes("suspend", 10)

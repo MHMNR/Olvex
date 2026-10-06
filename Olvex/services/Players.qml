@@ -331,8 +331,10 @@ Singleton {
             root.currentArtUrl = url;
             changed = true;
         }
-        if (changed)
+        if (changed) {
             root._bumpArtReload();
+            root._onArtUrlUpdated();
+        }
 
         artPollTimer.attempts = 0;
         artPollTimer.start();
@@ -354,6 +356,7 @@ Singleton {
             if (url !== root.currentArtUrl) {
                 root.currentArtUrl = url;
                 root._bumpArtReload();
+                root._onArtUrlUpdated();
             }
             attempts++;
             if (attempts >= 16)
@@ -439,6 +442,7 @@ Singleton {
         id: accentProps
         property string cacheJson: "{}"
         property string lastArtUrl: ""
+        property string lastSeed: ""
         property string lastVisualizer: ""
         property string lastPlayButtonBg: ""
         reloadableId: "mediaAccent"
@@ -448,6 +452,10 @@ Singleton {
     readonly property string mediaAccentPath: `${Paths.state}/media/accent.json`
 
     property bool bootAccentLoaded: false
+    property color dominantSeed: null
+    property string _analyzedArtUrl: ""
+    property string _analyzedTrackKey: ""
+
     // Stored accents — never bind to Colours.palette (caused binding recursion with pickers).
     property color bootVisualizerAccent: "#4F378A"
     property color bootPlayButtonBg: "#CFBCFF"
@@ -490,6 +498,14 @@ Singleton {
     property color musicOnAccent: "#E9DDFF"
 
     onAccentBlendProgressChanged: root._applyAccentBlend()
+
+    ImageAnalyser {
+        id: accentAnalyser
+        profile: "albumArt"
+        rescaleSize: 128
+        onDominantColourChanged: root._onAnalysisDominantColourChanged()
+        onFinished: (dominantColour, luminance) => root._onAnalysisFinished(dominantColour, luminance)
+    }
 
     function resolvePlayIconColor(playButtonBg: color, playIconColor: color): color {
         if (!playButtonBg || playButtonBg.a <= 0)
@@ -560,31 +576,129 @@ Singleton {
         root.musicOnAccent = Colours.on(root.musicVisualizerAccent);
     }
 
-    function syncBootAccentsFromSystem(force = false): void {
-        root.bootVisualizerAccent = Colours.palette.m3primaryContainer;
-        root.bootPlayButtonBg = Colours.palette.m3primary;
-        root.bootSurfaceColor = Colours.palette.m3surfaceContainerHigh;
-        root.bootOnSurfaceColor = Colours.palette.m3onSurface;
-        root.bootPlayIconColor = root.resolvePlayIconColor(root.bootPlayButtonBg, null);
-
-        if (!root.liveAccentReady || !root.active || !root.currentArtUrl || force) {
-            root.liveVisualizerAccent = root.bootVisualizerAccent;
-            root.livePlayButtonBg = root.bootPlayButtonBg;
-            root.liveSurfaceColor = root.bootSurfaceColor;
-            root.liveOnSurfaceColor = root.bootOnSurfaceColor;
-            root.livePlayIconColor = root.bootPlayIconColor;
-            root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
-            root._updateMusicOnAccent();
+    function _scheduleArtAnalysis(): void {
+        if (!root.currentArtUrl || !root.active) {
+            root.clearLiveAccent();
+            return;
         }
+        const rawUrl = root.stripArtDisplayUrl(root.currentArtUrl);
+        if (!rawUrl)
+            return;
+
+        accentAnalyser.sourceItem = null;
+        accentAnalyser.source = rawUrl;
+        accentAnalyser.requestUpdate();
+    }
+
+    function _onAnalysisDominantColourChanged(): void {
+        root._onAnalysisFinished(accentAnalyser.dominantColour, 0);
+    }
+
+    function _onAnalysisFinished(dominantColour: color, luminance: real): void {
+        const seed = (dominantColour && dominantColour.a > 0 && dominantColour.hslLightness > 0.02)
+            ? dominantColour
+            : accentAnalyser.dominantColour;
+        if (!seed || seed.a <= 0 || seed.hslLightness <= 0.02)
+            return;
+
+        root.dominantSeed = seed;
+        root._analyzedArtUrl = root.normalizeMediaArtUrl(root.currentArtUrl);
+        root._analyzedTrackKey = root.currentTrackKey;
+        root.liveAccentReady = true;
+        root.bootAccentLoaded = true;
+        root.recomputeThemeAccents();
+
+        if (root.currentArtUrl)
+            root.storeMediaAccent(root.currentArtUrl, seed.toString());
+    }
+
+    function _onArtUrlUpdated(): void {
+        if (!root.active || !root.currentArtUrl) {
+            root.clearLiveAccent();
+            return;
+        }
+        const norm = root.normalizeMediaArtUrl(root.currentArtUrl);
+        const key = root.currentTrackKey;
+        if (norm === root._analyzedArtUrl && key === root._analyzedTrackKey && root.liveAccentReady && root.dominantSeed) {
+            root.recomputeThemeAccents();
+            return;
+        }
+
+        // Check cache
+        const hit = root.getMediaAccent(root.currentArtUrl);
+        if (hit && (hit.seed || hit.visualizer)) {
+            const seedVal = hit.seed ?? hit.visualizer;
+            const seedColor = Qt.color(seedVal);
+            if (seedColor && seedColor.a > 0 && seedColor.hslLightness > 0.02) {
+                root.dominantSeed = seedColor;
+                root._analyzedArtUrl = norm;
+                root._analyzedTrackKey = key;
+                root.liveAccentReady = true;
+                root.bootAccentLoaded = true;
+                root.recomputeThemeAccents();
+                return;
+            }
+        }
+
+        root.liveAccentReady = false;
+        root.dominantSeed = null;
+        root._analyzedArtUrl = "";
+        root._analyzedTrackKey = "";
+        root.recomputeThemeAccents();
+        root._scheduleArtAnalysis();
+    }
+
+    function recomputeThemeAccents(): void {
+        const hasArt = root.active && !!root.currentArtUrl;
+        const seed = (root.dominantSeed && root.dominantSeed.a > 0 && root.dominantSeed.hslLightness > 0.02)
+            ? root.dominantSeed
+            : null;
+
+        let vis, fill, icon, surf, onSurf;
+        const isLight = Colours.light;
+
+        if (hasArt && seed) {
+            vis = accentAnalyser.vibrantAccent(seed) || seed;
+            fill = accentAnalyser.playButtonFill(seed, isLight);
+            icon = accentAnalyser.playIconOnFill(isLight, fill);
+            surf = accentAnalyser.surfaceColor(seed, isLight);
+            onSurf = accentAnalyser.onSurfaceColor(isLight);
+        } else {
+            vis = Colours.palette.m3primaryContainer;
+            fill = Colours.palette.m3primary;
+            icon = accentAnalyser.playIconOnFill(isLight, fill);
+            surf = Colours.palette.m3surfaceContainerHigh;
+            onSurf = Colours.palette.m3onSurface;
+        }
+
+        if (!vis || vis.a <= 0) vis = Colours.palette.m3primaryContainer;
+        if (!fill || fill.a <= 0) fill = Colours.palette.m3primary;
+        if (!icon || icon.a <= 0) icon = accentAnalyser.playIconOnFill(isLight, fill);
+        if (!surf || surf.a <= 0) surf = Colours.palette.m3surfaceContainerHigh;
+        if (!onSurf || onSurf.a <= 0) onSurf = Colours.palette.m3onSurface;
+
+        root.liveVisualizerAccent = vis;
+        root.livePlayButtonBg = fill;
+        root.livePlayIconColor = icon;
+        root.liveSurfaceColor = surf;
+        root.liveOnSurfaceColor = onSurf;
+
+        root.bootVisualizerAccent = vis;
+        root.bootPlayButtonBg = fill;
+        root.bootPlayIconColor = icon;
+        root.bootSurfaceColor = surf;
+        root.bootOnSurfaceColor = onSurf;
+
+        root._animateAccentTo(vis, fill, icon, surf, onSurf);
+        root._updateMusicOnAccent();
+    }
+
+    function syncBootAccentsFromSystem(force = false): void {
+        root.recomputeThemeAccents();
     }
 
     function handleThemeChange(): void {
-        root.syncBootAccentsFromSystem();
-        if (root.active && root.currentArtUrl) {
-            root.requestMediaAccentRefresh();
-        } else {
-            root.clearLiveAccent();
-        }
+        root.recomputeThemeAccents();
     }
 
     property var _mediaAccentSession: ({})
@@ -598,154 +712,76 @@ Singleton {
     }
 
     function requestMediaAccentRefresh(): void {
-        root.mediaAccentRefreshNeeded();
+        root.recomputeThemeAccents();
+        root._scheduleArtAnalysis();
     }
 
-    property bool _publishingAccent: false
-    property bool _ingestingAccent: false
-    property bool _suppressAccentFileIngest: false
-
-    function publishLiveAccent(visualizer: color, playButtonBg: color, artUrl: string, playIconColor: color, surfaceColor: color, onSurfaceColor: color): void {
-        if (root._publishingAccent)
-            return;
-
-        const playValid = playButtonBg && playButtonBg.a > 0 && playButtonBg.hslLightness > 0.02;
-        const visValid = visualizer && visualizer.a > 0 && visualizer.hslLightness > 0.02;
-        const nextVis = visValid ? visualizer : root.liveVisualizerAccent;
-        const nextPlay = playValid ? playButtonBg : root.livePlayButtonBg;
-        const nextIcon = playValid ? root.resolvePlayIconColor(nextPlay, playIconColor) : root.livePlayIconColor;
-
-        const nextSurface = (surfaceColor && surfaceColor.a > 0) ? surfaceColor : root.liveSurfaceColor;
-        const nextOnSurface = (onSurfaceColor && onSurfaceColor.a > 0) ? onSurfaceColor : root.liveOnSurfaceColor;
-
-        const unchanged = root.liveAccentReady && root.liveVisualizerAccent === nextVis && root.livePlayButtonBg === nextPlay && root.liveSurfaceColor === nextSurface && root.liveOnSurfaceColor === nextOnSurface && root.livePlayIconColor === nextIcon;
-        if (unchanged && !artUrl)
-            return;
-
-        root._publishingAccent = true;
-        root.liveVisualizerAccent = nextVis;
-        root.livePlayButtonBg = nextPlay;
-        root.liveSurfaceColor = nextSurface;
-        root.liveOnSurfaceColor = nextOnSurface;
-        root.livePlayIconColor = nextIcon;
-        root.liveAccentReady = true;
-        root.bootVisualizerAccent = nextVis;
-        root.bootPlayButtonBg = nextPlay;
-        root.bootSurfaceColor = nextSurface;
-        root.bootOnSurfaceColor = nextOnSurface;
-        root.bootPlayIconColor = nextIcon;
-        root.bootAccentLoaded = true;
-        root._animateAccentTo(nextVis, nextPlay, nextIcon, nextSurface, nextOnSurface);
-        if (artUrl && visValid && playValid)
-            root.storeMediaAccent(artUrl, nextVis.toString(), nextPlay.toString(), nextIcon.toString());
-        else if (artUrl && playValid)
-            root._bumpMediaAccentRevision();
-        else if (!unchanged)
-            root._bumpMediaAccentRevision();
-        root._updateMusicOnAccent();
-        root._publishingAccent = false;
+    function publishLiveAccent(visualizer: color, playButtonBg: color, artUrl: string, playIconColor: color, surfaceColor: color, onSurfaceColor: color, seed: color): void {
+        if (seed && seed.a > 0) {
+            root.dominantSeed = seed;
+            root.liveAccentReady = true;
+            root.bootAccentLoaded = true;
+            root.recomputeThemeAccents();
+            if (artUrl)
+                root.storeMediaAccent(artUrl, seed.toString());
+        }
     }
 
     function publishPlayButtonBg(playButtonBg: color, artUrl: string, playIconColor: color): void {
-        if (root._publishingAccent)
-            return;
-        if (!playButtonBg || playButtonBg.a <= 0 || playButtonBg.hslLightness <= 0.02)
-            return;
-
-        const nextIcon = root.resolvePlayIconColor(playButtonBg, playIconColor);
-        root._publishingAccent = true;
-        root.livePlayButtonBg = playButtonBg;
-        root.bootPlayButtonBg = playButtonBg;
-        root.livePlayIconColor = nextIcon;
-        root.bootPlayIconColor = nextIcon;
-        root.liveAccentReady = true;
-        root.bootAccentLoaded = true;
-        root._animateAccentTo(root.liveVisualizerAccent, playButtonBg, nextIcon, root.liveSurfaceColor, root.liveOnSurfaceColor);
-        root._updateMusicOnAccent();
-        root._publishingAccent = false;
+        root.recomputeThemeAccents();
     }
 
     function clearLiveAccent(): void {
         root.liveAccentReady = false;
-        root.bootVisualizerAccent = Colours.palette.m3primaryContainer;
-        root.bootPlayButtonBg = Colours.palette.m3primary;
-        root.bootSurfaceColor = Colours.palette.m3surfaceContainerHigh;
-        root.bootOnSurfaceColor = Colours.palette.m3onSurface;
-        root.bootPlayIconColor = root.resolvePlayIconColor(root.bootPlayButtonBg, null);
-        root.liveVisualizerAccent = root.bootVisualizerAccent;
-        root.livePlayButtonBg = root.bootPlayButtonBg;
-        root.liveSurfaceColor = root.bootSurfaceColor;
-        root.liveOnSurfaceColor = root.bootOnSurfaceColor;
-        root.livePlayIconColor = root.bootPlayIconColor;
-        root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
-        root._updateMusicOnAccent();
+        root.dominantSeed = null;
+        root._analyzedArtUrl = "";
+        root._analyzedTrackKey = "";
+        root.recomputeThemeAccents();
     }
 
-    property string _lastIngestHash: ""
-
     function ingestAccentPayload(data: var): void {
-        if (!data || typeof data !== "object" || root._ingestingAccent)
+        if (!data || typeof data !== "object")
             return;
-
-        root._ingestingAccent = true;
 
         const lastArtUrl = data.lastArtUrl ?? "";
-        const lastVisualizer = data.lastVisualizer ?? "";
-        const lastPlayButtonBg = data.lastPlayButtonBg ?? "";
+        const lastSeed = data.lastSeed ?? data.lastVisualizer ?? "";
         const cache = data.cache && typeof data.cache === "object" ? data.cache : {};
-        const hash = JSON.stringify({
-            lastArtUrl,
-            lastVisualizer,
-            lastPlayButtonBg
-        });
-        if (hash === root._lastIngestHash && root.bootAccentLoaded) {
-            root._ingestingAccent = false;
-            return;
-        }
-        root._lastIngestHash = hash;
 
+        accentProps.cacheJson = JSON.stringify(cache);
         if (lastArtUrl)
             accentProps.lastArtUrl = lastArtUrl;
-        if (lastVisualizer)
-            accentProps.lastVisualizer = lastVisualizer;
-        if (lastPlayButtonBg)
-            accentProps.lastPlayButtonBg = lastPlayButtonBg;
-        accentProps.cacheJson = JSON.stringify(cache);
-
-        if (lastVisualizer && lastPlayButtonBg) {
-            const bootPlay = Qt.color(lastPlayButtonBg);
-            root.bootVisualizerAccent = Qt.color(lastVisualizer);
-            root.bootPlayButtonBg = bootPlay;
-            root.bootPlayIconColor = root.resolvePlayIconColor(bootPlay, null);
-            root.bootAccentLoaded = true;
-            if (!root.liveAccentReady) {
-                root.liveVisualizerAccent = root.bootVisualizerAccent;
-                root.livePlayButtonBg = root.bootPlayButtonBg;
-                root.livePlayIconColor = root.bootPlayIconColor;
-                root._animateAccentTo(root.liveVisualizerAccent, root.livePlayButtonBg, root.livePlayIconColor, root.liveSurfaceColor, root.liveOnSurfaceColor);
-            }
-            root._updateMusicOnAccent();
-        }
+        if (lastSeed)
+            accentProps.lastSeed = lastSeed;
 
         for (const key of Object.keys(cache)) {
             const entry = cache[key];
-            if (entry?.visualizer && entry?.playButtonBg)
-                root._mediaAccentSession[root.normalizeMediaArtUrl(key)] = entry;
+            if (entry?.seed || entry?.visualizer) {
+                const seedVal = entry.seed ?? entry.visualizer;
+                root._mediaAccentSession[root.normalizeMediaArtUrl(key)] = { seed: seedVal };
+            }
         }
 
-        root._bumpMediaAccentRevision();
-        if (!root._publishingAccent) {
-            root.mediaAccentPrewarmed();
-            root.requestMediaAccentRefresh();
+        if (!root.liveAccentReady && lastSeed) {
+            const seedColor = Qt.color(lastSeed);
+            if (seedColor && seedColor.a > 0 && seedColor.hslLightness > 0.02) {
+                root.dominantSeed = seedColor;
+                root.bootAccentLoaded = true;
+                root.recomputeThemeAccents();
+            }
         }
-        root._ingestingAccent = false;
+    }
+
+    Timer {
+        id: persistDebounceTimer
+        interval: 400
+        repeat: false
+        onTriggered: root.persistAccentFile()
     }
 
     function persistAccentFile(): void {
         const payload = JSON.stringify({
             lastArtUrl: accentProps.lastArtUrl,
-            lastVisualizer: accentProps.lastVisualizer,
-            lastPlayButtonBg: accentProps.lastPlayButtonBg,
+            lastSeed: accentProps.lastSeed,
             cache: root._readAccentDiskCache()
         });
         const escaped = payload.replace(/'/g, "'\\''");
@@ -789,17 +825,20 @@ Singleton {
     function _coerceAccentEntry(entry: var): var {
         if (!entry)
             return null;
-        const visualizer = entry.visualizer;
-        const playButtonBg = entry.playButtonBg;
-        if (!visualizer || !playButtonBg)
+        const seedVal = entry.seed ?? entry.visualizer;
+        if (!seedVal)
             return null;
-        const playBg = typeof playButtonBg === "string" ? Qt.color(playButtonBg) : playButtonBg;
-        const playIconRaw = entry.playIconColor;
-        const playIcon = playIconRaw ? (typeof playIconRaw === "string" ? Qt.color(playIconRaw) : playIconRaw) : null;
+        const seed = typeof seedVal === "string" ? Qt.color(seedVal) : seedVal;
+        const isLight = Colours.light;
+        const fill = accentAnalyser.playButtonFill(seed, isLight);
+        const vis = accentAnalyser.vibrantAccent(seed);
         return {
-            visualizer: typeof visualizer === "string" ? Qt.color(visualizer) : visualizer,
-            playButtonBg: playBg,
-            playIconColor: root.resolvePlayIconColor(playBg, playIcon)
+            seed: seed,
+            visualizer: vis,
+            playButtonBg: fill,
+            playIconColor: accentAnalyser.playIconOnFill(isLight, fill),
+            surfaceColor: accentAnalyser.surfaceColor(seed, isLight),
+            onSurfaceColor: accentAnalyser.onSurfaceColor(isLight)
         };
     }
 
@@ -829,22 +868,16 @@ Singleton {
     }
 
     function getBootAccent(artUrl: string): var {
-        if (!accentProps.lastVisualizer || !accentProps.lastPlayButtonBg)
+        if (!accentProps.lastSeed && !accentProps.lastVisualizer)
             return null;
-        if (!artUrl) {
-            return {
-                visualizer: accentProps.lastVisualizer,
-                playButtonBg: accentProps.lastPlayButtonBg
-            };
-        }
+        const seedVal = accentProps.lastSeed || accentProps.lastVisualizer;
+        if (!artUrl)
+            return { seed: seedVal };
         const norm = root.normalizeMediaArtUrl(artUrl);
         const lastNorm = root.normalizeMediaArtUrl(accentProps.lastArtUrl);
         if (norm !== lastNorm)
             return null;
-        return {
-            visualizer: accentProps.lastVisualizer,
-            playButtonBg: accentProps.lastPlayButtonBg
-        };
+        return { seed: seedVal };
     }
 
     function _readAccentDiskCache(): var {
@@ -862,17 +895,12 @@ Singleton {
         const norm = root.normalizeMediaArtUrl(artUrl);
         const isLocal = norm.startsWith("file://");
         const cacheKey = isLocal ? norm + "::" + root.currentTrackKey : norm;
-        // For local files: only match by exact trackKey to avoid stale colors from
-        // a previous track that shared the same temp art file path.
-        // For remote URLs: stable per-track so norm fallback is safe.
         const session = isLocal
             ? root._mediaAccentSession[cacheKey]
             : (root._mediaAccentSession[cacheKey] ?? root._mediaAccentSession[norm] ?? root._mediaAccentSession[artUrl]);
         if (session)
             return session;
 
-        // Skip disk cache entirely for local files, because music players reuse generic 
-        // temp paths (e.g. /tmp/chromium-mpris-art.png) across entirely different tracks.
         if (isLocal)
             return null;
 
@@ -888,33 +916,24 @@ Singleton {
         }
         if (!entry)
             return null;
-        // Re-hydrate to memory cache
         root._mediaAccentSession[norm] = entry;
         return entry;
     }
 
-    function storeMediaAccent(artUrl: string, visualizer: string, playButtonBg: string, playIconColor: string): void {
-        if (!artUrl)
+    function storeMediaAccent(artUrl: string, seed: string): void {
+        if (!artUrl || !seed)
             return;
         const norm = root.normalizeMediaArtUrl(artUrl);
         const cacheKey = norm.startsWith("file://") ? norm + "::" + root.currentTrackKey : norm;
         const existing = root._mediaAccentSession[cacheKey] ?? root._mediaAccentSession[norm];
-        const iconStr = playIconColor || root.resolvePlayIconColor(Qt.color(playButtonBg), null).toString();
-        if (existing?.visualizer === visualizer && existing?.playButtonBg === playButtonBg && existing?.playIconColor === iconStr && accentProps.lastArtUrl === norm && accentProps.lastVisualizer === visualizer && accentProps.lastPlayButtonBg === playButtonBg)
+        if (existing?.seed === seed && accentProps.lastArtUrl === norm && accentProps.lastSeed === seed)
             return;
-        const entry = {
-            visualizer: visualizer,
-            playButtonBg: playButtonBg,
-            playIconColor: iconStr
-        };
-        
+
+        const entry = { seed: seed };
         const isLocal = norm.startsWith("file://");
         root._mediaAccentSession[cacheKey] = entry;
         if (!isLocal) {
             root._mediaAccentSession[norm] = entry;
-        }
-
-        if (!isLocal) {
             const disk = root._readAccentDiskCache();
             disk[norm] = entry;
             const keys = Object.keys(disk);
@@ -923,12 +942,11 @@ Singleton {
                     delete disk[keys[i]];
             }
             accentProps.cacheJson = JSON.stringify(disk);
-            root.persistAccentFile();
+            persistDebounceTimer.restart();
         }
-        
+
         accentProps.lastArtUrl = norm;
-        accentProps.lastVisualizer = entry.visualizer;
-        accentProps.lastPlayButtonBg = entry.playButtonBg;
+        accentProps.lastSeed = seed;
         root._bumpMediaAccentRevision();
     }
 
@@ -953,12 +971,11 @@ Singleton {
         onLoadFailed: err => {
             if (err !== FileViewError.FileNotFound)
                 return;
-            if (!accentProps.lastVisualizer || !accentProps.lastPlayButtonBg)
+            if (!accentProps.lastSeed && !accentProps.lastVisualizer)
                 return;
             root.ingestAccentPayload({
                 lastArtUrl: accentProps.lastArtUrl,
-                lastVisualizer: accentProps.lastVisualizer,
-                lastPlayButtonBg: accentProps.lastPlayButtonBg,
+                lastSeed: accentProps.lastSeed || accentProps.lastVisualizer,
                 cache: root._readAccentDiskCache()
             });
             root.persistAccentFile();
@@ -1269,6 +1286,9 @@ Singleton {
     Connections {
         target: Colours
         function onLightChanged() {
+            root.handleThemeChange();
+        }
+        function onThemePaletteUpdated() {
             root.handleThemeChange();
         }
     }

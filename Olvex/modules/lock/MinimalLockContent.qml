@@ -265,7 +265,7 @@ Item {
                 // background=10) can't interfere with normal unlocked operation — it
                 // just guarantees the on-screen lock pill wins and the now-covered bar
                 // and desktop-background visualizers go idle underneath.
-                readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "lockPill"
+                readonly property bool ownsVisualizer: VisualizerState.isOwnerActive("lockPill") || VisualizerState.visibleOwner === "lockPill"
                 // Experiment: match the monitor's native refresh rate instead of a
                 // fixed 30fps cap, now that the play-button spin/wavy-line pinning
                 // is removed.

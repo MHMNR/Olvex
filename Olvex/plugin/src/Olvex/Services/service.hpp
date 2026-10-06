@@ -11,6 +11,7 @@ class Service : public QObject {
 public:
     explicit Service(QObject* parent = nullptr);
 
+public slots:
     void ref(QObject* sender);
     void unref(QObject* sender);
 

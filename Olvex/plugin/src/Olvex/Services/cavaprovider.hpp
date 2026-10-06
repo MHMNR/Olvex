@@ -15,6 +15,7 @@ public:
     explicit CavaProcessor(QObject* parent = nullptr);
     ~CavaProcessor();
 
+public slots:
     void setBars(int bars);
     void setFrameRate(int frameRate);
 

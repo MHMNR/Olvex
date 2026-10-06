@@ -132,14 +132,11 @@ Item {
                 Segmented {
                     enabled: Config.bar.bottomPanel?.enabled ?? true
                     model: [{
-                            label: qsTr("Always"),
-                            icon: "visibility"
+                            label: qsTr("Always")
                         }, {
-                            label: qsTr("Auto hide"),
-                            icon: "visibility_off"
+                            label: qsTr("Auto hide")
                         }, {
-                            label: qsTr("Smart hide"),
-                            icon: "auto_awesome"
+                            label: qsTr("Smart hide")
                         }]
                     currentIndex: {
                         const m = Config.bar.bottomPanel?.visibilityMode || "always";
@@ -363,7 +360,6 @@ Item {
             SettingRow {
                 title: qsTr("Audio")
                 description: qsTr("Speaker volume and mute state")
-                icon: "volume_up"
                 StyledSwitch {
                     checked: Config.bar.status.showAudio
                     onToggled: {
@@ -375,7 +371,6 @@ Item {
             SettingRow {
                 title: qsTr("Microphone")
                 description: qsTr("Input mute state")
-                icon: "mic"
                 StyledSwitch {
                     checked: Config.bar.status.showMicrophone
                     onToggled: {
@@ -387,7 +382,6 @@ Item {
             SettingRow {
                 title: qsTr("Keyboard layout")
                 description: qsTr("Current keyboard layout code")
-                icon: "keyboard"
                 StyledSwitch {
                     checked: Config.bar.status.showKbLayout
                     onToggled: {
@@ -399,7 +393,6 @@ Item {
             SettingRow {
                 title: qsTr("Network")
                 description: qsTr("Wired/wireless connection status")
-                icon: "lan"
                 StyledSwitch {
                     checked: Config.bar.status.showNetwork
                     onToggled: {
@@ -411,7 +404,6 @@ Item {
             SettingRow {
                 title: qsTr("Wi‑Fi")
                 description: qsTr("Wi‑Fi signal icon")
-                icon: "wifi"
                 StyledSwitch {
                     checked: Config.bar.status.showWifi
                     onToggled: {
@@ -423,7 +415,6 @@ Item {
             SettingRow {
                 title: qsTr("Bluetooth")
                 description: qsTr("Bluetooth power and connection state")
-                icon: "bluetooth"
                 StyledSwitch {
                     checked: Config.bar.status.showBluetooth
                     onToggled: {
@@ -435,7 +426,6 @@ Item {
             SettingRow {
                 title: qsTr("Battery")
                 description: qsTr("Charge level and charging state")
-                icon: "battery_full"
                 StyledSwitch {
                     checked: Config.bar.status.showBattery
                     onToggled: {
@@ -447,7 +437,6 @@ Item {
             SettingRow {
                 title: qsTr("Lock status")
                 description: qsTr("Caps and num lock indicators")
-                icon: "lock"
                 divider: false
                 StyledSwitch {
                     checked: Config.bar.status.showLockStatus

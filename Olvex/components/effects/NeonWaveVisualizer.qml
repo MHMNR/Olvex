@@ -64,8 +64,23 @@ Canvas {
     // Restart (not just start) on every transition — pausing needs the timer
     // running too, so it can ease bars down to restValue instead of the old
     // instant snap-to-zero. It self-stops once resting (see onTriggered).
-    onActiveChanged: animTimer.restart()
-    Component.onCompleted: if (active) animTimer.restart()
+    onActiveChanged: {
+        if (active)
+            canvas.requestPaint();
+        animTimer.restart();
+    }
+    onVisibleChanged: {
+        if (visible && active) {
+            canvas.requestPaint();
+            animTimer.restart();
+        }
+    }
+    Component.onCompleted: {
+        if (active) {
+            canvas.requestPaint();
+            animTimer.restart();
+        }
+    }
 
     Timer {
         id: animTimer

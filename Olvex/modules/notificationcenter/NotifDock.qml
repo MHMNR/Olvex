@@ -40,7 +40,7 @@ Item {
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
-            anchors.right: clearBtnLoader.left
+            anchors.right: clearBtn.left
             anchors.rightMargin: Tokens.spacing.small
 
             text: root.notifCount > 0

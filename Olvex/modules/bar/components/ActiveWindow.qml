@@ -31,7 +31,7 @@ Item {
     property color colour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3primary
 
     readonly property bool hasMusicPlayer: !!Players.active
-    readonly property bool isMusicPlaying: Players.active && Players.activeIsPlaying
+    readonly property bool isMusicPlaying: Players.active && (Players.activeIsPlaying || Players.isPlaying)
     // Pill stays mounted permanently — it just collapses to activewindow height
     // when no player is running instead of disappearing.
     readonly property bool showMusicPill: true
@@ -42,7 +42,8 @@ Item {
     readonly property bool mediaMorphRendering: root.playerActive && !!(root.mediaMorph && (root.mediaMorph.active || root.mediaMorph.morphAnimating))
     readonly property bool mediaVisualizerWarm: root.playerActive
     readonly property bool mediaVisualizerActive: root.playerActive && root.isMusicPlaying
-    readonly property bool ownsVisualizer: VisualizerState.visibleOwner === "pill"
+    readonly property string visualizerOwnerId: "pill:" + ((root.bar && root.bar.screen && root.bar.screen.name) ? root.bar.screen.name : "default")
+    readonly property bool ownsVisualizer: VisualizerState.isOwnerActive(root.visualizerOwnerId) || VisualizerState.visibleOwner === "pill"
     property bool mediaVisualizerLoaded: mediaVisualizerActive
     readonly property string musicArtUrl: Players.currentArtUrl
     property string barArtSource: ""
@@ -50,10 +51,8 @@ Item {
     readonly property bool hasMusicArt: root.musicArtUrl !== ""
     readonly property color musicAccent: root.showMusicPill ? Players.musicVisualizerAccent : Colours.palette.m3primaryContainer
     readonly property color musicOnAccent: Players.musicOnAccent
-    property color playButtonBg: Colours.palette.m3primary
-    property color playIconColor: Colours.palette.m3onPrimary
-    property bool _syncingBarAccent: false
-    property bool _accentRefreshPending: false
+    readonly property color playButtonBg: root.playerActive ? Players.musicPlayButtonBg : Colours.palette.m3primary
+    readonly property color playIconColor: root.playerActive ? Players.musicPlayIconColor : Colours.palette.m3onPrimary
     property bool isLoaded: false
     readonly property int musicPillWidth: 48
     readonly property int musicPillHeight: 160
@@ -69,40 +68,6 @@ Item {
     property real _lastMorphDockY: -1
     property real _lastMorphDockW: -1
     property real _lastMorphDockH: -1
-
-    function refreshAccentColors() {
-        if (!root.playerActive) {
-            root.playButtonBg = Colours.palette.m3primary;
-            root.playIconColor = Colours.palette.m3onPrimary;
-            return;
-        }
-        if (barAccentPicker.accentReady) {
-            root.playButtonBg = barAccentPicker.playButtonBg;
-            root.playIconColor = barAccentPicker.playIconColor;
-        } else if (Players.musicAccentReady) {
-            root.playButtonBg = Players.musicPlayButtonBg;
-            root.playIconColor = Players.musicPlayIconColor;
-        }
-    }
-
-    function queueAccentRefresh() {
-        if (root._accentRefreshPending)
-            return;
-        root._accentRefreshPending = true;
-        Qt.callLater(() => {
-            root._accentRefreshPending = false;
-            root.refreshAccentColors();
-        });
-    }
-
-    function syncBarAccent() {
-        if (root._syncingBarAccent)
-            return;
-        root._syncingBarAccent = true;
-        barAccentPicker.setArtUrl(Players.currentArtUrl);
-        root.refreshAccentColors();
-        root._syncingBarAccent = false;
-    }
 
     function updateBarArtSource() {
         const url = root.musicArtUrl;
@@ -236,7 +201,7 @@ Item {
     }
 
     function syncVisualizerOwner() {
-        VisualizerState.request("pill", 20, root.mediaVisualizerActive);
+        VisualizerState.request(root.visualizerOwnerId, 20, root.mediaVisualizerActive);
     }
 
     onWidthChanged: if (root.playerActive) syncMorphDock(false)
@@ -323,80 +288,6 @@ Item {
         onTriggered: root.isMusicClosing = false
     }
 
-    onPlayerActiveChanged: {
-        root.syncBarAccent();
-        root.kickDockSync();
-        
-        if (!root.playerActive) {
-            root.isMusicClosing = true;
-            musicCloseTimer.restart();
-        } else {
-            root.isMusicClosing = false;
-            musicCloseTimer.stop();
-        }
-    }
-
-    onIsNotificationPushedChanged: {
-        root.applyMorphDock();
-        if (!root.isNotificationPushed) {
-            awPushAnim.restart();
-        }
-    }
-
-    Connections {
-        target: barAccentPicker
-        function onAccentColorsChanged() {
-            root.queueAccentRefresh();
-        }
-    }
-
-    Connections {
-        target: Colours
-        function onLightChanged() {
-            root.queueAccentRefresh();
-        }
-    }
-
-    Connections {
-        target: GlobalConfig.appearance
-        function onThemeModeChanged() {
-            root.queueAccentRefresh();
-        }
-    }
-
-    Component.onCompleted: {
-        root.animatedMorphProgress = Qt.binding(() => root.morphProgress);
-        root.animatedNotifProgress = Qt.binding(() => root.notifProgress);
-        root.updateBarArtSource();
-        root.syncBarAccent();
-        root.kickDockSync();
-        root.syncVisualizerOwner();
-
-        Qt.callLater(() => root.isLoaded = true);
-    }
-
-    Component.onDestruction: {
-        VisualizerState.release("pill");
-    }
-
-    Connections {
-        target: Players
-        function onCurrentArtUrlChanged() {
-            root.updateBarArtSource();
-            root.syncBarAccent();
-        }
-        function onCurrentTrackKeyChanged() {
-            root.updateBarArtSource();
-            // Defer until next event loop tick so currentArtUrl has time to settle
-            // before setArtUrl() runs analysis. Without this, analysis fires on the
-            // OLD artUrl but with the NEW trackKey — wrong image, wrong color.
-            Qt.callLater(() => root.syncBarAccent());
-        }
-        function onArtReloadNonceChanged() {
-            root.updateBarArtSource();
-        }
-    }
-
     Timer {
         id: dockSyncTimer
         interval: 80
@@ -419,24 +310,60 @@ Item {
         }
     }
 
+    onPlayerActiveChanged: {
+        root.kickDockSync();
+        
+        if (!root.playerActive) {
+            root.isMusicClosing = true;
+            musicCloseTimer.restart();
+        } else {
+            root.isMusicClosing = false;
+            musicCloseTimer.stop();
+        }
+    }
+
+    onIsNotificationPushedChanged: {
+        root.applyMorphDock();
+        if (!root.isNotificationPushed) {
+            awPushAnim.restart();
+        }
+    }
+
+    Component.onCompleted: {
+        root.animatedMorphProgress = Qt.binding(() => root.morphProgress);
+        root.animatedNotifProgress = Qt.binding(() => root.notifProgress);
+        root.updateBarArtSource();
+        root.kickDockSync();
+        root.syncVisualizerOwner();
+
+        Qt.callLater(() => root.isLoaded = true);
+    }
+
+    Component.onDestruction: {
+        VisualizerState.release(root.visualizerOwnerId);
+    }
+
     Connections {
         target: Players
+        function onCurrentArtUrlChanged() {
+            root.updateBarArtSource();
+        }
+        function onCurrentTrackKeyChanged() {
+            root.updateBarArtSource();
+        }
+        function onArtReloadNonceChanged() {
+            root.updateBarArtSource();
+        }
+        function onIsPlayingChanged() {
+            root.syncVisualizerOwner();
+        }
+        function onActiveIsPlayingChanged() {
+            root.syncVisualizerOwner();
+        }
         function onActiveChanged() {
-            root.syncBarAccent();
+            root.syncVisualizerOwner();
             if (Players.active)
                 root.kickDockSync();
-        }
-        function onMediaAccentPrewarmed() {
-            if (!barAccentPicker.accentReady)
-                root.syncBarAccent();
-        }
-        function onMediaAccentRevisionChanged() {
-            if (!barAccentPicker.accentReady)
-                root.syncBarAccent();
-        }
-        function onBootAccentLoadedChanged() {
-            if (!barAccentPicker.accentReady)
-                root.syncBarAccent();
         }
     }
 
@@ -535,10 +462,7 @@ Item {
         active: false
     }
 
-    MediaThumbnailAccentPicker {
-        id: barAccentPicker
-        z: -1
-    }
+
 
     // Top: Notification Pill (flexible, fills available space down to musicPill circle with kinetic tracking)
     NotificationPill {
@@ -781,10 +705,7 @@ Item {
                                 cache: true
                                 sourceSize: Qt.size(root.musicArtSize, root.musicArtSize)
                                 opacity: status === Image.Ready && source !== "" ? 1 : 0
-                                onStatusChanged: {
-                                    if (status === Image.Ready)
-                                        barAccentPicker.scheduleAnalysis();
-                                }
+
                                 Behavior on opacity {
                                     NumberAnimation {
                                         duration: 220

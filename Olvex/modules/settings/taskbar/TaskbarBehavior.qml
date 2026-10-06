@@ -90,7 +90,6 @@ Item {
             Layout.fillWidth: true
             title: qsTr("Monitors")
             description: qsTr("Choose which monitors display the bar")
-            icon: "monitor"
             divider: true
             
             Flow {

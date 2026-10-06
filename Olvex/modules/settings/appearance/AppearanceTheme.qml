@@ -82,9 +82,9 @@ ColumnLayout {
             Segmented {
                 property var supportedModes: root.currentScheme ? root.currentScheme.modes : ["light", "dark", "auto"]
                 model: [
-                    { label: qsTr("Light"), icon: "light_mode", disabled: !supportedModes.includes("light") },
-                    { label: qsTr("Dark"), icon: "dark_mode", disabled: !supportedModes.includes("dark") },
-                    { label: qsTr("Auto"), icon: "brightness_auto", disabled: !supportedModes.includes("auto") }
+                    { label: qsTr("Light"), disabled: !supportedModes.includes("light") },
+                    { label: qsTr("Dark"), disabled: !supportedModes.includes("dark") },
+                    { label: qsTr("Auto"), disabled: !supportedModes.includes("auto") }
                 ]
                 currentIndex: root.modeIndex()
                 onSelected: i => {

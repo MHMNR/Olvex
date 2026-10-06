@@ -22,21 +22,24 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
     , m_idle(true)
     , m_token(token)
     , m_collector(collector) {
-    pw_init(nullptr, nullptr);
-
     m_loop = pw_main_loop_new(nullptr);
     if (!m_loop) {
         qCWarning(lcAcWorker) << "init: failed to create PipeWire main loop";
-        pw_deinit();
         return;
     }
+
+    std::stop_callback stopCb(m_token, [this]() {
+        if (m_loop) {
+            pw_main_loop_quit(m_loop);
+        }
+    });
 
     timespec timeout = { 0, 10 * SPA_NSEC_PER_MSEC };
     m_timer = pw_loop_add_timer(pw_main_loop_get_loop(m_loop), handleTimeout, this);
     if (!m_timer) {
         qCWarning(lcAcWorker) << "init: failed to create timer";
         pw_main_loop_destroy(m_loop);
-        pw_deinit();
+        m_loop = nullptr;
         return;
     }
     pw_loop_update_timer(pw_main_loop_get_loop(m_loop), m_timer, &timeout, &timeout, false);
@@ -77,7 +80,7 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
     if (!m_stream) {
         qCWarning(lcAcWorker) << "init: failed to create stream";
         pw_main_loop_destroy(m_loop);
-        pw_deinit();
+        m_loop = nullptr;
         return;
     }
 
@@ -89,7 +92,8 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
         qCWarning(lcAcWorker) << "init: failed to connect stream";
         pw_stream_destroy(m_stream);
         pw_main_loop_destroy(m_loop);
-        pw_deinit();
+        m_stream = nullptr;
+        m_loop = nullptr;
         return;
     }
 
@@ -97,7 +101,8 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
 
     pw_stream_destroy(m_stream);
     pw_main_loop_destroy(m_loop);
-    pw_deinit();
+    m_stream = nullptr;
+    m_loop = nullptr;
 }
 
 void PipeWireWorker::handleTimeout(void* data, uint64_t expirations) {
@@ -195,12 +200,13 @@ void AudioCollector::loadChunk(const qint16* samples, quint32 count) {
         count = ac::CHUNK_SIZE;
     }
 
-    // qCDebug(lcAc) << "AudioCollector: loading" << count << "samples, max amp:" << *std::max_element(samples, samples + count);
-
     auto* writeBuffer = m_writeBuffer.load(std::memory_order_relaxed);
     std::transform(samples, samples + count, writeBuffer->begin(), [](qint16 sample) {
         return sample / 32768.0f;
     });
+    if (count < ac::CHUNK_SIZE) {
+        std::fill(writeBuffer->begin() + count, writeBuffer->end(), 0.0f);
+    }
 
     auto* oldRead = m_readBuffer.exchange(writeBuffer, std::memory_order_acq_rel);
     m_writeBuffer.store(oldRead, std::memory_order_release);
@@ -235,10 +241,13 @@ AudioCollector::AudioCollector(QObject* parent)
     , m_buffer1(ac::CHUNK_SIZE)
     , m_buffer2(ac::CHUNK_SIZE)
     , m_readBuffer(&m_buffer1)
-    , m_writeBuffer(&m_buffer2) {}
+    , m_writeBuffer(&m_buffer2) {
+    pw_init(nullptr, nullptr);
+}
 
 AudioCollector::~AudioCollector() {
     AudioCollector::stop();
+    pw_deinit();
 }
 
 void AudioCollector::start() {

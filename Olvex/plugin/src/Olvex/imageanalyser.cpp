@@ -139,6 +139,8 @@ QColor ImageAnalyser::playIconOnFill(bool isLight, const QColor& fill) const {
 ImageAnalyser::ImageAnalyser(QObject* parent)
     : QObject(parent)
     , m_futureWatcher(new QFutureWatcher<AnalyseResult>(this))
+    , m_netManager(nullptr)
+    , m_netReply(nullptr)
     , m_source("")
     , m_sourceItem(nullptr)
     , m_rescaleSize(128)
@@ -160,7 +162,20 @@ ImageAnalyser::ImageAnalyser(QObject* parent)
             m_luminance = result.second;
             emit luminanceChanged();
         }
+        emit finished(result.first, result.second);
     });
+}
+
+ImageAnalyser::~ImageAnalyser() {
+    auto* reply = m_netReply.data();
+    if (reply) {
+        reply->abort();
+        reply->deleteLater();
+        m_netReply = nullptr;
+    }
+    if (m_futureWatcher->isRunning()) {
+        m_futureWatcher->cancel();
+    }
 }
 
 QString ImageAnalyser::source() const {
@@ -182,10 +197,7 @@ void ImageAnalyser::setSource(const QString& source) {
 
     // If clearing source, cancel any in-flight analysis immediately
     if (m_source.isEmpty() && !m_sourceItem) {
-        if (m_futureWatcher->isRunning()) {
-            m_futureWatcher->cancel();
-            emit runningChanged();
-        }
+        cancel();
         return;
     }
 
@@ -211,10 +223,7 @@ void ImageAnalyser::setSourceItem(QQuickItem* sourceItem) {
 
     // If clearing sourceItem with no fallback source, cancel in-flight analysis
     if (!m_sourceItem && m_source.isEmpty()) {
-        if (m_futureWatcher->isRunning()) {
-            m_futureWatcher->cancel();
-            emit runningChanged();
-        }
+        cancel();
         return;
     }
 
@@ -261,10 +270,16 @@ QColor ImageAnalyser::dominantColour() const {
 }
 
 bool ImageAnalyser::isRunning() const {
-    return m_futureWatcher->isRunning();
+    return (m_netReply && m_netReply->isRunning()) || m_futureWatcher->isRunning();
 }
 
 void ImageAnalyser::cancel() {
+    auto* reply = m_netReply.data();
+    if (reply) {
+        reply->abort();
+        reply->deleteLater();
+        m_netReply = nullptr;
+    }
     if (m_futureWatcher->isRunning()) {
         m_futureWatcher->cancel();
         emit runningChanged();
@@ -273,11 +288,7 @@ void ImageAnalyser::cancel() {
 
 void ImageAnalyser::requestUpdate() {
     if (m_source.isEmpty() && !m_sourceItem) {
-        // Both cleared — cancel any running analysis (stale result no longer wanted)
-        if (m_futureWatcher->isRunning()) {
-            m_futureWatcher->cancel();
-            emit runningChanged();
-        }
+        cancel();
         return;
     }
 
@@ -311,6 +322,12 @@ void ImageAnalyser::update() {
     if (m_futureWatcher->isRunning()) {
         m_futureWatcher->cancel();
     }
+    auto* prevReply = m_netReply.data();
+    if (prevReply) {
+        prevReply->abort();
+        prevReply->deleteLater();
+        m_netReply = nullptr;
+    }
 
     const QString profile = m_profile;
     const int rescaleSize = m_rescaleSize;
@@ -327,17 +344,66 @@ void ImageAnalyser::update() {
                 QtConcurrent::run(&ImageAnalyser::analyse, grabResult->image(), rescaleSize, profile));
         });
     } else {
-        m_futureWatcher->setFuture(QtConcurrent::run([=, this](QPromise<AnalyseResult>& promise) {
-            QString path = m_source;
-            if (path.contains(QLatin1Char('#'))) {
-                path = path.section(QLatin1Char('#'), 0, 0);
+        QString raw = m_source;
+        if (raw.contains(QLatin1Char('#'))) {
+            raw = raw.section(QLatin1Char('#'), 0, 0);
+        }
+
+        if (raw.startsWith(QLatin1String("http://"), Qt::CaseInsensitive) ||
+            raw.startsWith(QLatin1String("https://"), Qt::CaseInsensitive)) {
+            if (!m_netManager) {
+                m_netManager = new QNetworkAccessManager(this);
             }
-            if (path.startsWith(QLatin1String("file://"))) {
+            QNetworkRequest req{QUrl(raw)};
+            req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+            req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("Mozilla/5.0 (X11; Linux x86_64)"));
+
+            QNetworkReply* reply = m_netManager->get(req);
+            m_netReply = reply;
+            emit runningChanged();
+
+            QObject::connect(reply, &QNetworkReply::finished, this, [reply, profile, rescaleSize, this]() {
+                if (m_netReply != reply) {
+                    reply->deleteLater();
+                    return;
+                }
+                m_netReply = nullptr;
+
+                QByteArray data;
+                if (reply->error() == QNetworkReply::NoError) {
+                    data = reply->readAll();
+                }
+                reply->deleteLater();
+
+                if (!data.isEmpty()) {
+                    m_futureWatcher->setFuture(QtConcurrent::run([data, rescaleSize, profile](QPromise<AnalyseResult>& promise) {
+                        QImage image;
+                        image.loadFromData(data);
+                        analyse(promise, image, rescaleSize, profile);
+                    }));
+                } else {
+                    emit runningChanged();
+                }
+            });
+        } else if (raw.startsWith(QLatin1String("data:image/"), Qt::CaseInsensitive)) {
+            const qsizetype comma = raw.indexOf(QLatin1Char(','));
+            const QByteArray b64 = (comma >= 0 ? raw.sliced(comma + 1) : raw).toLatin1();
+            const QByteArray data = QByteArray::fromBase64(b64);
+            m_futureWatcher->setFuture(QtConcurrent::run([data, rescaleSize, profile](QPromise<AnalyseResult>& promise) {
+                QImage image;
+                image.loadFromData(data);
+                analyse(promise, image, rescaleSize, profile);
+            }));
+        } else {
+            QString path = raw;
+            if (path.startsWith(QLatin1String("file://"), Qt::CaseInsensitive)) {
                 path = QUrl(path).toLocalFile();
             }
-            const QImage image(path);
-            analyse(promise, image, rescaleSize, profile);
-        }));
+            m_futureWatcher->setFuture(QtConcurrent::run([path, rescaleSize, profile](QPromise<AnalyseResult>& promise) {
+                const QImage image(path);
+                analyse(promise, image, rescaleSize, profile);
+            }));
+        }
     }
 }
 

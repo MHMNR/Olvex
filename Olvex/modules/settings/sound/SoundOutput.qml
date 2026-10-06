@@ -152,7 +152,6 @@ Item {
             Layout.fillWidth: true
             title: qsTr("Volume")
             description: qsTr("Master output level and mute")
-            icon: "volume_up"
             divider: true
             
             Row {

@@ -28,14 +28,6 @@ Item {
         onTriggered: root.hoveredItem = null
     }
 
-    Connections {
-        target: root.session ?? null
-        function onHighlightTimestampChanged() {
-            if (tabFlashAnim)
-                tabFlashAnim.restart();
-        }
-    }
-
     // Active tab sliding highlight pill
     StyledRect {
         id: highlightRect
@@ -45,27 +37,6 @@ Item {
         radius: height / 2
         color: Colours.palette.m3primary
         z: 0
-
-        // Android Flash Glow on active tab
-        StyledRect {
-            id: tabFlashGlow
-            anchors.centerIn: parent
-            width: parent.width + 10
-            height: parent.height + 8
-            radius: height / 2
-            color: Qt.alpha(Colours.palette.m3primary, 0.45)
-            opacity: 0.0
-            z: -1
-            visible: opacity > 0.001
-
-            SequentialAnimation {
-                id: tabFlashAnim
-                PauseAnimation { duration: 300 }
-                NumberAnimation { target: tabFlashGlow; property: "opacity"; from: 0.0; to: 1.0; duration: 160; easing.type: Easing.OutQuad }
-                PauseAnimation { duration: 220 }
-                NumberAnimation { target: tabFlashGlow; property: "opacity"; from: 1.0; to: 0.0; duration: 650; easing.type: Easing.OutCubic }
-            }
-        }
 
         Behavior on x {
             NumberAnimation {

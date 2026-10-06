@@ -63,11 +63,24 @@ QtObject {
 
     // Android-style Search Deep Link Highlight Flash
     property string highlightKey: ""
+    property string highlightSection: ""
+    property string highlightPage: ""
+    property string highlightQuery: ""
+    property string highlightTitle: ""
+    property string highlightId: ""
     property real highlightTimestamp: 0
 
-    function flashSection(key) {
+    function flashSection(key, section, page, query, title, id) {
         highlightKey = key || "";
+        highlightSection = section || "";
+        highlightPage = page || "";
+        highlightQuery = query || "";
+        highlightTitle = title || "";
+        highlightId = id || "";
         highlightTimestamp = Date.now();
+        // Also write to the PaneRegistry singleton so SettingRow and Section components
+        // that are deep inside Loaders can react without tree traversal.
+        PaneRegistry.flashHighlight(key, section, page, query, title, id);
     }
 
     function open(id) {
@@ -75,15 +88,15 @@ QtObject {
         currentId = id;
     }
 
-    function openPageAndSection(page, section) {
+    function openPageAndSection(page, section, targetKey, query, title, id) {
         activeSection = section || "";
-        flashSection(section);
+        flashSection(targetKey || section, section, page, query, title, id);
         open(page);
     }
 
-    function openPageAndSectionFrom(item, page, section, stackItem) {
+    function openPageAndSectionFrom(item, page, section, stackItem, targetKey, query, title, id) {
         activeSection = section || "";
-        flashSection(section);
+        flashSection(targetKey || section, section, page, query, title, id);
         openFrom(item, page, stackItem);
     }
 

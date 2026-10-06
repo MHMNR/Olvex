@@ -179,7 +179,6 @@ Item {
             SettingRow {
                 title: qsTr("UI Sound Effects")
                 description: qsTr("Play audio feedback for desktop events")
-                icon: "volume_up"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.services.uiSounds.enabled
@@ -193,7 +192,6 @@ Item {
             SettingRow {
                 title: qsTr("Effects volume")
                 description: qsTr("Volume level for UI sound effects")
-                icon: "graphic_eq"
                 divider: false
                 CustomSpinBox {
                     value: Math.round((GlobalConfig.services.uiSounds.volume || 0.8) * 100)

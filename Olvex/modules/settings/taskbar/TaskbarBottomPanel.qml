@@ -41,7 +41,6 @@ Item {
             Layout.fillWidth: true
             title: qsTr("Bottom Panel")
             description: qsTr("Quick settings panel below the taskbar")
-            icon: "bottom_panel_open"
             divider: true
             
             StyledSwitch {
@@ -57,7 +56,6 @@ Item {
             Layout.fillWidth: true
             title: qsTr("Dock Background")
             description: qsTr("Show a container background behind pinned apps")
-            icon: "view_compact_alt"
             divider: true
             enabled: Config.bar.bottomPanel.enabled ?? true
             opacity: enabled ? 1.0 : 0.38
@@ -80,7 +78,6 @@ Item {
             Layout.fillWidth: true
             title: qsTr("Visibility Mode")
             description: qsTr("When the bottom panel should be shown")
-            icon: "visibility"
             divider: false
             enabled: Config.bar.bottomPanel.enabled ?? true
             opacity: enabled ? 1.0 : 0.38

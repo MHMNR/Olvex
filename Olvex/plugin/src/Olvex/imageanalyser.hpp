@@ -3,6 +3,8 @@
 #include <QtQuick/qquickitem.h>
 #include <qfuture.h>
 #include <qfuturewatcher.h>
+#include <qnetworkaccessmanager.h>
+#include <qnetworkreply.h>
 #include <qobject.h>
 #include <qpointer.h>
 #include <qqmlintegration.h>
@@ -24,6 +26,7 @@ class ImageAnalyser : public QObject {
 
 public:
     explicit ImageAnalyser(QObject* parent = nullptr);
+    ~ImageAnalyser();
 
     [[nodiscard]] QString source() const;
     void setSource(const QString& source);
@@ -58,11 +61,14 @@ signals:
     void dominantColourChanged();
     void luminanceChanged();
     void runningChanged();
+    void finished(const QColor& dominantColour, qreal luminance);
 
 private:
     using AnalyseResult = QPair<QColor, qreal>;
 
     QFutureWatcher<AnalyseResult>* const m_futureWatcher;
+    QNetworkAccessManager* m_netManager;
+    QPointer<QNetworkReply> m_netReply;
 
     QString m_source;
     QPointer<QQuickItem> m_sourceItem;

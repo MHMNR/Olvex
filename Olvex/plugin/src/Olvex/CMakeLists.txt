@@ -74,6 +74,7 @@ qml_module(olvex
         Qt::Quick
         Qt::Concurrent
         Qt::Sql
+        Qt::Network
         PkgConfig::Qalculate
 )
 

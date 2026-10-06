@@ -58,33 +58,6 @@ Item {
                 border.width: 1
                 clip: true
 
-                StyledRect {
-                    id: aboutFlashOverlay
-                    anchors.fill: parent
-                    radius: parent.radius
-                    color: Qt.alpha(Colours.palette.m3primary, 0.20)
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.50)
-                    border.width: 1.5
-                    opacity: 0.0
-                    z: 100
-                    visible: opacity > 0.001
-
-                    SequentialAnimation {
-                        id: aboutFlashAnim
-                        PauseAnimation { duration: 320 }
-                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; from: 0.0; to: 1.0; duration: 160; easing.type: Easing.OutQuad }
-                        PauseAnimation { duration: 250 }
-                        NumberAnimation { target: aboutFlashOverlay; property: "opacity"; from: 1.0; to: 0.0; duration: 750; easing.type: Easing.OutCubic }
-                    }
-
-                    Connections {
-                        target: root.session ?? null
-                        function onHighlightTimestampChanged() {
-                            aboutFlashAnim.restart();
-                        }
-                    }
-                }
-
                 ColumnLayout {
                     id: sysCol
                     anchors.top: parent.top
