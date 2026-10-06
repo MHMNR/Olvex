@@ -4,5 +4,4 @@ singleton WallpapersOlvex 1.0 ../../services/olvex/WallpapersOlvex.qml
 singleton WallpaperCyclingServiceOlvex 1.0 ../../services/olvex/WallpaperCyclingServiceOlvex.qml
 BackgroundWallpaper 1.0 background/BackgroundWallpaper.qml
 NetSpeedWidget 1.0 bar/NetSpeedWidget.qml
-PaneRegistryOverlay 1.0 settings/PaneRegistryOverlay.qml
 

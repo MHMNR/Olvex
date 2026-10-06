@@ -1,35 +1,54 @@
-
-
-import ".."
-import "../ui"
-import "."
-import "../../../components"
-import "../../../components/controls"
-import "../../../components/containers"
 import QtQuick
+import ".."
 import Olvex.Config
-import Olvex.Models
+import qs.components
+import qs.components.controls
+import qs.components.effects
+import qs.components.images
 import qs.services
 
 GridView {
     id: root
 
     required property Session session
+    property string mode: "static"
+    // Fixed layout: 5 columns × 3 visible rows
+    property int columnsCount: 5
+    property int visibleRows: 3
 
-    Component.onCompleted: Wallpapers.ensureCatalog()
+    cellWidth: Math.max(1, width / columnsCount)
+    // Keep tiles roughly 16:10 so 5-wide still reads as photos
+    cellHeight: Math.max(88, Math.round(cellWidth * 0.62) + Tokens.spacing.small)
+    implicitHeight: cellHeight * visibleRows
 
-    readonly property int minCellWidth: 200 + Tokens.spacing.normal
-    readonly property int columnsCount: Math.max(1, Math.floor(width / minCellWidth))
-
-    cellWidth: width / columnsCount
-    cellHeight: 140 + Tokens.spacing.normal
-
-    model: Wallpapers.list
-
+    model: mode === "live" ? Wallpapers.liveEntryObjects : Wallpapers.staticEntryObjects
     clip: true
 
     StyledScrollBar.vertical: StyledScrollBar {
         flickable: root
+    }
+
+    Loader {
+        anchors.centerIn: parent
+        active: root.count === 0
+        z: 10
+
+        sourceComponent: Column {
+            spacing: Tokens.spacing.small
+
+            MaterialIcon {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: root.mode === "live" ? "video_library" : "wallpaper"
+                color: Colours.palette.m3outline
+                iconPointSize: Tokens.font.size.extraLarge * 2
+            }
+
+            StyledText {
+                horizontalAlignment: Text.AlignHCenter
+                text: root.mode === "live" ? qsTr("No live wallpapers found") : qsTr("No static wallpapers found")
+                font.weight: 500
+            }
+        }
     }
 
     delegate: Item {
@@ -42,65 +61,64 @@ GridView {
         width: root.cellWidth
         height: root.cellHeight
 
-        StateLayer {
-            onClicked: {
-                Wallpapers.setWallpaper(modelData.path);
-            }
+        // Live: ensure ffmpeg thumb is queued; rebind when map updates
+        readonly property string imagePath: {
+            const _ = Wallpapers.thumbnailUpdateCount;
+            if (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? ""))
+                return Wallpapers.displayPathFor(modelData.path);
+            return modelData?.path ?? "";
+        }
 
+        Component.onCompleted: {
+            if (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? ""))
+                Wallpapers.queueThumbnail(modelData.path, isCurrent);
+        }
+
+        // If thumb arrives later, path binding updates via thumbnailUpdateCount
+        Connections {
+            target: Wallpapers
+            function onThumbnailUpdateCountChanged(): void {
+                if ((modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")) && !imagePath)
+                    Wallpapers.queueThumbnail(modelData.path, isCurrent);
+            }
+        }
+
+        StateLayer {
             anchors.fill: parent
-            anchors.leftMargin: itemMargin
-            anchors.rightMargin: itemMargin
-            anchors.topMargin: itemMargin
-            anchors.bottomMargin: itemMargin
+            anchors.margins: itemMargin
             radius: itemRadius
+            onClicked: Wallpapers.setWallpaper(modelData.path)
         }
 
         StyledClippingRect {
-            id: image
-
             anchors.fill: parent
-            anchors.leftMargin: itemMargin
-            anchors.rightMargin: itemMargin
-            anchors.topMargin: itemMargin
-            anchors.bottomMargin: itemMargin
+            anchors.margins: itemMargin
             color: Colours.tPalette.m3surfaceContainer
             radius: itemRadius
             antialiasing: true
 
-            // Resolve live → jpg thumb (video paths cannot paint as Image)
-            readonly property string resolvedPath: {
-                const _ = Wallpapers.thumbnailUpdateCount;
-                return Wallpapers.displayPathFor(modelData?.path ?? "") || (modelData?.path ?? "");
-            }
-
-            Component.onCompleted: {
-                if (Wallpapers.isVideoPath(modelData?.path ?? ""))
-                    Wallpapers.queueThumbnail(modelData.path, isCurrent);
-            }
-
+            // Prefer plain Image for live thumbs (jpg on disk) — more reliable than
+            // CachingImage when path flips from "" → thumb after ffmpeg.
             Image {
-                id: cachingImage
-
                 anchors.fill: parent
                 source: {
-                    const p = image.resolvedPath;
-                    if (!p || Wallpapers.isVideoPath(p))
+                    const p = imagePath;
+                    if (!p)
                         return "";
                     return p.startsWith("file:") ? p : ("file://" + p);
                 }
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
-                visible: opacity > 0
-                antialiasing: true
                 smooth: true
+                antialiasing: true
                 mipmap: true
                 sourceSize: Qt.size(Math.max(1, Math.round(width * 2)), Math.max(1, Math.round(height * 2)))
                 opacity: status === Image.Ready ? 1 : 0
 
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: 280
+                        duration: 180
                         easing.type: Easing.OutQuad
                     }
                 }
@@ -108,101 +126,45 @@ GridView {
 
             MaterialIcon {
                 anchors.centerIn: parent
-                visible: Wallpapers.isVideoPath(modelData?.path ?? "") && cachingImage.status !== Image.Ready
-                text: "movie"
+                visible: !imagePath
+                text: (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")) ? "movie" : "image"
                 color: Colours.palette.m3outline
                 iconPointSize: Tokens.font.size.extraLarge
             }
 
-            // Flat scrim for filename (no gradient)
-            Rectangle {
-                id: filenameOverlay
-
-                anchors.left: parent.left
+            MaterialIcon {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-
-                implicitHeight: filenameText.implicitHeight + Tokens.padding.normal * 1.5
-                radius: 0
-                color: Qt.alpha(Colours.palette.m3surface, 0.88)
-
-                opacity: 0
-
-                Component.onCompleted: {
-                    opacity = 1;
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 1000
-                        easing.type: Easing.OutCubic
-                    }
-                }
+                anchors.margins: Tokens.padding.small
+                visible: modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")
+                text: "play_circle"
+                color: Qt.alpha(Colours.palette.m3onSurface, 0.9)
+                iconPointSize: Tokens.font.size.large
             }
         }
 
         Rectangle {
             anchors.fill: parent
-            anchors.leftMargin: itemMargin
-            anchors.rightMargin: itemMargin
-            anchors.topMargin: itemMargin
-            anchors.bottomMargin: itemMargin
+            anchors.margins: itemMargin
             color: "transparent"
             radius: itemRadius + border.width
             border.width: isCurrent ? 2 : 0
             border.color: Colours.palette.m3primary
-            antialiasing: true
-            smooth: true
-
-            Behavior on border.width {
-                NumberAnimation {
-                    duration: 150
-                    easing.type: Easing.OutQuad
-                }
-            }
-
-            MaterialIcon {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: Tokens.padding.small
-
-                visible: isCurrent
-                text: "check_circle"
-                color: Colours.palette.m3primary
-                iconPointSize: Tokens.font.size.large
-            }
         }
 
         StyledText {
-            id: filenameText
-
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.leftMargin: Tokens.padding.normal + Tokens.spacing.normal / 2
             anchors.rightMargin: Tokens.padding.normal + Tokens.spacing.normal / 2
             anchors.bottomMargin: Tokens.padding.normal
-
             text: modelData.name
             textPointSize: Tokens.font.size.smaller
-            font.weight: 400
+            font.weight: 500
             color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurface
             elide: Text.ElideMiddle
-            maximumLineCount: 1
             horizontalAlignment: Text.AlignHCenter
-
-            opacity: 0
-
-            Component.onCompleted: {
-                opacity = 1;
-            }
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 1000
-                    easing.type: Easing.OutCubic
-                }
-            }
         }
     }
 }

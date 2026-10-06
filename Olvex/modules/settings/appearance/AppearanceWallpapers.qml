@@ -4,7 +4,6 @@ import ".."
 import "../ui"
 import "../components"
 import "../../../components"
-import "../../olvex/settings/components" as OlvexWp
 import "../../../components/controls"
 import "../../../components/containers"
 import QtQuick
@@ -110,7 +109,7 @@ ColumnLayout {
             width: parent.width
             height: wallGrid.implicitHeight
 
-            OlvexWp.WallpaperGrid {
+            WallpaperGrid {
                 id: wallGrid
                 anchors.fill: parent
                 session: root.session

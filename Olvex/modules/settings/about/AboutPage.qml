@@ -15,6 +15,7 @@ Item {
     id: root
 
     property Session session
+    property string activeSection: ""
     signal back
 
     // Helper calculations for memory (RAM)
