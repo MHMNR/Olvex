@@ -245,7 +245,7 @@ Item {
         Component.onCompleted: {
             wsId = modelData.id;
             icon = Icons.getSpecialWsIcon(modelData.name);
-            hasWindows = Config.bar.workspaces.showWindowsOnSpecialWorkspaces && modelData.lastIpcObject.windows > 0;
+            hasWindows = root.Config.bar.workspaces.showWindowsOnSpecialWorkspaces && modelData.lastIpcObject.windows > 0;
         }
 
         // Hacky thing cause modelData gets destroyed before the remove anim finishes

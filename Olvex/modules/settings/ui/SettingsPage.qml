@@ -29,11 +29,10 @@ Item {
     property Component hostComponent: null
     property alias host: hostContainer
 
-    // Solid page fill — parent morph is also opaque; double-paint blocks any bleed
-    // if Loader opacity/clip edges leave a gap during container transform.
+    // Transparent page fill so root window m3surface+alpha and Hyprland blur show through
     Rectangle {
         anchors.fill: parent
-        color: Colours.palette.m3surface
+        color: "transparent"
         z: -1
     }
 

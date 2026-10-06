@@ -72,7 +72,7 @@ Item {
 
         anchors.fill: parent
         radius: Tokens.rounding.large
-        color: Colours.palette.m3surfaceContainer
+        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
         // Clip card chrome only — inner content uses its own safe insets
         clip: true
 
@@ -94,7 +94,7 @@ Item {
             radius: parent.radius
             color: "transparent"
             border.width: 1
-            border.color: Qt.alpha(root.hovered ? root.accent : Colours.palette.m3outlineVariant, root.hovered ? 0.35 : 0.22)
+            border.color: Qt.alpha(root.hovered ? root.accent : Colours.palette.m3outlineVariant, root.hovered ? 0.35 : 0.15)
 
             Behavior on border.color {
                 enabled: !root.animsFrozen

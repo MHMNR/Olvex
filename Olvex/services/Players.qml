@@ -493,6 +493,7 @@ Singleton {
     readonly property color musicPlayIconColor: root.displayPlayIconColor
     readonly property color musicSurfaceColor: root.displaySurfaceColor
     readonly property color musicOnSurfaceColor: root.displayOnSurfaceColor
+    property bool _suppressAccentFileIngest: false
 
     readonly property bool musicAccentReady: liveAccentReady || bootAccentLoaded
     property color musicOnAccent: "#E9DDFF"

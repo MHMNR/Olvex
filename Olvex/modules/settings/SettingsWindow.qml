@@ -60,7 +60,9 @@ Item {
     StyledRect {
         anchors.fill: parent
         radius: root.floating ? Tokens.rounding.large : 0
-        color: Colours.tPalette.m3surface
+        color: Qt.alpha(Colours.palette.m3surface, Colours.transparencyEnabled ? Math.min(Colours.transparencyBase, 0.68) : (Colours.light ? 0.76 : 0.64))
+        border.width: root.floating ? 1 : 0
+        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
 
         // ── top bar ─────────────────────────────────────────────────────
         Item {
@@ -464,7 +466,7 @@ Item {
             property real startRadius: Tokens.rounding.large
             readonly property real endRadius: 0
             // Match bento card fill so progress=0 handoff is invisible
-            readonly property color containerColor: Colours.palette.m3surfaceContainer
+            readonly property color containerColor: Colours.layer(Colours.palette.m3surfaceContainer, 2)
 
             function mapRange(t, start, end) {
                 if (end <= start)
@@ -486,13 +488,27 @@ Item {
                 : mapRange(transformProgress, 0.0, 0.75)
 
             // M3 Container Transform fadeProgressThresholds:
-            // Enter: 0.10 → 0.40 progress fade in
-            // Return: 0.45 → 0.85 progress fade out
+            // Enter: 0.18 → 0.55 page content smoothly fades in
+            // Return: 0.35 → 0.80 page content smoothly fades out
             readonly property real pageContentOpacity: returning
-                ? mapRange(transformProgress, 0.45, 0.85)
-                : mapRange(transformProgress, 0.10, 0.40)
+                ? mapRange(transformProgress, 0.35, 0.80)
+                : mapRange(transformProgress, 0.18, 0.55)
 
             readonly property bool showPageContent: pageContentOpacity > 0.001
+
+            // Morph background alpha (cross-fades morph container into the subpage cards + glass window surface)
+            // Enter: 0.25 → 0.75 morph container fill gently dissolves into the subpage
+            // Return: 0.20 → 0.70 morph container fill gently reforms as subpage collapses
+            readonly property real morphBgAlpha: returning
+                ? (1.0 - mapRange(transformProgress, 0.20, 0.70))
+                : (1.0 - mapRange(transformProgress, 0.25, 0.75))
+
+            // Home (bento grid) fadeProgressThresholds:
+            // Enter: 0.00 → 0.18 progress fade out (home grid quickly dissolves so expanding translucent page has clean background)
+            // Return: 0.18 → 0.65 progress fade in (home grid smoothly reappears as page collapses back into the tile)
+            readonly property real homeOpacity: returning
+                ? (1.0 - mapRange(transformProgress, 0.18, 0.65))
+                : (1.0 - mapRange(transformProgress, 0.00, 0.18))
 
             // Origin bento tile: hide only while morph shell covers it.
             // On return, reveal tile UNDER morph before anim ends (no empty pop-in).
@@ -580,8 +596,8 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: !stack.transformActive && !stack.pageOpen
                 layer.enabled: false
-                visible: !stack.pageOpen || stack.transformActive
-                opacity: 1
+                visible: stack.homeOpacity > 0.001
+                opacity: stack.homeOpacity
 
                 Item {
                     id: bento
@@ -634,7 +650,9 @@ Item {
                 width: stack.lerp(stack.startW, stack.width, stack.transformProgress)
                 height: stack.lerp(stack.startH, stack.height, stack.transformProgress)
                 radius: stack.lerp(stack.startRadius, stack.endRadius, stack.shapeT)
-                color: stack.containerColor
+                color: Qt.alpha(stack.containerColor, (stack.containerColor.a ?? 1.0) * stack.morphBgAlpha)
+                border.width: 1
+                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15 * stack.morphBgAlpha)
                 clip: stack.transformActive || stack.transformProgress < 0.999
                 // Visible whole time page is open OR mid-transform — includes progress=0
                 // (old progress>0.001 hid morph on first frames = dead delay after card hide)

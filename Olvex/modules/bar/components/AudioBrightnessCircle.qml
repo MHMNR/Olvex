@@ -17,7 +17,7 @@ Item {
     property bool isAutoRevealed: false
     property bool isHovered: false
     readonly property bool isOverlayRendering: Boolean(root.bar && root.bar.audioBrightnessMorph && (root.bar.audioBrightnessMorph.active || root.bar.audioBrightnessMorph.morphAnimating))
-    readonly property bool shouldBeVisible: isOverlayRendering || (Config.bar.quickOrb.enabled && (isAutoRevealed || isHovered))
+    readonly property bool shouldBeVisible: isOverlayRendering || (root.Config.bar.quickOrb.enabled && (isAutoRevealed || isHovered))
 
     property real circleSize: 48
     readonly property real circleRadius: circleSize / 2
@@ -55,7 +55,7 @@ Item {
             root.activeMetric = metric;
         root.isAutoRevealed = true;
         autoHideTimer.restart();
-        if (isChanging !== false && Config.bar.quickOrb.showPercentage) {
+        if (isChanging !== false && root.Config.bar.quickOrb.showPercentage) {
             root.showPercentage = true;
             percentageTimer.restart();
         }
@@ -77,28 +77,28 @@ Item {
         function onVolumeChanged() {
             if (Math.abs(Audio.volume - root.lastVolume) > 0.001) {
                 root.lastVolume = Audio.volume;
-                if (Config.bar.quickOrb.autoRevealVolume)
+                if (root.Config.bar.quickOrb.autoRevealVolume)
                     root.triggerReveal("volume", true);
             }
         }
         function onMutedChanged() {
             if (Audio.muted !== root.lastMuted) {
                 root.lastMuted = Audio.muted;
-                if (Config.bar.quickOrb.autoRevealVolume)
+                if (root.Config.bar.quickOrb.autoRevealVolume)
                     root.triggerReveal("volume", true);
             }
         }
         function onSourceVolumeChanged() {
             if (Math.abs(Audio.sourceVolume - root.lastSourceVolume) > 0.001) {
                 root.lastSourceVolume = Audio.sourceVolume;
-                if (Config.bar.quickOrb.autoRevealMic)
+                if (root.Config.bar.quickOrb.autoRevealMic)
                     root.triggerReveal("mic", true);
             }
         }
         function onSourceMutedChanged() {
             if (Audio.sourceMuted !== root.lastSourceMuted) {
                 root.lastSourceMuted = Audio.sourceMuted;
-                if (Config.bar.quickOrb.autoRevealMic)
+                if (root.Config.bar.quickOrb.autoRevealMic)
                     root.triggerReveal("mic", true);
             }
         }
@@ -110,7 +110,7 @@ Item {
             const b = (root.monitor && typeof root.monitor.brightness === "number") ? root.monitor.brightness : 0;
             if (Math.abs(b - root.lastBrightness) > 0.001) {
                 root.lastBrightness = b;
-                if (Config.bar.quickOrb.autoRevealBrightness)
+                if (root.Config.bar.quickOrb.autoRevealBrightness)
                     root.triggerReveal("brightness", true);
             }
         }
