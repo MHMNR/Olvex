@@ -7,14 +7,15 @@ import "../../../components/controls"
 import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Olvex.Config
 import qs.services
 
-Item {
+FloatingWindow {
     id: root
 
-    required property bool active
-    required property int secondsRemaining
+    property bool active: DisplayManager.safetyActive
+    property int secondsRemaining: DisplayManager.safetySecondsRemaining
 
     signal confirmClicked
     signal revertClicked
@@ -29,30 +30,50 @@ Item {
     readonly property int fSmall: (Tokens.font && typeof Tokens.font.size.small !== "undefined") ? Tokens.font.size.small : 12
     readonly property int fSmaller: (Tokens.font && typeof Tokens.font.size.smaller !== "undefined") ? Tokens.font.size.smaller : 11
 
-    anchors.fill: parent
+    title: qsTr("Confirm Display Settings")
+    color: "transparent"
     visible: active
-    z: 999
 
-    // Dimmed Scrim Background
-    Rectangle {
-        anchors.fill: parent
-        color: Qt.alpha(Colours.palette.m3scrim || "#000000", 0.65)
+    implicitWidth: 460
+    implicitHeight: cardRect.implicitHeight + 16
 
-        MouseArea {
-            anchors.fill: parent
-            // Block background clicks
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.visible
+        onActivated: {
+            root.revertClicked();
+            DisplayManager.revertSafetyApply();
+        }
+    }
+
+    Shortcut {
+        sequence: "Return"
+        enabled: root.visible
+        onActivated: {
+            root.confirmClicked();
+            DisplayManager.confirmSafetyApply();
+        }
+    }
+
+    Shortcut {
+        sequence: "Enter"
+        enabled: root.visible
+        onActivated: {
+            root.confirmClicked();
+            DisplayManager.confirmSafetyApply();
         }
     }
 
     // Modal Card
     StyledRect {
+        id: cardRect
         anchors.centerIn: parent
-        implicitWidth: 440
+        width: parent.width - 16
         implicitHeight: cardCol.implicitHeight + root.padLarge * 2
         radius: root.rExLarge
-        color: Colours.palette.m3surfaceContainerHigh
+        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
         border.width: 1
-        border.color: Colours.palette.m3primary
+        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
 
         ColumnLayout {
             id: cardCol
@@ -118,29 +139,24 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: 44
                     radius: root.rFull
-                    color: Colours.palette.m3surfaceContainerHighest
+                    color: Colours.layer(Colours.palette.m3surfaceContainer, 3)
                     border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3outline, 0.5)
+                    border.color: Qt.alpha(Colours.palette.m3outline, 0.3)
 
-                    RowLayout {
+                    StyledText {
                         anchors.centerIn: parent
-                        spacing: 6
-                        MaterialIcon {
-                            text: "undo"
-                            iconPointSize: root.fNormal
-                            color: Colours.palette.m3onSurface
-                        }
-                        StyledText {
-                            text: qsTr("Revert Now")
-                            font.weight: Font.Bold
-                            textPointSize: root.fSmall
-                            color: Colours.palette.m3onSurface
-                        }
+                        text: qsTr("Revert Now")
+                        font.weight: Font.Bold
+                        textPointSize: root.fSmall
+                        color: Colours.palette.m3onSurface
                     }
 
                     StateLayer {
                         radius: parent.radius
-                        onClicked: root.revertClicked()
+                        onClicked: {
+                            root.revertClicked();
+                            DisplayManager.revertSafetyApply();
+                        }
                     }
                 }
 
@@ -151,25 +167,20 @@ Item {
                     radius: root.rFull
                     color: Colours.palette.m3primary
 
-                    RowLayout {
+                    StyledText {
                         anchors.centerIn: parent
-                        spacing: 6
-                        MaterialIcon {
-                            text: "check"
-                            iconPointSize: root.fNormal
-                            color: Colours.palette.m3onPrimary
-                        }
-                        StyledText {
-                            text: qsTr("Keep Changes")
-                            font.weight: Font.Bold
-                            textPointSize: root.fSmall
-                            color: Colours.palette.m3onPrimary
-                        }
+                        text: qsTr("Keep Changes")
+                        font.weight: Font.Bold
+                        textPointSize: root.fSmall
+                        color: Colours.palette.m3onPrimary
                     }
 
                     StateLayer {
                         radius: parent.radius
-                        onClicked: root.confirmClicked()
+                        onClicked: {
+                            root.confirmClicked();
+                            DisplayManager.confirmSafetyApply();
+                        }
                     }
                 }
             }

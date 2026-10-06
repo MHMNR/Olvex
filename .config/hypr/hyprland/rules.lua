@@ -57,6 +57,16 @@ hl.window_rule({
     opaque = false,
 })
 
+-- Olvex Display Safety Confirmation Modal
+hl.window_rule({
+    match = { class = "org.quickshell", title = "Confirm Display Settings.*" },
+    float = true,
+    center = true,
+    pin = true,
+    stay_focused = true,
+    opaque = false,
+})
+
 -- Olvex Standalone Apps
 tagged_rule(float_tag, { { class = "olvex-clipboard" } })
 
@@ -68,7 +78,6 @@ tagged_rule(float_tag, { { class = "olvex-clipboard" } })
 tagged_rule(opaque_tag, {
     "foot",                          -- Terminal
     "equibop",                       -- Discord client
-    "org.quickshell",                -- Quickshell
     "feh|imv|swappy",                -- Image viewers
     "krita|gimp|inkscape|darktable", -- Image editors
     "resolve|kdenlive|shotcut",      -- Video editors
@@ -204,8 +213,8 @@ create_tag(todo_app_tag, { workspace = "special:todo" })
 -------------------------
 ---- Workspace rules ----
 -------------------------
--- hl.workspace_rule({ workspace = "w[tv1]s[false]", gaps_out = vars.singleWindowGapsOut })
--- hl.workspace_rule({ workspace = "f[1]s[false]", gaps_out = vars.singleWindowGapsOut })
+hl.workspace_rule({ workspace = "w[tv1]s[false]", gaps_out = vars.singleWindowGapsOut })
+hl.workspace_rule({ workspace = "f[1]s[false]", gaps_out = vars.singleWindowGapsOut })
 
 ---------------------
 ---- Layer rules ----
@@ -219,4 +228,4 @@ hl.layer_rule({ match = { namespace = "launcher" }, animation = "popin 80%", blu
 -- Olvex Shell
 hl.layer_rule({ match = { namespace = "olvex-(border-exclusion|area-picker)" }, no_anim = true })
 hl.layer_rule({ match = { namespace = "olvex-(drawers|background)" }, animation = "fade" })
-hl.layer_rule({ match = { namespace = "olvex-drawers" }, blur = true, ignore_alpha = 0.1 })
+hl.layer_rule({ match = { namespace = "olvex-drawers" }, blur = true, ignore_alpha = 0.3 })
