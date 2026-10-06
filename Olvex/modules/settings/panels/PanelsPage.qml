@@ -30,7 +30,7 @@ Item {
     SettingsPage {
         anchors.fill: parent
         title: qsTr("Panels & Drawers")
-        subtitle: qsTr("Layout, drawers and flyouts controls")
+        subtitle: qsTr("Layout and drawer controls")
         icon: "dashboard_customize"
         accent: Colours.palette.m3secondary
         onBack: root.back()

@@ -19,15 +19,16 @@ StyledRect {
 
     // image://icon/* or plain icon name is a theme icon name, not a bitmap — must not load as Image@36
     readonly property string rawImage: String(modelData.image ?? "")
+    readonly property bool isBitmapImage: rawImage.startsWith("/") || rawImage.startsWith("file://") || rawImage.startsWith("data:") || rawImage.startsWith("http://") || rawImage.startsWith("https://")
     readonly property string imageIconName: {
         if (!rawImage.length) return "";
         if (rawImage.startsWith("image://icon/"))
             return Icons.iconNameFromUrl(rawImage);
-        if (!rawImage.startsWith("/") && !rawImage.startsWith("file://") && !rawImage.startsWith("data:") && !rawImage.startsWith("http"))
+        if (!isBitmapImage)
             return rawImage;
         return "";
     }
-    readonly property bool hasImage: rawImage.length > 0 && imageIconName.length === 0
+    readonly property bool hasImage: isBitmapImage && rawImage.length > 0
     readonly property bool hasAppIcon: modelData.appIcon.length > 0 || imageIconName.length > 0
     readonly property bool isCritical: modelData.urgency === NotificationUrgency.Critical
     readonly property bool isLow: modelData.urgency === NotificationUrgency.Low
@@ -221,7 +222,7 @@ StyledRect {
 
                             Image {
                                 anchors.fill: parent
-                                source: Qt.resolvedUrl(root.rawImage)
+                                source: root.hasImage ? Qt.resolvedUrl(root.rawImage) : ""
                                 fillMode: Image.PreserveAspectCrop
                                 sourceSize.width: root.avatarSize
                                 sourceSize.height: root.avatarSize

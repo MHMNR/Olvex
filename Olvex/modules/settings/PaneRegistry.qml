@@ -1208,30 +1208,6 @@ QtObject {
             accentRole: "m3secondary",
             keywords: "launcher app apps applications search grid fuzzy search calculator qalculate math runner"
         },
-        {
-            id: "panels_osd_flyouts",
-            pageId: "panels",
-            sectionId: "osd",
-            rowTitle: "OSD",
-            title: "On-Screen Display (OSD) HUD",
-            sub: "Volume, brightness, and keyboard backlight HUD flyouts",
-            breadcrumb: "Settings › Panels › OSD",
-            icon: "volume_up",
-            accentRole: "m3secondary",
-            keywords: "osd flyout flyouts volume brightness backlight overlay popup hud notification level indicator",
-            isOption: true
-        },
-        {
-            id: "panels_osd",
-            pageId: "panels",
-            sectionId: "osd",
-            title: "On-Screen Display (OSD)",
-            sub: "Volume, brightness, and keyboard backlight flyout popups",
-            breadcrumb: "Settings › Panels › Flyouts",
-            icon: "volume_up",
-            accentRole: "m3secondary",
-            keywords: "osd flyout flyouts volume brightness backlight overlay popup hud notification level indicator"
-        },
 
         // ═════════════════════════════════════════════════════════════════════
         // ── 7. POWER & BATTERY ──────────────────────────────────────────────

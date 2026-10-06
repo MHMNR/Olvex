@@ -128,7 +128,7 @@ Item {
         SettingRow {
             title: qsTr("Timezone")
             description: qsTr("System timezone (e.g. Asia/Dhaka or America/New_York)")
-            divider: true
+            divider: false
             OptionPicker {
                 id: tzPicker
                 menuMaxHeight: 360
@@ -142,20 +142,6 @@ Item {
                         tzSetProc.command = ["timedatectl", "set-timezone", tzPicker.model[i]];
                         tzSetProc.running = true;
                     }
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Weather location")
-            description: qsTr("City used for the weather widget")
-            divider: false
-            StyledTextField {
-                width: 240
-                text: GlobalConfig.services.weatherLocation || ""
-                onEditingFinished: {
-                    GlobalConfig.services.weatherLocation = text;
-                    GlobalConfig.save();
                 }
             }
         }

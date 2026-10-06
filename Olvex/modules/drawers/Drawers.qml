@@ -39,9 +39,5 @@ Variants {
                 visibilities: content.visibilities
             }
         }
-
-        Clipboard.ClipboardFloating {
-            id: clipboardFloatingWin
-        }
     }
 }

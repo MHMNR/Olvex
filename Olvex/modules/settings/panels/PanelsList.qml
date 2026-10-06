@@ -10,7 +10,6 @@ SettingsMasterList {
 
     sections: [
         { id: "dashboard", label: qsTr("Dashboard"), icon: "dashboard" },
-        { id: "launcher", label: qsTr("Launcher"), icon: "search" },
-        { id: "osd", label: qsTr("Flyouts"), icon: "volume_up" }
+        { id: "launcher", label: qsTr("Launcher"), icon: "search" }
     ]
 }

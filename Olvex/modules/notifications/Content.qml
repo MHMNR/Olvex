@@ -11,7 +11,6 @@ Item {
     id: root
 
     required property DrawerVisibilities visibilities
-    required property Item flyoutsPanel
     required property Item powermenuPanel
 
     // Same inset on top / sides / bottom so the stack container padding matches
@@ -47,12 +46,6 @@ Item {
 
         // Outer padding equal on all sides (top == sides == bottom)
         height += padding * 2;
-
-        if (visibilities.flyouts) {
-            const h = flyoutsPanel.y - safeBorder.rounding * 2;
-            if (height > h)
-                height = h;
-        }
 
         if (visibilities.powermenu) {
             const h = powermenuPanel.y - safeBorder.rounding * 2;

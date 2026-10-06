@@ -79,19 +79,6 @@ Item {
         }
         
         SettingRow {
-            title: qsTr("Open expanded")
-            description: qsTr("Show the full notification body immediately")
-            divider: true
-            StyledSwitch {
-                checked: Config.notifs.openExpanded ?? false
-                onToggled: {
-                    GlobalConfig.notifs.openExpanded = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
             title: qsTr("Group preview count")
             description: qsTr("Notifications shown before a group collapses")
             divider: false

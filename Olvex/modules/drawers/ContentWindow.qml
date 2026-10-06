@@ -155,7 +155,6 @@ StyledWindow {
                                         || (visibilities.notificationcenter && (Config.notificationcenter.enabled ?? true))
                                         || (visibilities.powermenu && (Config.powermenu.enabled ?? true))
                                         || (visibilities.clipboard)
-                                        || (visibilities.flyouts && (Config.flyouts.enabled ?? true))
                                         || panels.popouts.hasCurrent
                                         || panels.contextMenuVisible
                                         || panels.overflowFlyoutVisible
@@ -349,13 +348,6 @@ StyledWindow {
             }
 
             PanelBg {
-                id: flyoutsBg
-
-                panel: panels.flyoutsWrapper
-                deformAmount: 0.1
-            }
-
-            PanelBg {
                 id: notifsBg
 
                 panel: panels.notifications
@@ -485,19 +477,6 @@ StyledWindow {
             }
         }
 
-        // Full-screen live capture used as the backdrop-blur source for OSD
-        // sliders. Invisible here — each slider crops its own region via
-        // ShaderEffectSource.sourceRect using mapToItem(flyoutsScreenCapture).
-        // live only while the OSD is actually on screen to save bandwidth.
-        ScreencopyView {
-            id: flyoutsScreenCapture
-            width: root.screen ? root.screen.width : 1920
-            height: root.screen ? root.screen.height : 1080
-            captureSource: root.screen
-            live: visibilities.flyouts
-            visible: false
-        }
-
         // Removed global behavior to fix jitter on QS Panel and other drawers
 
         Interactions {
@@ -525,7 +504,6 @@ StyledWindow {
                 borderThickness: root.borderThickness
                 safeBorder: root.safeBorder
                 oskWindow: root.oskWindow
-                flyoutsScreenCapture: flyoutsScreenCapture
 
                 // Wire the flying-icon morph overlay back into Panels so GridAppItem → Panels.triggerAppMorph reaches it
                 appLaunchMorph: appLaunchMorphId
@@ -544,11 +522,6 @@ StyledWindow {
                 powermenu.transform: Matrix4x4 {
                     matrix: powermenuBg.deformMatrix
                 }
-                // No deform on the OSD content: its backing blob (flyoutsBg) is now
-                // invisible, so warping the sliders to follow the blob's liquid
-                // spring-settle just distorts their rounded bottoms with nothing
-                // to justify it (the "goes buggy ~1s after open"). The sliders
-                // draw their own clean shape; leave them un-deformed.
                 notifications.transform: Matrix4x4 {
                     matrix: notifsBg.deformMatrix
                 }

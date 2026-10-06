@@ -15,6 +15,7 @@ Singleton {
     property var workspaces: []
     property var profiles: []
     property string activeProfileName: ""
+    property string primaryMonitorName: ""
     property bool useDescription: false
     property bool vfrEnabled: true
 
@@ -134,6 +135,23 @@ Singleton {
     }
 
     function parseMonitors(rawList) {
+        if (!Array.isArray(rawList) || rawList.length === 0) {
+            root.monitors = [];
+            return;
+        }
+
+        // Determine the single primary monitor name
+        let primaryName = root.primaryMonitorName;
+        const existsInRaw = primaryName && rawList.some(m => (m.name === primaryName || (m.description && ("desc:" + m.description) === primaryName)));
+        if (!existsInRaw) {
+            let chosen = rawList.find(m => m.focused && !m.disabled);
+            if (!chosen) chosen = rawList.find(m => (m.x === 0 && m.y === 0) && !m.disabled);
+            if (!chosen) chosen = rawList.find(m => !m.disabled);
+            if (!chosen) chosen = rawList[0];
+            primaryName = chosen ? (chosen.name || "") : "";
+            root.primaryMonitorName = primaryName;
+        }
+
         const list = [];
         for (let i = 0; i < rawList.length; i++) {
             const m = rawList[i];
@@ -144,10 +162,11 @@ Singleton {
             const isRotated = (t === 1 || t === 3 || t === 5 || t === 7);
             const lw = Math.round((isRotated ? h : w) / s);
             const lh = Math.round((isRotated ? w : h) / s);
+            const monName = m.name || ("Output-" + i);
 
             list.push({
                 id: m.id ?? i,
-                name: m.name || ("Output-" + i),
+                name: monName,
                 description: m.description || "",
                 make: m.make || "",
                 model: m.model || "",
@@ -162,6 +181,7 @@ Singleton {
                 scale: s,
                 transform: t,
                 focused: !!m.focused,
+                isPrimary: (monName === primaryName),
                 dpmsStatus: m.dpmsStatus !== undefined ? !!m.dpmsStatus : true,
                 vrr: typeof m.vrr === "number" ? m.vrr : (m.vrr ? 1 : 0),
                 disabled: !!m.disabled,
@@ -182,8 +202,11 @@ Singleton {
     function deepCopyMonitors(list) {
         const src = list || root.monitors || [];
         const res = [];
+        let primaryFound = false;
         for (let i = 0; i < src.length; i++) {
             const m = src[i];
+            const isPrim = !primaryFound && !!m.isPrimary;
+            if (isPrim) primaryFound = true;
             res.push({
                 id: m.id,
                 name: m.name,
@@ -201,6 +224,7 @@ Singleton {
                 scale: m.scale,
                 transform: m.transform,
                 focused: m.focused,
+                isPrimary: isPrim,
                 dpmsStatus: m.dpmsStatus,
                 vrr: m.vrr,
                 disabled: m.disabled,
@@ -215,6 +239,9 @@ Singleton {
                 customMode: m.customMode,
                 scaleFilter: m.scaleFilter
             });
+        }
+        if (!primaryFound && res.length > 0) {
+            res[0].isPrimary = true;
         }
         return res;
     }
@@ -244,9 +271,6 @@ Singleton {
         if (mirrorStr !== "none" && mirrorStr !== "") {
             lua += `,\n    mirror = '${mirrorStr}'`;
         }
-        if (m.scaleFilter) {
-            lua += `,\n    scale_filter = '${m.scaleFilter}'`;
-        }
         if (m.colorManagementPreset && m.colorManagementPreset !== "srgb") {
             lua += `,\n    cm = '${m.colorManagementPreset}'`;
         }
@@ -275,9 +299,6 @@ Singleton {
         }
         if (m.colorManagementPreset && m.colorManagementPreset !== "srgb") {
             line += `, cm, ${m.colorManagementPreset}`;
-        }
-        if (m.scaleFilter) {
-            line += `, scale_filter, ${m.scaleFilter}`;
         }
         return line;
     }

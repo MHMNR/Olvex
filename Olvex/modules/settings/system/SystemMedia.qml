@@ -49,26 +49,13 @@ Item {
         SettingRow {
             title: qsTr("Default player")
             description: qsTr("Preferred source when several are playing")
-            divider: true
+            divider: false
             OptionPicker {
                 id: playerPicker
                 model: ["Spotify", "mpv", "firefox", "vlc", "auto"]
                 currentIndex: root.idxOf(playerPicker.model, GlobalConfig.services.defaultPlayer || "Spotify")
                 onSelected: i => {
                     GlobalConfig.services.defaultPlayer = playerPicker.model[i];
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Show lyrics")
-            description: qsTr("Display synced lyrics when available")
-            divider: false
-            StyledSwitch {
-                checked: GlobalConfig.services.showLyrics ?? true
-                onToggled: {
-                    GlobalConfig.services.showLyrics = checked;
                     GlobalConfig.save();
                 }
             }

@@ -23,7 +23,6 @@ CustomMouseArea {
 
     property point dragStart
     property bool dashboardShortcutActive
-    property bool flyoutsShortcutActive
     property bool qspanelShortcutActive: false
     property bool bottomPanelShortcutActive: false
     property bool wallpaperShortcutActive: false
@@ -343,7 +342,6 @@ CustomMouseArea {
         const isDragTrigger = inTopRightCorner(event.x, event.y)
                            || inTopPanel(panels.dashboard, event.x, event.y)
                            || inBottomPanel(panels.launcher, event.x, event.y)
-                           || inRightPanel(panels.flyoutsWrapper, event.x, event.y)
                            || inRightPanel(panels.qspanel, event.x, event.y)
                            || inBar
                            || inBp;
@@ -363,12 +361,6 @@ CustomMouseArea {
         if (!containsMouse) {
             if (Visibilities.areaPickerActive)
                 return;
-
-            // Only hide if not activated by shortcut
-            if (!flyoutsShortcutActive) {
-                visibilities.flyouts = false;
-                root.panels.flyouts.hovered = false;
-            }
 
             root.panels.dashboard.hovered = false;
 
@@ -409,19 +401,6 @@ CustomMouseArea {
                 visibilities.bar = true;
             else if (dragX < -Config.bar.dragThreshold)
                 visibilities.bar = false;
-        }
-
-        // Show OSD on hover
-        const showOsd = inRightPanel(panels.flyoutsWrapper, x, y);
-
-        // Always update visibility based on hover if not in shortcut mode
-        if (!flyoutsShortcutActive) {
-            visibilities.flyouts = showOsd;
-            root.panels.flyouts.hovered = showOsd;
-        } else if (showOsd) {
-            // If hovering over OSD area while in shortcut mode, transition to hover control
-            flyoutsShortcutActive = false;
-            root.panels.flyouts.hovered = true;
         }
 
         // Show/hide powermenu on drag
@@ -528,9 +507,8 @@ CustomMouseArea {
             if (root.visibilities.launcher) {
                 root.launcherHoverDisabled = false;
             } else {
-                // If launcher is hidden, clear shortcut flags for dashboard and OSD
+                // If launcher is hidden, clear shortcut flags for dashboard
                 root.dashboardShortcutActive = false;
-                root.flyoutsShortcutActive = false;
                 root.qspanelShortcutActive = false;
                 root.wallpaperShortcutActive = false;
 
@@ -538,16 +516,11 @@ CustomMouseArea {
                 if (root.inBottomPanel(root.panels.launcher, root.mouseX, root.mouseY))
                     root.launcherHoverDisabled = true;
 
-                // Also hide dashboard and OSD if they're not being hovered
+                // Also hide dashboard if not being hovered
                 const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
-                const inOsdArea = root.inRightPanel(root.panels.flyoutsWrapper, root.mouseX, root.mouseY);
 
                 if (!inDashboardArea) {
                     root.panels.dashboard.hovered = false;
-                }
-                if (!inOsdArea) {
-                    root.visibilities.flyouts = false;
-                    root.panels.flyouts.hovered = false;
                 }
             }
         }
@@ -562,19 +535,6 @@ CustomMouseArea {
             } else {
                 // Dashboard hidden, clear shortcut flag
                 root.dashboardShortcutActive = false;
-            }
-        }
-
-        function onFlyoutsChanged() {
-            if (root.visibilities.flyouts) {
-                // OSD became visible, immediately check if this should be shortcut mode
-                const inOsdArea = root.inRightPanel(root.panels.flyoutsWrapper, root.mouseX, root.mouseY);
-                if (!inOsdArea) {
-                    root.flyoutsShortcutActive = true;
-                }
-            } else {
-                // OSD hidden, clear shortcut flag
-                root.flyoutsShortcutActive = false;
             }
         }
 

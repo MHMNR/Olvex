@@ -33,7 +33,34 @@ Item {
 
     // Initialize/sync drafts from DisplayManager
     function syncFromService() {
-        draftMonitors = DisplayManager.deepCopyMonitors();
+        let copy = DisplayManager.deepCopyMonitors();
+        if (copy && copy.length === 1) {
+            copy[0].x = 0;
+            copy[0].y = 0;
+            copy[0].isPrimary = true;
+        } else if (copy && copy.length > 1) {
+            let minX = Infinity, minY = Infinity;
+            let primaryIndex = copy.findIndex(m => m.name === DisplayManager.primaryMonitorName);
+            if (primaryIndex < 0) primaryIndex = copy.findIndex(m => m.isPrimary);
+            if (primaryIndex < 0) primaryIndex = 0;
+
+            for (let i = 0; i < copy.length; i++) {
+                const mx = (typeof copy[i].x === "number") ? copy[i].x : 0;
+                const my = (typeof copy[i].y === "number") ? copy[i].y : 0;
+                if (mx < minX) minX = mx;
+                if (my < minY) minY = my;
+                copy[i].isPrimary = (i === primaryIndex);
+            }
+            if ((minX !== Infinity && minX > 0) || (minY !== Infinity && minY > 0)) {
+                const shiftX = (minX !== Infinity && minX > 0) ? minX : 0;
+                const shiftY = (minY !== Infinity && minY > 0) ? minY : 0;
+                for (let i = 0; i < copy.length; i++) {
+                    copy[i].x = Math.max(0, copy[i].x - shiftX);
+                    copy[i].y = Math.max(0, copy[i].y - shiftY);
+                }
+            }
+        }
+        draftMonitors = copy;
         draftWorkspaces = DisplayManager.workspaces ? DisplayManager.workspaces.map(w => Object.assign({}, w)) : [];
         useDescription = DisplayManager.useDescription;
         if (selectedIndex >= draftMonitors.length) {
@@ -86,17 +113,15 @@ Item {
         root.hasUnsavedChanges = true;
     }
 
-    // Set selected monitor as origin (0, 0) and shift others accordingly
-    function setPrimaryOrigin() {
+    // Set selected monitor as primary (preserves exact positions, exactly 1 primary)
+    function setPrimaryMonitor() {
         if (!draftMonitors || selectedIndex < 0 || selectedIndex >= draftMonitors.length) return;
-        const target = draftMonitors[selectedIndex];
-        const offsetX = target.x;
-        const offsetY = target.y;
-
         const copy = DisplayManager.deepCopyMonitors(draftMonitors);
         for (let i = 0; i < copy.length; i++) {
-            copy[i].x = Math.max(0, copy[i].x - offsetX);
-            copy[i].y = Math.max(0, copy[i].y - offsetY);
+            copy[i].isPrimary = (i === selectedIndex);
+        }
+        if (copy[selectedIndex]) {
+            DisplayManager.primaryMonitorName = copy[selectedIndex].name;
         }
         root.draftMonitors = copy;
         root.hasUnsavedChanges = true;
@@ -238,7 +263,7 @@ Item {
                     }
 
                     onSetAsPrimaryRequested: {
-                        root.setPrimaryOrigin();
+                        root.setPrimaryMonitor();
                     }
                 }
 

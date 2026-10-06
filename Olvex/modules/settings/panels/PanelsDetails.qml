@@ -34,7 +34,6 @@ Item {
                     case "dashboard": return "PanelsDashboard.qml";
                     case "sidebar": return "PanelsSidebar.qml";
                     case "utilities": return "PanelsSidebar.qml";
-                    case "osd": return "PanelsOSD.qml";
                     case "session": return "PanelsSession.qml";
                     default: return "PanelsLauncher.qml";
                 }

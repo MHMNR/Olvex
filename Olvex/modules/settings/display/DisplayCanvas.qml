@@ -30,7 +30,7 @@ StyledClippingRect {
     readonly property int rMed: (Tokens.rounding && typeof Tokens.rounding.normal !== "undefined") ? Tokens.rounding.normal : 12
     readonly property int rSmall: (Tokens.rounding && typeof Tokens.rounding.small !== "undefined") ? Tokens.rounding.small : 8
     readonly property int rFull: (Tokens.rounding && typeof Tokens.rounding.full !== "undefined") ? Tokens.rounding.full : 999
-    readonly property int padNormal: (Tokens.padding && typeof Tokens.padding.normal !== "undefined") ? Tokens.padding.normal : 12
+    readonly property int padNormal: (Tokens.padding && typeof Tokens.padding.normal !== "undefined") ? Tokens.padding.normal : 16
     readonly property int padSmall: (Tokens.padding && typeof Tokens.padding.small !== "undefined") ? Tokens.padding.small : 8
     readonly property int fNormal: (Tokens.font && typeof Tokens.font.size.normal !== "undefined") ? Tokens.font.size.normal : 14
     readonly property int fSmall: (Tokens.font && typeof Tokens.font.size.small !== "undefined") ? Tokens.font.size.small : 12
@@ -43,10 +43,8 @@ StyledClippingRect {
     border.width: 1
     border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.3)
 
-    // ── Zoom & Pan (Fixed Canvas top-left origin) ───────────────────────────
+    // ── Zoom & Stable Stage Coordinates ─────────────────────────────────────
     property real viewScale: 0.10
-    property real panX: root.padNormal
-    property real panY: root.padNormal
 
     Behavior on viewScale {
         Anim {
@@ -54,19 +52,34 @@ StyledClippingRect {
         }
     }
 
-    // Helper functions for monitor canvas coordinates
+    // Stable Stage Origin (Centered for 1 monitor, fixed top-left for multi-monitor)
+    readonly property real panX: (monitors && monitors.length === 1)
+        ? Math.max(root.padNormal, Math.round((root.width - (((monitors[0] && monitors[0].logicalWidth) || 1920) * root.viewScale)) / 2))
+        : root.padNormal
+
+    readonly property real panY: (monitors && monitors.length === 1)
+        ? Math.max(root.padNormal, Math.round((root.height - (((monitors[0] && monitors[0].logicalHeight) || 1080) * root.viewScale)) / 2))
+        : root.padNormal
+
+    // Helper functions for monitor canvas coordinates with strict boundary containment
     function getMonitorCanvasX(idx) {
         if (!monitors || idx < 0 || idx >= monitors.length) return Math.round(root.panX);
         const m = monitors[idx];
-        const mx = (m && typeof m.x === "number") ? m.x : 0;
-        return Math.round(root.panX + (mx * root.viewScale));
+        const mx = (m && typeof m.x === "number" && !isNaN(m.x)) ? m.x : 0;
+        const mw = (m && (m.logicalWidth || m.width)) ? Math.round((m.logicalWidth || m.width) * root.viewScale) : 40;
+        const calcX = Math.round(root.panX + (mx * root.viewScale));
+        const maxX = Math.max(root.padNormal, root.width - mw - root.padNormal);
+        return Math.min(maxX, Math.max(root.padNormal, calcX));
     }
 
     function getMonitorCanvasY(idx) {
         if (!monitors || idx < 0 || idx >= monitors.length) return Math.round(root.panY);
         const m = monitors[idx];
-        const my = (m && typeof m.y === "number") ? m.y : 0;
-        return Math.round(root.panY + (my * root.viewScale));
+        const my = (m && typeof m.y === "number" && !isNaN(m.y)) ? m.y : 0;
+        const mh = (m && (m.logicalHeight || m.height)) ? Math.round((m.logicalHeight || m.height) * root.viewScale) : 25;
+        const calcY = Math.round(root.panY + (my * root.viewScale));
+        const maxY = Math.max(root.padNormal, root.height - mh - root.padNormal);
+        return Math.min(maxY, Math.max(root.padNormal, calcY));
     }
 
     // Compute scale so all connected displays comfortably fit in the canvas
@@ -77,6 +90,7 @@ StyledClippingRect {
         let maxX = 0, maxY = 0;
         for (let i = 0; i < monitors.length; i++) {
             const m = monitors[i];
+            if (!m) continue;
             const mx = (m && typeof m.x === "number" && !isNaN(m.x)) ? Math.max(0, m.x) : 0;
             const my = (m && typeof m.y === "number" && !isNaN(m.y)) ? Math.max(0, m.y) : 0;
             const mw = (m && typeof m.logicalWidth === "number" && m.logicalWidth > 0) ? m.logicalWidth : ((m && m.width) ? m.width : 1920);
@@ -89,36 +103,34 @@ StyledClippingRect {
         const totalW = Math.max(1920, maxX);
         const totalH = Math.max(1080, maxY);
         
-        const pad = (root.padNormal || 12) * 2 + 64;
-        const availW = Math.max(100, root.width - pad);
-        const availH = Math.max(80, root.height - pad);
+        const padX = (root.padNormal || 16) * 2 + 32;
+        const padY = (root.padNormal || 16) * 2 + 48;
+        const availW = Math.max(100, root.width - padX);
+        const availH = Math.max(80, root.height - padY);
 
         const scaleW = availW / totalW;
         const scaleH = availH / totalH;
-        const fitted = Math.min(0.25, Math.max(0.04, Math.min(scaleW, scaleH)));
+        const fitted = Math.min(0.20, Math.max(0.03, Math.min(scaleW, scaleH)));
 
         if (!isNaN(fitted) && fitted > 0) {
             root.viewScale = fitted;
         }
-        root.panX = root.padNormal;
-        root.panY = root.padNormal;
     }
 
-    // Zoom adjusts the display element scale from top-left origin
+    // Zoom adjusts the display element scale
     function zoomAt(factor) {
         const oldScale = root.viewScale;
-        const newScale = Math.min(0.25, Math.max(0.04, oldScale * factor));
+        const newScale = Math.min(0.25, Math.max(0.03, oldScale * factor));
         if (Math.abs(newScale - oldScale) < 0.0001) return;
         
         root.viewScale = newScale;
     }
 
     Component.onCompleted: {
-        root.panX = root.padNormal;
-        root.panY = root.padNormal;
         Qt.callLater(root.fitToView);
     }
 
+    onMonitorsChanged: Qt.callLater(root.fitToView)
     onWidthChanged: Qt.callLater(root.fitToView)
     onHeightChanged: Qt.callLater(root.fitToView)
     onIsFullscreenChanged: Qt.callLater(root.fitToView)
@@ -169,7 +181,7 @@ StyledClippingRect {
         
         onWheel: (wheel) => {
             const factor = wheel.angleDelta.y > 0 ? 1.12 : 0.88;
-            root.zoomAt(factor, wheel.x, wheel.y);
+            root.zoomAt(factor);
         }
 
         // ── Stage Container (Panned & Scaled) ───────────────────────────────────
@@ -186,13 +198,14 @@ StyledClippingRect {
                     required property var modelData
                     required property int index
 
+                    readonly property bool isMultipleMonitors: root.monitors && root.monitors.length > 1
                     readonly property bool isSelected: root.selectedIndex === index
-                    readonly property bool isPrimary: (delegateRoot.modelData && delegateRoot.modelData.x === 0 && delegateRoot.modelData.y === 0)
+                    readonly property bool isPrimary: !!(delegateRoot.modelData && delegateRoot.modelData.isPrimary)
                     readonly property int itemW: Math.max(40, Math.round(((modelData && modelData.logicalWidth) || (modelData && modelData.width) || 1920) * root.viewScale))
                     readonly property int itemH: Math.max(25, Math.round(((modelData && modelData.logicalHeight) || (modelData && modelData.height) || 1080) * root.viewScale))
 
-                    readonly property real targetCanvasX: Math.round(root.panX + (((delegateRoot.modelData && typeof delegateRoot.modelData.x === "number" && !isNaN(delegateRoot.modelData.x)) ? Math.max(0, delegateRoot.modelData.x) : 0) * root.viewScale))
-                    readonly property real targetCanvasY: Math.round(root.panY + (((delegateRoot.modelData && typeof delegateRoot.modelData.y === "number" && !isNaN(delegateRoot.modelData.y)) ? Math.max(0, delegateRoot.modelData.y) : 0) * root.viewScale))
+                    readonly property real targetCanvasX: root.getMonitorCanvasX(delegateRoot.index)
+                    readonly property real targetCanvasY: root.getMonitorCanvasY(delegateRoot.index)
 
                     property bool isDragging: false
                     property real dragScreenX: targetCanvasX
@@ -324,22 +337,26 @@ StyledClippingRect {
                             id: dragArea
                             anchors.fill: parent
                             hoverEnabled: true
-                            cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                            cursorShape: delegateRoot.isMultipleMonitors
+                                         ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor)
+                                         : Qt.PointingHandCursor
 
                             property real startMouseStageX: 0
                             property real startMouseStageY: 0
                             property real startModelX: 0
                             property real startModelY: 0
-                            property real currentDragModelX: 0
-                            property real currentDragModelY: 0
+                            property real currentTargetModelX: 0
+                            property real currentTargetModelY: 0
 
                             onPressed: (mouse) => {
                                 root.selectMonitor(delegateRoot.index);
                                 
-                                startModelX = (delegateRoot.modelData && typeof delegateRoot.modelData.x === "number" && !isNaN(delegateRoot.modelData.x)) ? Math.max(0, delegateRoot.modelData.x) : 0;
-                                startModelY = (delegateRoot.modelData && typeof delegateRoot.modelData.y === "number" && !isNaN(delegateRoot.modelData.y)) ? Math.max(0, delegateRoot.modelData.y) : 0;
-                                currentDragModelX = startModelX;
-                                currentDragModelY = startModelY;
+                                if (!delegateRoot.isMultipleMonitors) return;
+
+                                startModelX = (delegateRoot.modelData && typeof delegateRoot.modelData.x === "number" && !isNaN(delegateRoot.modelData.x)) ? delegateRoot.modelData.x : 0;
+                                startModelY = (delegateRoot.modelData && typeof delegateRoot.modelData.y === "number" && !isNaN(delegateRoot.modelData.y)) ? delegateRoot.modelData.y : 0;
+                                currentTargetModelX = startModelX;
+                                currentTargetModelY = startModelY;
 
                                 delegateRoot.dragScreenX = delegateRoot.targetCanvasX;
                                 delegateRoot.dragScreenY = delegateRoot.targetCanvasY;
@@ -351,82 +368,141 @@ StyledClippingRect {
                             }
 
                             onPositionChanged: (mouse) => {
-                                if (!pressed || !delegateRoot.isDragging) return;
+                                if (!pressed || !delegateRoot.isDragging || !delegateRoot.isMultipleMonitors) return;
 
                                 const pt = mapToItem(stage, mouse.x, mouse.y);
                                 const deltaCanvasX = pt.x - startMouseStageX;
                                 const deltaCanvasY = pt.y - startMouseStageY;
 
                                 const scale = Math.max(0.01, root.viewScale);
-                                let targetModelX = startModelX + (deltaCanvasX / scale);
-                                let targetModelY = startModelY + (deltaCanvasY / scale);
+                                let rawModelX = Math.max(0, startModelX + (deltaCanvasX / scale));
+                                let rawModelY = Math.max(0, startModelY + (deltaCanvasY / scale));
 
-                                targetModelX = Math.max(0, targetModelX);
-                                targetModelY = Math.max(0, targetModelY);
-
-                                // Snapping in model units
+                                // Magnetic edge snapping using shortest-distance candidate evaluation
                                 const snapModelThresh = Math.round(18 / scale);
-
-                                if (targetModelX < snapModelThresh) targetModelX = 0;
-                                if (targetModelY < snapModelThresh) targetModelY = 0;
-
                                 const thisW = (delegateRoot.modelData && delegateRoot.modelData.logicalWidth) || 1920;
                                 const thisH = (delegateRoot.modelData && delegateRoot.modelData.logicalHeight) || 1080;
+
+                                // ── Evaluate Y Snapping ──
+                                let bestY = rawModelY;
+                                let minDy = snapModelThresh;
+
+                                // Canvas top snap (y = 0)
+                                if (Math.abs(rawModelY) < minDy) {
+                                    minDy = Math.abs(rawModelY);
+                                    bestY = 0;
+                                }
+
+                                for (let j = 0; j < (root.monitors ? root.monitors.length : 0); j++) {
+                                    if (j === delegateRoot.index) continue;
+                                    const other = root.monitors[j];
+                                    if (!other) continue;
+                                    const oy = (typeof other.y === "number" && !isNaN(other.y)) ? other.y : 0;
+                                    const oh = (other.logicalHeight) || 1080;
+
+                                    // Top-to-Top alignment (y == oy)
+                                    let dTop = Math.abs(rawModelY - oy);
+                                    if (dTop < minDy) {
+                                        minDy = dTop;
+                                        bestY = oy;
+                                    }
+
+                                    // Bottom-to-Bottom alignment (y + thisH == oy + oh)
+                                    let dBot = Math.abs((rawModelY + thisH) - (oy + oh));
+                                    if (dBot < minDy) {
+                                        minDy = dBot;
+                                        bestY = (oy + oh) - thisH;
+                                    }
+
+                                    // Top-to-Bottom stacking (y == oy + oh)
+                                    let dTopBot = Math.abs(rawModelY - (oy + oh));
+                                    if (dTopBot < minDy) {
+                                        minDy = dTopBot;
+                                        bestY = oy + oh;
+                                    }
+
+                                    // Bottom-to-Top stacking (y + thisH == oy)
+                                    let dBotTop = Math.abs((rawModelY + thisH) - oy);
+                                    if (dBotTop < minDy) {
+                                        minDy = dBotTop;
+                                        bestY = oy - thisH;
+                                    }
+                                }
+
+                                // ── Evaluate X Snapping ──
+                                let bestX = rawModelX;
+                                let minDx = snapModelThresh;
+
+                                // Canvas left snap (x = 0)
+                                if (Math.abs(rawModelX) < minDx) {
+                                    minDx = Math.abs(rawModelX);
+                                    bestX = 0;
+                                }
 
                                 for (let j = 0; j < (root.monitors ? root.monitors.length : 0); j++) {
                                     if (j === delegateRoot.index) continue;
                                     const other = root.monitors[j];
                                     if (!other) continue;
                                     const ox = (typeof other.x === "number" && !isNaN(other.x)) ? other.x : 0;
-                                    const oy = (typeof other.y === "number" && !isNaN(other.y)) ? other.y : 0;
                                     const ow = (other.logicalWidth) || 1920;
-                                    const oh = (other.logicalHeight) || 1080;
 
-                                    // Snap right edge to other left
-                                    if (Math.abs((targetModelX + thisW) - ox) < snapModelThresh) {
-                                        targetModelX = ox - thisW;
+                                    // Left-to-Right adjacent (x == ox + ow)
+                                    let dLeftRight = Math.abs(rawModelX - (ox + ow));
+                                    if (dLeftRight < minDx) {
+                                        minDx = dLeftRight;
+                                        bestX = ox + ow;
                                     }
-                                    // Snap left edge to other right
-                                    if (Math.abs(targetModelX - (ox + ow)) < snapModelThresh) {
-                                        targetModelX = ox + ow;
+
+                                    // Right-to-Left adjacent (x + thisW == ox)
+                                    let dRightLeft = Math.abs((rawModelX + thisW) - ox);
+                                    if (dRightLeft < minDx) {
+                                        minDx = dRightLeft;
+                                        bestX = ox - thisW;
                                     }
-                                    // Snap top edge to other top
-                                    if (Math.abs(targetModelY - oy) < snapModelThresh) {
-                                        targetModelY = oy;
+
+                                    // Left-to-Left alignment (x == ox)
+                                    let dLeftLeft = Math.abs(rawModelX - ox);
+                                    if (dLeftLeft < minDx) {
+                                        minDx = dLeftLeft;
+                                        bestX = ox;
                                     }
-                                    // Snap bottom edge to other bottom
-                                    if (Math.abs((targetModelY + thisH) - (oy + oh)) < snapModelThresh) {
-                                        targetModelY = (oy + oh) - thisH;
-                                    }
-                                    // Snap top edge to other bottom
-                                    if (Math.abs(targetModelY - (oy + oh)) < snapModelThresh) {
-                                        targetModelY = oy + oh;
-                                    }
-                                    // Snap bottom edge to other top
-                                    if (Math.abs((targetModelY + thisH) - oy) < snapModelThresh) {
-                                        targetModelY = oy - thisH;
+
+                                    // Right-to-Right alignment (x + thisW == ox + ow)
+                                    let dRightRight = Math.abs((rawModelX + thisW) - (ox + ow));
+                                    if (dRightRight < minDx) {
+                                        minDx = dRightRight;
+                                        bestX = (ox + ow) - thisW;
                                     }
                                 }
 
-                                targetModelX = Math.max(0, targetModelX);
-                                targetModelY = Math.max(0, targetModelY);
+                                const minCanvasX = root.padNormal;
+                                const maxCanvasX = Math.max(minCanvasX, root.width - delegateRoot.itemW - root.padNormal);
+                                const minCanvasY = root.padNormal;
+                                const maxCanvasY = Math.max(minCanvasY, root.height - delegateRoot.itemH - root.padNormal);
 
-                                currentDragModelX = targetModelX;
-                                currentDragModelY = targetModelY;
+                                const maxModelX = Math.max(0, Math.floor((maxCanvasX - root.panX) / scale));
+                                const maxModelY = Math.max(0, Math.floor((maxCanvasY - root.panY) / scale));
 
-                                delegateRoot.dragScreenX = Math.round(root.panX + (targetModelX * root.viewScale));
-                                delegateRoot.dragScreenY = Math.round(root.panY + (targetModelY * root.viewScale));
+                                let targetModelX = Math.min(maxModelX, Math.max(0, Math.round(bestX)));
+                                let targetModelY = Math.min(maxModelY, Math.max(0, Math.round(bestY)));
+
+                                currentTargetModelX = targetModelX;
+                                currentTargetModelY = targetModelY;
+
+                                delegateRoot.dragScreenX = Math.min(maxCanvasX, Math.max(minCanvasX, Math.round(root.panX + (targetModelX * scale))));
+                                delegateRoot.dragScreenY = Math.min(maxCanvasY, Math.max(minCanvasY, Math.round(root.panY + (targetModelY * scale))));
                             }
 
                             onReleased: {
-                                if (delegateRoot.isDragging) {
+                                if (delegateRoot.isDragging && delegateRoot.isMultipleMonitors) {
                                     delegateRoot.isDragging = false;
                                     
                                     let newMonitors = JSON.parse(JSON.stringify(root.monitors));
-                                    newMonitors[delegateRoot.index].x = Math.max(0, Math.round(currentDragModelX));
-                                    newMonitors[delegateRoot.index].y = Math.max(0, Math.round(currentDragModelY));
-                                    
+                                    newMonitors[delegateRoot.index].x = currentTargetModelX;
+                                    newMonitors[delegateRoot.index].y = currentTargetModelY;
+
                                     root.monitorsUpdated(newMonitors);
+                                    Qt.callLater(root.fitToView);
                                 }
                             }
 

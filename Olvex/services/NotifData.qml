@@ -180,8 +180,13 @@ QtObject {
         }
     }
 
+    function isBitmapImage(str: string): bool {
+        if (!str || typeof str !== "string") return false;
+        return str.startsWith("/") || str.startsWith("file://") || str.startsWith("data:") || str.startsWith("http://") || str.startsWith("https://");
+    }
+
     function maybeTriggerDummyImageLoader(): void {
-        if (image && !image.startsWith("image://icon/") && !image.startsWith(Paths.notifimagecache))
+        if (image && isBitmapImage(image) && !image.startsWith(Paths.notifimagecache))
             dummyImageLoader.active = true;
     }
 

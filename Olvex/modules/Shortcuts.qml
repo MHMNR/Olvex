@@ -40,13 +40,13 @@ Scope {
     CustomShortcut {
         // qmllint enable unresolved-type
         name: "showall"
-        description: "Toggle launcher, dashboard and flyouts"
+        description: "Toggle launcher, dashboard and utilities"
         onPressed: {
             if (!root.shouldTrigger("showall")) return;
             if (root.hasFullscreen)
                 return;
             const v = Visibilities.getForActive();
-            v.launcher = v.dashboard = v.flyouts = v.qspanel = !(v.launcher || v.dashboard || v.flyouts || v.qspanel);
+            v.launcher = v.dashboard = v.qspanel = !(v.launcher || v.dashboard || v.qspanel);
             Visibilities.launcherInterrupted = true;
         }
     }

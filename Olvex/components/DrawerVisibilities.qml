@@ -6,7 +6,6 @@ QtObject {
 
     // Transient drawer states (never saved to disk)
     property bool bar: true
-    property bool flyouts: false
     property bool powermenu: false
     property bool launcher: false
     property bool wallpaperLauncher: false

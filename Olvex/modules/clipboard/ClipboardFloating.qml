@@ -30,6 +30,7 @@ PanelWindow {
     IpcHandler {
         target: "clipboard"
         function open() {
+            root.screen = Screens.active ?? null
             root.visible = true
             root.selectedIndex = 0
             root.searchText = ""

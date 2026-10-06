@@ -65,12 +65,6 @@ Region {
     }
 
     R {
-        panel: root.panels.flyoutsWrapper
-        x: root.win.width - width
-        customWidth: (1 - root.panels.flyouts.offsetScale) > 0 ? (panel.width * (1 - root.panels.flyouts.offsetScale) + root.borderThickness + sessionRegion.width) : 0
-    }
-
-    R {
         panel: root.panels.notifications
         y: 0
         customHeight: panel.height > 0 ? (panel.height + root.borderThickness) : 0

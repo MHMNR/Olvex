@@ -16,7 +16,6 @@ import qs.modules.bar as Bar
 import qs.modules.dashboard as Dashboard
 import qs.modules.launcher as Launcher
 import qs.modules.notifications as Notifications
-import qs.modules.flyouts as Osd
 import qs.modules.powermenu as Session
 import qs.modules.qspanel as Utilities
 import qs.modules.bar.popouts as BarPopouts
@@ -34,10 +33,7 @@ Item {
     required property Bar.BarWrapper bar
     required property real borderThickness
     required property var safeBorder
-    property Item flyoutsScreenCapture: null
 
-    readonly property alias flyouts: flyouts
-    readonly property alias flyoutsWrapper: flyoutsWrapper
     readonly property alias notifications: notifications
     readonly property alias powermenu: powermenu
     readonly property alias powermenuWrapper: powermenuWrapper
@@ -387,35 +383,10 @@ Item {
     anchors.leftMargin: bar.implicitWidth + (safeBorder.floating ? safeBorder.gap : 0)
     anchors.rightMargin: borderThickness + (safeBorder.floating ? safeBorder.gap : 0)
 
-    Item {
-        id: flyoutsWrapper
-
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        clip: root.powermenuVisible
-
-        implicitWidth: flyouts.implicitWidth * (1 - flyouts.offsetScale)
-        implicitHeight: flyouts.implicitHeight
-
-        Osd.Wrapper {
-            id: flyouts
-
-            screen: root.screen
-            visibilities: root.visibilities
-            sidebarOrSessionVisible: root.powermenuVisible
-            screenCapture: root.flyoutsScreenCapture
-
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-        }
-    }
-
     Notifications.Wrapper {
         id: notifications
 
         visibilities: root.visibilities
-        flyoutsPanel: flyoutsWrapper
         powermenuPanel: powermenuWrapper
 
         anchors.top: parent.top

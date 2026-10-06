@@ -21,6 +21,8 @@ Item {
     signal useDescriptionToggled(bool value)
     signal setAsPrimaryRequested()
 
+    readonly property bool isCurrentPrimary: !!(root.monitor && root.monitor.isPrimary)
+
     implicitWidth: parent ? parent.width : 500
     implicitHeight: mainCol.implicitHeight
 
@@ -51,12 +53,6 @@ Item {
         { label: "Disabled (0)", val: 0 },
         { label: "Always On (1)", val: 1 },
         { label: "Fullscreen Only (2)", val: 2 }
-    ]
-
-    // Scale Filter options
-    readonly property var scaleFilterOptions: [
-        { label: "Linear (Default)", val: "linear" },
-        { label: "Nearest (Pixel-Art)", val: "nearest" }
     ]
 
     // Color Management Preset
@@ -177,7 +173,7 @@ Item {
 
                         // Primary Tag
                         RowLayout {
-                            visible: root.monitor && root.monitor.x === 0 && root.monitor.y === 0
+                            visible: root.isCurrentPrimary
                             spacing: 8
 
                             StyledText {
@@ -458,24 +454,6 @@ Item {
                         }
                     }
                 }
-
-                // Scale Filter
-                SettingRow {
-                    title: qsTr("Scaling Filter")
-                    description: qsTr("Filtering algorithm for non-integer scales")
-
-                    OptionPicker {
-                        model: root.scaleFilterOptions
-                        currentIndex: {
-                            if (!root.monitor || !root.monitor.scaleFilter) return 0;
-                            const idx = root.scaleFilterOptions.findIndex(o => o.val === root.monitor.scaleFilter);
-                            return idx >= 0 ? idx : 0;
-                        }
-                        onSelected: (idx) => {
-                            root.updateField("scaleFilter", root.scaleFilterOptions[idx].val);
-                        }
-                    }
-                }
             }
 
             // ── Section 3: Layout, Position & Mirroring ────────────────────
@@ -487,13 +465,13 @@ Item {
                 // Set Primary Button
                 SettingRow {
                     title: qsTr("Primary Display")
-                    description: (root.monitor && root.monitor.x === 0 && root.monitor.y === 0)
-                                 ? qsTr("This monitor is designated as the primary origin (0, 0)")
-                                 : qsTr("Set this monitor as primary origin and shift others")
+                    description: root.isCurrentPrimary
+                                 ? qsTr("This monitor is designated as the primary display")
+                                 : qsTr("Set this monitor as the primary display")
 
                     TextButton {
-                        text: (root.monitor && root.monitor.x === 0 && root.monitor.y === 0) ? qsTr("Primary ★") : qsTr("Make Primary")
-                        enabled: !(root.monitor && root.monitor.x === 0 && root.monitor.y === 0)
+                        text: root.isCurrentPrimary ? qsTr("Primary ★") : qsTr("Make Primary")
+                        enabled: !root.isCurrentPrimary
                         onClicked: root.setAsPrimaryRequested()
                     }
                 }
@@ -588,7 +566,7 @@ Item {
             Section {
                 title: qsTr("Power, Color & Advanced")
                 icon: "tune"
-                accentColor: Colours.palette.m3outline
+                accentColor: Colours.palette.m3primary
 
                 // Screen Power (DPMS)
                 SettingRow {

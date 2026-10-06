@@ -48,31 +48,6 @@ ColumnLayout {
             }
         }
 
-        SettingRow {
-            title: qsTr("Show media player")
-            description: qsTr("Include media player widget on dashboard")
-            divider: true
-            StyledSwitch {
-                checked: Config.dashboard.showMedia ?? true
-                onToggled: {
-                    GlobalConfig.dashboard.showMedia = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-
-        SettingRow {
-            title: qsTr("Show weather")
-            description: qsTr("Include weather widget on dashboard")
-            divider: true
-            StyledSwitch {
-                checked: Config.dashboard.showWeather ?? true
-                onToggled: {
-                    GlobalConfig.dashboard.showWeather = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
 
         SettingRow {
             title: qsTr("Weather location")
