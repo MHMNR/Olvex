@@ -5,8 +5,8 @@ import Olvex.Config
 import qs.components
 import qs.services
 
-// M3 sliding switch — same language as standalone clipboard FilterButtonGroup:
-// solid track + primary sliding thumb with spring travel.
+// M3 sliding switch — authentic Material 3 Expressive morph & spring physics:
+// High-contrast track + morphing sliding thumb with checkmark scale transition.
 Switch {
     id: root
 
@@ -17,7 +17,11 @@ Switch {
     readonly property real trackW: Math.round(trackH * 52 / 32)
     readonly property real thumbOn: Math.round(trackH * 24 / 32)
     readonly property real thumbOff: Math.round(trackH * 16 / 32)
-    readonly property real trackInset: 4
+    readonly property real trackInset: Math.max(4, Math.round((trackH - thumbOn) / 2))
+
+    // Expressive morphing states (elongates when pressed/moving)
+    readonly property real thumbMorphW: root.pressed ? Math.round(trackH * 28 / 32) : (root.checked ? root.thumbOn : root.thumbOff)
+    readonly property real thumbMorphH: root.pressed ? Math.round(trackH * 22 / 32) : (root.checked ? root.thumbOn : root.thumbOff)
 
     implicitWidth: trackW
     implicitHeight: trackH
@@ -55,80 +59,118 @@ Switch {
         implicitWidth: root.trackW
         implicitHeight: root.trackH
         radius: height / 2
-        // Clipboard filter track: secondaryContainer off / primary on
+
         color: {
             if (!root.enabled)
-                return Qt.alpha(Colours.palette.m3onSurface, 0.12);
-            return root.checked ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer;
+                return Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.38);
+            return root.checked ? Colours.palette.m3primary : Colours.palette.m3surfaceContainerHighest;
+        }
+        border.width: root.checked ? 0 : 2
+        border.color: {
+            if (!root.enabled)
+                return Qt.alpha(Colours.palette.m3outline, 0.38);
+            if (root.checked)
+                return "transparent";
+            return root.hovered ? Colours.palette.m3onSurface : Colours.palette.m3outline;
         }
 
         Behavior on color {
-            ColorAnimation { duration: 120; easing.type: Easing.OutCubic }
+            ColorAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing.type: Easing.OutCubic }
+        }
+        Behavior on border.color {
+            ColorAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing.type: Easing.OutCubic }
+        }
+        Behavior on border.width {
+            NumberAnimation { duration: Tokens?.anim?.durations?.fast ?? 160; easing.type: Easing.OutCubic }
         }
 
-        // Hover / press wash (ClipboardStandalone pattern: fades out when active/checked)
+        // State layer halo around thumb
         StyledRect {
-            anchors.fill: parent
-            radius: parent.radius
-            color: Colours.palette.m3onSurface
-            opacity: !root.enabled ? 0 : root.pressed ? 0.1 : (root.hovered && !root.checked) ? 0.08 : 0
+            id: stateHalo
+            anchors.centerIn: thumb
+            width: Math.round(track.height * 38 / 32)
+            height: width
+            radius: width / 2
+            color: root.checked ? Colours.palette.m3primary : Colours.palette.m3onSurface
+            opacity: !root.enabled ? 0 : root.pressed ? 0.14 : (root.hovered ? 0.08 : 0)
+            z: 0
 
             Behavior on opacity {
-                NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+            Behavior on color {
+                ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
             }
         }
 
-        // Sliding thumb
+        // Sliding & Morphing Thumb
         StyledRect {
             id: thumb
 
-            readonly property real baseSize: root.checked ? root.thumbOn : root.thumbOff
-            readonly property real targetSize: root.pressed ? Math.min(baseSize * 1.12, track.height - root.trackInset * 2) : baseSize
-            readonly property real margin: Math.max(root.trackInset, (track.height - targetSize) / 2)
-
-            width: targetSize
-            height: targetSize
-            implicitWidth: targetSize
-            implicitHeight: targetSize
+            width: root.thumbMorphW
+            height: root.thumbMorphH
+            implicitWidth: width
+            implicitHeight: height
             radius: height / 2
             anchors.verticalCenter: parent.verticalCenter
-            x: root.checked ? track.width - width - margin : margin
+            z: 1
+
+            x: root.checked ? (track.width - width - Math.round((track.height - width) / 2)) : Math.round((track.height - width) / 2)
+
             color: {
                 if (!root.enabled)
                     return Qt.alpha(Colours.palette.m3onSurface, 0.38);
-                // On: onPrimary; off: solid outline on secondary track (readable)
-                return root.checked ? Colours.palette.m3onPrimary : Colours.palette.m3outline;
+                return root.checked ? Colours.palette.m3onPrimary : (root.hovered ? Colours.palette.m3onSurface : Colours.palette.m3outline);
             }
 
             Behavior on x {
-                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: Tokens?.anim?.durations?.normal ?? 260
+                    easing: Tokens?.anim?.emphasized ?? Easing.bezierCurve(0.2, 0.0, 0.0, 1.0)
+                }
             }
             Behavior on width {
-                NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: Tokens?.anim?.durations?.fast ?? 180
+                    easing: Tokens?.anim?.emphasizedDecel ?? Easing.OutBack
+                }
             }
             Behavior on height {
-                NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: Tokens?.anim?.durations?.fast ?? 180
+                    easing: Tokens?.anim?.emphasizedDecel ?? Easing.OutBack
+                }
             }
             Behavior on color {
-                ColorAnimation { duration: 120; easing.type: Easing.OutCubic }
+                ColorAnimation {
+                    duration: Tokens?.anim?.durations?.normal ?? 220
+                    easing.type: Easing.OutCubic
+                }
             }
 
+            // Morphing Checkmark (smooth scale & fade)
             MaterialIcon {
+                id: checkIcon
                 anchors.centerIn: parent
                 text: "check"
-                visible: root.checked && thumb.width >= Math.max(16, root.thumbOn * 0.8)
-                color: Colours.palette.m3primary
                 fill: 1
-                iconPointSize: Math.max(10, thumb.width * 0.5)
-                opacity: root.enabled ? 0.9 : 0.38
+                color: Colours.palette.m3primary
+                iconPointSize: Math.max(10, Math.round(thumb.height * 0.55))
+                opacity: root.checked && root.enabled && thumb.width >= (root.thumbOn * 0.75) ? 1.0 : 0.0
+                scale: root.checked ? 1.0 : 0.2
+                visible: opacity > 0.01
 
+                Behavior on opacity {
+                    NumberAnimation { duration: Tokens?.anim?.durations?.fast ?? 160; easing.type: Easing.OutCubic }
+                }
+                Behavior on scale {
+                    NumberAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing: Tokens?.anim?.emphasizedDecel ?? Easing.OutBack }
+                }
                 Behavior on color {
-                    ColorAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    ColorAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing.type: Easing.OutCubic }
                 }
             }
         }
-
-
 
         HoverHandler {
             enabled: root.enabled

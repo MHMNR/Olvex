@@ -56,13 +56,12 @@ Item {
     implicitWidth: root.floating ? 1160 : screen.height * Tokens.sizes.settings.heightMult * Tokens.sizes.settings.ratio
     implicitHeight: root.floating ? 880 : screen.height * Tokens.sizes.settings.heightMult
 
-    // ── surface: glass transparency with rounded corners ───────────────────
+    // ── surface: glass transparency seamlessly clipped by Hyprland window rounding ──
     StyledRect {
         anchors.fill: parent
-        radius: root.floating ? Tokens.rounding.large : 0
+        radius: 0
         color: Qt.alpha(Colours.palette.m3surface, Colours.transparencyEnabled ? Math.min(Colours.transparencyBase, 0.68) : (Colours.light ? 0.76 : 0.64))
-        border.width: root.floating ? 1 : 0
-        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+        border.width: 0
 
         // ── top bar ─────────────────────────────────────────────────────
         Item {
@@ -139,7 +138,9 @@ Item {
                         implicitWidth: 36
                         implicitHeight: 36
                         radius: Tokens.rounding.full
-                        color: Colours.palette.m3surfaceContainerHigh
+                        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                        border.width: 1
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
 
                         MaterialIcon {
                             anchors.centerIn: parent
@@ -186,7 +187,9 @@ Item {
                     radius: Tokens.rounding.full
                     clip: true
 
-                    color: Colours.palette.m3surfaceContainerHigh
+                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                    border.width: 1
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
 
                     Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
                     Behavior on color { CAnim {} }
@@ -378,7 +381,9 @@ Item {
                     implicitWidth: modeRow.implicitWidth + Tokens.padding.large * 2
                     implicitHeight: 46
                     radius: Tokens.rounding.full
-                    color: Colours.palette.m3surfaceContainerHigh
+                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                    border.width: 1
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
 
                     Row {
                         id: modeRow
@@ -421,7 +426,9 @@ Item {
                     implicitWidth: 46
                     implicitHeight: 46
                     radius: Tokens.rounding.full
-                    color: Colours.palette.m3surfaceContainerHigh
+                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                    border.width: 1
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
                     visible: root.floating
 
                     MaterialIcon {
@@ -734,6 +741,7 @@ Item {
             id: searchBackdrop
             anchors.fill: parent
             z: 110
+            hoverEnabled: true
             visible: (searchFlyout.visible && searchFlyout.opacity > 0.01) || (searchPill && searchPill.searchActive)
             onClicked: {
                 if (searchInput)

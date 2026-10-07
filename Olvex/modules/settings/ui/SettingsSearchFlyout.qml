@@ -15,15 +15,6 @@ StyledRect {
     property string query: ""
     property int selectedIndex: 0
 
-    property int hoveredIndex: -1
-
-    onQueryChanged: root.hoveredIndex = -1
-
-    Timer {
-        id: clearHoverTimer
-        interval: 80
-        onTriggered: root.hoveredIndex = -1
-    }
 
     readonly property var results: PaneRegistry.search(query)
     readonly property int resultsCount: results.length
@@ -94,6 +85,13 @@ StyledRect {
         return cleanParts.join(" › ");
     }
 
+    // Prevent hover/click bleed-through to background stack
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        z: -1
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
@@ -110,19 +108,12 @@ StyledRect {
                 anchors.fill: parent
                 spacing: Tokens.spacing.small
 
-                MaterialIcon {
-                    text: "saved_search"
-                    color: Colours.palette.m3primary
-                    iconPointSize: 16
-                }
-
                 StyledText {
                     text: root.resultsCount > 0 
-                        ? qsTr("SETTINGS MATCHES (%1)").arg(root.resultsCount)
-                        : qsTr("NO MATCHES")
+                        ? qsTr("Settings matches (%1)").arg(root.resultsCount)
+                        : qsTr("No matches")
                     color: Colours.palette.m3primary
                     font.weight: Font.DemiBold
-                    font.letterSpacing: 0.8
                     textPointSize: Tokens.font.size.smaller
                 }
 
@@ -176,38 +167,7 @@ StyledRect {
                 }
             }
 
-            // Moving Hover Highlight Indicator Pill
-            StyledRect {
-                id: hoverHighlight
-                parent: resultsList.contentItem
-                width: resultsList.width
-                height: 60
-                radius: Tokens.rounding.normal
-                color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-                border.width: 0
-                z: 0
-                visible: opacity > 0.001
-                opacity: (root.hoveredIndex >= 0 && root.hoveredIndex !== root.selectedIndex && root.hoveredIndex < root.resultsCount) ? 1.0 : 0.0
 
-                x: 0
-                y: (root.hoveredIndex >= 0 && root.hoveredIndex < root.resultsCount)
-                    ? root.hoveredIndex * (60 + resultsList.spacing)
-                    : y
-
-                Behavior on y {
-                    enabled: hoverHighlight.opacity > 0
-                    SpringAnimation {
-                        spring: 7.0
-                        damping: 0.8
-                        mass: 1.0
-                        epsilon: 0.005
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation { duration: 150 }
-                }
-            }
 
             delegate: StyledRect {
                 id: itemCard
@@ -229,12 +189,8 @@ StyledRect {
                     id: cardHover
                     cursorShape: Qt.PointingHandCursor
                     onHoveredChanged: {
-                        if (hovered) {
-                            clearHoverTimer.stop();
-                            root.hoveredIndex = itemCard.index;
-                        } else if (root.hoveredIndex === itemCard.index) {
-                            clearHoverTimer.restart();
-                        }
+                        if (hovered)
+                            root.selectedIndex = itemCard.index;
                     }
                 }
 
@@ -290,41 +246,12 @@ StyledRect {
                         }
                     }
 
-                    // Right Selection Indicator
-                    StyledRect {
-                        implicitWidth: itemCard.isSelected ? enterRow.implicitWidth + 12 : 24
-                        implicitHeight: 24
-                        radius: Tokens.rounding.small
-                        color: itemCard.isSelected ? Qt.alpha(Colours.palette.m3primary, 0.22) : "transparent"
+                    // Clean Chevron Trailing Indicator
+                    MaterialIcon {
+                        text: "chevron_right"
+                        color: itemCard.isSelected ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outline, 0.35)
+                        iconPointSize: 18
                         Layout.alignment: Qt.AlignVCenter
-
-                        RowLayout {
-                            id: enterRow
-                            anchors.centerIn: parent
-                            spacing: 4
-                            visible: itemCard.isSelected
-
-                            MaterialIcon {
-                                text: "keyboard_return"
-                                color: Colours.palette.m3primary
-                                iconPointSize: 14
-                            }
-
-                            StyledText {
-                                text: qsTr("Enter")
-                                color: Colours.palette.m3primary
-                                font.weight: Font.DemiBold
-                                textPointSize: Tokens.font.size.smaller
-                            }
-                        }
-
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "chevron_right"
-                            color: Qt.alpha(Colours.palette.m3outline, 0.4)
-                            iconPointSize: 16
-                            visible: !itemCard.isSelected
-                        }
                     }
                 }
 

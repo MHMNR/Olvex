@@ -646,7 +646,7 @@ Item {
                                     readonly property bool isVolActive: !Audio.muted && Audio.volume > 0.001
 
                                     radius: isVolActive ? Tokens.rounding.small : height / 2
-                                    color: isVolActive ? Colours.palette.m3primary : (Audio.muted ? Qt.alpha(Colours.palette.m3error, 0.22) : Qt.alpha(Colours.palette.m3onSurface, 0.12))
+                                    color: isVolActive ? Colours.palette.m3primary : (Audio.muted ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onSurface, 0.12))
 
                                     Behavior on radius {
                                         Anim { type: Anim.FastSpatial }
@@ -662,14 +662,14 @@ Item {
                                     }
 
                                     StateLayer {
-                                        color: volBtn.isVolActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                                        color: volBtn.isVolActive ? Colours.palette.m3onPrimary : (Audio.muted ? Colours.palette.m3onError : Colours.palette.m3primary)
                                     }
 
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         text: Icons.getVolumeIcon(Audio.volume, Audio.muted)
                                         iconPointSize: Tokens.font.size.large
-                                        color: volBtn.isVolActive ? Colours.palette.m3onPrimary : (Audio.muted ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onSurface, 0.70))
+                                        color: volBtn.isVolActive ? Colours.palette.m3onPrimary : (Audio.muted ? Colours.palette.m3onError : Qt.alpha(Colours.palette.m3onSurface, 0.70))
                                     }
 
                                     MouseArea {
@@ -763,7 +763,7 @@ Item {
                                     readonly property bool isNotifActive: !notifSoundSection.isEffectivelyMuted
 
                                     radius: isNotifActive ? Tokens.rounding.small : height / 2
-                                    color: isNotifActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3error, 0.22)
+                                    color: isNotifActive ? Colours.palette.m3primary : Colours.palette.m3error
 
                                     Behavior on radius {
                                         Anim { type: Anim.FastSpatial }
@@ -779,14 +779,14 @@ Item {
                                     }
 
                                     StateLayer {
-                                        color: notifSoundBtn.isNotifActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                                        color: notifSoundBtn.isNotifActive ? Colours.palette.m3onPrimary : (notifSoundSection.isEffectivelyMuted ? Colours.palette.m3onError : Colours.palette.m3primary)
                                     }
 
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         text: notifSoundBtn.isNotifActive ? "notifications" : "notifications_off"
                                         iconPointSize: Tokens.font.size.large
-                                        color: notifSoundBtn.isNotifActive ? Colours.palette.m3onPrimary : Colours.palette.m3error
+                                        color: notifSoundBtn.isNotifActive ? Colours.palette.m3onPrimary : Colours.palette.m3onError
                                     }
 
                                     MouseArea {
@@ -879,7 +879,7 @@ Item {
                                     readonly property bool isMicActive: !Audio.sourceMuted && Audio.sourceVolume > 0.001
 
                                     radius: isMicActive ? Tokens.rounding.small : height / 2
-                                    color: isMicActive ? Colours.palette.m3primary : (Audio.sourceMuted ? Qt.alpha(Colours.palette.m3error, 0.22) : Qt.alpha(Colours.palette.m3onSurface, 0.12))
+                                    color: isMicActive ? Colours.palette.m3primary : (Audio.sourceMuted ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onSurface, 0.12))
 
                                     Behavior on radius {
                                         Anim { type: Anim.FastSpatial }
@@ -895,14 +895,14 @@ Item {
                                     }
 
                                     StateLayer {
-                                        color: micBtn.isMicActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                                        color: micBtn.isMicActive ? Colours.palette.m3onPrimary : (Audio.sourceMuted ? Colours.palette.m3onError : Colours.palette.m3primary)
                                     }
 
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         text: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
                                         iconPointSize: Tokens.font.size.large
-                                        color: micBtn.isMicActive ? Colours.palette.m3onPrimary : (Audio.sourceMuted ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onSurface, 0.70))
+                                        color: micBtn.isMicActive ? Colours.palette.m3onPrimary : (Audio.sourceMuted ? Colours.palette.m3onError : Qt.alpha(Colours.palette.m3onSurface, 0.70))
                                     }
 
                                     MouseArea {
@@ -1290,7 +1290,7 @@ Item {
                                                 readonly property bool isStreamActive: !streamItem.isStreamMuted && streamItem.streamVol > 0.001
 
                                                 radius: isStreamActive ? Tokens.rounding.small : height / 2
-                                                color: isStreamActive ? Colours.palette.m3primary : (streamItem.isStreamMuted ? Qt.alpha(Colours.palette.m3error, 0.22) : Qt.alpha(Colours.palette.m3onSurface, 0.12))
+                                                color: isStreamActive ? Colours.palette.m3primary : (streamItem.isStreamMuted ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onSurface, 0.12))
 
                                                 Behavior on radius {
                                                     Anim { type: Anim.FastSpatial }
@@ -1306,14 +1306,14 @@ Item {
                                                 }
 
                                                 StateLayer {
-                                                    color: streamBtn.isStreamActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                                                    color: streamBtn.isStreamActive ? Colours.palette.m3onPrimary : (streamItem.isStreamMuted ? Colours.palette.m3onError : Colours.palette.m3primary)
                                                 }
 
                                                 MaterialIcon {
                                                     anchors.centerIn: parent
                                                     text: Icons.getVolumeIcon(streamItem.streamVol, streamItem.isStreamMuted)
                                                     iconPointSize: Tokens.font.size.large
-                                                    color: streamBtn.isStreamActive ? Colours.palette.m3onPrimary : (streamItem.isStreamMuted ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onSurface, 0.70))
+                                                    color: streamBtn.isStreamActive ? Colours.palette.m3onPrimary : (streamItem.isStreamMuted ? Colours.palette.m3onError : Qt.alpha(Colours.palette.m3onSurface, 0.70))
                                                 }
 
                                                 MouseArea {
