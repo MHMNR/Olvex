@@ -45,6 +45,7 @@ RowLayout {
         // other 5 cards pay zero cost for it.
         property int elevationLevel: 0
         property real slideOffset: 0
+        property bool showBorder: true
 
         radius: Tokens.rounding.large
 
@@ -107,8 +108,8 @@ RowLayout {
             anchors.fill: parent
             radius: card.radius
             color: Qt.alpha(card.bgColor, card.blurEnabled ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
-            border.color: card.blurEnabled ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
-            border.width: card.blurEnabled ? 1 : 0
+            border.color: (card.showBorder && card.blurEnabled) ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
+            border.width: (card.showBorder && card.blurEnabled) ? 1 : 0
             antialiasing: true
 
             Behavior on color {
@@ -261,7 +262,8 @@ RowLayout {
             Layout.fillHeight: true
             Layout.preferredHeight: 138
             bgColor: Players.musicSurfaceColor
-            elevationLevel: 3
+            elevationLevel: 0
+            showBorder: false
             slideOffset: l3Trans.x
             transform: Translate { id: l3Trans; x: -500 }
             Media { id: media; lock: root.lock }
