@@ -873,15 +873,17 @@ apply_display_manager() {
 
     case "$CONF_DM_CHOICE" in
         1)
-            log_info "Configuring SDDM for Wayland..."
+            log_info "Configuring SDDM..."
             sudo mkdir -p /etc/sddm.conf.d
-            sudo tee /etc/sddm.conf.d/10-wayland.conf >/dev/null <<'EOF'
+            # Remove incomplete Wayland greeter override that causes TTY1 black screen VT freeze on Hyprland login
+            sudo rm -f /etc/sddm.conf.d/10-wayland.conf 2>/dev/null || true
+            sudo tee /etc/sddm.conf.d/10-olvex.conf >/dev/null <<'EOF'
 [General]
-DisplayServer=wayland
-GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell
+InputMethod=
+Numlock=none
 EOF
             sudo systemctl enable sddm.service 2>/dev/null || true
-            log_success "SDDM enabled with Wayland greeter support."
+            log_success "SDDM enabled with seamless VT switching."
             ;;
         2)
             log_info "Configuring greetd with tuigreet..."
