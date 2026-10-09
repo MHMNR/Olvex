@@ -15,6 +15,9 @@ T.Slider {
     id: root
 
     // ── Value readout (side number for precision) ──
+    property bool isReady: false
+    Component.onCompleted: isReady = true
+
     property bool showValue: true
     property bool showValuePopup: true // Floating M3 value pin popup above thumb
     property int valueDecimals: -1
@@ -163,6 +166,7 @@ T.Slider {
             antialiasing: true
 
             Behavior on color {
+                enabled: root.isReady
                 ColorAnimation { duration: Tokens.anim.durations.expressiveFastEffects }
             }
         }
@@ -179,6 +183,7 @@ T.Slider {
             antialiasing: true
 
             Behavior on color {
+                enabled: root.isReady
                 ColorAnimation { duration: Tokens.anim.durations.expressiveFastEffects }
             }
         }
@@ -254,6 +259,7 @@ T.Slider {
                 }
             }
             Behavior on color {
+                enabled: root.isReady
                 ColorAnimation { duration: Tokens.anim.durations.expressiveFastEffects }
             }
         }

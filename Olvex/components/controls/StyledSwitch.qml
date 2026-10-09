@@ -11,6 +11,8 @@ Switch {
     id: root
 
     property int cLayer: 1
+    property bool isReady: false
+    Component.onCompleted: isReady = true
 
     // Track scales with type size so UI scale / large fonts stay proportional
     readonly property real trackH: Math.max(28, Math.round((Tokens.font?.size?.normal ?? 13) * 2.15))
@@ -75,12 +77,15 @@ Switch {
         }
 
         Behavior on color {
+            enabled: root.isReady
             ColorAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing.type: Easing.OutCubic }
         }
         Behavior on border.color {
+            enabled: root.isReady
             ColorAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing.type: Easing.OutCubic }
         }
         Behavior on border.width {
+            enabled: root.isReady
             NumberAnimation { duration: Tokens?.anim?.durations?.fast ?? 160; easing.type: Easing.OutCubic }
         }
 
@@ -96,9 +101,11 @@ Switch {
             z: 0
 
             Behavior on opacity {
+                enabled: root.isReady
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
             Behavior on color {
+                enabled: root.isReady
                 ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
             }
         }
@@ -124,24 +131,28 @@ Switch {
             }
 
             Behavior on x {
+                enabled: root.isReady
                 NumberAnimation {
                     duration: Tokens?.anim?.durations?.normal ?? 260
                     easing: Tokens?.anim?.emphasized ?? Easing.bezierCurve(0.2, 0.0, 0.0, 1.0)
                 }
             }
             Behavior on width {
+                enabled: root.isReady
                 NumberAnimation {
                     duration: Tokens?.anim?.durations?.fast ?? 180
                     easing: Tokens?.anim?.emphasizedDecel ?? Easing.OutBack
                 }
             }
             Behavior on height {
+                enabled: root.isReady
                 NumberAnimation {
                     duration: Tokens?.anim?.durations?.fast ?? 180
                     easing: Tokens?.anim?.emphasizedDecel ?? Easing.OutBack
                 }
             }
             Behavior on color {
+                enabled: root.isReady
                 ColorAnimation {
                     duration: Tokens?.anim?.durations?.normal ?? 220
                     easing.type: Easing.OutCubic
@@ -161,12 +172,15 @@ Switch {
                 visible: opacity > 0.01
 
                 Behavior on opacity {
+                    enabled: root.isReady
                     NumberAnimation { duration: Tokens?.anim?.durations?.fast ?? 160; easing.type: Easing.OutCubic }
                 }
                 Behavior on scale {
+                    enabled: root.isReady
                     NumberAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing: Tokens?.anim?.emphasizedDecel ?? Easing.OutBack }
                 }
                 Behavior on color {
+                    enabled: root.isReady
                     ColorAnimation { duration: Tokens?.anim?.durations?.normal ?? 220; easing.type: Easing.OutCubic }
                 }
             }

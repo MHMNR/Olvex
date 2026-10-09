@@ -35,8 +35,8 @@ Item {
     function syncFromService() {
         let copy = DisplayManager.deepCopyMonitors();
         if (copy && copy.length === 1) {
-            copy[0].x = 0;
-            copy[0].y = 0;
+            if (typeof copy[0].x !== "number" || isNaN(copy[0].x)) copy[0].x = 0;
+            if (typeof copy[0].y !== "number" || isNaN(copy[0].y)) copy[0].y = 0;
             copy[0].isPrimary = true;
         } else if (copy && copy.length > 1) {
             let minX = Infinity, minY = Infinity;
@@ -51,12 +51,12 @@ Item {
                 if (my < minY) minY = my;
                 copy[i].isPrimary = (i === primaryIndex);
             }
-            if ((minX !== Infinity && minX > 0) || (minY !== Infinity && minY > 0)) {
-                const shiftX = (minX !== Infinity && minX > 0) ? minX : 0;
-                const shiftY = (minY !== Infinity && minY > 0) ? minY : 0;
+            if ((minX !== Infinity && minX < 0) || (minY !== Infinity && minY < 0)) {
+                const shiftX = (minX !== Infinity && minX < 0) ? -minX : 0;
+                const shiftY = (minY !== Infinity && minY < 0) ? -minY : 0;
                 for (let i = 0; i < copy.length; i++) {
-                    copy[i].x = Math.max(0, copy[i].x - shiftX);
-                    copy[i].y = Math.max(0, copy[i].y - shiftY);
+                    copy[i].x = Math.max(0, copy[i].x + shiftX);
+                    copy[i].y = Math.max(0, copy[i].y + shiftY);
                 }
             }
         }
