@@ -6,6 +6,7 @@ import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Olvex.Config
 import qs.components
+import qs.components.icons
 import qs.services
 import qs.utils
 
@@ -31,23 +32,23 @@ StyledRect {
     readonly property int netSpeedFontSize: netSpeedConfig?.fontSize ?? 10
     readonly property int netSpeedMaxDigits: netSpeedConfig?.maxDigits ?? 0
 
-    readonly property real iconSize: Tokens.font.size.normal
-    readonly property real slotGap: 6
-    readonly property real padV: Tokens.padding.normal
+    readonly property real iconSize: 20
+    readonly property real slotGap: Tokens.spacing.extraSmall
+    readonly property real padV: Tokens.spacing.small
     readonly property real padH: Math.max(4, Tokens.padding.small / 2)
 
     // ── Live flags (for spacers) ──
-    readonly property bool showNet: Config.bar.status.showNetwork && (!Nmcli.activeEthernet || Config.bar.status.showWifi)
-    readonly property bool showEth: Config.bar.status.showNetwork && Nmcli.activeEthernet
-    readonly property bool showBt: Config.bar.status.showBluetooth
-    readonly property bool showBat: Config.bar.status.showBattery
+    readonly property bool isEthernetActive: Nmcli.hasEthernetHw && !!Nmcli.activeEthernet
+    readonly property bool showNet: Config.bar.status.showNetwork && (Nmcli.hasWifiHw || Nmcli.hasEthernetHw)
+    readonly property bool showBt: Config.bar.status.showBluetooth && (Bluetooth.defaultAdapter !== null)
+    readonly property bool showBat: Config.bar.status.showBattery && UPower.displayDevice.isLaptopBattery
     readonly property bool showAud: Config.bar.status.showAudio
     readonly property bool showMic: Config.bar.status.showMicrophone
     readonly property bool showSpeed: root.netSpeedEnabled
     readonly property bool showLock: Config.bar.status.showLockStatus && (Hypr.capsLock || Hypr.numLock)
     readonly property bool showKb: Config.bar.status.showKbLayout
 
-    readonly property bool tierLink: showNet || showEth || showBt
+    readonly property bool tierLink: showNet || showBt
     readonly property bool tierPower: showBat
     readonly property bool tierMedia: showAud || showMic
     readonly property bool tierTelemetry: showSpeed
@@ -56,10 +57,8 @@ StyledRect {
     color: Colours.tileSurface
     radius: Tokens.rounding.full
 
-    border.width: 1
-    border.color: pillHover.containsMouse
-        ? Qt.alpha(Colours.palette.m3primary, 0.3)
-        : Qt.alpha(Colours.palette.m3outlineVariant, 0.14)
+    border.width: 0
+    border.color: "transparent"
     scale: pillHover.containsMouse ? 1.02 : 1.0
 
     Behavior on scale {
@@ -69,9 +68,6 @@ StyledRect {
             mass: 1.0
             epsilon: 0.005
         }
-    }
-    Behavior on border.color {
-        CAnim {}
     }
 
     // Soft top sheen
@@ -95,17 +91,6 @@ StyledRect {
                 color: "transparent"
             }
         }
-    }
-
-    // Inner rim (quiet depth)
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: Math.max(0, parent.radius - 1)
-        color: "transparent"
-        border.width: 1
-        border.color: Qt.alpha(Colours.palette.m3onSurface, 0.04)
-        z: 0
     }
 
     MouseArea {
@@ -134,35 +119,46 @@ StyledRect {
         id: iconColumn
 
         z: 2
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.centerIn: parent
         width: parent.width - root.padH * 2
         spacing: root.slotGap
 
-        // ── Link ──
+        // ── Unified Network (Ethernet Priority -> Wi-Fi -> Disconnected) ──
         StatusSlot {
             name: "network"
             active: root.showNet
 
-            MaterialIcon {
+            Loader {
                 anchors.centerIn: parent
-                animate: true
-                text: Nmcli.active ? Icons.getNetworkIcon(Nmcli.active.strength ?? 0) : "wifi_off"
-                color: Nmcli.active ? root.colourIdle : root.colourMuted
-                iconPointSize: root.iconSize
+                sourceComponent: root.isEthernetActive ? ethIconComp : wifiIconComp
             }
-        }
 
-        StatusSlot {
-            name: "ethernet"
-            active: root.showEth
+            Component {
+                id: ethIconComp
+                Item {
+                    implicitWidth: root.iconSize
+                    implicitHeight: root.iconSize
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        animate: true
+                        text: "settings_ethernet"
+                        color: root.colourIdle
+                        iconPointSize: 16
+                    }
+                }
+            }
 
-            MaterialIcon {
-                anchors.centerIn: parent
-                animate: true
-                text: "settings_ethernet"
-                color: root.colourIdle
-                iconPointSize: root.iconSize
+            Component {
+                id: wifiIconComp
+                WifiLottieIcon {
+                    anchors.centerIn: parent
+                    size: root.iconSize
+                    wifiEnabled: Nmcli.wifiEnabled
+                    connected: Boolean(Nmcli.active)
+                    signalStrength: (Nmcli.active?.strength ?? 0) / 100.0
+                    color: Nmcli.active ? root.colourIdle : root.colourMuted
+                    disabledColor: root.colourMuted
+                }
             }
         }
 
@@ -170,66 +166,41 @@ StyledRect {
             id: btSlot
             name: "bluetooth"
             active: root.showBt
-            contentHeight: Math.max(root.iconSize + 4, btCol.implicitHeight)
+            contentHeight: Math.max(root.iconSize + 2, btCol.implicitHeight)
 
             Column {
                 id: btCol
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
+                anchors.centerIn: parent
                 spacing: 4
 
-                MaterialIcon {
+                readonly property var connectedDevices: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected)
+                readonly property bool hasConnectedDevices: connectedDevices.length > 0
+
+                // Bluetooth icon (shown when no devices connected)
+                BluetoothLottieIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    animate: true
-                    text: {
-                        if (!Bluetooth.defaultAdapter?.enabled)
-                            return "bluetooth_disabled";
-                        if (Bluetooth.devices.values.some(d => d.connected))
-                            return "bluetooth_connected";
-                        return "bluetooth";
-                    }
-                    color: {
-                        if (!Bluetooth.defaultAdapter?.enabled)
-                            return root.colourMuted;
-                        if (Bluetooth.devices.values.some(d => d.connected))
-                            return root.colourActive;
-                        return root.colourIdle;
-                    }
-                    iconPointSize: root.iconSize
+                    visible: !btCol.hasConnectedDevices
+                    size: root.iconSize
+                    connected: (Bluetooth.defaultAdapter?.enabled ?? false)
+                    color: root.colourIdle
+                    disabledColor: root.colourMuted
                 }
 
+                // Connected bluetooth devices (unified icon + battery ring)
                 Repeater {
                     model: ScriptModel {
-                        values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected)
+                        values: btCol.connectedDevices
                     }
 
-                    MaterialIcon {
-                        id: btDev
+                    BluetoothDeviceBatteryIcon {
+                        id: btDevItem
                         required property BluetoothDevice modelData
                         anchors.horizontalCenter: parent.horizontalCenter
-                        animate: true
-                        text: Icons.getBluetoothIcon(modelData?.icon)
-                        color: root.colourIdle
-                        fill: 1
-                        iconPointSize: Math.max(10, root.iconSize - 2)
-
-                        SequentialAnimation on opacity {
-                            running: (btDev.modelData?.state === BluetoothDeviceState.Connecting || btDev.modelData?.state === BluetoothDeviceState.Disconnecting) && root.visible
-                            alwaysRunToEnd: true
-                            loops: Animation.Infinite
-                            Anim {
-                                from: 1
-                                to: 0.35
-                                duration: Tokens.anim.durations.large
-                                easing: Tokens.anim.standardAccel
-                            }
-                            Anim {
-                                from: 0.35
-                                to: 1
-                                duration: Tokens.anim.durations.large
-                                easing: Tokens.anim.standardDecel
-                            }
-                        }
+                        device: modelData
+                        size: root.iconSize
+                        color: root.colourActive
+                        trackColor: Qt.alpha(root.colourIdle, 0.22)
+                        lowBatteryColor: root.colourDanger
                     }
                 }
             }
@@ -243,7 +214,7 @@ StyledRect {
         StatusSlot {
             name: "battery"
             active: root.showBat
-            contentHeight: Math.max(root.iconSize + 4, batInner.implicitHeight || 0)
+            contentHeight: root.iconSize + 2
 
             Loader {
                 id: batInner
@@ -253,8 +224,9 @@ StyledRect {
 
                 Component {
                     id: laptopBattery
-                    BatteryIcon {
-                        percentage: UPower.displayDevice.percentage
+                    BatteryLottieIcon {
+                        size: root.iconSize
+                        level: UPower.displayDevice.percentage
                         charging: [UPowerDeviceState.Charging, UPowerDeviceState.FullyCharged, UPowerDeviceState.PendingCharge].includes(UPower.displayDevice.state)
                         color: !UPower.onBattery || UPower.displayDevice.percentage > 0.2
                             ? root.colourIdle
@@ -310,12 +282,13 @@ StyledRect {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 1
 
-                MaterialIcon {
+                VolumeLottieIcon {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    animate: true
-                    text: Icons.getVolumeIcon(Audio.volume, Audio.muted)
+                    size: root.iconSize
+                    volumeLevel: Audio.volume
+                    muted: Audio.muted
                     color: Audio.muted ? root.colourDanger : root.colourIdle
-                    iconPointSize: root.iconSize
+                    activeMutedColor: root.colourDanger
                 }
 
                 // Current level % (quiet mono caption)
@@ -339,12 +312,13 @@ StyledRect {
             name: "audio"
             active: root.showMic
 
-            MaterialIcon {
+            MicLottieIcon {
                 anchors.centerIn: parent
-                animate: true
-                text: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
+                size: root.iconSize
+                muted: Audio.sourceMuted
+                inputLevel: Audio.sourceVolume
                 color: Audio.sourceMuted ? root.colourDanger : root.colourIdle
-                iconPointSize: root.iconSize
+                activeMutedColor: root.colourDanger
             }
         }
 
@@ -471,8 +445,8 @@ StyledRect {
 
         property string name: ""
         property bool active: true
-        // Override when content is taller than a single icon (BT devices, lock pair)
-        property real contentHeight: root.iconSize + 4
+        // Standard icon slot height
+        property real contentHeight: root.iconSize
 
         // Bar.checkPopout reads child.name on items.childAt(...)
         visible: active
@@ -485,19 +459,8 @@ StyledRect {
 
     component TierSpacer: Item {
         property bool active: false
-
-        visible: active
-        width: iconColumn.width
-        height: active ? 9 : 0
-
-        // Soft horizontal hairline
-        Rectangle {
-            anchors.centerIn: parent
-            width: Math.min(12, parent.width * 0.45)
-            height: 1
-            radius: 0.5
-            color: Qt.alpha(root.colourIdle, 0.2)
-            visible: parent.active
-        }
+        visible: false
+        width: 0
+        height: 0
     }
 }

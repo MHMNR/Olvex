@@ -526,9 +526,9 @@ Item {
 
                 text: {
                     if (root.lastActiveType === "network") {
-                        if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return "lan";
+                        if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return "settings_ethernet";
                         if (Nmcli.wifiEnabled && Nmcli.active) return "wifi";
-                        if (!Nmcli.hasWifiHw && Nmcli.hasEthernetHw) return "lan";
+                        if (!Nmcli.hasWifiHw && Nmcli.hasEthernetHw) return "settings_ethernet";
                         return "wifi";
                     }
                     if (root.lastActiveType === "bluetooth") return "bluetooth"
@@ -579,26 +579,13 @@ Item {
                 anchors.rightMargin: Tokens.padding.large
                 anchors.verticalCenter: parent.top
                 anchors.verticalCenterOffset: 36 // 12 + 48/2
-                spacing: Tokens.spacing.normal
+                spacing: Tokens.spacing.small
                 opacity: 0
                 visible: opacity > 0
 
-                StyledSwitch {
-                    id: headerSwitch
-                    padding: 0
-                    visible: root.lastActiveType === "bluetooth"
-                    checked: root.btEnabled
-                    onToggled: {
-                        if (root.lastActiveType === "bluetooth") {
-                            const a = Bluetooth.defaultAdapter;
-                            if (a) a.enabled = checked;
-                        }
-                    }
-                }
-
                 Item {
                     id: btScanCtl
-                    visible: root.lastActiveType === "bluetooth"
+                    visible: root.lastActiveType === "bluetooth" && root.btEnabled
                     implicitWidth: 36
                     implicitHeight: 36
                     readonly property bool scanning: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.discovering : false
@@ -606,7 +593,7 @@ Item {
 
                     LoadingIndicator {
                         anchors.centerIn: parent
-                        implicitSize: 30
+                        implicitSize: 24
                         color: Colours.palette.m3primary
                         animated: btScanCtl.scanning
                         opacity: btScanCtl.scanning ? 1 : 0
@@ -631,6 +618,19 @@ Item {
                         onClicked: {
                             const a = Bluetooth.defaultAdapter;
                             if (a) a.discovering = !a.discovering;
+                        }
+                    }
+                }
+
+                StyledSwitch {
+                    id: headerSwitch
+                    padding: 0
+                    visible: root.lastActiveType === "bluetooth"
+                    checked: root.btEnabled
+                    onToggled: {
+                        if (root.lastActiveType === "bluetooth") {
+                            const a = Bluetooth.defaultAdapter;
+                            if (a) a.enabled = checked;
                         }
                     }
                 }

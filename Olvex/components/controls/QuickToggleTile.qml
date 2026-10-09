@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell.Services.UPower
 import Olvex.Config
 import qs.components
+import qs.components.icons
 import qs.services
 import QtQuick.Effects
 
@@ -13,6 +14,7 @@ StyledRect {
     property string label
     property string stateText
     property bool checked
+    property bool deviceConnected: false
     property bool toggle: true
     property bool disabled: false
     property bool isExpanding: false
@@ -157,14 +159,70 @@ StyledRect {
             }
         }
 
-        MaterialIcon {
+        Loader {
             anchors.centerIn: parent
-            text: root.icon
-            fill: !root.toggle || root.checked ? 1 : 0
-            color: root.disabled ? root.disabledOnColour
-                 : root.checked ? root.activeOnColour
-                 : root.inactiveOnColour
-            iconPointSize: Tokens.font.size.large
+            sourceComponent: {
+                if (root.icon === "wifi" || root.icon === "wifi_off" || root.icon === "network_wifi")
+                    return wifiComp;
+                if (root.icon && root.icon.startsWith("bluetooth"))
+                    return btComp;
+                if (root.icon === "notifications_off" || root.icon === "notifications")
+                    return bellComp;
+                if (root.icon === "mic" || root.icon === "mic_off")
+                    return micComp;
+                return defaultComp;
+            }
+
+            Component {
+                id: wifiComp
+                WifiLottieIcon {
+                    size: 26
+                    connected: root.checked
+                    color: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
+                }
+            }
+
+            Component {
+                id: btComp
+                BluetoothLottieIcon {
+                    size: 26
+                    connected: root.checked
+                    deviceConnected: root.deviceConnected
+                    color: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
+                }
+            }
+
+            Component {
+                id: bellComp
+                BellLottieIcon {
+                    size: 26
+                    muted: root.checked
+                    color: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
+                    activeMutedColor: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
+                }
+            }
+
+            Component {
+                id: micComp
+                MicLottieIcon {
+                    size: 26
+                    muted: !root.checked
+                    color: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
+                    activeMutedColor: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
+                }
+            }
+
+            Component {
+                id: defaultComp
+                MaterialIcon {
+                    text: root.icon
+                    fill: !root.toggle || root.checked ? 1 : 0
+                    color: root.disabled ? root.disabledOnColour
+                         : root.checked ? root.activeOnColour
+                         : root.inactiveOnColour
+                    iconPointSize: Tokens.font.size.large
+                }
+            }
         }
     }
 

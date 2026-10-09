@@ -9,6 +9,7 @@ import qs.services
 import qs.utils
 import qs.modules.settings
 import "../../../components/containers"
+import "../../../components/icons"
 
 ColumnLayout {
     id: root
@@ -98,7 +99,7 @@ ColumnLayout {
 
                 MaterialIcon {
                     anchors.centerIn: parent
-                    text: "lan"
+                    text: "settings_ethernet"
                     color: !Nmcli.hasEthernetHw
                         ? Qt.alpha(Colours.palette.m3onSurface, 0.38)
                         : (Nmcli.activeEthernet && Nmcli.activeEthernet.connected)
@@ -227,11 +228,14 @@ ColumnLayout {
                 radius: Tokens.rounding.small
                 color: Nmcli.wifiEnabled ? Qt.alpha(Colours.palette.m3primary, 0.12) : Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
-                MaterialIcon {
+                WifiLottieIcon {
                     anchors.centerIn: parent
-                    text: Nmcli.wifiEnabled ? "wifi" : "wifi_off"
-                    color: Nmcli.wifiEnabled ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                    iconPointSize: Tokens.font.size.normal
+                    size: 20
+                    wifiEnabled: Nmcli.wifiEnabled
+                    connected: Boolean(Nmcli.active)
+                    signalStrength: (Nmcli.active?.strength ?? 0) / 100.0
+                    color: Nmcli.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                    disabledColor: Qt.alpha(Colours.palette.m3onSurface, 0.28)
                 }
             }
 
@@ -450,7 +454,8 @@ ColumnLayout {
                         }
 
                         Layout.fillWidth: true
-                        implicitHeight: networkItem.isEditing ? 104 : 52
+                        Layout.preferredHeight: implicitHeight
+                        implicitHeight: networkItem.isEditing ? 108 : 56
                         radius: Tokens.rounding.normal
                         color: {
                             if (networkItem.isEditing) return Colours.layer(Colours.palette.m3surfaceContainerHigh, 1);
@@ -470,29 +475,37 @@ ColumnLayout {
                         // ── Top Row: Wi-Fi Icon + SSID + Badges ─────────────────────────
                         RowLayout {
                             id: topRow
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.topMargin: (52 - 34) / 2
+                            anchors.fill: networkItem.isEditing ? undefined : parent
+                            anchors.left: networkItem.isEditing ? parent.left : undefined
+                            anchors.right: networkItem.isEditing ? parent.right : undefined
+                            anchors.top: networkItem.isEditing ? parent.top : undefined
+                            height: networkItem.isEditing ? 56 : undefined
                             anchors.leftMargin: Tokens.padding.normal
                             anchors.rightMargin: Tokens.padding.normal
-                            height: 34
                             spacing: Tokens.spacing.normal
 
                             // Wi-Fi Signal Icon container
                             StyledRect {
-                                implicitWidth: 34
-                                implicitHeight: 34
+                                implicitWidth: 38
+                                implicitHeight: 38
+                                Layout.preferredWidth: 38
+                                Layout.preferredHeight: 38
                                 radius: Tokens.rounding.small
-                                color: networkItem.isActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3primary, 0.10)
+                                color: networkItem.isActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3primary, 0.12)
+                                Layout.alignment: Qt.AlignVCenter
 
-                                MaterialIcon {
+                                WifiLottieIcon {
                                     anchors.centerIn: parent
-                                    text: Icons.getNetworkIcon(networkItem.modelData.strength, networkItem.modelData.isSecure)
+                                    size: 20
                                     color: networkItem.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
+                                    disabledColor: networkItem.isActive ? Qt.rgba(1, 1, 1, 0.35) : Qt.alpha(Colours.palette.m3primary, 0.28)
+                                    strength: (networkItem.modelData.strength || 0) / 100.0
+                                    connected: true
+                                    connecting: networkItem.isConnecting
+                                    locked: !networkItem.isActive && !networkItem.isSaved && networkItem.modelData.isSecure
+                                    saved: !networkItem.isActive && networkItem.isSaved
+                                    showSlashOnDisable: false
                                     opacity: networkItem.isConnecting ? 0 : 1
-                                    iconPointSize: Tokens.font.size.normal
-
                                     Behavior on opacity { Anim { type: Anim.FastEffects } }
                                 }
 
@@ -510,6 +523,7 @@ ColumnLayout {
                             // Network SSID & Badges
                             ColumnLayout {
                                 Layout.fillWidth: true
+                                Layout.alignment: Qt.AlignVCenter
                                 spacing: 2
 
                                 StyledText {
@@ -582,8 +596,9 @@ ColumnLayout {
                             StyledRect {
                                 id: activeDisconnectBtn
                                 visible: networkItem.isActive
-                                implicitWidth: 32
-                                implicitHeight: 32
+                                Layout.alignment: Qt.AlignVCenter
+                                implicitWidth: 36
+                                implicitHeight: 36
                                 radius: Tokens.rounding.full
                                 color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.12)
 
@@ -625,7 +640,7 @@ ColumnLayout {
 
                             // Direct Hardware-Accelerated Coordinate Morphing
                             x: networkItem.isEditing ? Tokens.padding.normal : (networkItem.width - collapsedWidth - Tokens.padding.normal)
-                            y: networkItem.isEditing ? 54 : (52 - 26) / 2
+                            y: networkItem.isEditing ? 56 : Math.round((56 - height) / 2)
                             width: networkItem.isEditing ? expandedWidth : collapsedWidth
                             height: networkItem.isEditing ? 38 : 26
                             radius: Tokens.rounding.full

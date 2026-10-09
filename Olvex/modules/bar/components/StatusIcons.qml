@@ -6,6 +6,7 @@ import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Olvex.Config
 import qs.components
+import qs.components.icons
 import qs.services
 import qs.utils
 
@@ -13,6 +14,7 @@ StyledRect {
     id: root
 
     property color colour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3secondary
+    readonly property real iconSize: 20
     readonly property alias items: iconColumn
 
     readonly property var netSpeedConfig: GlobalConfig.bar?.netSpeed ?? null
@@ -27,7 +29,7 @@ StyledRect {
 
     clip: true
     implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: iconColumn.implicitHeight + Tokens.padding.normal * 2 - (Config.bar.status.showLockStatus && !Hypr.capsLock && !Hypr.numLock ? iconColumn.spacing : 0)
+    implicitHeight: iconColumn.implicitHeight + Tokens.spacing.small * 2
 
     Component.onCompleted: NetworkUsage.refCount++
     Component.onDestruction: NetworkUsage.refCount--
@@ -35,12 +37,9 @@ StyledRect {
     ColumnLayout {
         id: iconColumn
 
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Tokens.padding.normal
-
-        spacing: Tokens.spacing.smaller / 2
+        anchors.centerIn: parent
+        width: parent.width
+        spacing: Tokens.spacing.extraSmall
 
         // Recording status
         WrappedLoader {
@@ -158,27 +157,41 @@ StyledRect {
             }
         }
 
-        // Network icon
+        // Unified Network icon (Ethernet Priority -> Wi-Fi -> Disconnected)
         WrappedLoader {
             name: "network"
-            active: Config.bar.status.showNetwork && (!Nmcli.activeEthernet || Config.bar.status.showWifi)
+            active: Config.bar.status.showNetwork && (Nmcli.hasWifiHw || Nmcli.hasEthernetHw)
 
-            sourceComponent: MaterialIcon {
-                animate: true
-                text: Nmcli.active ? Icons.getNetworkIcon(Nmcli.active.strength ?? 0) : "wifi_off"
-                color: root.colour
-            }
-        }
+            sourceComponent: Loader {
+                active: true
+                sourceComponent: (Nmcli.hasEthernetHw && !!Nmcli.activeEthernet) ? ethIconComp : wifiIconComp
 
-        // Ethernet icon
-        WrappedLoader {
-            name: "ethernet"
-            active: Config.bar.status.showNetwork && Nmcli.activeEthernet
+                Component {
+                    id: ethIconComp
+                    Item {
+                        implicitWidth: root.iconSize
+                        implicitHeight: root.iconSize
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            animate: true
+                            text: "settings_ethernet"
+                            color: root.colour
+                            iconPointSize: 16
+                        }
+                    }
+                }
 
-            sourceComponent: MaterialIcon {
-                animate: true
-                text: "cable"
-                color: root.colour
+                Component {
+                    id: wifiIconComp
+                    WifiLottieIcon {
+                        size: root.iconSize
+                        wifiEnabled: Nmcli.wifiEnabled
+                        connected: Boolean(Nmcli.active)
+                        signalStrength: (Nmcli.active?.strength ?? 0) / 100.0
+                        color: Nmcli.active ? root.colour : Qt.alpha(root.colour, 0.42)
+                        disabledColor: Qt.alpha(root.colour, 0.42)
+                    }
+                }
             }
         }
 
@@ -187,58 +200,40 @@ StyledRect {
             Layout.preferredHeight: implicitHeight
 
             name: "bluetooth"
-            active: Config.bar.status.showBluetooth
+            active: Config.bar.status.showBluetooth && (Bluetooth.defaultAdapter !== null)
 
             sourceComponent: ColumnLayout {
-                spacing: Tokens.spacing.smaller / 2
+                id: btCol
+                spacing: Tokens.spacing.extraSmall
 
-                // Bluetooth icon
-                MaterialIcon {
-                    animate: true
-                    text: {
-                        if (!Bluetooth.defaultAdapter?.enabled) // qmllint disable unresolved-type
-                            return "bluetooth_disabled";
-                        if (Bluetooth.devices.values.some(d => d.connected)) // qmllint disable unresolved-type
-                            return "bluetooth_connected";
-                        return "bluetooth";
-                    }
+                readonly property var connectedDevices: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected) // qmllint disable unresolved-type
+                readonly property bool hasConnectedDevices: connectedDevices.length > 0
+
+                // Bluetooth icon (shown when no devices connected)
+                BluetoothLottieIcon {
+                    Layout.alignment: Qt.AlignHCenter
+                    visible: !btCol.hasConnectedDevices
+                    size: root.iconSize
+                    connected: (Bluetooth.defaultAdapter?.enabled ?? false) // qmllint disable unresolved-type
                     color: root.colour
+                    disabledColor: Qt.alpha(root.colour, 0.42)
                 }
 
-                // Connected bluetooth devices
+                // Connected bluetooth devices (unified icon + battery ring)
                 Repeater {
                     model: ScriptModel {
-                        values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected) // qmllint disable unresolved-type
+                        values: btCol.connectedDevices
                     }
 
-                    MaterialIcon {
+                    BluetoothDeviceBatteryIcon {
                         id: device
-
                         required property BluetoothDevice modelData
-
-                        animate: true
-                        text: Icons.getBluetoothIcon(modelData?.icon)
-                        color: root.colour
-                        fill: 1
-
-                        SequentialAnimation on opacity {
-                            running: (device.modelData?.state === BluetoothDeviceState.Connecting || device.modelData?.state === BluetoothDeviceState.Disconnecting) && root.visible // qmllint disable unresolved-type
-                            alwaysRunToEnd: true
-                            loops: Animation.Infinite
-
-                            Anim {
-                                from: 1
-                                to: 0
-                                duration: Tokens.anim.durations.large
-                                easing: Tokens.anim.standardAccel
-                            }
-                            Anim {
-                                from: 0
-                                to: 1
-                                duration: Tokens.anim.durations.large
-                                easing: Tokens.anim.standardDecel
-                            }
-                        }
+                        Layout.alignment: Qt.AlignHCenter
+                        device: modelData
+                        size: root.iconSize
+                        color: Colours.light ? Colours.palette.m3primary : root.colour
+                        trackColor: Qt.alpha(root.colour, 0.20)
+                        lowBatteryColor: Colours.palette.m3error
                     }
                 }
             }
@@ -251,7 +246,7 @@ StyledRect {
         // Battery icon
         WrappedLoader {
             name: "battery"
-            active: Config.bar.status.showBattery
+            active: Config.bar.status.showBattery && UPower.displayDevice.isLaptopBattery
 
             sourceComponent: Loader {
                 active: true
@@ -263,8 +258,9 @@ StyledRect {
 
                 Component {
                     id: laptopBattery
-                    BatteryIcon {
-                        percentage: UPower.displayDevice.percentage
+                    BatteryLottieIcon {
+                        size: root.iconSize
+                        level: UPower.displayDevice.percentage
                         charging: [UPowerDeviceState.Charging, UPowerDeviceState.FullyCharged, UPowerDeviceState.PendingCharge].includes(UPower.displayDevice.state)
                         color: !UPower.onBattery || UPower.displayDevice.percentage > 0.2 ? root.colour : Colours.palette.m3error
                     }
@@ -272,17 +268,23 @@ StyledRect {
 
                 Component {
                     id: nonLaptopBattery
-                    MaterialIcon {
-                        animate: true
-                        text: {
-                            if (PowerProfiles.profile === PowerProfile.PowerSaver)
-                                return "energy_savings_leaf";
-                            if (PowerProfiles.profile === PowerProfile.Performance)
-                                return "rocket_launch";
-                            return "balance";
+                    Item {
+                        implicitWidth: root.iconSize
+                        implicitHeight: root.iconSize
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            animate: true
+                            text: {
+                                if (PowerProfiles.profile === PowerProfile.PowerSaver)
+                                    return "energy_savings_leaf";
+                                if (PowerProfiles.profile === PowerProfile.Performance)
+                                    return "rocket_launch";
+                                return "balance";
+                            }
+                            color: root.colour
+                            fill: 1
+                            iconPointSize: 16
                         }
-                        color: root.colour
-                        fill: 1
                     }
                 }
             }

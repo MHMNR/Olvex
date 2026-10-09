@@ -3,6 +3,7 @@ import QtQuick.Shapes
 import QtQuick.Effects
 import Olvex.Config
 import qs.components
+import qs.components.icons
 import qs.components.effects
 import qs.services
 import qs.utils
@@ -272,34 +273,10 @@ Item {
             }
         }
 
-        // Center Material Icon (Larger size & smooth crossfade)
-        MaterialIcon {
+        // Center Animated Lottie Icon (Larger size & smooth crossfade)
+        Loader {
             id: centerIcon
             anchors.centerIn: parent
-            iconPointSize: Tokens.font.size.large
-            fill: 1
-
-            text: {
-                if (root.activeMetric === "brightness") {
-                    const b = (root.monitor && typeof root.monitor.brightness === "number") ? root.monitor.brightness : 0;
-                    return `brightness_${Math.max(1, Math.min(7, Math.round(b * 6) + 1))}`;
-                } else if (root.activeMetric === "mic") {
-                    return Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted);
-                } else {
-                    return Icons.getVolumeIcon(Audio.volume, Audio.muted);
-                }
-            }
-
-            color: {
-                if (root.activeMetric === "brightness") {
-                    return Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3tertiary;
-                } else if (root.activeMetric === "mic") {
-                    return Audio.sourceMuted ? Colours.palette.m3error : (Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3secondary);
-                } else {
-                    return Audio.muted ? Colours.palette.m3error : (Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3primary);
-                }
-            }
-
             opacity: root.showPercentage ? 0 : 1
             scale: root.showPercentage ? 0.65 : 1.0
             visible: opacity > 0.01
@@ -318,9 +295,40 @@ Item {
                 }
             }
 
-            Behavior on color {
-                CAnim {
-                    duration: Tokens.anim.durations.expressiveFastEffects
+            sourceComponent: {
+                if (root.activeMetric === "brightness") return brightComp;
+                if (root.activeMetric === "mic") return micComp;
+                return volComp;
+            }
+
+            Component {
+                id: volComp
+                VolumeLottieIcon {
+                    size: 20
+                    volumeLevel: Audio.volume
+                    muted: Audio.muted
+                    color: Audio.muted ? Colours.palette.m3error : (Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3primary)
+                    activeMutedColor: Colours.palette.m3error
+                }
+            }
+
+            Component {
+                id: micComp
+                MicLottieIcon {
+                    size: 20
+                    muted: Audio.sourceMuted
+                    inputLevel: Audio.sourceVolume
+                    color: Audio.sourceMuted ? Colours.palette.m3error : (Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3secondary)
+                    activeMutedColor: Colours.palette.m3error
+                }
+            }
+
+            Component {
+                id: brightComp
+                BrightnessLottieIcon {
+                    size: 20
+                    brightness: (root.monitor && typeof root.monitor.brightness === "number") ? root.monitor.brightness : 0
+                    color: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3tertiary
                 }
             }
         }

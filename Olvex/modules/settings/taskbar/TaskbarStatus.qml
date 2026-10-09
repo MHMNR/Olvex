@@ -105,7 +105,7 @@ ColumnLayout {
                 }
                 StatusChip {
                     labelText: qsTr("Network")
-                    iconText: "lan"
+                    iconText: "settings_ethernet"
                     isChecked: Config.bar.status.showNetwork
                     onToggled: { GlobalConfig.bar.status.showNetwork = !Config.bar.status.showNetwork; GlobalConfig.save(); }
                 }

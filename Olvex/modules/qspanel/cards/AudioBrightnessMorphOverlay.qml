@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Services.Pipewire
 import Olvex.Config
 import qs.components
+import qs.components.icons
 import qs.components.controls
 import qs.components.containers
 import qs.components.images
@@ -665,11 +666,13 @@ Item {
                                         color: volBtn.isVolActive ? Colours.palette.m3onPrimary : (Audio.muted ? Colours.palette.m3onError : Colours.palette.m3primary)
                                     }
 
-                                    MaterialIcon {
+                                    VolumeLottieIcon {
                                         anchors.centerIn: parent
-                                        text: Icons.getVolumeIcon(Audio.volume, Audio.muted)
-                                        iconPointSize: Tokens.font.size.large
+                                        size: 20
+                                        volumeLevel: Audio.volume
+                                        muted: Audio.muted
                                         color: volBtn.isVolActive ? Colours.palette.m3onPrimary : (Audio.muted ? Colours.palette.m3onError : Qt.alpha(Colours.palette.m3onSurface, 0.70))
+                                        activeMutedColor: Colours.palette.m3onError
                                     }
 
                                     MouseArea {
@@ -782,11 +785,12 @@ Item {
                                         color: notifSoundBtn.isNotifActive ? Colours.palette.m3onPrimary : (notifSoundSection.isEffectivelyMuted ? Colours.palette.m3onError : Colours.palette.m3primary)
                                     }
 
-                                    MaterialIcon {
+                                    BellLottieIcon {
                                         anchors.centerIn: parent
-                                        text: notifSoundBtn.isNotifActive ? "notifications" : "notifications_off"
-                                        iconPointSize: Tokens.font.size.large
+                                        size: 20
+                                        muted: !notifSoundBtn.isNotifActive
                                         color: notifSoundBtn.isNotifActive ? Colours.palette.m3onPrimary : Colours.palette.m3onError
+                                        activeMutedColor: Colours.palette.m3onError
                                     }
 
                                     MouseArea {
@@ -898,11 +902,13 @@ Item {
                                         color: micBtn.isMicActive ? Colours.palette.m3onPrimary : (Audio.sourceMuted ? Colours.palette.m3onError : Colours.palette.m3primary)
                                     }
 
-                                    MaterialIcon {
+                                    MicLottieIcon {
                                         anchors.centerIn: parent
-                                        text: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
-                                        iconPointSize: Tokens.font.size.large
+                                        size: 20
+                                        muted: Audio.sourceMuted
+                                        inputLevel: Audio.sourceVolume
                                         color: micBtn.isMicActive ? Colours.palette.m3onPrimary : (Audio.sourceMuted ? Colours.palette.m3onError : Qt.alpha(Colours.palette.m3onSurface, 0.70))
+                                        activeMutedColor: Colours.palette.m3onError
                                     }
 
                                     MouseArea {
@@ -1422,10 +1428,10 @@ Item {
                                         color: brightBtn.isBrightActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
                                     }
 
-                                    MaterialIcon {
+                                    BrightnessLottieIcon {
                                         anchors.centerIn: parent
-                                        text: `brightness_${Math.max(1, Math.min(7, Math.round(brightBtn.curB * 6) + 1))}`
-                                        iconPointSize: Tokens.font.size.large
+                                        size: 20
+                                        brightness: brightBtn.curB
                                         color: brightBtn.isBrightActive ? Colours.palette.m3onPrimary : Qt.alpha(Colours.palette.m3onSurface, 0.70)
                                     }
 

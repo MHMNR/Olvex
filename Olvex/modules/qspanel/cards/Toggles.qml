@@ -154,9 +154,9 @@ StyledRect {
                             id: wifiTile
                             Layout.fillWidth: true
                             icon: {
-                                if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return "lan";
+                                if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return "settings_ethernet";
                                 if (Nmcli.wifiEnabled && Nmcli.active) return "wifi";
-                                if (!Nmcli.hasWifiHw && Nmcli.hasEthernetHw) return "lan";
+                                if (!Nmcli.hasWifiHw && Nmcli.hasEthernetHw) return "settings_ethernet";
                                 return "wifi";
                             }
                             label: {
@@ -219,10 +219,26 @@ StyledRect {
                             icon: "bluetooth"
                             label: {
                                 const connected = [...Bluetooth.devices.values].find(d => d.connected);
-                                return connected ? connected.name : qsTr("Bluetooth");
+                                return connected ? (connected.name || connected.address || qsTr("Device")) : qsTr("Bluetooth");
                             }
-                            stateText: (Bluetooth.defaultAdapter?.enabled ?? false) ? qsTr("On") : qsTr("Off")
+                            stateText: {
+                                if (!(Bluetooth.defaultAdapter?.enabled ?? false)) {
+                                    return qsTr("Off");
+                                }
+                                const connectedDevices = [...Bluetooth.devices.values].filter(d => d.connected);
+                                if (connectedDevices.length === 1) {
+                                    const dev = connectedDevices[0];
+                                    if (dev.batteryAvailable) {
+                                        return `${Math.round(dev.battery * 100)}%`;
+                                    }
+                                    return qsTr("Connected");
+                                } else if (connectedDevices.length > 1) {
+                                    return qsTr("%1 Connected").arg(connectedDevices.length);
+                                }
+                                return qsTr("On");
+                            }
                             checked: Bluetooth.defaultAdapter?.enabled ?? false
+                            deviceConnected: (Bluetooth.defaultAdapter?.enabled ?? false) && Bluetooth.devices.values.some(d => d.connected)
                             isExpanding: root.props.expansionActive === "bluetooth" || (root.props.isTransitioning && root.props.expansionSourceItem === btTile)
                             onClicked: {
                                 const adapter = Bluetooth.defaultAdapter;
