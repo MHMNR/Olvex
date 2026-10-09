@@ -179,6 +179,9 @@ RowLayout {
                 if (!root.dashboardActive) cardRoot._ready = false;
             }
         }
+        Component.onCompleted: {
+            if (root.dashboardActive) cardRoot._ready = true;
+        }
 
         state: (root.dashboardActive && _ready) ? "visible" : "hidden"
 

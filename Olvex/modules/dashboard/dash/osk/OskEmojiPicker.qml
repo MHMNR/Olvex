@@ -43,16 +43,28 @@ Item {
         }
     }
 
+    // Unicode Emoji_Modifier_Base pattern (UTS #51)
+    readonly property var baseModifierPatternStr: "[\\u{261D}\\u{26F9}\\u{270A}-\\u{270D}\\u{1F385}\\u{1F3C2}-\\u{1F3C4}\\u{1F3C7}\\u{1F3CA}-\\u{1F3CC}\\u{1F442}\\u{1F443}\\u{1F446}-\\u{1F450}\\u{1F466}-\\u{1F469}\\u{1F46E}\\u{1F470}-\\u{1F478}\\u{1F47C}\\u{1F481}-\\u{1F483}\\u{1F485}-\\u{1F487}\\u{1F48F}\\u{1F491}\\u{1F4AA}\\u{1F574}\\u{1F575}\\u{1F57A}\\u{1F590}\\u{1F595}\\u{1F596}\\u{1F645}-\\u{1F647}\\u{1F64B}-\\u{1F64F}\\u{1F6A3}\\u{1F6B4}-\\u{1F6B6}\\u{1F6C0}\\u{1F6CC}\\u{1F90C}\\u{1F90F}\\u{1F918}-\\u{1F91F}\\u{1F926}\\u{1F930}-\\u{1F939}\\u{1F93D}\\u{1F93E}\\u{1F977}\\u{1F9B5}\\u{1F9B6}\\u{1F9B8}\\u{1F9B9}\\u{1F9BB}\\u{1F9CD}-\\u{1F9CF}\\u{1F9D1}-\\u{1F9DD}\\u{1FAC3}-\\u{1FAC5}\\u{1FAF0}-\\u{1FAF8}]"
+    readonly property var modifierPatternStr: "(\\u200D\\u{1F91D}(?:\\uFE0F)?\\u200D)|((" + baseModifierPatternStr + ")(?:\\uFE0F)?)"
+    readonly property var modifierRegex: new RegExp(baseModifierPatternStr, "u")
+    readonly property var modifierGlobalRegex: new RegExp(modifierPatternStr, "ug")
+    readonly property var familyExcludeRegex: /(?:👨‍👩|👨‍👨|👩‍👩|🧑‍🧑|👨‍👦|👨‍👧|👩‍👦|👩‍👧|🧑‍🧒|👪|👤|👥|🫂|🗣️)/
+
     function isToneable(emoji) {
-        if (!emoji) return false;
-        const toneable = /[\u{1F442}-\u{1F44B}\u{1F44E}-\u{1F450}\u{1F466}-\u{1F469}\u{1F46B}-\u{1F46E}\u{1F470}-\u{1F478}\u{1F47C}\u{1F481}-\u{1F483}\u{1F485}-\u{1F487}\u{1F4AA}\u{1F574}\u{1F575}\u{1F590}\u{1F596}\u{1F645}-\u{1F647}\u{1F64B}-\u{1F64F}\u{1F6A3}\u{1F6B4}-\u{1F6B6}\u{1F6C0}\u{1F6CC}\u{1F90C}\u{1F90F}-\u{1F91E}\u{1F926}\u{1F930}-\u{1F939}\u{1F93D}-\u{1F93E}\u{1F9D1}-\u{1F9DD}\u{1FAF0}-\u{1FAF8}]/u;
-        return toneable.test(emoji);
+        if (!emoji || familyExcludeRegex.test(emoji)) return false;
+        return modifierRegex.test(emoji);
     }
 
     function applySkinTone(emoji) {
-        if (!currentSkinTone || !isToneable(emoji)) return emoji;
-        let base = emoji.replace(/[\u{1F3FB}-\u{1F3FF}\u{FE0F}]/ug, "");
-        return base + currentSkinTone;
+        if (!emoji) return "";
+        let clean = emoji.replace(/[\u{1F3FB}-\u{1F3FF}]/ug, "");
+        if (!currentSkinTone || familyExcludeRegex.test(clean) || !modifierRegex.test(clean)) {
+            return clean;
+        }
+        return clean.replace(modifierGlobalRegex, function(match, zwjHandshake, personWithFe0f, personBase) {
+            if (zwjHandshake) return zwjHandshake;
+            return personBase + currentSkinTone;
+        });
     }
 
     function queueRecent(emoji) {
@@ -98,15 +110,22 @@ Item {
     property var searchResults: {
         if (!searchText) return [];
         let results = [];
-        let query = searchText.toLowerCase();
-        for (let i = 0; i < EmojiData.categories.length; i++) {
-            let cat = EmojiData.categories[i];
+        let query = searchText.toLowerCase().trim();
+        let keywords = (typeof EmojiData !== "undefined" && EmojiData.emojiKeywords) ? EmojiData.emojiKeywords : {};
+        let cats = (typeof EmojiData !== "undefined" && EmojiData.categories) ? EmojiData.categories : [];
+        for (let i = 0; i < cats.length; i++) {
+            let cat = cats[i];
             if (cat.name === "Recent") continue;
-            if (cat.name.toLowerCase().indexOf(query) !== -1 || query.length > 1) {
-                results = results.concat(cat.emojis);
+            let catMatches = cat.name.toLowerCase().indexOf(query) !== -1;
+            for (let j = 0; j < cat.emojis.length; j++) {
+                let em = cat.emojis[j];
+                let name = (keywords[em] || "").toLowerCase();
+                if (catMatches || name.indexOf(query) !== -1) {
+                    results.push(em);
+                }
             }
         }
-        return results.slice(0, 140);
+        return results.slice(0, 160);
     }
 
     // Returns index of first row for catIdx
@@ -117,32 +136,102 @@ Item {
         return 0;
     }
 
+    // Backdrop to dismiss on outside click and block scrolling/interactions
+    MouseArea {
+        id: popupBackdrop
+        anchors.fill: parent
+        z: 90
+        visible: tonePopup.visible
+        enabled: tonePopup.visible
+        preventStealing: true
+        hoverEnabled: true
+        onClicked: tonePopup.visible = false
+        onWheel: (wheel) => { wheel.accepted = true; }
+    }
+
+    WheelHandler {
+        target: popupBackdrop
+        enabled: tonePopup.visible
+        onWheel: (event) => { event.accepted = true; }
+    }
+
     // Skin tone popup
-    Rectangle {
+    Item {
         id: tonePopup
         visible: false
         z: 100
-        width: 230
+        width: 240
         height: 48
-        color: Colours.tPalette.m3surfaceContainer || "#222222"
-        radius: 24
-        border.color: Colours.palette.m3primary
-        border.width: 1
 
-        RowLayout {
+        // Solid container
+        StyledRect {
+            id: popupBg
             anchors.fill: parent
-            anchors.margins: 8
-            spacing: 8
-            Repeater {
-                model: root.skinTones
-                delegate: Rectangle {
-                    width: 28; height: 28; radius: 14
-                    color: index === 0 ? "#FFCC22" : ["#F7D2B2","#D4AC8D","#BB9167","#8E562E","#613D30"][index-1]
-                    border.width: root.currentSkinTone === modelData ? 2 : 0
-                    border.color: Colours.palette.m3primary
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: { root.currentSkinTone = modelData; tonePopup.visible = false; }
+            radius: height / 2
+            color: Qt.rgba(Colours.palette.m3surfaceContainerHigh.r, Colours.palette.m3surfaceContainerHigh.g, Colours.palette.m3surfaceContainerHigh.b, 1.0)
+            border.width: 0
+
+            qs.components.effects.Elevation {
+                anchors.fill: parent
+                level: 3
+                z: -1
+                radius: parent.radius
+            }
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 6
+
+                Repeater {
+                    model: root.skinTones
+                    delegate: Item {
+                        width: 32
+                        height: 32
+
+                        readonly property bool isSelected: root.currentSkinTone === modelData
+                        readonly property color toneColor: index === 0 ? "#FFD43F" : ["#FADCBC", "#E0BB95", "#BF8F68", "#9B643D", "#5A3825"][index - 1]
+
+                        // Selection indicator background (no border)
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 32
+                            height: 32
+                            radius: 16
+                            color: isSelected ? Qt.alpha(Colours.palette.m3primary, 0.2) : "transparent"
+                            border.width: 0
+                            scale: isSelected ? 1.0 : 0.8
+                            opacity: isSelected ? 1.0 : 0.0
+
+                            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                        }
+
+                        // Swatch circle
+                        Rectangle {
+                            id: swatchCircle
+                            anchors.centerIn: parent
+                            width: isSelected ? 22 : 26
+                            height: isSelected ? 22 : 26
+                            radius: width / 2
+                            color: toneColor
+                            border.width: 0
+
+                            scale: swatchArea.pressed ? 0.9 : (swatchArea.containsMouse ? 1.08 : 1.0)
+                            Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
+                            Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                            Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                        }
+
+                        MouseArea {
+                            id: swatchArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.currentSkinTone = modelData;
+                                tonePopup.visible = false;
+                            }
+                        }
                     }
                 }
             }
@@ -164,6 +253,7 @@ Item {
             model: root.rowModel
             spacing: 0
             boundsBehavior: Flickable.StopAtBounds
+            interactive: !tonePopup.visible
 
             // Sync active category tab while scrolling
             onContentYChanged: {
@@ -184,6 +274,7 @@ Item {
             visible: !!root.searchText
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+            interactive: !tonePopup.visible
             model: {
                 // chunk into rows of 10
                 const COLS = 10;
@@ -370,11 +461,14 @@ Item {
 
                             onPressAndHold: {
                                 if (root.isToneable(parent.emojiStr)) {
-                                    tonePopup.x = Math.min(
-                                        Math.max(0, parent.mapToItem(root, 0, 0).x - 80),
-                                        root.width - tonePopup.width - 8
-                                    );
-                                    tonePopup.y = parent.mapToItem(root, 0, 0).y - tonePopup.height - 4;
+                                    let pos = parent.mapToItem(root, 0, 0);
+                                    let targetX = pos.x + (parent.width - tonePopup.width) / 2;
+                                    tonePopup.x = Math.max(8, Math.min(targetX, root.width - tonePopup.width - 8));
+                                    if (pos.y - tonePopup.height - 8 < 0) {
+                                        tonePopup.y = pos.y + parent.height + 6;
+                                    } else {
+                                        tonePopup.y = pos.y - tonePopup.height - 6;
+                                    }
                                     tonePopup.visible = true;
                                 }
                             }

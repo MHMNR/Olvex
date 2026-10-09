@@ -39,7 +39,7 @@ Item {
 
     readonly property int expandDur: 420
     readonly property int collapseDur: 260
-    readonly property var spatialEasing: Tokens.anim.expressiveSoftSpatial
+    readonly property var spatialEasing: Tokens.anim.expressiveDefaultSpatial
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
     readonly property int contentRevealDelay: 130
 
@@ -60,7 +60,7 @@ Item {
         enabled: notifCard.state === "expanded" && !root.morphAnimating
         NumberAnimation {
             duration: 300
-            easing: Tokens.anim.expressiveSoftSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
         }
     }
 
@@ -76,7 +76,7 @@ Item {
         enabled: notifCard.state === "expanded" && !root.morphAnimating
         NumberAnimation {
             duration: 300
-            easing: Tokens.anim.expressiveSoftSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
         }
     }
 
@@ -235,6 +235,21 @@ Item {
 
         // Material 3 Expressive Container Transform uses spring-based bounding box morphing
         // We do not need artificial scale squashing or lifting if the spring physics are correct.
+        property real morphSquashX: 1.0
+        property real morphSquashY: 1.0
+        property real morphLift: 0
+        
+        transform: [
+            Scale {
+                origin.x: notifCard.width / 2
+                origin.y: notifCard.height / 2
+                xScale: notifCard.morphSquashX
+                yScale: notifCard.morphSquashY
+            },
+            Translate {
+                y: -notifCard.morphLift
+            }
+        ]
 
 
         state: "docked"
@@ -373,6 +388,55 @@ Item {
                         duration: root.expandDur
                         easing: root.spatialEasing
                     }
+                    // Morph squash/lift
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashX"
+                            to: 1.045
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashX"
+                            to: 1.0
+                            duration: Math.round(root.expandDur * 0.58)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashY"
+                            to: 0.965
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashY"
+                            to: 1.0
+                            duration: Math.round(root.expandDur * 0.58)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphLift"
+                            to: 8
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphLift"
+                            to: 0
+                            duration: Math.round(root.expandDur * 0.58)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
                     // Pill content fades out cleanly & quickly
                     ParallelAnimation {
                         NumberAnimation {
@@ -442,6 +506,54 @@ Item {
                         properties: "x,y,width,height"
                         duration: root.collapseDur
                         easing: root.spatialEasing
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashY"
+                            to: 1.035
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashY"
+                            to: 1.0
+                            duration: Math.round(root.collapseDur * 0.55)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashX"
+                            to: 0.965
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphSquashX"
+                            to: 1.0
+                            duration: Math.round(root.collapseDur * 0.55)
+                            easing: root.spatialEasingDecel
+                        }
+                    }
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphLift"
+                            to: 6
+                            duration: Tokens.anim.durations.expressiveFastEffects
+                            easing: Tokens.anim.expressiveFastSpatial
+                        }
+                        NumberAnimation {
+                            target: notifCard
+                            property: "morphLift"
+                            to: 0
+                            duration: Math.round(root.collapseDur * 0.55)
+                            easing: root.spatialEasingDecel
+                        }
                     }
                     // Card content glides down and fades out smoothly as container begins to collapse
                     ParallelAnimation {

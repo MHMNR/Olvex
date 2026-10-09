@@ -35,6 +35,10 @@ Item {
     onFillColorChanged: canvas.requestPaint()
     onColorChanged: canvas.requestPaint()
     onVerticalChanged: canvas.requestPaint()
+    onWidthChanged: canvas.requestPaint()
+    onHeightChanged: canvas.requestPaint()
+    onVisibleChanged: if (visible) canvas.requestPaint()
+    Component.onCompleted: canvas.requestPaint()
 
     Canvas {
         id: canvas
@@ -43,7 +47,13 @@ Item {
         renderTarget: Canvas.Image
         renderStrategy: Canvas.Immediate
 
+        onAvailableChanged: if (available) requestPaint()
+        onWidthChanged: if (available) requestPaint()
+        onHeightChanged: if (available) requestPaint()
+        Component.onCompleted: if (available) requestPaint()
+
         onPaint: {
+            if (width <= 0 || height <= 0) return;
             var ctx = getContext("2d");
             ctx.reset();
             ctx.clearRect(0, 0, width, height);

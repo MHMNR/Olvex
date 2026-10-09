@@ -140,11 +140,8 @@ Item {
         property real entryScale: 1.0
         property real offset: 0
         
-        layer.enabled: true
-        layer.smooth: false // KEEP IT SHARP
-        
         transform: [
-            Translate { x: Math.round(primaryLoader.offset) },
+            Translate { x: primaryLoader.offset },
             Scale { 
                 origin.x: primaryLoader.width/2; 
                 origin.y: primaryLoader.height/2; 
@@ -169,11 +166,8 @@ Item {
         property real entryScale: 1.0
         property real offset: 0
         
-        layer.enabled: true
-        layer.smooth: false // KEEP IT SHARP
-        
         transform: [
-            Translate { x: Math.round(customLoader.offset) },
+            Translate { x: customLoader.offset },
             Scale { 
                 origin.x: customLoader.width/2; 
                 origin.y: customLoader.height/2; 

@@ -27,8 +27,7 @@ Variants {
         Loader {
             id: oskLoader
 
-            active: (content.visibilities && content.visibilities.osk) || (oskLoader.item && oskLoader.item.entranceProgress > 0.001)
-            asynchronous: true
+            active: true
 
             onItemChanged: {
                 content.oskWindow = item ?? null;

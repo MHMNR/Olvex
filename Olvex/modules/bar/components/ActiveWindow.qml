@@ -417,7 +417,7 @@ Item {
         enabled: root.isLoaded
         Anim {
             duration: root.playerActive ? 420 : 260
-            easing: root.playerActive ? Tokens.anim.expressiveSoftSpatial : Tokens.anim.expressiveSubtleSpatial
+            easing: root.playerActive ? Tokens.anim.expressiveDefaultSpatial : Tokens.anim.expressiveSubtleSpatial
             onRunningChanged: {
                 if (!running)
                     Qt.callLater(() => root.applyMorphDock());
@@ -432,7 +432,7 @@ Item {
         enabled: root.isLoaded
         Anim {
             duration: 420
-            easing: Tokens.anim.expressiveSoftSpatial
+            easing: Tokens.anim.expressiveDefaultSpatial
             onRunningChanged: {
                 if (!running)
                     Qt.callLater(() => root.applyMorphDock());
@@ -660,7 +660,7 @@ Item {
                         Behavior on y {
                             Anim {
                                 duration: 300
-                                easing: Tokens.anim.expressiveSoftSpatial
+                                easing: Tokens.anim.expressiveDefaultSpatial
                             }
                         }
 
@@ -744,7 +744,7 @@ Item {
                             Behavior on y {
                                 Anim {
                                     duration: 300
-                                    easing: Tokens.anim.expressiveSoftSpatial
+                                    easing: Tokens.anim.expressiveDefaultSpatial
                                 }
                             }
                         }
@@ -805,7 +805,7 @@ Item {
                         Behavior on y {
                             Anim {
                                 duration: 300
-                                easing: Tokens.anim.expressiveSoftSpatial
+                                easing: Tokens.anim.expressiveDefaultSpatial
                             }
                         }
                     }
@@ -884,7 +884,7 @@ Item {
     Behavior on implicitWidth {
         Anim {
             duration: root.playerActive ? 420 : 260
-            easing: root.playerActive ? Tokens.anim.expressiveSoftSpatial : Tokens.anim.expressiveSubtleSpatial
+            easing: root.playerActive ? Tokens.anim.expressiveDefaultSpatial : Tokens.anim.expressiveSubtleSpatial
         }
     }
 }

@@ -34,8 +34,8 @@ Item {
         return allTabs.filter(tab => tab.enabled);
     }
 
-    readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
-    readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
+    readonly property real nonAnimWidth: Math.max(854, (view.implicitWidth > 0 ? view.implicitWidth : 860) + viewWrapper.anchors.margins * 2)
+    readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + (view.implicitHeight > 0 ? view.implicitHeight : 540) + viewWrapper.anchors.margins * 2
 
     implicitWidth: nonAnimWidth
     implicitHeight: nonAnimHeight
@@ -79,8 +79,8 @@ Item {
 
             flickableDirection: Flickable.HorizontalFlick
 
-            implicitWidth: currentItem?.implicitWidth ?? 0
-            implicitHeight: currentItem?.implicitHeight ?? 0
+            implicitWidth: (currentItem?.item?.implicitWidth ?? currentItem?.implicitWidth) > 0 ? (currentItem?.item?.implicitWidth ?? currentItem?.implicitWidth) : 860
+            implicitHeight: (currentItem?.item?.implicitHeight ?? currentItem?.implicitHeight) > 0 ? (currentItem?.item?.implicitHeight ?? currentItem?.implicitHeight) : 540
 
             contentX: currentItem?.x ?? 0
             contentWidth: row.implicitWidth
@@ -127,16 +127,11 @@ Item {
                         required property var modelData
 
                         Layout.alignment: Qt.AlignTop
+                        Layout.preferredWidth: (item?.implicitWidth ?? 0) > 0 ? item.implicitWidth : (modelData.component === dashComponent ? 860 : 980)
+                        Layout.preferredHeight: (item?.implicitHeight ?? 0) > 0 ? item.implicitHeight : (modelData.component === dashComponent ? 540 : 460)
 
                         sourceComponent: modelData.component
-
-                        Component.onCompleted: active = Qt.binding(() => {
-                            if (index === view.currentIndex)
-                                return true;
-                            const vx = Math.floor(view.visibleArea.xPosition * view.contentWidth);
-                            const vex = Math.floor(vx + view.visibleArea.widthRatio * view.contentWidth);
-                            return (vx >= x && vx <= x + implicitWidth) || (vex >= x && vex <= x + implicitWidth);
-                        })
+                        active: true
                     }
                 }
             }

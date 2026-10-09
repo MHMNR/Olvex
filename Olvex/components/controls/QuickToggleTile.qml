@@ -106,7 +106,9 @@ StyledRect {
                 id: wifiComp
                 WifiLottieIcon {
                     size: 26
+                    wifiEnabled: root.checked
                     connected: root.checked
+                    signalStrength: (typeof Nmcli !== "undefined" && Nmcli.active) ? (Nmcli.active.strength / 100.0) : 1.0
                     color: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
                 }
             }
@@ -136,6 +138,7 @@ StyledRect {
                 MicLottieIcon {
                     size: 26
                     muted: !root.checked
+                    inputLevel: (typeof Audio !== "undefined" && Audio.source) ? (Audio.sourceVolume ?? 0.0) : 0.0
                     color: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
                     activeMutedColor: root.disabled ? root.disabledOnColour : (root.checked ? root.activeOnColour : root.inactiveOnColour)
                 }

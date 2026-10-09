@@ -19,7 +19,7 @@ Item {
     readonly property real trackInset: 4
     readonly property real segmentWidth: Math.max(148, Math.min(180, (root.nonAnimWidth - root.trackInset * 2) / Math.max(count, 1)))
     readonly property real totalTrackWidth: Math.min(nonAnimWidth, (segmentWidth * Math.max(count, 1)) + (trackInset * 2))
-    readonly property int safeIndex: Math.max(0, Math.min(dashState.currentTab, Math.max(count - 1, 0)))
+    readonly property int safeIndex: Math.max(0, Math.min(dashState.currentTab ?? 0, Math.max(count - 1, 0)))
 
     implicitHeight: 52
 
