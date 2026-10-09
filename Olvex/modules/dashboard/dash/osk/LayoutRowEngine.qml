@@ -103,7 +103,7 @@ Item {
                                 if (pendingPhysics) return;
                                 pendingPhysics = true;
                                 Qt.callLater(function() {
-                                    if (!root) return;
+                                    if (typeof root === "undefined" || !root) return;
                                     pendingPhysics = false;
                                     if (!mirL.isFirstRun && mirL.prevX !== 0 && Math.abs(mirL.absoluteX - mirL.prevX) > 1) {
                                         let isDocking = !root.isSplitTransitioning;
@@ -158,7 +158,7 @@ Item {
                                 if (pendingPhysics) return;
                                 pendingPhysics = true;
                                 Qt.callLater(function() {
-                                    if (!root) return;
+                                    if (typeof root === "undefined" || !root) return;
                                     pendingPhysics = false;
                                     if (!mirR.isFirstRun && mirR.prevX !== 0 && Math.abs(mirR.absoluteX - mirR.prevX) > 1) {
                                         let isDocking = !root.isSplitTransitioning;
@@ -215,7 +215,7 @@ Item {
                                 if (pendingPhysics) return;
                                 pendingPhysics = true;
                                 Qt.callLater(function() {
-                                    if (!root) return;
+                                    if (typeof root === "undefined" || !root) return;
                                     pendingPhysics = false;
                                     if (!keyLoader.isFirstRun && keyLoader.prevX !== 0 && Math.abs(keyLoader.absoluteX - keyLoader.prevX) > 1) {
                                         let isDocking = !root.isSplitTransitioning;

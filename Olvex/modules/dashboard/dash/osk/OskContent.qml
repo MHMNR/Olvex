@@ -65,16 +65,19 @@ Item {
 
     implicitWidth: {
         if (root.activeLayoutName.includes("Phone") && !root.isSplit) return 640;
-        let item = customLoader.item || primaryLoader.item;
-        return item ? item.implicitWidth : 800;
+        let item = (root.currentLayout && root.currentLayout.isCustom) ? customLoader.item : primaryLoader.item;
+        return (item && item.implicitWidth > 0) ? item.implicitWidth : 800;
     }
-    implicitHeight: (customLoader.item || primaryLoader.item) ? (customLoader.item || primaryLoader.item).implicitHeight : 350
+    implicitHeight: {
+        let item = (root.currentLayout && root.currentLayout.isCustom) ? customLoader.item : primaryLoader.item;
+        return (item && item.implicitHeight > 0) ? item.implicitHeight : 350;
+    }
 
     // Snapshot Morph System (GPU Optimized)
     ShaderEffectSource {
         id: layoutSnapshot
         anchors.fill: parent
-        sourceItem: root.currentLayout.isCustom ? customLoader : primaryLoader
+        sourceItem: (root.currentLayout && root.currentLayout.isCustom) ? customLoader : primaryLoader
         live: false 
         recursive: false
         opacity: 0
@@ -110,7 +113,7 @@ Item {
         
         root.currentLayout = layouts[activeLayoutName];
         
-        if (root.currentLayout.isCustom) {
+        if (root.currentLayout && root.currentLayout.isCustom) {
             customLoader.offset = dir * 120;
             customLoader.entryScale = 0.98;
             customFade.restart();
@@ -134,7 +137,7 @@ Item {
     Loader {
         id: primaryLoader
         anchors.fill: parent
-        opacity: !root.currentLayout.isCustom ? 1 : 0
+        opacity: (root.currentLayout && !root.currentLayout.isCustom) ? 1 : 0
         visible: opacity > 0
         
         property real entryScale: 1.0
@@ -160,7 +163,7 @@ Item {
     Loader {
         id: customLoader
         anchors.fill: parent
-        opacity: root.currentLayout.isCustom ? 1 : 0
+        opacity: (root.currentLayout && root.currentLayout.isCustom) ? 1 : 0
         visible: opacity > 0
         
         property real entryScale: 1.0
@@ -176,7 +179,19 @@ Item {
             }
         ]
         
-        sourceComponent: root.currentLayout.isCustom ? customLayoutComponent : null
+        source: (root.currentLayout && root.currentLayout.isCustom && root.currentLayout.customComponent) ? root.currentLayout.customComponent : ""
+
+        Binding { target: customLoader.item; property: "baseWidth"; value: root.currentBaseWidth }
+        Binding { target: customLoader.item; property: "baseHeight"; value: root.currentBaseHeight }
+        Binding { target: customLoader.item; property: "wordEngine"; value: root.wordEngine }
+        Binding { target: customLoader.item; property: "sessionRecentsContext"; value: root }
+        
+        Connections {
+            target: customLoader.item
+            ignoreUnknownSignals: true
+            function onLayoutSwitchRequested(target) { root.layoutSwitchRequested(target) }
+            function onHideRequested() { root.hideRequested() }
+        }
     }
 
     // New Content Animations (Universal)
@@ -212,25 +227,6 @@ Item {
             wordEngine: root.wordEngine
             onHideRequested: root.hideRequested()
             onLayoutSwitchRequested: (target) => root.layoutSwitchRequested(target)
-        }
-    }
-
-    Component {
-        id: customLayoutComponent
-        Loader {
-            anchors.fill: parent
-            source: root.currentLayout.customComponent
-            Binding { target: item; property: "baseWidth"; value: root.currentBaseWidth; restoreMode: Binding.RestoreBinding }
-            Binding { target: item; property: "baseHeight"; value: root.currentBaseHeight; restoreMode: Binding.RestoreBinding }
-            Binding { target: item; property: "wordEngine"; value: root.wordEngine; restoreMode: Binding.RestoreBinding }
-            Binding { target: item; property: "sessionRecentsContext"; value: root; restoreMode: Binding.RestoreBinding }
-            
-            Connections {
-                target: item
-                ignoreUnknownSignals: true
-                function onLayoutSwitchRequested(target) { root.layoutSwitchRequested(target) }
-                function onHideRequested() { root.hideRequested() }
-            }
         }
     }
 }

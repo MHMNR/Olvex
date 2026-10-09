@@ -101,12 +101,10 @@ Item {
     implicitWidth: oskLayoutContainer.implicitWidth + (root.padding * 2)
     implicitHeight: oskLayoutContainer.implicitHeight + topPadding + bottomPadding
 
-    readonly property bool isDragging: dragArea.pressed
+    readonly property bool isDragging: bgDragArea.pressed || dragArea.pressed
     
     // Split is only applicable to Default and Phone layouts
     readonly property bool canSplit: root.activeLayoutName === "Default" || root.activeLayoutName === "Phone"
-
-
 
     // Content Wrapper for Blur Source (includes BG and Keys)
     Item {
@@ -133,8 +131,33 @@ Item {
             Behavior on radius { NumberAnimation { duration: Tokens.anim.durations.expressiveDefaultSpatial } }
         }
 
+        // Background Drag Area — any click on empty space/margins moves the keyboard
+        MouseArea {
+            id: bgDragArea
+            anchors.fill: parent
+            enabled: !root.isDocked && !root.showingSettings
+            z: 0 // Behind keys and controls
+
+            property real pressX
+            property real pressY
+
+            onPressed: (mouse) => {
+                let pos = mapToItem(root.parent, mouse.x, mouse.y);
+                pressX = pos.x;
+                pressY = pos.y;
+            }
+
+            onPositionChanged: (mouse) => {
+                if (pressed) {
+                    let pos = mapToItem(root.parent, mouse.x, mouse.y);
+                    root.dragged(pos.x - pressX, pos.y - pressY);
+                }
+            }
+        }
+
         ColumnLayout {
             id: oskLayoutContainer
+            z: 1
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top

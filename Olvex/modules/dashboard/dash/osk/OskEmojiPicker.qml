@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import qs.components
+import qs.components.effects
 import qs.services
 import Olvex.Services
 import Olvex.Config
@@ -136,6 +137,17 @@ Item {
         return 0;
     }
 
+    // Returns exact Y coordinate for first row of catIdx for smooth category navigation
+    function yPositionForCat(catIdx) {
+        let y = 0;
+        for (let i = 0; i < rowModel.length; i++) {
+            let row = rowModel[i];
+            if (row.catIdx === catIdx) return y;
+            y += (row.type === "header" ? 28 : root.baseHeight);
+        }
+        return 0;
+    }
+
     // Backdrop to dismiss on outside click and block scrolling/interactions
     MouseArea {
         id: popupBackdrop
@@ -147,12 +159,6 @@ Item {
         hoverEnabled: true
         onClicked: tonePopup.visible = false
         onWheel: (wheel) => { wheel.accepted = true; }
-    }
-
-    WheelHandler {
-        target: popupBackdrop
-        enabled: tonePopup.visible
-        onWheel: (event) => { event.accepted = true; }
     }
 
     // Skin tone popup
@@ -171,7 +177,7 @@ Item {
             color: Qt.rgba(Colours.palette.m3surfaceContainerHigh.r, Colours.palette.m3surfaceContainerHigh.g, Colours.palette.m3surfaceContainerHigh.b, 1.0)
             border.width: 0
 
-            qs.components.effects.Elevation {
+            Elevation {
                 anchors.fill: parent
                 level: 3
                 z: -1
@@ -253,7 +259,63 @@ Item {
             model: root.rowModel
             spacing: 0
             boundsBehavior: Flickable.StopAtBounds
+            flickDeceleration: 2500
+            maximumFlickVelocity: 3000
             interactive: !tonePopup.visible
+
+            NumberAnimation {
+                id: mainSmoothScrollAnim
+                target: mainList
+                property: "contentY"
+                duration: 280
+                easing.type: Easing.OutCubic
+            }
+
+            onMovementStarted: mainSmoothScrollAnim.stop()
+            onFlickStarted: mainSmoothScrollAnim.stop()
+
+            function clampScrollY(y) {
+                let maxScroll = Math.max(0, mainList.contentHeight - mainList.height);
+                return Math.max(0, Math.min(maxScroll, y));
+            }
+
+            function applyScrollDelta(deltaPx, animMs) {
+                let base = mainSmoothScrollAnim.running ? mainSmoothScrollAnim.to : mainList.contentY;
+                let targetY = clampScrollY(base + deltaPx);
+                if (Math.abs(targetY - mainList.contentY) < 0.5 && !mainSmoothScrollAnim.running)
+                    return;
+                mainSmoothScrollAnim.stop();
+                mainSmoothScrollAnim.duration = animMs || 280;
+                mainSmoothScrollAnim.from = mainList.contentY;
+                mainSmoothScrollAnim.to = targetY;
+                mainSmoothScrollAnim.start();
+            }
+
+            function scrollToY(targetY, animMs) {
+                let clamped = clampScrollY(targetY);
+                mainSmoothScrollAnim.stop();
+                mainSmoothScrollAnim.duration = animMs || 320;
+                mainSmoothScrollAnim.from = mainList.contentY;
+                mainSmoothScrollAnim.to = clamped;
+                mainSmoothScrollAnim.start();
+            }
+
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: (event) => {
+                    let isTouchPad = event.device && event.device.type === PointerDevice.TouchPad;
+                    if (isTouchPad && event.pixelDelta.y !== 0) {
+                        mainList.applyScrollDelta(-event.pixelDelta.y, 120);
+                        event.accepted = true;
+                        return;
+                    }
+                    let delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+                    if (delta === 0) return;
+                    let notchPx = -(delta / 120) * 140;
+                    mainList.applyScrollDelta(notchPx, isTouchPad ? 120 : 280);
+                    event.accepted = true;
+                }
+            }
 
             // Sync active category tab while scrolling
             onContentYChanged: {
@@ -274,7 +336,55 @@ Item {
             visible: !!root.searchText
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+            flickDeceleration: 2500
+            maximumFlickVelocity: 3000
             interactive: !tonePopup.visible
+
+            NumberAnimation {
+                id: searchSmoothScrollAnim
+                target: searchList
+                property: "contentY"
+                duration: 280
+                easing.type: Easing.OutCubic
+            }
+
+            onMovementStarted: searchSmoothScrollAnim.stop()
+            onFlickStarted: searchSmoothScrollAnim.stop()
+
+            function clampScrollY(y) {
+                let maxScroll = Math.max(0, searchList.contentHeight - searchList.height);
+                return Math.max(0, Math.min(maxScroll, y));
+            }
+
+            function applyScrollDelta(deltaPx, animMs) {
+                let base = searchSmoothScrollAnim.running ? searchSmoothScrollAnim.to : searchList.contentY;
+                let targetY = clampScrollY(base + deltaPx);
+                if (Math.abs(targetY - searchList.contentY) < 0.5 && !searchSmoothScrollAnim.running)
+                    return;
+                searchSmoothScrollAnim.stop();
+                searchSmoothScrollAnim.duration = animMs || 280;
+                searchSmoothScrollAnim.from = searchList.contentY;
+                searchSmoothScrollAnim.to = targetY;
+                searchSmoothScrollAnim.start();
+            }
+
+            WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: (event) => {
+                    let isTouchPad = event.device && event.device.type === PointerDevice.TouchPad;
+                    if (isTouchPad && event.pixelDelta.y !== 0) {
+                        searchList.applyScrollDelta(-event.pixelDelta.y, 120);
+                        event.accepted = true;
+                        return;
+                    }
+                    let delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+                    if (delta === 0) return;
+                    let notchPx = -(delta / 120) * 140;
+                    searchList.applyScrollDelta(notchPx, isTouchPad ? 120 : 280);
+                    event.accepted = true;
+                }
+            }
+
             model: {
                 // chunk into rows of 10
                 const COLS = 10;
@@ -299,6 +409,10 @@ Item {
 
             property int activeCategory: 0
 
+            onActiveCategoryChanged: {
+                catTabs.scrollTabIntoView(activeCategory);
+            }
+
             OskKey {
                 baseWidth: root.baseWidth
                 baseHeight: 50
@@ -319,16 +433,80 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: true
 
+                NumberAnimation {
+                    id: catSmoothScrollAnim
+                    target: catTabs
+                    property: "contentX"
+                    duration: 240
+                    easing.type: Easing.OutCubic
+                }
+
+                onMovementStarted: catSmoothScrollAnim.stop()
+                onFlickStarted: catSmoothScrollAnim.stop()
+
+                function clampScrollX(x) {
+                    let maxScroll = Math.max(0, catTabs.contentWidth - catTabs.width);
+                    return Math.max(0, Math.min(maxScroll, x));
+                }
+
+                function applyScrollDelta(deltaPx, animMs) {
+                    let base = catSmoothScrollAnim.running ? catSmoothScrollAnim.to : catTabs.contentX;
+                    let targetX = clampScrollX(base + deltaPx);
+                    if (Math.abs(targetX - catTabs.contentX) < 0.5 && !catSmoothScrollAnim.running)
+                        return;
+                    catSmoothScrollAnim.stop();
+                    catSmoothScrollAnim.duration = animMs || 240;
+                    catSmoothScrollAnim.from = catTabs.contentX;
+                    catSmoothScrollAnim.to = targetX;
+                    catSmoothScrollAnim.start();
+                }
+
+                function scrollToX(targetX, animMs) {
+                    let clamped = clampScrollX(targetX);
+                    catSmoothScrollAnim.stop();
+                    catSmoothScrollAnim.duration = animMs || 250;
+                    catSmoothScrollAnim.from = catTabs.contentX;
+                    catSmoothScrollAnim.to = clamped;
+                    catSmoothScrollAnim.start();
+                }
+
+                function scrollTabIntoView(tabIdx) {
+                    let tabWidth = root.baseWidth - 4;
+                    let spacing = 2;
+                    let tabLeft = tabIdx * (tabWidth + spacing);
+                    let tabRight = tabLeft + tabWidth;
+                    let currentLeft = catTabs.contentX;
+                    let currentRight = currentLeft + catTabs.width;
+
+                    if (tabLeft < currentLeft) {
+                        scrollToX(tabLeft - 8, 220);
+                    } else if (tabRight > currentRight) {
+                        scrollToX(tabRight - catTabs.width + 8, 220);
+                    }
+                }
+
                 WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    orientation: Qt.Vertical | Qt.Horizontal
                     onWheel: (event) => {
-                        let step = event.angleDelta.y;
-                        if (step === 0) step = event.angleDelta.x;
-                        let maxX = Math.max(0, catTabs.contentWidth - catTabs.width);
-                        catTabs.contentX = Math.max(0, Math.min(catTabs.contentX - step, maxX));
+                        let isTouchPad = event.device && event.device.type === PointerDevice.TouchPad;
+                        if (isTouchPad && event.pixelDelta.x !== 0) {
+                            catTabs.applyScrollDelta(-event.pixelDelta.x, 120);
+                            event.accepted = true;
+                            return;
+                        }
+                        let delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+                        if (delta === 0) return;
+                        let notchPx = -(delta / 120) * 100;
+                        catTabs.applyScrollDelta(notchPx, isTouchPad ? 120 : 240);
+                        event.accepted = true;
                     }
                 }
 
                 delegate: Item {
+                    required property var modelData
+                    required property int index
+
                     width: root.baseWidth - 4
                     height: 50
 
@@ -345,7 +523,7 @@ Item {
                         StyledText {
                             anchors.centerIn: parent
                             anchors.verticalCenterOffset: -3
-                            text: modelData.icon || ""
+                            text: (modelData && modelData.icon) ? modelData.icon : ""
                             font.family: "Material Symbols Rounded"
                             font.pixelSize: 20
                             color: parent.parent.isActive
@@ -372,8 +550,16 @@ Item {
                         onClicked: {
                             bottomBar.activeCategory = index;
                             root.searchText = "";
-                            let rowIdx = root.firstRowForCat(index);
-                            mainList.positionViewAtIndex(rowIdx, ListView.Beginning);
+                            let targetY = root.yPositionForCat(index);
+                            mainList.scrollToY(targetY, 320);
+                        }
+                        onWheel: (wheel) => {
+                            let delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+                            if (delta !== 0) {
+                                let notchPx = -(delta / 120) * 100;
+                                catTabs.applyScrollDelta(notchPx, 240);
+                            }
+                            wheel.accepted = true;
                         }
                     }
                 }
@@ -393,21 +579,24 @@ Item {
     Component {
         id: unifiedDelegate
         Item {
+            required property var modelData
+            required property int index
+
             width: ListView.view ? ListView.view.width : root.width
-            height: modelData.type === "header" ? 28 : root.baseHeight
+            height: (modelData && modelData.type === "header") ? 28 : root.baseHeight
 
             // Header part
             Item {
                 anchors.centerIn: parent
                 width: 10 * root.baseWidth
                 height: 28
-                visible: modelData.type === "header"
+                visible: modelData && modelData.type === "header"
 
                 StyledText {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
                     anchors.leftMargin: 12
-                    text: modelData.name || ""
+                    text: (modelData && modelData.name) ? modelData.name : ""
                     font.pixelSize: 11
                     font.weight: Font.Medium
                     color: Qt.alpha(Colours.palette.m3onSurface, 0.5)
@@ -420,56 +609,77 @@ Item {
                 anchors.centerIn: parent
                 width: 10 * root.baseWidth
                 height: root.baseHeight
-                visible: modelData.type === "row"
+                visible: modelData && modelData.type === "row"
 
                 Row {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 0
 
-                Repeater {
-                    model: modelData.type === "row" ? modelData.emojis : null
-                    delegate: Item {
-                        width: root.baseWidth
-                        height: root.baseHeight
+                    Repeater {
+                        model: (modelData && modelData.type === "row") ? modelData.emojis : []
+                        delegate: Item {
+                            required property var modelData
+                            required property int index
 
-                        property string emojiStr: modelData
-                        property string emojiDisplayed: root.applySkinTone(emojiStr)
+                            width: root.baseWidth
+                            height: root.baseHeight
 
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            radius: 8
-                            color: emojiArea.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.1) : "transparent"
-                            Behavior on color { ColorAnimation { duration: 80 } }
-                        }
+                            readonly property string emojiStr: modelData || ""
+                            readonly property string emojiDisplayed: root.applySkinTone(emojiStr)
 
-                        StyledText {
-                            anchors.centerIn: parent
-                            text: parent.emojiDisplayed
-                            font.pixelSize: 30
-                        }
-
-                        MouseArea {
-                            id: emojiArea
-                            anchors.fill: parent
-                            pressAndHoldInterval: 350
-
-                            onClicked: {
-                                root.typeEmoji(parent.emojiDisplayed, parent.emojiStr);
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 4
+                                radius: 8
+                                color: emojiArea.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.1) : "transparent"
+                                Behavior on color { ColorAnimation { duration: 80 } }
                             }
 
-                            onPressAndHold: {
-                                if (root.isToneable(parent.emojiStr)) {
-                                    let pos = parent.mapToItem(root, 0, 0);
-                                    let targetX = pos.x + (parent.width - tonePopup.width) / 2;
-                                    tonePopup.x = Math.max(8, Math.min(targetX, root.width - tonePopup.width - 8));
-                                    if (pos.y - tonePopup.height - 8 < 0) {
-                                        tonePopup.y = pos.y + parent.height + 6;
-                                    } else {
-                                        tonePopup.y = pos.y - tonePopup.height - 6;
+                            StyledText {
+                                anchors.centerIn: parent
+                                text: parent.emojiDisplayed
+                                font.pixelSize: 30
+                            }
+
+                            MouseArea {
+                                id: emojiArea
+                                anchors.fill: parent
+                                pressAndHoldInterval: 350
+
+                                onClicked: {
+                                    root.typeEmoji(parent.emojiDisplayed, parent.emojiStr);
+                                }
+
+                                onWheel: (wheel) => {
+                                    let isTouchPad = wheel.device && wheel.device.type === PointerDevice.TouchPad;
+                                    if (isTouchPad && wheel.pixelDelta.y !== 0) {
+                                        if (root.searchText) searchList.applyScrollDelta(-wheel.pixelDelta.y, 120);
+                                        else mainList.applyScrollDelta(-wheel.pixelDelta.y, 120);
+                                        wheel.accepted = true;
+                                        return;
                                     }
-                                    tonePopup.visible = true;
+                                    let delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x;
+                                    if (delta !== 0) {
+                                        let notchPx = -(delta / 120) * 140;
+                                        if (root.searchText) searchList.applyScrollDelta(notchPx, isTouchPad ? 120 : 280);
+                                        else mainList.applyScrollDelta(notchPx, isTouchPad ? 120 : 280);
+                                    }
+                                    wheel.accepted = true;
+                                }
+
+                                onPressAndHold: {
+                                    if (root.isToneable(parent.emojiStr)) {
+                                        let pos = parent.mapToItem(root, 0, 0);
+                                        let targetX = pos.x + (parent.width - tonePopup.width) / 2;
+                                        tonePopup.x = Math.max(8, Math.min(targetX, root.width - tonePopup.width - 8));
+                                        if (pos.y - tonePopup.height - 8 < 0) {
+                                            tonePopup.y = pos.y + parent.height + 6;
+                                        } else {
+                                            tonePopup.y = pos.y - tonePopup.height - 6;
+                                        }
+                                        tonePopup.visible = true;
+                                    }
                                 }
                             }
                         }
@@ -478,5 +688,4 @@ Item {
             }
         }
     }
-}
 }
