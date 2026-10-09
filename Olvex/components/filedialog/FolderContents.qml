@@ -104,7 +104,7 @@ Item {
             flickable: view
         }
 
-        model: FileSystemModel {
+        FileSystemModel {
             id: fsModel
 
             path: {
@@ -115,6 +115,31 @@ Item {
             }
             onPathChanged: view.currentIndex = -1
         }
+
+        ScriptModel {
+            id: filteredModel
+
+            values: {
+                const list = [];
+                const entries = fsModel.entries;
+                if (!entries)
+                    return list;
+                const len = entries.length;
+                for (let i = 0; i < len; ++i) {
+                    const entry = entries[i];
+                    if (!entry)
+                        continue;
+                    if (AccountFaces.shouldHideEntry(entry.name, entry.path))
+                        continue;
+                    if (!root.dialog.matchesFilter(entry))
+                        continue;
+                    list.push(entry);
+                }
+                return list;
+            }
+        }
+
+        model: filteredModel
 
         delegate: FileEntry {}
 
@@ -166,14 +191,6 @@ Item {
         required property FileSystemEntry modelData
 
         readonly property bool hasEntry: item.modelData !== null && item.modelData !== undefined
-        readonly property bool hidden: {
-            const entry = item.modelData;
-            if (!entry)
-                return true;
-            if (AccountFaces.shouldHideEntry(entry.name, entry.path))
-                return true;
-            return !root.dialog.matchesFilter(entry);
-        }
         readonly property string displayName: {
             const entry = item.modelData;
             if (!entry)
@@ -182,9 +199,8 @@ Item {
         }
         readonly property real nonAnimHeight: iconFrame.implicitHeight + name.anchors.topMargin + name.implicitHeight + Tokens.padding.normal * 2
 
-        implicitWidth: hidden ? 0 : Sizes.itemWidth
-        implicitHeight: hidden ? 0 : nonAnimHeight
-        visible: !hidden
+        implicitWidth: Sizes.itemWidth
+        implicitHeight: nonAnimHeight
 
         radius: Tokens.rounding.normal
         color: Qt.alpha(Colours.tPalette.m3surfaceContainerHighest, GridView.isCurrentItem ? Colours.tPalette.m3surfaceContainerHighest.a : 0)
