@@ -10,6 +10,8 @@ import qs.utils
 Singleton {
     id: root
 
+    property real _lastHardwareSoundTime: 0
+
     readonly property var availableSounds: [
         "charger-in.mp3",
         "charger-out.mp3",
@@ -72,79 +74,61 @@ Singleton {
     }
 
     function playChargerIn() {
+        _lastHardwareSoundTime = Date.now();
         if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.charger)
-            play(GlobalConfig.services.uiSounds.chargerInSound);
+            play(GlobalConfig.services.uiSounds.chargerInSound || "charger-in.mp3");
     }
 
     function playChargerOut() {
+        _lastHardwareSoundTime = Date.now();
         if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.charger)
-            play(GlobalConfig.services.uiSounds.chargerOutSound);
+            play(GlobalConfig.services.uiSounds.chargerOutSound || "charger-out.mp3");
     }
 
     function playDeviceIn() {
+        _lastHardwareSoundTime = Date.now();
         if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.device)
-            play(GlobalConfig.services.uiSounds.deviceInSound);
+            play(GlobalConfig.services.uiSounds.deviceInSound || "device-in.mp3");
     }
 
     function playDeviceOut() {
+        _lastHardwareSoundTime = Date.now();
         if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.device)
-            play(GlobalConfig.services.uiSounds.deviceOutSound);
+            play(GlobalConfig.services.uiSounds.deviceOutSound || "device-out.mp3");
     }
 
     function playNotification(urgency) {
         if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.notifications) {
             if (urgency === 2)
-                play(GlobalConfig.services.uiSounds.notificationsUrgentSound);
+                play(GlobalConfig.services.uiSounds.notificationsUrgentSound || "notificationV.mp3");
             else
-                play(GlobalConfig.services.uiSounds.notificationsSound);
+                play(GlobalConfig.services.uiSounds.notificationsSound || "notif.mp3");
         }
     }
 
     function playToast(type) {
-        if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.toasts) {
-            if (type === 2 || type === 3) // Warning or Error
-                play(GlobalConfig.services.uiSounds.warningSound);
-            else
-                play(GlobalConfig.services.uiSounds.toastSound);
-        }
+        if (!GlobalConfig.services.uiSounds.enabled || !GlobalConfig.services.uiSounds.toasts)
+            return;
+        if (type === 2 || type === 3) // Warning or Error
+            play(GlobalConfig.services.uiSounds.warningSound || "warning.mp3");
+        else
+            play(GlobalConfig.services.uiSounds.toastSound || "toast.mp3");
     }
 
     function playWarning() {
+        _lastHardwareSoundTime = Date.now();
         if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.warnings)
-            play(GlobalConfig.services.uiSounds.warningSound);
-    }
-
-    function isHardwareEventToast(title, message, icon) {
-        const t = (title || "").toLowerCase();
-        const m = (message || "").toLowerCase();
-        const ic = (icon || "").toLowerCase();
-
-        // Charger events (handled by playChargerIn / playChargerOut)
-        if (t.includes("charger") || t.includes("charging") || ic === "power" || ic === "power_off" || ic.includes("battery_charging"))
-            return true;
-
-        // Battery warnings (handled by playWarning)
-        if (t.includes("battery") || t.includes("hibernating") || ic === "battery_android_alert")
-            return true;
-
-        // Bluetooth / USB / Headphones peripheral connect & disconnect / remove
-        if (t.includes("bluetooth") || t.includes("device") || t.includes("usb") || t.includes("headphones") ||
-            ic.includes("bluetooth") || ic.includes("usb") || ic === "headphones" || ic === "mouse" ||
-            ic === "keyboard" || ic === "sports_esports" || ic === "speaker") {
-            if (t.includes("connected") || t.includes("disconnected") || t.includes("removed") || t.includes("attached") ||
-                t.includes("unplugged") || t.includes("ejected") || m.includes("connected") || m.includes("disconnected") ||
-                m.includes("removed") || t.includes("switched") || ic.includes("off") || ic.includes("disabled"))
-                return true;
-        }
-
-        return false;
+            play(GlobalConfig.services.uiSounds.warningSound || "warning.mp3");
     }
 
     Connections {
         target: Toaster
         function onToastAdded(title, message, icon, type) {
-            if (root.isHardwareEventToast(title, message, icon))
+            // Suppress duplicate chime only if a dedicated hardware chime (charger/USB/BT)
+            // was explicitly fired within the last 300ms
+            if (Date.now() - root._lastHardwareSoundTime < 300)
                 return;
+
             root.playToast(type);
         }
     }
