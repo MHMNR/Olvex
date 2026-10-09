@@ -31,6 +31,12 @@ CustomMouseArea {
     readonly property int floatingGap: safeBorder.floating ? (safeBorder.gap ?? 5) : 0
     readonly property real hoverTolerance: root.borderThickness + floatingGap
     readonly property real verticalTolerance: root.borderThickness + floatingGap
+
+    function inLeftBarArea(x: real, y: real): bool {
+        if (bar.shouldBeVisible && bar.implicitWidth > 0)
+            return x <= bar.implicitWidth + 12;
+        return x <= Math.max(8, safeBorder.thickness + floatingGap);
+    }
     function inBottomPanelArea(x: real, y: real): bool {
         if (x < bar.implicitWidth)
             return false;
@@ -123,7 +129,7 @@ CustomMouseArea {
     // Bottom-left corner hot zone (launcher trigger) - strictly confined to bar width and bottom edge
     function inBottomLeftCorner(x: real, y: real): bool {
         const edgeH = Math.max(4, safeBorder.thickness + floatingGap);
-        return x <= bar.clampedWidth && y >= height - edgeH;
+        return x <= Math.max(48, bar.clampedWidth, bar.implicitWidth) && y >= height - edgeH;
     }
 
     // Bottom-right corner hot zone (QS panel trigger) - tight corner target
@@ -223,7 +229,7 @@ CustomMouseArea {
         }
 
         // ── Determine which panels/surfaces contain the click ──────────────
-        const inBar = event.x <= bar.clampedWidth;
+        const inBar = inLeftBarArea(event.x, event.y);
         const inBp = panels.bottomPanel.visible && event.y >= (height - panels.bottomPanel.height - root.borderThickness - floatingGap);
 
         let inPopoutContent = false;
@@ -377,7 +383,7 @@ CustomMouseArea {
                 bar.closeTray();
             }
 
-            if (Config.bar.showOnHover)
+            if (!visibilities.bar)
                 bar.isHovered = false;
         }
     }
@@ -391,16 +397,29 @@ CustomMouseArea {
         const dragX = x - dragStart.x;
         const dragY = y - dragStart.y;
 
-        // Show bar in non-exclusive mode on hover
-        if (!visibilities.bar && Config.bar.showOnHover && x < bar.clampedWidth)
-            bar.isHovered = true;
+        // Show/hide bar in non-exclusive mode on hover when not persistent
+        if (Config.bar.showOnHover && !visibilities.bar && !Config.bar.persistent) {
+            if (inLeftBarArea(x, y) || inPopout(x, y)) {
+                bar.isHovered = true;
+            } else if (x > bar.implicitWidth + 16 && !inPopout(x, y)) {
+                bar.isHovered = false;
+            }
+        } else if (!Config.bar.showOnHover && !visibilities.bar) {
+            bar.isHovered = false;
+        }
 
         // Show/hide bar on drag
-        if (pressed && dragStart.x < bar.clampedWidth) {
-            if (dragX > Config.bar.dragThreshold)
+        const barDragThresh = Config.bar.dragThreshold ?? 20;
+        const dragStartMaxX = (bar.shouldBeVisible && bar.implicitWidth > 0)
+            ? bar.implicitWidth + 16
+            : Math.max(24, barDragThresh);
+        if (pressed && dragStart.x <= dragStartMaxX) {
+            if (dragX > barDragThresh) {
                 visibilities.bar = true;
-            else if (dragX < -Config.bar.dragThreshold)
+            } else if (dragX < -barDragThresh) {
                 visibilities.bar = false;
+                bar.isHovered = false;
+            }
         }
 
         // Show/hide powermenu on drag

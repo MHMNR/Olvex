@@ -18,14 +18,16 @@ Region {
     readonly property real topEdgeTrigger: 4
     readonly property real bottomEdgeTrigger: 4
     readonly property real rightEdgeTrigger: 3
+    readonly property real leftEdgeTrigger: 8
 
     readonly property real topInset: Math.max(topEdgeTrigger, clampedThickness)
     readonly property real bottomInset: Math.max(bottomEdgeTrigger, clampedThickness)
     readonly property real rightInset: Math.max(rightEdgeTrigger, clampedThickness)
+    readonly property real leftInset: root.bar.shouldBeVisible ? Math.max(root.bar.clampedWidth, root.bar.implicitWidth) : Math.max(leftEdgeTrigger, clampedThickness)
 
-    x: bar.clampedWidth + win.dragMaskPadding
+    x: leftInset + win.dragMaskPadding
     y: topInset + win.dragMaskPadding
-    width: Math.max(0, win.width - bar.clampedWidth - rightInset - win.dragMaskPadding * 2)
+    width: Math.max(0, win.width - leftInset - rightInset - win.dragMaskPadding * 2)
     height: Math.max(0, win.height - topInset - bottomInset - win.dragMaskPadding * 2)
     intersection: Intersection.Xor
 
@@ -101,7 +103,7 @@ Region {
         // Bottom-left corner hot zone (Launcher trigger) - strictly confined to bar width and bottom edge
         x: 0
         y: root.win.height - Math.max(4, root.clampedThickness)
-        width: root.bar.clampedWidth
+        width: Math.max(48, root.bar.clampedWidth, root.bar.implicitWidth)
         height: Math.max(4, root.clampedThickness)
         intersection: Intersection.Subtract
     }

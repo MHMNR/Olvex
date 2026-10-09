@@ -1,4 +1,3 @@
-
 import ".."
 import "../ui"
 import "../components"
@@ -99,22 +98,25 @@ Item {
 
     component SoundControlRow: RowLayout {
         id: scRow
-        spacing: Tokens.spacing.small
+        spacing: Tokens.spacing.normal
 
         required property string propName
         required property string soundValue
-        required property bool isEnabled
-        property bool showSwitch: true
+        property bool isCategoryEnabled: true
+        property bool showSwitch: false
+        property bool switchValue: true
         signal soundChanged(string newSound)
-        signal toggled(bool enabled)
+        signal switchToggled(bool enabled)
 
         readonly property var opts: root.getAllOptions(scRow.soundValue)
+        readonly property bool effectivelyEnabled: scRow.isCategoryEnabled && GlobalConfig.services.uiSounds.enabled
 
         OptionPicker {
             id: picker
+            Layout.preferredWidth: 160
             model: scRow.opts
             currentIndex: root.idxOfSound(scRow.opts, scRow.soundValue, "")
-            enabled: !scRow.showSwitch || scRow.isEnabled
+            enabled: scRow.effectivelyEnabled
             opacity: enabled ? 1.0 : 0.45
 
             onSelected: idx => {
@@ -124,6 +126,7 @@ Item {
                         root.openPickerFor(scRow.propName);
                     } else {
                         scRow.soundChanged(chosen);
+                        UiSounds.preview(chosen);
                     }
                 }
             }
@@ -132,9 +135,9 @@ Item {
         IconButton {
             type: IconButton.Tonal
             icon: "play_arrow"
-            iconPointSize: Tokens.font.size.small
-            enabled: (!scRow.showSwitch || scRow.isEnabled) && GlobalConfig.services.uiSounds.enabled
-            opacity: enabled ? 1.0 : 0.45
+            iconPointSize: Tokens.font.size.normal
+            disabled: !scRow.effectivelyEnabled
+            opacity: scRow.effectivelyEnabled ? 1.0 : 0.45
             onClicked: {
                 UiSounds.preview(scRow.soundValue);
             }
@@ -143,9 +146,9 @@ Item {
         IconButton {
             type: IconButton.Text
             icon: "folder_open"
-            iconPointSize: Tokens.font.size.small
-            enabled: (!scRow.showSwitch || scRow.isEnabled) && GlobalConfig.services.uiSounds.enabled
-            opacity: enabled ? 1.0 : 0.45
+            iconPointSize: Tokens.font.size.normal
+            disabled: !scRow.effectivelyEnabled
+            opacity: scRow.effectivelyEnabled ? 1.0 : 0.45
             onClicked: {
                 root.openPickerFor(scRow.propName);
             }
@@ -153,10 +156,10 @@ Item {
 
         StyledSwitch {
             visible: scRow.showSwitch
-            checked: scRow.isEnabled
+            checked: scRow.switchValue
             enabled: GlobalConfig.services.uiSounds.enabled
             onToggled: {
-                scRow.toggled(checked);
+                scRow.switchToggled(checked);
             }
         }
     }
@@ -179,6 +182,7 @@ Item {
             SettingRow {
                 title: qsTr("UI Sound Effects")
                 description: qsTr("Play audio feedback for desktop events")
+                icon: "volume_up"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.services.uiSounds.enabled
@@ -191,17 +195,25 @@ Item {
 
             SettingRow {
                 title: qsTr("Effects volume")
-                description: qsTr("Volume level for UI sound effects")
+                description: qsTr("Master volume level for UI sound effects")
+                icon: "tune"
                 divider: false
-                CustomSpinBox {
-                    value: Math.round((GlobalConfig.services.uiSounds.volume || 0.8) * 100)
-                    min: 5
-                    max: 100
-                    step: 5
+                StyledSlider {
+                    width: 200
+                    from: 0.05
+                    to: 1.0
+                    stepSize: 0.05
+                    value: GlobalConfig.services.uiSounds.volume || 0.8
+                    valueAsPercent: true
                     enabled: GlobalConfig.services.uiSounds.enabled
-                    onValueModified: v => {
-                        GlobalConfig.services.uiSounds.volume = v / 100;
+                    onMoved: {
+                        GlobalConfig.services.uiSounds.volume = value;
                         GlobalConfig.save();
+                    }
+                    onPressedChanged: {
+                        if (!pressed) {
+                            UiSounds.preview("toast.mp3");
+                        }
                     }
                 }
             }
@@ -213,6 +225,14 @@ Item {
             description: qsTr("Audio chimes for incoming desktop notifications")
             icon: "notifications"
             accentColor: Colours.palette.m3tertiary
+            headerControl: StyledSwitch {
+                checked: GlobalConfig.services.uiSounds.notifications
+                enabled: GlobalConfig.services.uiSounds.enabled
+                onToggled: {
+                    GlobalConfig.services.uiSounds.notifications = checked;
+                    GlobalConfig.save();
+                }
+            }
 
             SettingRow {
                 title: qsTr("Notification chime")
@@ -221,13 +241,9 @@ Item {
                 SoundControlRow {
                     propName: "notificationsSound"
                     soundValue: GlobalConfig.services.uiSounds.notificationsSound || "notif.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.notifications
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.notifications
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.notificationsSound = s;
-                        GlobalConfig.save();
-                    }
-                    onToggled: e => {
-                        GlobalConfig.services.uiSounds.notifications = e;
                         GlobalConfig.save();
                     }
                 }
@@ -240,8 +256,7 @@ Item {
                 SoundControlRow {
                     propName: "notificationsUrgentSound"
                     soundValue: GlobalConfig.services.uiSounds.notificationsUrgentSound || "notificationV.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.notifications
-                    showSwitch: false
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.notifications
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.notificationsUrgentSound = s;
                         GlobalConfig.save();
@@ -256,6 +271,14 @@ Item {
             description: qsTr("Sounds for AC adapter state and battery alerts")
             icon: "battery_charging_full"
             accentColor: Colours.palette.m3primary
+            headerControl: StyledSwitch {
+                checked: GlobalConfig.services.uiSounds.charger
+                enabled: GlobalConfig.services.uiSounds.enabled
+                onToggled: {
+                    GlobalConfig.services.uiSounds.charger = checked;
+                    GlobalConfig.save();
+                }
+            }
 
             SettingRow {
                 title: qsTr("Charger connected")
@@ -264,13 +287,9 @@ Item {
                 SoundControlRow {
                     propName: "chargerInSound"
                     soundValue: GlobalConfig.services.uiSounds.chargerInSound || "charger-in.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.charger
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.charger
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.chargerInSound = s;
-                        GlobalConfig.save();
-                    }
-                    onToggled: e => {
-                        GlobalConfig.services.uiSounds.charger = e;
                         GlobalConfig.save();
                     }
                 }
@@ -283,13 +302,9 @@ Item {
                 SoundControlRow {
                     propName: "chargerOutSound"
                     soundValue: GlobalConfig.services.uiSounds.chargerOutSound || "charger-out.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.charger
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.charger
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.chargerOutSound = s;
-                        GlobalConfig.save();
-                    }
-                    onToggled: e => {
-                        GlobalConfig.services.uiSounds.charger = e;
                         GlobalConfig.save();
                     }
                 }
@@ -302,6 +317,14 @@ Item {
             description: qsTr("Sounds for Bluetooth and USB device connections")
             icon: "devices"
             accentColor: Colours.palette.m3secondary
+            headerControl: StyledSwitch {
+                checked: GlobalConfig.services.uiSounds.device
+                enabled: GlobalConfig.services.uiSounds.enabled
+                onToggled: {
+                    GlobalConfig.services.uiSounds.device = checked;
+                    GlobalConfig.save();
+                }
+            }
 
             SettingRow {
                 title: qsTr("Device connected")
@@ -310,13 +333,9 @@ Item {
                 SoundControlRow {
                     propName: "deviceInSound"
                     soundValue: GlobalConfig.services.uiSounds.deviceInSound || "device-in.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.device
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.device
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.deviceInSound = s;
-                        GlobalConfig.save();
-                    }
-                    onToggled: e => {
-                        GlobalConfig.services.uiSounds.device = e;
                         GlobalConfig.save();
                     }
                 }
@@ -329,13 +348,9 @@ Item {
                 SoundControlRow {
                     propName: "deviceOutSound"
                     soundValue: GlobalConfig.services.uiSounds.deviceOutSound || "device-out.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.device
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.device
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.deviceOutSound = s;
-                        GlobalConfig.save();
-                    }
-                    onToggled: e => {
-                        GlobalConfig.services.uiSounds.device = e;
                         GlobalConfig.save();
                     }
                 }
@@ -346,7 +361,7 @@ Item {
         Section {
             title: qsTr("Toasts & Alerts")
             description: qsTr("Sounds for toast messages and system warnings")
-            icon: "info"
+            icon: "campaign"
             accentColor: Colours.palette.m3primary
 
             SettingRow {
@@ -356,12 +371,14 @@ Item {
                 SoundControlRow {
                     propName: "toastSound"
                     soundValue: GlobalConfig.services.uiSounds.toastSound || "toast.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.toasts
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.toasts
+                    showSwitch: true
+                    switchValue: GlobalConfig.services.uiSounds.toasts
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.toastSound = s;
                         GlobalConfig.save();
                     }
-                    onToggled: e => {
+                    onSwitchToggled: e => {
                         GlobalConfig.services.uiSounds.toasts = e;
                         GlobalConfig.save();
                     }
@@ -375,12 +392,14 @@ Item {
                 SoundControlRow {
                     propName: "warningSound"
                     soundValue: GlobalConfig.services.uiSounds.warningSound || "warning.mp3"
-                    isEnabled: GlobalConfig.services.uiSounds.warnings
+                    isCategoryEnabled: GlobalConfig.services.uiSounds.warnings
+                    showSwitch: true
+                    switchValue: GlobalConfig.services.uiSounds.warnings
                     onSoundChanged: s => {
                         GlobalConfig.services.uiSounds.warningSound = s;
                         GlobalConfig.save();
                     }
-                    onToggled: e => {
+                    onSwitchToggled: e => {
                         GlobalConfig.services.uiSounds.warnings = e;
                         GlobalConfig.save();
                     }
