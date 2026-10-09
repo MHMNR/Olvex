@@ -685,7 +685,6 @@ Item {
                     asynchronous: true
                     opacity: stack.pageContentOpacity
                     visible: stack.showPageContent && status === Loader.Ready
-                    enabled: stack.pageOpen && !stack.returning
 
                     function loadPage(id) {
                         if (!id) {
@@ -732,6 +731,15 @@ Item {
                         if (session.pageId)
                             loadPage(session.pageId);
                     }
+                }
+
+                // Transparent transition shield — blocks clicks mid-animation without falsifying QML child enabled states
+                MouseArea {
+                    anchors.fill: parent
+                    visible: !stack.pageOpen || stack.returning || stack.transformActive
+                    hoverEnabled: true
+                    preventStealing: true
+                    z: 999
                 }
             }
         }
