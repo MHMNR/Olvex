@@ -15,6 +15,16 @@ Item {
     readonly property DashboardState dashState: DashboardState {
         reloadableId: "dashboardState"
     }
+
+    property bool warmedUp: false
+    Timer {
+        id: prewarmTimer
+        interval: 1200 // Wait until shell is fully booted before pre-warming
+        running: true
+        repeat: false
+        onTriggered: root.warmedUp = true
+    }
+
     readonly property FileDialog facePicker: FileDialog {
         title: qsTr("Select a profile picture")
         filterLabel: qsTr("Image files")
@@ -36,7 +46,7 @@ Item {
 
     readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 480
     readonly property bool shouldBeActive: visibilities.dashboard && Config.dashboard.enabled
-    readonly property bool dashboardActive: root.shouldBeActive || closeGrace.running
+    readonly property bool dashboardActive: root.shouldBeActive || closeGrace.running || root.visible || root.warmedUp
     property real offsetScale: shouldBeActive ? 0 : 1
     property bool hovered: false
 
@@ -92,7 +102,8 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
 
-        active: root.shouldBeActive || closeGrace.running || root.visible
+        asynchronous: true
+        active: root.dashboardActive
 
         sourceComponent: Content {
             dashboardActive: root.dashboardActive

@@ -21,86 +21,15 @@ StyledRect {
     property bool isPanelVisible: true
     property int staggerIndex: 0
     readonly property bool isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
-    property bool _ready: false
-
-    Timer {
-        id: readyTimer
-        interval: 16
-        running: false
-        repeat: false
-        onTriggered: root._ready = true
-    }
-
-    Component.onCompleted: {
-        if (root.isPanelVisible) {
-            root._ready = false;
-            readyTimer.restart();
-        }
-    }
-
-    onIsPanelVisibleChanged: {
-        if (root.isPanelVisible) {
-            root._ready = false;
-            readyTimer.restart();
-        } else {
-            root._ready = false;
-        }
-    }
-
-    state: root.isExpanding ? "expanding" : ((isPanelVisible && _ready) ? "visible" : "hidden")
-
-    transform: [
-        Translate {
-            id: trans
-            x: root.isLowPower ? 0 : -8
-            y: root.isLowPower ? 0 : 16
-        },
-        Scale {
-            id: scale
-            origin.x: root.width / 2
-            origin.y: root.height / 2
-            xScale: root.isLowPower ? 1.0 : 0.90
-            yScale: root.isLowPower ? 1.0 : 0.90
-        }
-    ]
-
-    states: [
-        State {
-            name: "hidden"
-            PropertyChanges { target: root; opacity: 0.01 }
-            PropertyChanges { target: trans; x: root.isLowPower ? 0 : -8; y: root.isLowPower ? 0 : 16 }
-            PropertyChanges { target: scale; xScale: root.isLowPower ? 1.0 : 0.90; yScale: root.isLowPower ? 1.0 : 0.90 }
-        },
-        State {
-            name: "visible"
-            PropertyChanges { target: root; opacity: 1 }
-            PropertyChanges { target: trans; x: 0; y: 0 }
-            PropertyChanges { target: scale; xScale: 1.0; yScale: 1.0 }
-        },
-        State {
-            name: "expanding"
-            PropertyChanges { target: root; opacity: 0 }
-            PropertyChanges { target: trans; x: 0; y: 0 }
-            PropertyChanges { target: scale; xScale: 1.0; yScale: 1.0 }
-        }
-    ]
-
-    transitions: Transition {
-        from: "hidden"; to: "visible"
-        SequentialAnimation {
-            PauseAnimation { duration: root.isLowPower ? 0 : root.staggerIndex }
-            ParallelAnimation {
-                NumberAnimation { target: root; property: "opacity"; duration: root.isLowPower ? 120 : 280; easing.type: Easing.OutCubic }
-                NumberAnimation { target: trans; properties: "x,y"; duration: root.isLowPower ? 150 : 420; easing.type: Easing.OutCubic }
-                NumberAnimation { 
-                    target: scale; properties: "xScale,yScale"; duration: root.isLowPower ? 150 : 450; 
-                    easing.type: Easing.OutCubic
-                }
-            }
-        }
-    }
 
     opacity: isExpanding ? 0 : 1
+
+    Behavior on opacity {
+        NumberAnimation {
+            duration: 150
+            easing.type: Easing.OutCubic
+        }
+    }
 
     property color activeColour:    Colours.palette.m3primary
     property color inactiveColour: Colours.tileIconWell

@@ -65,10 +65,6 @@ StyledRect {
     }
 
     function toggleStagger(toggleId: string): int {
-        for (let i = 0; i < root.quickToggles.length; i++) {
-            if (root.quickToggles[i].id === toggleId)
-                return i * 35;
-        }
         return 0;
     }
 
@@ -376,69 +372,6 @@ StyledRect {
                     border.width: 0
                     radius: Tokens.rounding.full
 
-                    readonly property bool isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
-                    property bool isPanelVisible: root.visibilities.qspanel
-                    property bool _ready: false
-
-                    Timer {
-                        id: ppReadyTimer
-                        interval: 16
-                        running: false
-                        repeat: false
-                        onTriggered: powerProfilePill._ready = true
-                    }
-
-                    Component.onCompleted: {
-                        if (powerProfilePill.isPanelVisible) {
-                            powerProfilePill._ready = false;
-                            ppReadyTimer.restart();
-                        }
-                    }
-
-                    onIsPanelVisibleChanged: {
-                        if (powerProfilePill.isPanelVisible) {
-                            powerProfilePill._ready = false;
-                            ppReadyTimer.restart();
-                        } else {
-                            powerProfilePill._ready = false;
-                        }
-                    }
-
-                    state: (isPanelVisible && _ready) ? "visible" : "hidden"
-
-                    states: [
-                        State {
-                            name: "hidden"
-                            PropertyChanges { target: powerProfilePill; opacity: 0.01 }
-                            PropertyChanges { target: ppTrans; x: powerProfilePill.isLowPower ? 0 : -8; y: powerProfilePill.isLowPower ? 0 : 16 }
-                            PropertyChanges { target: ppScale; xScale: powerProfilePill.isLowPower ? 1.0 : 0.90; yScale: powerProfilePill.isLowPower ? 1.0 : 0.90 }
-                        },
-                        State {
-                            name: "visible"
-                            PropertyChanges { target: powerProfilePill; opacity: 1 }
-                            PropertyChanges { target: ppTrans; x: 0; y: 0 }
-                            PropertyChanges { target: ppScale; xScale: 1.0; yScale: 1.0 }
-                        }
-                    ]
-
-                    transitions: Transition {
-                        from: "hidden"; to: "visible"
-                        SequentialAnimation {
-                            PauseAnimation { duration: powerProfilePill.isLowPower ? 0 : 100 }
-                            ParallelAnimation {
-                                NumberAnimation { target: powerProfilePill; property: "opacity"; duration: powerProfilePill.isLowPower ? 120 : 280; easing.type: Easing.OutCubic }
-                                NumberAnimation { target: ppTrans; properties: "x,y"; duration: powerProfilePill.isLowPower ? 150 : 420; easing.type: Easing.OutCubic }
-                                NumberAnimation { target: ppScale; properties: "xScale,yScale"; duration: powerProfilePill.isLowPower ? 150 : 450; easing.type: Easing.OutCubic }
-                            }
-                        }
-                    }
-
-                    transform: [
-                        Translate { id: ppTrans; x: powerProfilePill.isLowPower ? 0 : -8; y: powerProfilePill.isLowPower ? 0 : 16 },
-                        Scale { id: ppScale; origin.x: powerProfilePill.width / 2; origin.y: powerProfilePill.height / 2; xScale: 0.90; yScale: 0.90 }
-                    ]
-                    // === End animation ===
-
                     property string current: {
                         const p = PowerProfiles.profile;
                         if (p === PowerProfile.PowerSaver)
@@ -510,74 +443,14 @@ StyledRect {
                     property bool checked: true
                     property bool isExpanding: root.props.expansionActive === "displayprojection" || (root.props.isTransitioning && root.props.expansionSourceItem === displayProjectionPill)
 
-                    readonly property bool _isLowPower: PowerProfiles.profile === PowerProfile.PowerSaver
-                    property bool isPanelVisible: root.visibilities.qspanel
-                    property bool _ready: false
+                    opacity: isExpanding ? 0 : 1
 
-                    Timer {
-                        id: dpReadyTimer
-                        interval: 16
-                        running: false
-                        repeat: false
-                        onTriggered: displayProjectionPill._ready = true
-                    }
-
-                    Component.onCompleted: {
-                        if (displayProjectionPill.isPanelVisible) {
-                            displayProjectionPill._ready = false;
-                            dpReadyTimer.restart();
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 150
+                            easing.type: Easing.OutCubic
                         }
                     }
-
-                    onIsPanelVisibleChanged: {
-                        if (displayProjectionPill.isPanelVisible) {
-                            displayProjectionPill._ready = false;
-                            dpReadyTimer.restart();
-                        } else {
-                            displayProjectionPill._ready = false;
-                        }
-                    }
-
-                    state: isExpanding ? "expanding" : ((isPanelVisible && _ready) ? "visible" : "hidden")
-
-                    states: [
-                        State {
-                            name: "hidden"
-                            PropertyChanges { target: displayProjectionPill; opacity: 0.01 }
-                            PropertyChanges { target: dpTrans; x: displayProjectionPill._isLowPower ? 0 : -8; y: displayProjectionPill._isLowPower ? 0 : 16 }
-                            PropertyChanges { target: dpScale; xScale: displayProjectionPill._isLowPower ? 1.0 : 0.90; yScale: displayProjectionPill._isLowPower ? 1.0 : 0.90 }
-                        },
-                        State {
-                            name: "visible"
-                            PropertyChanges { target: displayProjectionPill; opacity: 1 }
-                            PropertyChanges { target: dpTrans; x: 0; y: 0 }
-                            PropertyChanges { target: dpScale; xScale: 1.0; yScale: 1.0 }
-                        },
-                        State {
-                            name: "expanding"
-                            PropertyChanges { target: displayProjectionPill; opacity: 0 }
-                            PropertyChanges { target: dpTrans; x: 0; y: 0 }
-                            PropertyChanges { target: dpScale; xScale: 1.0; yScale: 1.0 }
-                        }
-                    ]
-
-                    transitions: Transition {
-                        from: "hidden"; to: "visible"
-                        SequentialAnimation {
-                            PauseAnimation { duration: displayProjectionPill._isLowPower ? 0 : 140 }
-                            ParallelAnimation {
-                                NumberAnimation { target: displayProjectionPill; property: "opacity"; duration: displayProjectionPill._isLowPower ? 120 : 280; easing.type: Easing.OutCubic }
-                                NumberAnimation { target: dpTrans; properties: "x,y"; duration: displayProjectionPill._isLowPower ? 150 : 420; easing.type: Easing.OutCubic }
-                                NumberAnimation { target: dpScale; properties: "xScale,yScale"; duration: displayProjectionPill._isLowPower ? 150 : 450; easing.type: Easing.OutCubic }
-                            }
-                        }
-                    }
-
-                    transform: [
-                        Translate { id: dpTrans; x: displayProjectionPill._isLowPower ? 0 : -8; y: displayProjectionPill._isLowPower ? 0 : 16 },
-                        Scale { id: dpScale; origin.x: displayProjectionPill.width / 2; origin.y: displayProjectionPill.height / 2; xScale: 0.90; yScale: 0.90 }
-                    ]
-                    // === End animation ===
 
                     StateLayer {
                         radius: parent.radius

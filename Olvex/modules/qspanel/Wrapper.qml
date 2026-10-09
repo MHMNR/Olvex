@@ -39,12 +39,21 @@ Item {
     property real sidebarLerp
     readonly property bool needsKeyboard: (content.item as Content)?.needsKeyboard ?? false
 
+    property bool warmedUp: false
+    Timer {
+        id: prewarmTimer
+        interval: 1200 // Wait until shell is fully booted before pre-warming
+        running: true
+        repeat: false
+        onTriggered: root.warmedUp = true
+    }
+
     Timer {
         id: closeGrace
         interval: Math.max(Tokens.anim.durations.large, Tokens.anim.durations.expressiveDefaultSpatial) + 120
     }
 
-    readonly property bool contentActive: root.shouldBeActive || closeGrace.running || root.visible
+    readonly property bool contentActive: root.shouldBeActive || closeGrace.running || root.visible || root.warmedUp
 
     // Peek: when hovered while closed and bottom panel is off, slide a strip in from the right
     property bool hovered: false
@@ -112,7 +121,8 @@ Item {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
 
-        active: root.shouldBeActive || closeGrace.running || root.visible
+        asynchronous: true
+        active: root.contentActive
 
         sourceComponent: Content {
             // Fill the loader so ColumnLayout can expand the notification tile
