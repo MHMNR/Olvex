@@ -14,7 +14,7 @@ Window {
     visible: true
     title: qsTr("Olvex Emoji")
     flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
-    color: tok.palette.surface
+    color: tok.palette.stage
 
     onVisibleChanged: {
         if (!visible)
@@ -234,8 +234,8 @@ Window {
                             Layout.preferredHeight: 38
                             radius: 19
                             color: searchInput.activeFocus
-                                ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.primary, 0.08))
-                                : tok.palette.stage
+                                ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.primary, 0.08))
+                                : tok.palette.stageHigh
                             border.width: 0
 
                             Behavior on color { ColorAnimation { duration: 120 } }
@@ -333,9 +333,9 @@ Window {
                             implicitWidth: 38
                             implicitHeight: 38
                             radius: 19
-                            color: toneBtnMa.pressed ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.12))
-                                 : toneBtnMa.containsMouse ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.08))
-                                 : tok.palette.stage
+                            color: toneBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
+                                 : toneBtnMa.containsMouse ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.08))
+                                 : tok.palette.stageHigh
 
                             Behavior on color { ColorAnimation { duration: 100 } }
 
@@ -370,9 +370,9 @@ Window {
                             implicitWidth: rebuildBtnText.implicitWidth + 40
                             implicitHeight: 38
                             radius: 19
-                            color: rebuildBtnMa.pressed ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.12))
-                                 : rebuildBtnMa.containsMouse ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.08))
-                                 : tok.palette.stage
+                            color: rebuildBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
+                                 : rebuildBtnMa.containsMouse ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.08))
+                                 : tok.palette.stageHigh
 
                             Behavior on color { ColorAnimation { duration: 100 } }
                             Behavior on implicitWidth { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
@@ -417,9 +417,9 @@ Window {
                             implicitWidth: 38
                             implicitHeight: 38
                             radius: 19
-                            color: closeBtnMa.pressed ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.12))
-                                 : closeBtnMa.containsMouse ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.08))
-                                 : tok.palette.stage
+                            color: closeBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
+                                 : closeBtnMa.containsMouse ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.08))
+                                 : tok.palette.stageHigh
 
                             Behavior on color { ColorAnimation { duration: 100 } }
 
@@ -812,7 +812,7 @@ Window {
                     opacity: 0.0
                     clip: true
 
-                    color: tok.palette.stageHigh
+                    color: tok.palette.stageContent
                     border.color: Qt.alpha(tok.palette.fgSurface, 0.14)
                     border.width: 1
 
