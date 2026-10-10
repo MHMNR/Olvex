@@ -24,13 +24,6 @@ StyledRect {
 
     opacity: isExpanding ? 0 : 1
 
-    Behavior on opacity {
-        NumberAnimation {
-            duration: 150
-            easing.type: Easing.OutCubic
-        }
-    }
-
     property color activeColour:    Colours.palette.m3primary
     property color inactiveColour: Colours.tileIconWell
     property color activeOnColour:  Colours.palette.m3onPrimary

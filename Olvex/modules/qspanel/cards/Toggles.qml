@@ -218,7 +218,7 @@ StyledRect {
                                 return connected ? (connected.name || connected.address || qsTr("Device")) : qsTr("Bluetooth");
                             }
                             stateText: {
-                                if (!(Bluetooth.defaultAdapter?.enabled ?? false)) {
+                                if (!Bluetooth.defaultAdapter || !Bluetooth.defaultAdapter.enabled) {
                                     return qsTr("Off");
                                 }
                                 const connectedDevices = [...Bluetooth.devices.values].filter(d => d.connected);
@@ -233,8 +233,8 @@ StyledRect {
                                 }
                                 return qsTr("On");
                             }
-                            checked: Bluetooth.defaultAdapter?.enabled ?? false
-                            deviceConnected: (Bluetooth.defaultAdapter?.enabled ?? false) && Bluetooth.devices.values.some(d => d.connected)
+                            checked: Boolean(Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled)
+                            deviceConnected: Boolean(Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled && Bluetooth.devices && Bluetooth.devices.values.some(function(d) { return d.connected; }))
                             isExpanding: root.props.expansionActive === "bluetooth" || (root.props.isTransitioning && root.props.expansionSourceItem === btTile)
                             onClicked: {
                                 const adapter = Bluetooth.defaultAdapter;
@@ -262,7 +262,7 @@ StyledRect {
                             checked: !Audio.sourceMuted
                             onClicked: {
                                 const src = Audio.source;
-                                if (src?.ready && src?.audio) src.audio.muted = !src.audio.muted;
+                                if (src && src.ready && src.audio) src.audio.muted = !src.audio.muted;
                             }
                         }
                     }
@@ -446,6 +446,7 @@ StyledRect {
                     opacity: isExpanding ? 0 : 1
 
                     Behavior on opacity {
+                        enabled: displayProjectionPill.isExpanding
                         NumberAnimation {
                             duration: 150
                             easing.type: Easing.OutCubic

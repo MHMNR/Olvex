@@ -8,6 +8,7 @@ import qs.services
 import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import "../../bar/popouts" as Popouts
+import qs.components.icons
 
 Item {
     id: root
@@ -62,6 +63,7 @@ Item {
     property real  savedIconPillHeight: 55
     
     readonly property bool currentOn: {
+        if (props.expansionSourceItem) return props.expansionSourceItem.checked;
         if (lastActiveType === "network") return Nmcli.wifiEnabled;
         if (lastActiveType === "bluetooth") return btEnabled;
         return true;
@@ -69,7 +71,8 @@ Item {
     // For flat full-width pills (displayprojection), iconPill fills the entire tile
     readonly property real liveIconPillWidth: {
         if (lastActiveType === "displayprojection") return savedStartSize.width;
-        return currentOn ? 100 : 55;
+        if (props.expansionSourceItem) return props.expansionSourceItem.checked ? (savedStartSize.width - 16) : 55;
+        return currentOn ? (savedStartSize.width - 16) : 55;
     }
     readonly property real liveIconPillX: {
         if (lastActiveType === "displayprojection") return 0;
@@ -137,7 +140,7 @@ Item {
         }
     }
     Connections {
-        target: Bluetooth.defaultAdapter ?? null
+        target: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter : null
         ignoreUnknownSignals: true
         function onEnabledChanged() {
             root.btEnabled = Bluetooth.defaultAdapter.enabled
@@ -305,7 +308,8 @@ Item {
                     y: root.lastActiveType === "displayprojection"
                         ? root.savedIconPillY + (root.savedIconPillHeight - headerIcon.implicitHeight) / 2
                         : root.savedIconPillY + (55 - headerIcon.implicitHeight) / 2
-                    scale: root.lastActiveType === "displayprojection" ? 1 : 1
+                    scale: 1
+                    opacity: 1
                 }
                 PropertyChanges {
                     target: chevronRightIcon
@@ -339,7 +343,7 @@ Item {
                         ? root.savedIconPillY + root.savedIconPillHeight + 4
                         : 8 + 55 + 6 + tileLabelSmall.implicitHeight + 2
                     // Hide state label for displayprojection (pill shows no state below)
-                    opacity: root.lastActiveType === "displayprojection" ? 0 : 0.8
+                    opacity: root.lastActiveType === "displayprojection" ? 0 : (Colours.light ? 1.0 : 0.7)
                 }
                 PropertyChanges { target: headerControls; opacity: 0 }
                 PropertyChanges { target: expandedContent; opacity: 0 }
@@ -491,7 +495,7 @@ Item {
                     if (root.active) {
                         return on ? Colours.palette.m3primary : "transparent";
                     } else {
-                        return on ? Colours.palette.m3primary : Colours.tPalette.m3surfaceVariant;
+                        return on ? Colours.palette.m3primary : Colours.tileIconWell;
                     }
                 }
                 
@@ -506,11 +510,14 @@ Item {
                 Behavior on border.width { NumberAnimation { duration: root.dur; easing.type: Easing.OutExpo } }
             }
 
-            MaterialIcon {
+            Item {
                 id: headerIcon
                 
                 property real smallScale: root.lastActiveType === "displayprojection" ? 1 : Tokens.font.size.normal / Tokens.font.size.large
-                iconPointSize: root.lastActiveType === "displayprojection" ? Tokens.font.size.normal : Tokens.font.size.large
+                implicitWidth: (root.lastActiveType === "network" || root.lastActiveType === "bluetooth") ? 26 : ((Tokens && Tokens.font) ? Tokens.font.size.large : 24)
+                implicitHeight: (root.lastActiveType === "network" || root.lastActiveType === "bluetooth") ? 26 : ((Tokens && Tokens.font) ? Tokens.font.size.large : 24)
+                width: implicitWidth
+                height: implicitHeight
                 transformOrigin: Item.TopLeft
                 
                 // Static coordinates so animation doesn't fight bindings
@@ -525,36 +532,66 @@ Item {
                 y: startY
                 scale: 1
 
-                text: {
-                    if (root.lastActiveType === "network") {
-                        if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return "settings_ethernet";
-                        if (Nmcli.wifiEnabled && Nmcli.active) return "wifi";
-                        if (!Nmcli.hasWifiHw && Nmcli.hasEthernetHw) return "settings_ethernet";
-                        return "wifi";
+                Loader {
+                    anchors.centerIn: parent
+                    sourceComponent: {
+                        if (root.lastActiveType === "network") return wifiIconComp;
+                        if (root.lastActiveType === "bluetooth") return btIconComp;
+                        return materialIconComp;
                     }
-                    if (root.lastActiveType === "bluetooth") return "bluetooth"
-                    if (root.lastActiveType === "powerprofile") {
-                        const p = PowerProfiles.profile;
-                        if (p === PowerProfile.PowerSaver) return "energy_savings_leaf";
-                        if (p === PowerProfile.Performance) return "rocket_launch";
-                        return "balance";
-                    }
-                    if (root.lastActiveType === "displayprojection") {
-                        const mode = DisplayProjection.activeProjection;
-                        if (mode === "primary") return "laptop";
-                        if (mode === "secondary") return "tv";
-                        if (mode === "mirror") return "sync";
-                        return "grid_view";
-                    }
-                    return ""
-                }
-                color: {
-                    if (root.lastActiveType === "displayprojection") return Colours.palette.m3onSurface;
-                    const on = (root.lastActiveType === "network" ? ((Nmcli.hasWifiHw && Nmcli.wifiEnabled) || (Nmcli.hasEthernetHw && Nmcli.activeEthernet && Nmcli.activeEthernet.connected)) : (root.lastActiveType === "bluetooth" ? root.btEnabled : true));
-                    return on ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface;
                 }
 
-                Behavior on color { ColorAnimation { duration: root.dur; easing.type: Easing.OutExpo } }
+                Component {
+                    id: wifiIconComp
+                    WifiLottieIcon {
+                        size: 26
+                        wifiEnabled: root.currentOn
+                        connected: root.currentOn
+                        signalStrength: (typeof Nmcli !== "undefined" && Nmcli.active) ? (Nmcli.active.strength / 100.0) : 1.0
+                        color: root.currentOn ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                    }
+                }
+
+                Component {
+                    id: btIconComp
+                    BluetoothLottieIcon {
+                        size: 26
+                        connected: root.currentOn
+                        deviceConnected: {
+                            if (!Bluetooth.defaultAdapter || !Bluetooth.defaultAdapter.enabled) return false;
+                            const devs = Bluetooth.devices ? Bluetooth.devices.values : [];
+                            return devs.some(function(d) { return d.connected; });
+                        }
+                        color: root.currentOn ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                    }
+                }
+
+                Component {
+                    id: materialIconComp
+                    MaterialIcon {
+                        text: {
+                            if (root.lastActiveType === "powerprofile") {
+                                const p = PowerProfiles.profile;
+                                if (p === PowerProfile.PowerSaver) return "energy_savings_leaf";
+                                if (p === PowerProfile.Performance) return "rocket_launch";
+                                return "balance";
+                            }
+                            if (root.lastActiveType === "displayprojection") {
+                                const mode = DisplayProjection.activeProjection;
+                                if (mode === "primary") return "laptop";
+                                if (mode === "secondary") return "tv";
+                                if (mode === "mirror") return "sync";
+                                return "grid_view";
+                            }
+                            return "";
+                        }
+                        color: {
+                            if (root.lastActiveType === "displayprojection") return Colours.palette.m3onSurface;
+                            return root.currentOn ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface;
+                        }
+                        iconPointSize: root.lastActiveType === "displayprojection" ? Tokens.font.size.normal : Tokens.font.size.large
+                    }
+                }
             }
 
             MaterialIcon {
@@ -646,11 +683,12 @@ Item {
             transformOrigin: Item.TopLeft
             font.bold: true
             color: Colours.palette.m3onSurface
-            
-            width: Math.min(implicitWidth, root.lastActiveType === "displayprojection" ? root.savedStartSize.width - Tokens.padding.normal * 2 - headerIcon.implicitWidth - chevronRightIcon.implicitWidth - Tokens.spacing.small * 2 : root.savedStartSize.width)
+            horizontalAlignment: Text.AlignHCenter
+            width: Math.min(implicitWidth, root.lastActiveType === "displayprojection" ? root.savedStartSize.width - Tokens.padding.normal * 2 - headerIcon.implicitWidth - chevronRightIcon.implicitWidth - Tokens.spacing.small * 2 : root.savedStartSize.width - 24)
             elide: Text.ElideRight
             
             text: {
+                if (root.props.expansionSourceItem && root.props.expansionSourceItem.label) return root.props.expansionSourceItem.label;
                 if (root.lastActiveType === "network") return qsTr("Internet");
                 if (root.lastActiveType === "bluetooth") return qsTr("Bluetooth");
                 if (root.lastActiveType === "powerprofile") return qsTr("Power Profile");
@@ -685,6 +723,7 @@ Item {
         StyledText {
             id: tileStateLabel
             text: {
+                if (root.props.expansionSourceItem && root.props.expansionSourceItem.stateText) return root.props.expansionSourceItem.stateText;
                 if (root.lastActiveType === "network") {
                     if (!Nmcli.hasWifiHw && !Nmcli.hasEthernetHw) return qsTr("Compatible HW not found");
                     if (Nmcli.activeEthernet && Nmcli.activeEthernet.connected) return qsTr("Connected");
@@ -708,8 +747,9 @@ Item {
                 }
                 return "";
             }
-            textPointSize: Tokens.font.size.small - 2
-            color: Colours.palette.m3onSurfaceVariant
+            textPointSize: Tokens.font.size.small - 1
+            color: (root.props.expansionSourceItem && root.props.expansionSourceItem.stateTextColour) ? root.props.expansionSourceItem.stateTextColour : Colours.palette.m3onSurfaceVariant
+            opacity: Colours.light ? 1.0 : 0.7
         }
 
         // ── Expanded content ─────────────────────────────────────────────────
