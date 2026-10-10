@@ -269,7 +269,7 @@ Item {
 
                             title: qsTr("Select wallpaper media")
                             filterLabel: qsTr("Image/video files")
-                            filters: Images.validImageExtensions.concat(Wallpapers.validVideoExtensions)
+                            filters: Images.validWallpaperExtensions
                             onAccepted: path => Wallpapers.setWallpaper(path)
                         }
 

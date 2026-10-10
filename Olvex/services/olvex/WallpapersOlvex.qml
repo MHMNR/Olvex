@@ -34,7 +34,7 @@ Searcher {
             return ["--scheme-mode", m];
         return [];
     }
-    readonly property list<string> validVideoExtensions: ["mp4", "mkv", "webm", "mov", "avi", "m4v"]
+    readonly property list<string> validVideoExtensions: ["mp4", "mkv", "webm", "mov", "avi", "m4v", "gif"]
     readonly property string liveWallpaperDir: `${Paths.pictures}/Wallpapers/Live`
     readonly property string videoThumbnailDir: `${Paths.state}/wallpaper/live-thumbnails`
 
@@ -59,7 +59,7 @@ Searcher {
         const fs = catalogLoader.item;
         if (!fs || !catalogReady)
             return [];
-        return fs.entries.filter(entry => !isPathInLiveDir(entry.path)).map(entry => ({
+        return fs.entries.filter(entry => !isVideoPath(entry.path)).map(entry => ({
             path: entry.path,
             name: entry.name,
             relativePath: entry.relativePath,
@@ -111,10 +111,6 @@ Searcher {
     function isVideoPath(path: string): bool {
         const lower = (path || "").toLowerCase();
         return validVideoExtensions.some(ext => lower.endsWith(`.${ext}`));
-    }
-
-    function isPathInLiveDir(path: string): bool {
-        return (path || "").startsWith(`${liveWallpaperDir}/`) || path === liveWallpaperDir;
     }
 
     function thumbnailPathFor(path: string): string {
@@ -596,7 +592,7 @@ Searcher {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                const base = `${liveWallpaperDir}/`;
+                const base = `${Paths.wallsdir}/`;
                 const lines = text.trim().split("\n").filter(Boolean);
                 console.log(`[Wallpapers] videoScanProc found ${lines.length} videos`);
                 
@@ -645,8 +641,8 @@ Searcher {
         if (videoScanProc.running)
             return;
         videoScanProc.command = ["bash", "-lc", `
-            if [ -d '${liveWallpaperDir.replace(/'/g, "'\\''")}' ]; then
-                find '${liveWallpaperDir.replace(/'/g, "'\\''")}' -maxdepth 1 -type f \\( -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.mov' -o -iname '*.avi' -o -iname '*.m4v' \\) | sort | while read -r video; do
+            if [ -d '${Paths.wallsdir.replace(/'/g, "'\\''")}' ]; then
+                find '${Paths.wallsdir.replace(/'/g, "'\\''")}' -type f \\( -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.mov' -o -iname '*.avi' -o -iname '*.m4v' -o -iname '*.gif' \\) | sort | while read -r video; do
                     safe=$(echo "$video" | sed -e 's/[^A-Za-z0-9._-]/_/g')
                     thumb="${videoThumbnailDir.replace(/'/g, "'\\''")}/$safe.jpg"
                     if [ -s "$thumb" ]; then

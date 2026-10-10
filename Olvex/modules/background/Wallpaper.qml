@@ -73,7 +73,7 @@ Item {
 
                             title: qsTr("Select a wallpaper")
                             filterLabel: qsTr("Image files")
-                            filters: Images.validImageExtensions
+                            filters: Images.validWallpaperExtensions
                             onAccepted: path => Wallpapers.setWallpaper(path)
                         }
 
