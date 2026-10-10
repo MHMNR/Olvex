@@ -612,7 +612,7 @@ run_preflight_and_verification() {
         quickshell hyprland wl-clipboard cliphist app2unit
         libnotify upower bluez bluez-utils
         ddcutil brightnessctl libcava networkmanager lm_sensors fish aubio libpipewire pipewire wireplumber
-        noto-fonts ttf-cascadia-code-nerd
+        noto-fonts noto-fonts-emoji ttf-cascadia-code-nerd
         swappy libqalculate bash mpv ydotool grim slurp
         python-pillow python-pip python gpu-screen-recorder fprintd foot kitty
         util-linux pciutils fzf firefox rsync dconf
