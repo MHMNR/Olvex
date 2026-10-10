@@ -148,6 +148,16 @@ Item {
         return 0;
     }
 
+    // Exact height of all items in rowModel, preventing Qt ListView uninstantiated estimate errors and bottom void space
+    readonly property real exactContentHeight: {
+        let total = 0;
+        let m = root.rowModel;
+        for (let i = 0; i < m.length; i++) {
+            total += (m[i].type === "header" ? 28 : root.baseHeight);
+        }
+        return total;
+    }
+
     // Backdrop to dismiss on outside click and block scrolling/interactions
     MouseArea {
         id: popupBackdrop
@@ -261,6 +271,7 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             flickDeceleration: 2500
             maximumFlickVelocity: 3000
+            cacheBuffer: 500
             interactive: !tonePopup.visible
 
             NumberAnimation {
@@ -275,7 +286,7 @@ Item {
             onFlickStarted: mainSmoothScrollAnim.stop()
 
             function clampScrollY(y) {
-                let maxScroll = Math.max(0, mainList.contentHeight - mainList.height);
+                let maxScroll = Math.max(0, root.exactContentHeight - mainList.height);
                 return Math.max(0, Math.min(maxScroll, y));
             }
 
@@ -317,8 +328,14 @@ Item {
                 }
             }
 
-            // Sync active category tab while scrolling
+            // Sync active category tab while scrolling & prevent overscroll void space
             onContentYChanged: {
+                let maxScroll = Math.max(0, root.exactContentHeight - height);
+                if (contentY > maxScroll + 0.5) {
+                    contentY = maxScroll;
+                } else if (contentY < -0.5) {
+                    contentY = 0;
+                }
                 let idx = indexAt(10, contentY + 10);
                 if (idx >= 0 && idx < root.rowModel.length) {
                     bottomBar.activeCategory = root.rowModel[idx].catIdx;
@@ -338,7 +355,10 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             flickDeceleration: 2500
             maximumFlickVelocity: 3000
+            cacheBuffer: 500
             interactive: !tonePopup.visible
+
+            readonly property real exactContentHeight: (searchList.model ? searchList.model.length : 0) * root.baseHeight
 
             NumberAnimation {
                 id: searchSmoothScrollAnim
@@ -352,7 +372,7 @@ Item {
             onFlickStarted: searchSmoothScrollAnim.stop()
 
             function clampScrollY(y) {
-                let maxScroll = Math.max(0, searchList.contentHeight - searchList.height);
+                let maxScroll = Math.max(0, searchList.exactContentHeight - searchList.height);
                 return Math.max(0, Math.min(maxScroll, y));
             }
 
@@ -366,6 +386,15 @@ Item {
                 searchSmoothScrollAnim.from = searchList.contentY;
                 searchSmoothScrollAnim.to = targetY;
                 searchSmoothScrollAnim.start();
+            }
+
+            onContentYChanged: {
+                let maxScroll = Math.max(0, searchList.exactContentHeight - height);
+                if (contentY > maxScroll + 0.5) {
+                    contentY = maxScroll;
+                } else if (contentY < -0.5) {
+                    contentY = 0;
+                }
             }
 
             WheelHandler {
@@ -468,6 +497,15 @@ Item {
                     catSmoothScrollAnim.from = catTabs.contentX;
                     catSmoothScrollAnim.to = clamped;
                     catSmoothScrollAnim.start();
+                }
+
+                onContentXChanged: {
+                    let maxScroll = Math.max(0, catTabs.contentWidth - width);
+                    if (contentX > maxScroll + 0.5) {
+                        contentX = maxScroll;
+                    } else if (contentX < -0.5) {
+                        contentX = 0;
+                    }
                 }
 
                 function scrollTabIntoView(tabIdx) {
