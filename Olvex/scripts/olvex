@@ -208,6 +208,43 @@ elif [ "$1" = "resizer" ]; then
     else
         _olvex_backend resizer "$@"
     fi
+elif [ "$1" = "emoji" ]; then
+    shift
+    if [ "${1:-}" = "close" ] || [ "${1:-}" = "hide" ]; then
+        pkill -x olvex-emoji >/dev/null 2>&1 || true
+        exit 0
+    fi
+    if pgrep -x olvex-emoji >/dev/null 2>&1; then
+        pkill -x olvex-emoji >/dev/null 2>&1 || true
+        exit 0
+    fi
+    _olvex_emoji_bin() {
+        if [ -x "${HOME}/.local/bin/olvex-emoji" ]; then
+            printf '%s\n' "${HOME}/.local/bin/olvex-emoji"
+            return 0
+        fi
+        if [ -x "${OLVEX_ROOT}/build/lib/olvex-emoji" ]; then
+            printf '%s\n' "${OLVEX_ROOT}/build/lib/olvex-emoji"
+            return 0
+        fi
+        if [ -x "${OLVEX_ROOT}/build/olvex-emoji" ]; then
+            printf '%s\n' "${OLVEX_ROOT}/build/olvex-emoji"
+            return 0
+        fi
+        if command -v olvex-emoji >/dev/null 2>&1; then
+            command -v olvex-emoji
+            return 0
+        fi
+        return 1
+    }
+
+    emoji_bin="$(_olvex_emoji_bin)" || emoji_bin=""
+    if [ -n "$emoji_bin" ]; then
+        exec "$emoji_bin" "$@"
+    fi
+
+    echo "Emoji app not found. Build or install olvex-emoji first." >&2
+    exit 1
 elif [ "$1" = "toggle" ]; then
     shift
     _olvex_qs_run ipc call drawers toggle "$@"

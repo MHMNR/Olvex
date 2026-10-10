@@ -23,6 +23,7 @@ Item {
     property string lastActiveType: ""
     property var passwordNetwork: null
     readonly property bool needsKeyboard: dummyPopoutState.currentName === "wirelesspassword"
+        || Boolean(contentLoader.item && contentLoader.item.editingSsid)
 
     function dismissWifiPassword() {
         if (dummyPopoutState.currentName === "wirelesspassword") {
