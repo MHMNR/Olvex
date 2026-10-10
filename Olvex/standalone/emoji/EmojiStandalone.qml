@@ -367,7 +367,7 @@ Window {
                         // ── Rebuild Database Button ──────────────────────────
                         Rectangle {
                             id: rebuildBtn
-                            implicitWidth: rebuildBtnText.implicitWidth + 40
+                            implicitWidth: rebuildBtnMa.containsMouse ? rebuildBtnText.implicitWidth + 46 : 38
                             implicitHeight: 38
                             radius: 19
                             color: rebuildBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
@@ -378,14 +378,19 @@ Window {
                             Behavior on implicitWidth { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
                             clip: true
 
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 6
+                            Item {
+                                anchors.fill: parent
+                                
                                 Text {
+                                    id: rebuildIcon
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 10
+                                    anchors.verticalCenter: parent.verticalCenter
                                     font.family: "Material Symbols Rounded"
-                                    text: EmojiBackend.isUpdating ? "sync" : "refresh"
+                                    text: EmojiBackend.isUpdating ? "progress_activity" : "refresh"
                                     font.pixelSize: 18
                                     color: tok.palette.fgSurface
+                                    
                                     RotationAnimation on rotation {
                                         running: EmojiBackend.isUpdating
                                         from: 0; to: 360
@@ -393,19 +398,25 @@ Window {
                                         loops: Animation.Infinite
                                     }
                                 }
+                                
                                 Text {
                                     id: rebuildBtnText
+                                    anchors.left: rebuildIcon.right
+                                    anchors.leftMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
                                     text: EmojiBackend.updateStatus ? EmojiBackend.updateStatus : (EmojiBackend.isUpdating ? qsTr("Updating…") : qsTr("Rebuild"))
                                     font.pixelSize: 13
                                     font.weight: Font.Medium
                                     color: tok.palette.fgSurface
+                                    opacity: rebuildBtnMa.containsMouse ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 150 } }
                                 }
                             }
 
                             MouseArea {
                                 id: rebuildBtnMa
                                 anchors.fill: parent
-                                hoverEnabled: !EmojiBackend.isUpdating
+                                hoverEnabled: true
                                 cursorShape: EmojiBackend.isUpdating ? Qt.ArrowCursor : Qt.PointingHandCursor
                                 onClicked: EmojiBackend.rebuildDatabase()
                             }
