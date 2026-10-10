@@ -54,7 +54,7 @@ ColumnLayout {
         model: FileSystemModel {
             path: Paths.recsdir
             nameFilters: ["Recording_*.mp4"]
-            sortReverse: false
+            sortReverse: true
         }
 
         Layout.fillWidth: true

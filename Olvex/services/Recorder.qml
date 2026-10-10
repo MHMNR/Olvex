@@ -16,8 +16,12 @@ Singleton {
         if (props.running)
             return;
 
-        if (extraArgs.some(a => a.includes("r"))) {
+        if (extraArgs.includes("-r")) {
             root.selecting = true;
+        } else {
+            props.running = true;
+            props.elapsed = 0;
+            props.paused = false;
         }
 
         const script = `${Quickshell.shellDir}/scripts/record.sh`;
