@@ -101,6 +101,7 @@ def main():
     
     out_paths = [
         os.path.join(repo_root, "modules/dashboard/dash/osk/emojis.js"),
+        os.path.join(repo_root, "standalone/emoji/emojis.js"),
     ]
 
     content = ".pragma library\n\n"

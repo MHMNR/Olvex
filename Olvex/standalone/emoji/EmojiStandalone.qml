@@ -75,15 +75,17 @@ Window {
     }
 
     // ── Layout Geometry & Metrics ────────────────────────────────────────
-    property real baseWidth: 58
-    property real baseHeight: 46
+    property real baseWidth: 60
+    property real baseHeight: 50
     property string searchText: ""
 
     // ── Row-based Model for Category View ────────────────────────────────
     property var rowModel: {
         const COLS = 10
         let rows = []
-        let cats = (typeof EmojiData !== "undefined" && EmojiData.categories) ? EmojiData.categories : []
+        let cats = (EmojiBackend.categories && EmojiBackend.categories.length > 0) 
+                   ? EmojiBackend.categories 
+                   : ((typeof EmojiData !== "undefined" && EmojiData.categories) ? EmojiData.categories : [])
         for (let i = 0; i < cats.length; i++) {
             let cat = cats[i]
             let list = (cat.name === "Recent") ? EmojiBackend.recentEmojis : cat.emojis
@@ -104,7 +106,9 @@ Window {
         let query = searchText.toLowerCase().trim()
         if (!query)
             return []
-        let keywords = (typeof EmojiData !== "undefined" && EmojiData.emojiKeywords) ? EmojiData.emojiKeywords : {}
+        let keywords = (EmojiBackend.keywords && Object.keys(EmojiBackend.keywords).length > 0) 
+                       ? EmojiBackend.keywords 
+                       : ((typeof EmojiData !== "undefined" && EmojiData.emojiKeywords) ? EmojiData.emojiKeywords : {})
 
         let exactWordMatches = []
         let prefixWordMatches = []
@@ -357,6 +361,53 @@ Window {
                                 onClicked: {
                                     tonePopup.toggle(toneSelectorBtn)
                                 }
+                            }
+                        }
+
+                        // ── Rebuild Database Button ──────────────────────────
+                        Rectangle {
+                            id: rebuildBtn
+                            implicitWidth: rebuildBtnText.implicitWidth + 40
+                            implicitHeight: 38
+                            radius: 19
+                            color: rebuildBtnMa.pressed ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.12))
+                                 : rebuildBtnMa.containsMouse ? Qt.tint(tok.palette.stage, Qt.alpha(tok.palette.fgSurface, 0.08))
+                                 : tok.palette.stage
+
+                            Behavior on color { ColorAnimation { duration: 100 } }
+                            Behavior on implicitWidth { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
+                            clip: true
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 6
+                                Text {
+                                    font.family: "Material Symbols Rounded"
+                                    text: EmojiBackend.isUpdating ? "sync" : "refresh"
+                                    font.pixelSize: 18
+                                    color: tok.palette.fgSurface
+                                    RotationAnimation on rotation {
+                                        running: EmojiBackend.isUpdating
+                                        from: 0; to: 360
+                                        duration: 1000
+                                        loops: Animation.Infinite
+                                    }
+                                }
+                                Text {
+                                    id: rebuildBtnText
+                                    text: EmojiBackend.updateStatus ? EmojiBackend.updateStatus : (EmojiBackend.isUpdating ? qsTr("Updating…") : qsTr("Rebuild"))
+                                    font.pixelSize: 13
+                                    font.weight: Font.Medium
+                                    color: tok.palette.fgSurface
+                                }
+                            }
+
+                            MouseArea {
+                                id: rebuildBtnMa
+                                anchors.fill: parent
+                                hoverEnabled: !EmojiBackend.isUpdating
+                                cursorShape: EmojiBackend.isUpdating ? Qt.ArrowCursor : Qt.PointingHandCursor
+                                onClicked: EmojiBackend.rebuildDatabase()
                             }
                         }
 
@@ -1105,7 +1156,7 @@ Window {
                             Text {
                                 anchors.centerIn: parent
                                 text: emojiCell.emojiDisplayed
-                                font.pixelSize: 26
+                                font.pixelSize: 32
                             }
 
                             MouseArea {
