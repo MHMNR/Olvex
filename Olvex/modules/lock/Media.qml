@@ -316,11 +316,11 @@ Item {
 
                 // M3 Expressive seekbar tokens
                 readonly property bool isPressed: dragging || hoverArea.pressed
-                readonly property real activeThickness: isPressed ? 2.5 : 3.5
-                readonly property real inactiveThickness: isPressed ? 2.5 : 3.5
+                readonly property real activeThickness: 3.5
+                readonly property real inactiveThickness: 3.5
                 readonly property real waveHeight: 14 // 1 full wave visual height (3.5 * 1.5 * 2 + 3.5)
-                readonly property real thumbW: isPressed ? 2.5 : 4
-                readonly property real thumbH: waveHeight
+                readonly property real thumbW: dragging ? 2 : 4
+                readonly property real thumbH: 24
                 readonly property real gap: 5
                 readonly property bool isPlaying: Players.active ? Players.active.isPlaying : false
                 readonly property color activeColor: Players.musicPlayButtonBg
@@ -442,10 +442,10 @@ Item {
                         NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
                     }
                     Behavior on width {
-                        NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: 250; easing.type: Easing.OutQuint }
                     }
                     Behavior on height {
-                        NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: 250; easing.type: Easing.OutQuint }
                     }
                 }
 

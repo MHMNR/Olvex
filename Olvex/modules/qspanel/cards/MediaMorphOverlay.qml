@@ -742,8 +742,8 @@ Item {
                     readonly property real inactiveThickness: 4
                     readonly property real gap: 6            // thumbTrackGapSize: 6dp
                     readonly property real stopIndicatorSize: 4 // trackStopIndicatorSize: 4dp
-                    readonly property real thumbW: dragging ? 4 : (hoverArea.containsMouse ? 5 : 4)
-                    readonly property real thumbH: dragging ? 24 : (hoverArea.containsMouse ? 20 : 16)
+                    readonly property real thumbW: dragging ? 2 : 4
+                    readonly property real thumbH: 24
                     readonly property bool isPlaying: Players.active !== null ? (Players.active.isPlaying ?? false) : false
                     readonly property color activeColor: root.playButtonBg
                     property bool dragging: false
@@ -877,14 +877,14 @@ Item {
                         }
                         Behavior on width {
                             NumberAnimation {
-                                duration: Tokens.anim.durations.expressiveFastEffects
-                                easing: Tokens.anim.emphasizedDecel
+                                duration: 250
+                                easing.type: Easing.OutQuint
                             }
                         }
                         Behavior on height {
                             NumberAnimation {
-                                duration: Tokens.anim.durations.expressiveFastEffects
-                                easing: Tokens.anim.emphasizedDecel
+                                duration: 250
+                                easing.type: Easing.OutQuint
                             }
                         }
                     }

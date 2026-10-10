@@ -696,8 +696,8 @@ Item {
                         // M3 Expressive seekbar tokens
                         readonly property real activeThickness: 4
                         readonly property real inactiveThickness: 4
-                        readonly property real thumbW: dragging || hoverArea.containsMouse ? 7 : 4
-                        readonly property real thumbH: dragging || hoverArea.containsMouse ? 24 : 16
+                        readonly property real thumbW: dragging ? 2 : 4
+                        readonly property real thumbH: 24
                         readonly property real gap: 6 // thumb ↔ track gap
                         readonly property bool isPlaying: musicPill.isPlaying
                         readonly property color activeColor: Players.musicPlayButtonBg
@@ -815,10 +815,10 @@ Item {
                                 NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
                             }
                             Behavior on width {
-                                SpringAnimation { spring: 5.0; damping: 0.7; epsilon: 0.01 }
+                                NumberAnimation { duration: 250; easing.type: Easing.OutQuint }
                             }
                             Behavior on height {
-                                SpringAnimation { spring: 5.0; damping: 0.7; epsilon: 0.01 }
+                                NumberAnimation { duration: 250; easing.type: Easing.OutQuint }
                             }
                         }
 
