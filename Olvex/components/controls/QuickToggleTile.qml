@@ -219,6 +219,7 @@ StyledRect {
                             running: marqueeContainer.needsMarquee && root.isPanelVisible
                             loops: Animation.Infinite
 
+                            PropertyAction { target: marqueeRow; property: "marqueeX"; value: 0 }
                             PauseAnimation { duration: 1200 }
 
                             NumberAnimation {
