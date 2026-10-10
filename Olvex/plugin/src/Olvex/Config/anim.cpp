@@ -53,6 +53,10 @@ QEasingCurve AnimTokens::expressiveSoftSpatial() const {
     return m_expressiveSoftSpatial;
 }
 
+QEasingCurve AnimTokens::legacyMorphSpatial() const {
+    return m_legacyMorphSpatial;
+}
+
 QEasingCurve AnimTokens::expressiveFastEffects() const {
     return m_expressiveFastEffects;
 }
@@ -100,6 +104,7 @@ void AnimTokens::rebuildCurves() {
     m_expressiveSlowSpatial = buildCurve(m_curves->expressiveSlowSpatial());
     m_expressiveSubtleSpatial = buildCurve(m_curves->expressiveSubtleSpatial());
     m_expressiveSoftSpatial = buildCurve(m_curves->expressiveSoftSpatial());
+    m_legacyMorphSpatial = buildCurve(m_curves->legacyMorphSpatial());
     m_expressiveFastEffects = buildCurve(m_curves->expressiveFastEffects());
     m_expressiveDefaultEffects = buildCurve(m_curves->expressiveDefaultEffects());
     m_expressiveSlowEffects = buildCurve(m_curves->expressiveSlowEffects());

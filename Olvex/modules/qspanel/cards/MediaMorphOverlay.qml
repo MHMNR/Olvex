@@ -71,7 +71,7 @@ Item {
     // ── M3 Expressive Tokens (Identical to NotificationMorphOverlay) ──────────
     readonly property int expandDur: 420
     readonly property int collapseDur: 260
-    readonly property var spatialEasing: Tokens.anim.expressiveSoftSpatial
+    readonly property var spatialEasing: Tokens.anim.legacyMorphSpatial
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
     readonly property int contentRevealDelay: 130
     readonly property int progressRevealDelay: 150
@@ -444,21 +444,6 @@ Item {
 
         // Crossfades compact visual layer → card visual layer during morph (1=compact, 0=expanded)
         property real compactFade: 1.0
-        property real morphSquashX: 1.0
-        property real morphSquashY: 1.0
-        property real morphLift: 0
-        
-        transform: [
-            Scale {
-                origin.x: musicPill.width / 2
-                origin.y: musicPill.height / 2
-                xScale: musicPill.morphSquashX
-                yScale: musicPill.morphSquashY
-            },
-            Translate {
-                y: -musicPill.morphLift
-            }
-        ]
 
         layer.enabled: false
         state: "compact"
@@ -1140,55 +1125,6 @@ Item {
                         duration: root.expandDur
                         easing: root.spatialEasing
                     }
-                    // Morph squash/lift
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.045
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.0
-                            duration: Math.round(root.expandDur * 0.58)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 0.965
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.0
-                            duration: Math.round(root.expandDur * 0.58)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 8
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 0
-                            duration: Math.round(root.expandDur * 0.58)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
 
                     // Compact layer fades out fast (110ms like notif pill)
                     NumberAnimation {
@@ -1249,54 +1185,6 @@ Item {
                         properties: "skipIconScale,secondaryProgress"
                         duration: root.collapseDur
                         easing: root.spatialEasing
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.035
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashY"
-                            to: 1.0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 0.965
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphSquashX"
-                            to: 1.0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
-                    }
-                    SequentialAnimation {
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 6
-                            duration: Tokens.anim.durations.expressiveFastEffects
-                            easing: Tokens.anim.expressiveFastSpatial
-                        }
-                        NumberAnimation {
-                            target: musicPill
-                            property: "morphLift"
-                            to: 0
-                            duration: Math.round(root.collapseDur * 0.55)
-                            easing: root.spatialEasingDecel
-                        }
                     }
                     // Card content and buttons fade out quickly
                     NumberAnimation {
