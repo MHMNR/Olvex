@@ -131,6 +131,7 @@ Item {
         Notifs.activeMorphNotif = itemData;
         Notifs.notifMorphActive = true;
         Notifs.notifMorphAnimating = true;
+        notifCard.state = "";
         notifCard.state = "docked";
         expandDeferred.start();
     }
@@ -528,15 +529,12 @@ Item {
                         }
                     ]
 
-                    StyledText {
+                    MarqueeText {
                         anchors.fill: parent
                         text: root.getMarqueeText(root.notifData)
                         color: Colours.palette.m3onSurface
                         textPointSize: Tokens.font.size.smaller
-                        font.family: Tokens.font.family.mono
-                        font.weight: Font.Medium
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
+                        running: notifCard.state === "docked" && collapsedPillContent.opacity > 0.95
                     }
                 }
             }
@@ -703,6 +701,82 @@ Item {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // ── MarqueeText Component (Ported from NotificationPill) ──
+    component MarqueeText: Item {
+        id: marqueeRoot
+
+        required property string text
+        property color color: Colours.palette.m3onSurface
+        property real textPointSize: Tokens.font.size.smaller
+        property bool running: true
+
+        height: primaryLabel.implicitHeight
+        clip: true
+
+        onTextChanged: {
+            marqueeRow.scrollX = 0;
+            marqueeAnim.restart();
+        }
+
+        readonly property real speed: 28
+        readonly property real loopSpacing: 28
+        readonly property bool needsMarquee: width > 0 && primaryLabel.implicitWidth > width + 2
+        readonly property real loopDistance: primaryLabel.implicitWidth + loopSpacing
+
+        Row {
+            id: marqueeRow
+            spacing: marqueeRoot.loopSpacing
+            property real scrollX: 0
+
+            x: marqueeRoot.needsMarquee ? scrollX : Math.max(0, Math.round((marqueeRoot.width - primaryLabel.implicitWidth) / 2))
+            height: parent.height
+
+            StyledText {
+                id: primaryLabel
+                text: marqueeRoot.text
+                color: marqueeRoot.color
+                textPointSize: marqueeRoot.textPointSize
+                font.family: Tokens.font.family.mono
+                font.weight: Font.Medium
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideNone
+            }
+
+            StyledText {
+                text: marqueeRoot.text
+                color: marqueeRoot.color
+                textPointSize: marqueeRoot.textPointSize
+                font.family: Tokens.font.family.mono
+                font.weight: Font.Medium
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                visible: marqueeRoot.needsMarquee
+                elide: Text.ElideNone
+            }
+        }
+
+        SequentialAnimation {
+            id: marqueeAnim
+            running: marqueeRoot.running && marqueeRoot.needsMarquee && marqueeRoot.visible && marqueeRoot.width > 0
+            loops: Animation.Infinite
+
+            PauseAnimation { duration: 1600 }
+            NumberAnimation {
+                target: marqueeRow
+                property: "scrollX"
+                to: -marqueeRoot.loopDistance
+                duration: Math.max(1200, marqueeRoot.loopDistance * 1000 / marqueeRoot.speed)
+                easing.type: Easing.Linear
+            }
+            PropertyAction {
+                target: marqueeRow
+                property: "scrollX"
+                value: 0
             }
         }
     }
