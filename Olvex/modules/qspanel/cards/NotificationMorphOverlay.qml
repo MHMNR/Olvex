@@ -37,6 +37,15 @@ Item {
     readonly property real endRadius: 28
     readonly property real startRadius: startW / 2
 
+    function getMarqueeText(notif) {
+        if (!notif) return qsTr("Notification");
+        let msg = "";
+        if (notif.body) {
+            msg = notif.body.replace(/<[^>]*>?/gm, '').replace(/\n/g, ' ').trim();
+        }
+        return msg || notif.summary || notif.appName || qsTr("Notification");
+    }
+
     readonly property int expandDur: 420
     readonly property int collapseDur: 260
     readonly property var spatialEasing: Tokens.anim.legacyMorphSpatial
@@ -509,7 +518,7 @@ Item {
                     id: rotatedOverlayWrapper
                     anchors.centerIn: parent
                     width: Math.max(1, overlayTextFrame.height)
-                    height: 24
+                    height: parent.width
 
                     transform: [
                         Rotation {
@@ -521,7 +530,7 @@ Item {
 
                     StyledText {
                         anchors.fill: parent
-                        text: (root.notifData && (root.notifData.summary || root.notifData.appName)) ? (root.notifData.summary || root.notifData.appName) : qsTr("Notification")
+                        text: root.getMarqueeText(root.notifData)
                         color: Colours.palette.m3onSurface
                         textPointSize: Tokens.font.size.smaller
                         font.family: Tokens.font.family.mono

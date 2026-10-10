@@ -25,6 +25,15 @@ Item {
     }
     readonly property int notifCount: (root.hasNotif ? 1 : 0) + olderNotifs.length
 
+    function getMarqueeText(notif) {
+        if (!notif) return qsTr("Notification");
+        let msg = "";
+        if (notif.body) {
+            msg = notif.body.replace(/<[^>]*>?/gm, '').replace(/\n/g, ' ').trim();
+        }
+        return msg || notif.summary || notif.appName || qsTr("Notification");
+    }
+
     onHasNotifChanged: {
         if (hasNotif) {
             entryPushAnim.restart();
@@ -576,12 +585,12 @@ Item {
             Item {
                 anchors.centerIn: parent
                 width: Math.max(1, parent.height)
-                height: 24
+                height: parent.width
                 transform: [ Rotation { angle: 90; origin.x: width / 2; origin.y: height / 2 } ]
 
                 MarqueeText {
                     anchors.fill: parent
-                    text: root.animatingOldNotif ? (root.animatingOldNotif.summary || root.animatingOldNotif.appName || "") : ""
+                    text: root.getMarqueeText(root.animatingOldNotif)
                     color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.smaller
                 }
@@ -653,12 +662,12 @@ Item {
             Item {
                 anchors.centerIn: parent
                 width: Math.max(1, parent.height)
-                height: 24
+                height: parent.width
                 transform: [ Rotation { angle: 90; origin.x: width / 2; origin.y: height / 2 } ]
 
                 MarqueeText {
                     anchors.fill: parent
-                    text: root.animatingNewNotif ? (root.animatingNewNotif.summary || root.animatingNewNotif.appName || "") : ""
+                    text: root.getMarqueeText(root.animatingNewNotif)
                     color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.smaller
                 }
@@ -1037,7 +1046,7 @@ Item {
                 id: rotatedMarqueeWrapper
                 anchors.centerIn: parent
                 width: Math.max(1, topTextFrame.height)
-                height: 24
+                height: parent.width
 
                 property real slideOffset: 0
 
@@ -1079,7 +1088,7 @@ Item {
 
                 MarqueeText {
                     anchors.fill: parent
-                    text: root.currentNotif ? (root.currentNotif.summary || root.currentNotif.appName || qsTr("Notification")) : qsTr("Notification")
+                    text: root.getMarqueeText(root.currentNotif)
                     color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.smaller
                 }
