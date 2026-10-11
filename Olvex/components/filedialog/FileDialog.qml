@@ -142,6 +142,7 @@ LazyLoader {
 
     FloatingWindow {
         id: root
+        visible: true
 
         readonly property list<string> cwd: loader.cwd
         property string filterLabel: loader.filterLabel

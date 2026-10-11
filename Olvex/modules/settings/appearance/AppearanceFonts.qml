@@ -9,6 +9,7 @@ import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
+import Olvex
 import qs.services
 import qs.components.filedialog
 import qs.utils
@@ -22,6 +23,7 @@ ColumnLayout {
     property var allFonts: Qt.fontFamilies()
     property string installPath: ""
     property string pendingFontName: ""
+    property alias fontPicker: fontPicker
     spacing: Tokens.spacing.large
     opacity: 0.0
     transform: Translate { y: 20; id: yTrans }
@@ -44,13 +46,59 @@ ColumnLayout {
         return 0;
     }
 
+    function installFont(path) {
+        if (!path) return;
+        let urlPath = path;
+        if (urlPath.startsWith("file://")) {
+            urlPath = decodeURIComponent(urlPath.substring(7));
+        }
+        if (!urlPath) return;
+
+        let srcName = urlPath.split('/').pop().replace(/\.(ttf|otf|woff2?|ttc)$/i, "");
+        root.pendingFontName = srcName;
+
+        Quickshell.execDetached([
+            "notify-send", "-a", "olvex-shell", "-u", "low",
+            qsTr("Installing Font"),
+            qsTr("Copying %1...").arg(srcName)
+        ]);
+
+        installProc.command = [
+            "bash", "-c",
+            "src=\"$1\"; " +
+            "dest=\"$HOME/.local/share/fonts\"; " +
+            "mkdir -p \"$dest\"; " +
+            "cp -f \"$src\" \"$dest/\"; " +
+            "fc-cache -f \"$dest\"; " +
+            "name=$(fc-scan --format '%{family}\\n' \"$src\" 2>/dev/null | head -n1 | awk -F, '{print $1}'); " +
+            "echo \"${name:-done}\"",
+            "--", urlPath
+        ];
+        installProc.running = false;
+        installProc.running = true;
+    }
+
     Process {
         id: installProc
-        command: ["bash", "-c", "mkdir -p ~/.local/share/fonts && cp \"$1\" ~/.local/share/fonts/ && fc-cache -f", "--", root.installPath]
-        onExited: {
-            Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Font Installed"), qsTr("Successfully installed %1").arg(root.pendingFontName)]);
-            fontListProc.running = false;
-            fontListProc.running = true;
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const installedName = (text && text.trim() && text.trim() !== "done") ? text.trim() : root.pendingFontName;
+                if (typeof Toaster !== "undefined" && Toaster.toast) {
+                    Toaster.toast(
+                        qsTr("Font Installed"),
+                        qsTr("Successfully installed %1").arg(installedName),
+                        "check_circle"
+                    );
+                }
+                Quickshell.execDetached([
+                    "notify-send", "-a", "olvex-shell", "-u", "low",
+                    qsTr("Font Installed"),
+                    qsTr("Successfully installed %1").arg(installedName)
+                ]);
+
+                fontListProc.running = false;
+                fontListProc.running = true;
+            }
         }
     }
 
@@ -73,27 +121,15 @@ ColumnLayout {
         }
     }
 
-    readonly property FileDialog fontPicker: FileDialog {
+    FileDialog {
+        id: fontPicker
         title: qsTr("Select Font File")
-        filterLabel: qsTr("Font Files (*.ttf, *.otf)")
-        filters: ["*.ttf", "*.otf"]
+        filterLabel: qsTr("Font Files (*.ttf, *.otf, *.woff, *.woff2)")
+        filters: ["*.ttf", "*.otf", "*.woff", "*.woff2"]
         initialCwd: ["Home"]
+        resetCwdOnOpen: true
 
-        onAccepted: path => {
-            let urlPath = path;
-            if (urlPath.startsWith("file://")) {
-                urlPath = decodeURIComponent(urlPath.substring(7));
-            }
-            if (!urlPath) return;
-
-            root.installPath = urlPath;
-            let srcName = urlPath.split('/').pop().replace(/\.(ttf|otf)$/i, "");
-            root.pendingFontName = srcName;
-            Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "low", qsTr("Installing Font"), qsTr("Copying %1...").arg(srcName)]);
-            
-            installProc.running = false;
-            installProc.running = true;
-        }
+        onAccepted: path => root.installFont(path)
     }
 
     Section {
@@ -168,7 +204,7 @@ ColumnLayout {
                 icon: "add"
                 text: qsTr("Install Font")
                 type: IconTextButton.Filled
-                onClicked: root.fontPicker.open()
+                onClicked: fontPicker.open()
             }
         }
     }

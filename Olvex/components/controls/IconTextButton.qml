@@ -56,7 +56,9 @@ StyledRect {
     color: type === IconTextButton.Text ? "transparent" : internalChecked ? activeColour : inactiveColour
 
     implicitWidth: row.implicitWidth + horizontalPadding * 2
-    implicitHeight: row.implicitHeight + verticalPadding * 2
+    implicitHeight: Math.max(36, row.implicitHeight + verticalPadding * 2)
+    width: implicitWidth
+    height: implicitHeight
 
     StateLayer {
         id: stateLayer
@@ -79,7 +81,8 @@ StyledRect {
             id: iconLabel
 
             Layout.alignment: Qt.AlignVCenter
-            Layout.topMargin: Math.round(fontInfo.pointSize * 0.0575)
+            verticalAlignment: Text.AlignVCenter
+            iconPointSize: Tokens.font.size.normal
             color: root.internalChecked ? root.activeOnColour : root.inactiveOnColour
             fill: root.internalChecked ? 1 : 0
 
@@ -92,7 +95,9 @@ StyledRect {
             id: label
 
             Layout.alignment: Qt.AlignVCenter
-            Layout.topMargin: -Math.round(iconLabel.fontInfo.pointSize * 0.0575)
+            verticalAlignment: Text.AlignVCenter
+            font.weight: Font.Medium
+            textPointSize: Tokens.font.size.small
             color: root.internalChecked ? root.activeOnColour : root.inactiveOnColour
         }
     }
