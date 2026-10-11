@@ -57,6 +57,12 @@ Item {
     width: implicitWidth
     height: implicitHeight
 
+    onVisibleChanged: {
+        if (!visible && (root.expanded || root.animating)) {
+            root.closePicker();
+        }
+    }
+
     // ── Safe overlay retrieval ──
     readonly property Item overlayParent: {
         const win = QsWindow.window;
@@ -129,6 +135,41 @@ Item {
         return root.displayName(model[i]);
     }
 
+    function closePicker() {
+        if (!root.expanded && root.morphState === "closed") return;
+
+        if (searchFieldLoader.item && searchFieldLoader.item.activeFocus) {
+            searchFieldLoader.item.focus = false;
+        }
+        if (list && list.activeFocus) {
+            list.focus = false;
+        }
+
+        root.expanded = false;
+        root.morphState = "closed";
+        closeGrace.restart();
+    }
+
+    function openPicker() {
+        closeGrace.stop();
+        root.searchQuery = "";
+        root.expanded = true;
+        root.morphState = "open";
+
+        // Align scroll position
+        const maxContentY = Math.max(0, (root.count * root.rowHeight) - (root.targetH - Tokens.padding.small * 2));
+        const idealContentY = (root.currentIndex * root.rowHeight) - (root.targetH / 2) + (root.rowHeight / 2);
+        if (list && list.count > 0) list.contentY = Math.max(0, Math.min(maxContentY, idealContentY));
+
+        if (root.searchable) {
+            Qt.callLater(() => {
+                if (root.expanded && searchFieldLoader.item) {
+                    searchFieldLoader.item.forceActiveFocus();
+                }
+            });
+        }
+    }
+
     function pick(i) {
         if (i < 0 || i >= root.count) return;
         const prev = root.currentIndex;
@@ -137,9 +178,7 @@ Item {
         if (root.currentIndex === prev && prev !== i) {
             root.currentIndex = i;
         }
-        root.expanded = false;
-        root.morphState = "closed";
-        closeGrace.restart();
+        root.closePicker();
     }
 
     function scrollMenu(pixelDeltaY, angleDeltaY) {
@@ -201,21 +240,7 @@ Item {
             radius: parent.radius
             color: Colours.palette.m3surface
             enabled: !root.expanded && !closeGrace.running
-            onClicked: {
-                closeGrace.stop();
-                root.searchQuery = "";
-                root.expanded = true;
-                root.morphState = "open";
-                
-                if (root.searchable && typeof searchField !== "undefined") {
-                    searchField.forceActiveFocus();
-                }
-                
-                // Align scroll position
-                const maxContentY = Math.max(0, (root.count * root.rowHeight) - (root.targetH - Tokens.padding.small * 2));
-                const idealContentY = (root.currentIndex * root.rowHeight) - (root.targetH / 2) + (root.rowHeight / 2);
-                if (list && list.count > 0) list.contentY = Math.max(0, Math.min(maxContentY, idealContentY));
-            }
+            onClicked: root.openPicker()
         }
 
         RowLayout {
@@ -307,11 +332,7 @@ Item {
         anchors.fill: parent
         z: 9998
         visible: root.expanded
-        onClicked: {
-            root.expanded = false;
-            root.morphState = "closed";
-            closeGrace.restart();
-        }
+        onClicked: root.closePicker()
         onWheel: event => event.accepted = true
     }
 
@@ -326,6 +347,14 @@ Item {
         Timer {
             id: closeGrace
             interval: root.morphDuration + 60
+            onTriggered: {
+                if (searchFieldLoader.item) {
+                    searchFieldLoader.item.focus = false;
+                }
+                if (list) {
+                    list.focus = false;
+                }
+            }
         }
 
         // M3 Physics Bounds - Smooth Emphasized Deceleration Curve
@@ -444,27 +473,37 @@ Item {
                 }
             }
 
-            StyledTextField {
-                id: searchField
+            Loader {
+                id: searchFieldLoader
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.topMargin: root.searchable ? Tokens.padding.small : 0
+                active: root.searchable && (root.expanded || closeGrace.running)
                 visible: root.searchable
-                height: visible ? implicitHeight : 0
-                placeholderText: qsTr("Search...")
-                text: root.searchQuery
-                onTextChanged: {
-                    if (text !== root.searchQuery) {
-                        root.searchQuery = text;
+                height: (visible && active && item) ? item.implicitHeight : 0
+
+                sourceComponent: StyledTextField {
+                    id: innerSearchField
+                    anchors.fill: parent
+                    placeholderText: qsTr("Search...")
+                    text: root.searchQuery
+                    onTextChanged: {
+                        if (text !== root.searchQuery) {
+                            root.searchQuery = text;
+                        }
+                    }
+                    Keys.onEscapePressed: event => {
+                        event.accepted = true;
+                        root.closePicker();
                     }
                 }
             }
 
             StyledListView {
                 id: list
-                anchors.top: root.searchable ? searchField.bottom : parent.top
-                anchors.topMargin: root.searchable ? Tokens.spacing.small : 0
+                anchors.top: (root.searchable && searchFieldLoader.item) ? searchFieldLoader.bottom : parent.top
+                anchors.topMargin: (root.searchable && searchFieldLoader.item) ? Tokens.spacing.small : 0
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -472,10 +511,14 @@ Item {
                 model: root.filteredModel
                 spacing: 0
                 boundsBehavior: Flickable.StopAtBounds
-                focus: root.expanded
+                focus: false
                 keyNavigationEnabled: true
                 highlightFollowsCurrentItem: false
                 currentIndex: -1
+                Keys.onEscapePressed: event => {
+                    event.accepted = true;
+                    root.closePicker();
+                }
 
                 StyledScrollBar.vertical: StyledScrollBar {
                     flickable: list

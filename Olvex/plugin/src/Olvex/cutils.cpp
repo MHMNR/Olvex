@@ -15,6 +15,21 @@
 
 Q_LOGGING_CATEGORY(lcCUtils, "olvex.cutils", QtInfoMsg)
 
+namespace {
+struct InitLoggingRules {
+    InitLoggingRules() {
+        QLoggingCategory::setFilterRules(QStringLiteral(
+            "qt.qpa.wayland.*.warning=false\n"
+            "qt.qpa.wayland.textinput*=false\n"
+            "qt.qpa.wayland*=false\n"
+            "qt.qml.propertyCache.append.warning=false\n"
+            "quickshell.dbus.properties.warning=false\n"
+            "quickshell.dbus.warning=false"
+        ));
+    }
+} s_initLoggingRules;
+}
+
 namespace olvex {
 
 void CUtils::saveItem(QQuickItem* target, const QUrl& path) {

@@ -1347,6 +1347,7 @@ Item {
                             required property int index
 
                             readonly property string appId: model.appId
+                            property string cachedIcon: ""
                             property var entry: {
                                 if (!appId) return undefined;
                                 const apps = DesktopEntries.applications.values;
@@ -1357,11 +1358,18 @@ Item {
                                 return DesktopEntries.heuristicLookup(appId);
                             }
 
-                            readonly property string cachedIcon: {
-                                if (entry && entry.icon)
-                                    return Icons.resolveIcon(entry.icon, "application-x-executable");
-                                return Icons.getAppIcon(appId, "application-x-executable");
+                            function updateCachedIcon() {
+                                if (entry && entry.icon) {
+                                    cachedIcon = Icons.resolveIcon(entry.icon, "application-x-executable");
+                                } else if (appId) {
+                                    cachedIcon = Icons.getAppIcon(appId, "application-x-executable");
+                                } else {
+                                    cachedIcon = "application-x-executable";
+                                }
                             }
+
+                            onEntryChanged: updateCachedIcon()
+                            onAppIdChanged: updateCachedIcon()
 
                             width: layout.itemSize
                             height: layout.itemSize
@@ -1390,7 +1398,10 @@ Item {
                                 function onToplevelUpdateCounterChanged() { unpinnedAppWrapper.updateRunningCount(); }
                             }
 
-                            Component.onCompleted: updateRunningCount()
+                            Component.onCompleted: {
+                                updateCachedIcon();
+                                updateRunningCount();
+                            }
 
                             x: {
                                 const sepW = layout.dockMetrics.hasSeparator ? layout.dockMetrics.separatorWidth : 0;

@@ -13,7 +13,7 @@ TextField {
     font.family: Tokens.font.family.sans
     font.pixelSize: Math.max(10, Math.round(Tokens.font.size.smaller * 96 / 72))
     renderType: echoMode === TextField.Password ? TextField.QtRendering : TextField.NativeRendering
-    cursorVisible: !readOnly
+    cursorVisible: activeFocus && !readOnly
 
     leftPadding: 12
     rightPadding: 12
@@ -49,7 +49,7 @@ TextField {
         radius: Tokens.rounding.normal
 
         Connections {
-            function onCursorPositionChanged(): void {
+            function onCursorPositionChanged() {
                 if (root.activeFocus && root.cursorVisible) {
                     cursor.opacity = 1;
                     cursor.disableBlink = true;
