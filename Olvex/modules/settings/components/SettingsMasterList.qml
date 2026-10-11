@@ -165,7 +165,7 @@ Item {
                             MaterialIcon {
                                 anchors.centerIn: parent
                                 text: delegateRoot.modelData.icon ?? ""
-                                color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                                color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                                 iconPointSize: Tokens.font.size.normal
                                 Behavior on color { CAnim {} }
                             }
@@ -173,7 +173,7 @@ Item {
 
                         StyledText {
                             text: delegateRoot.modelData.label ?? ""
-                            color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                            color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                             font.weight: delegateRoot.isActive ? Font.Medium : Font.Normal
                             textPointSize: Tokens.font.size.normal
                             Layout.fillWidth: true
