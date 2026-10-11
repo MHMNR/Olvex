@@ -49,11 +49,13 @@ Item {
     readonly property bool animating: morphState !== "closed" || closeGrace.running
     property string morphState: "closed" // "closed", "open"
 
-    readonly property int morphDuration: Tokens?.anim?.durations?.expressiveDefaultSpatial ?? 450
-    readonly property var morphEasing: Tokens?.anim?.expressiveDefaultSpatial
+    readonly property int morphDuration: (Tokens && Tokens.anim && Tokens.anim.durations) ? Tokens.anim.durations.expressiveDefaultSpatial : 450
+    readonly property var morphEasing: (Tokens && Tokens.anim) ? Tokens.anim.expressiveDefaultSpatial : Easing.OutCubic
 
     implicitWidth: face.implicitWidth
     implicitHeight: face.implicitHeight
+    width: implicitWidth
+    height: implicitHeight
 
     // ── Safe overlay retrieval ──
     readonly property Item overlayParent: {
@@ -68,7 +70,7 @@ Item {
         return p;
     }
 
-    function displayName(v): string {
+    function displayName(v) {
         if (v === undefined || v === null || v === "") return qsTr("Default");
         if (v.label !== undefined) return v.label;
         const s = String(v);
@@ -93,14 +95,14 @@ Item {
         return s.split(/[\s_-]+/).map(w => w.length ? (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : w).join(" ");
     }
 
-    function previewOf(v): string {
+    function previewOf(v) {
         if (v === undefined || v === null) return "";
         if (v.preview !== undefined) return String(v.preview);
         if (v.icon !== undefined) return String(v.icon);
         return "";
     }
 
-    function isMaterialPreview(v): bool {
+    function isMaterialPreview(v) {
         if (v === undefined || v === null) return false;
         if (v.isMaterial !== undefined) return Boolean(v.isMaterial);
         const p = root.previewOf(v);
@@ -113,7 +115,7 @@ Item {
         return knownMaterial.includes(p) || /^[a-z][a-z0-9_]{2,}$/.test(p);
     }
 
-    function isCircledText(t: string): bool {
+    function isCircledText(t) {
         if (!t || t.length === 0) return false;
         const code = t.charCodeAt(0);
         return (code >= 0x2776 && code <= 0x277F)
@@ -122,12 +124,12 @@ Item {
             || (code >= 0x2780 && code <= 0x2789);
     }
 
-    function labelOf(i: int): string {
+    function labelOf(i) {
         if (!model || i < 0 || i >= model.length) return qsTr("Select\u2026");
         return root.displayName(model[i]);
     }
 
-    function pick(i: int): void {
+    function pick(i) {
         if (i < 0 || i >= root.count) return;
         const prev = root.currentIndex;
         root.selected(i);
@@ -140,7 +142,7 @@ Item {
         closeGrace.restart();
     }
 
-    function scrollMenu(pixelDeltaY: real, angleDeltaY: real): void {
+    function scrollMenu(pixelDeltaY, angleDeltaY) {
         if (!list || list.contentHeight <= list.height) return;
         const step = pixelDeltaY !== 0 ? pixelDeltaY : (angleDeltaY / 8) * 3;
         const maxY = Math.max(0, list.contentHeight - list.height);
@@ -192,13 +194,15 @@ Item {
         radius: height / 2
         color: Colours.palette.m3primary
         opacity: (root.expanded || closeGrace.running) ? 0 : 1
-        visible: opacity > 0
+        visible: true
         Behavior on opacity { NumberAnimation { duration: 0 } } // Instant cut, morph takes over
 
         StateLayer {
             radius: parent.radius
             color: Colours.palette.m3surface
+            enabled: !root.expanded && !closeGrace.running
             onClicked: {
+                closeGrace.stop();
                 root.searchQuery = "";
                 root.expanded = true;
                 root.morphState = "open";
@@ -233,9 +237,9 @@ Item {
                     visible: !faceRow.isMat
                     text: faceRow.currentPrev
                     color: Colours.palette.m3surface
-                    textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.small ?? 11)
+                    textPointSize: root.isCircledText(text) ? Tokens.font.size.normal : Tokens.font.size.small
                     font.weight: Font.Medium
-                    font.family: Tokens?.font?.family?.sans ?? "sans-serif"
+                    font.family: Tokens.font.family.sans
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -264,7 +268,7 @@ Item {
                     color: Colours.palette.m3surface
                     textPointSize: Tokens.font.size.small
                     font.weight: Font.Medium
-                    font.family: Tokens?.font?.family?.sans ?? "sans-serif"
+                    font.family: Tokens.font.family.sans
                     verticalAlignment: Text.AlignVCenter
                     
                     SequentialAnimation on x {
@@ -301,6 +305,7 @@ Item {
         id: dismissArea
         parent: root.overlayParent
         anchors.fill: parent
+        z: 9998
         visible: root.expanded
         onClicked: {
             root.expanded = false;
@@ -372,9 +377,9 @@ Item {
                         visible: !parent.isMat
                         text: parent.morphPrev
                         color: Colours.palette.m3surface
-                        textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.small ?? 11)
+                        textPointSize: root.isCircledText(text) ? Tokens.font.size.normal : Tokens.font.size.small
                         font.weight: Font.Medium
-                        font.family: Tokens?.font?.family?.sans ?? "sans-serif"
+                        font.family: Tokens.font.family.sans
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
                     }
@@ -403,7 +408,7 @@ Item {
                         color: Colours.palette.m3surface
                         textPointSize: Tokens.font.size.small
                         font.weight: Font.Medium
-                        font.family: Tokens?.font?.family?.sans ?? "sans-serif"
+                        font.family: Tokens.font.family.sans
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
@@ -551,9 +556,9 @@ Item {
                                 visible: !parent.isMat
                                 text: parent.rowPrev
                                 color: row.active ? Colours.palette.m3surface : Colours.palette.m3onSurface
-                                textPointSize: root.isCircledText(text) ? (Tokens?.font?.size?.normal ?? 13) : (Tokens?.font?.size?.small ?? 11)
+                                textPointSize: root.isCircledText(text) ? Tokens.font.size.normal : Tokens.font.size.small
                                 font.weight: Font.Medium
-                                font.family: Tokens?.font?.family?.sans ?? "sans-serif"
+                                font.family: Tokens.font.family.sans
                                 verticalAlignment: Text.AlignVCenter
                                 horizontalAlignment: Text.AlignHCenter
                             }
@@ -581,7 +586,7 @@ Item {
                                 text: row.label
                                 color: row.active ? Colours.palette.m3surface : Colours.palette.m3onSurface
                                 font.weight: Font.Medium
-                                font.family: row.previewAsFont ? String(row.origModelData) : (Tokens?.font?.family?.sans ?? "sans-serif")
+                                font.family: row.previewAsFont ? String(row.origModelData) : Tokens.font.family.sans
                                 textPointSize: Tokens.font.size.small
                                 
                                 SequentialAnimation on x {

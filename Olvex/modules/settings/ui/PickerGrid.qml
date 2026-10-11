@@ -36,6 +36,8 @@ Item {
 
     implicitWidth: face.implicitWidth
     implicitHeight: face.implicitHeight
+    width: implicitWidth
+    height: implicitHeight
 
     readonly property var categories: [
         { id: "all", label: qsTr("All") },
@@ -155,12 +157,14 @@ Item {
         radius: height / 2
         color: Colours.palette.m3primary
         opacity: (root.expanded || closeGrace.running) ? 0 : 1
-        visible: opacity > 0
+        visible: true
 
         StateLayer {
             radius: parent.radius
             color: Colours.palette.m3surface
+            enabled: !root.expanded && !closeGrace.running
             onClicked: {
+                closeGrace.stop();
                 root.searchQuery = "";
                 root.activeCategory = "all";
                 root.expanded = true;
@@ -241,6 +245,7 @@ Item {
         id: dismissArea
         parent: root.overlayParent
         anchors.fill: parent
+        z: 9998
         visible: root.expanded
         onClicked: {
             root.expanded = false;
