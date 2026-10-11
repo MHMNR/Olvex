@@ -20,6 +20,7 @@ Window {
 
     // ── App state ─────────────────────────────────────────────────────────────
     ListModel { id: clipListModel }
+    property var decodedTextCache: ({})
     property string searchQuery: ""
     property int selectedIndex: 0
     property string selectedEntryId: ""
@@ -198,7 +199,7 @@ Window {
                     required property int index
 
                     property bool active: fbg.current === index
-                    property int tabCount: win.filterCount(modelData.value)
+                    property int tabCount: { const _ = win.searchQuery; const __ = win.previewRev; return win.filterCount(modelData.value); }
 
                     width: fbg.segmentWidth
                     height: fbgRow.height
@@ -801,7 +802,13 @@ Window {
                     Text {
                         id: idLbl
                         anchors.centerIn: parent
-                        text: "#" + row.entryId
+                        textFormat: win.searchQuery.trim().length > 0 ? Text.RichText : Text.PlainText
+                        text: {
+                            const raw = "#" + row.entryId
+                            if (!win.searchQuery || win.searchQuery.trim().length === 0)
+                                return raw
+                            return win.highlightQuery(raw, win.searchQuery, row.isCurrent ? tok.palette.fgPrimary : tok.palette.primary)
+                        }
                         font.pixelSize: 11
                         font.weight: Font.DemiBold
                         font.family: tok.type.mono.family
@@ -890,9 +897,15 @@ Window {
 
                 Text {
                     Layout.fillWidth: true
-                    text: row.isImage
-                        ? win.cleanImagePreview(row.entryPreview)
-                        : row.entryPreview
+                    textFormat: win.searchQuery.trim().length > 0 ? Text.RichText : Text.PlainText
+                    text: {
+                        const raw = row.isImage
+                            ? win.cleanImagePreview(row.entryPreview)
+                            : row.entryPreview
+                        if (!win.searchQuery || win.searchQuery.trim().length === 0)
+                            return raw
+                        return win.highlightQuery(raw, win.searchQuery, tok.palette.primary)
+                    }
                     font: row.isCurrent ? tok.type.bodyEmph : tok.type.body
                     color: row.isCurrent ? tok.palette.fgSurface : tok.palette.fgMuted
                     elide: Text.ElideRight
@@ -914,7 +927,49 @@ Window {
         Accessible.name: row.entryPreview
     }
 
-    // ── Logic (unchanged behaviour) ───────────────────────────────────────────
+    // ── Logic (search & formatting) ───────────────────────────────────────────
+
+    function escapeHtml(str) {
+        if (!str) return ""
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
+    }
+
+    function highlightQuery(text, q, accentColor) {
+        if (!text) return ""
+        if (!q || !q.trim())
+            return escapeHtml(text)
+
+        const accentHex = accentColor ? (accentColor.toString ? accentColor.toString() : String(accentColor)) : "#a8c7fa"
+        const rawTerms = q.trim().split(/\s+/).filter(t => t.length > 0)
+        if (rawTerms.length === 0)
+            return escapeHtml(text)
+
+        const sortedTerms = rawTerms.slice().sort((a, b) => b.length - a.length)
+        const escapedTerms = sortedTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        const regex = new RegExp("(" + escapedTerms.join("|") + ")", "gi")
+
+        let result = ""
+        let lastIndex = 0
+        let m
+        while ((m = regex.exec(text)) !== null) {
+            if (m.index > lastIndex) {
+                result += escapeHtml(text.slice(lastIndex, m.index))
+            }
+            result += '<font color="' + accentHex + '"><b>' + escapeHtml(m[0]) + '</b></font>'
+            lastIndex = m.index + m[0].length
+            if (regex.lastIndex === m.index)
+                regex.lastIndex++
+        }
+        if (lastIndex < text.length) {
+            result += escapeHtml(text.slice(lastIndex))
+        }
+        return result
+    }
 
     function cleanImagePreview(raw) {
         if (!raw || raw.length === 0) return qsTr("Image clip")
@@ -947,8 +1002,16 @@ Window {
             return []
 
         const parsed = Cliphist.items
-        if (parsed && parsed.length > 0)
+        if (parsed && parsed.length > 0) {
+            for (let i = 0; i < parsed.length; i++) {
+                const id = parsed[i].entryId
+                if (id && decodedTextCache[id]) {
+                    parsed[i].entryText = decodedTextCache[id]
+                    parsed[i].decoded = true
+                }
+            }
             return parsed
+        }
 
         const entries = Cliphist.entries
         if (!entries || entries.length === 0)
@@ -966,32 +1029,92 @@ Window {
                 continue
             seen[entryId] = true
             const entryPreview = entry.slice(tabIdx + 1).trim()
+            const cachedText = decodedTextCache[entryId]
             built.push({
                 entryId: entryId,
                 entryPreview: entryPreview,
                 entryRaw: entry,
-                entryText: entryPreview,
+                entryText: cachedText ? cachedText : entryPreview,
                 isImage: Cliphist.entryIsImage(entry),
                 imagePath: "",
-                decoded: false,
+                decoded: !!cachedText,
                 edited: false
             })
         }
         return built
     }
 
+    function searchScore(it, q, terms) {
+        const preview = (it.entryPreview || "").toLowerCase()
+        const raw = (it.entryRaw || "").toLowerCase()
+        const id = (it.entryId || "").toLowerCase()
+        const full = (it.entryText || "").toLowerCase()
+        const blob = id + " #" + id + " " + preview + " " + raw + " " + full
+
+        for (let i = 0; i < terms.length; i++) {
+            if (blob.indexOf(terms[i]) === -1)
+                return -1
+        }
+
+        let score = 0
+        if (preview === q || full === q)
+            score += 1000
+        else if (preview.startsWith(q) || full.startsWith(q))
+            score += 500
+        else if (preview.indexOf(q) !== -1)
+            score += 200 - Math.min(100, preview.indexOf(q))
+
+        if (id === q)
+            score += 800
+        else if (id.indexOf(q) === 0)
+            score += 400
+
+        for (let i = 0; i < terms.length; i++) {
+            const t = terms[i]
+            const pos = preview.indexOf(t)
+            if (pos === 0)
+                score += 60
+            else if (pos > 0) {
+                const prevChar = preview[pos - 1]
+                if (prevChar === " " || prevChar === "/" || prevChar === "." || prevChar === "-" || prevChar === "_")
+                    score += 40
+            }
+        }
+
+        return score
+    }
+
     function filteredCliphistItems() {
         const items = cliphistItems()
         const q = searchQuery.trim().toLowerCase()
+        const terms = q.length > 0 ? q.split(/\s+/).filter(t => t.length > 0) : []
         const out = []
+
         for (let i = 0; i < items.length; i++) {
             const it = items[i]
             if (filterMode === "text" && it.isImage) continue
             if (filterMode === "image" && !it.isImage) continue
-            const blob = (it.entryId + " " + it.entryPreview + " " + it.entryRaw).toLowerCase()
-            if (q && blob.indexOf(q) === -1) continue
-            out.push(it)
+
+            if (terms.length === 0) {
+                out.push(it)
+                continue
+            }
+
+            const score = searchScore(it, q, terms)
+            if (score >= 0) {
+                out.push({ item: it, score: score, origIndex: i })
+            }
         }
+
+        if (terms.length > 0) {
+            out.sort((a, b) => {
+                if (b.score !== a.score)
+                    return b.score - a.score
+                return a.origIndex - b.origIndex
+            })
+            return out.map(o => o.item)
+        }
+
         return out
     }
 
@@ -1066,7 +1189,17 @@ Window {
     }
 
     function applyFilter() {
+        selectedIndex = 0
         rebuildClipList()
+        previewRev++
+        filteredHistoryChanged()
+        syncPreviewText()
+        if (listView) {
+            Qt.callLater(function() {
+                listView.positionViewAtBeginning()
+                syncListSelection()
+            })
+        }
     }
 
     function clipAtIndex(idx) {
@@ -1168,6 +1301,7 @@ Window {
     function applyDecodedText(entryId, fullText) {
         if (!entryId || !fullText)
             return
+        decodedTextCache[entryId] = fullText
         for (let i = 0; i < clipListModel.count; i++) {
             if (clipListModel.get(i).entryId !== entryId)
                 continue
@@ -1279,6 +1413,7 @@ Window {
         if (!activeClip || activeClip.isImage)
             return
         previewAppliedText = previewEditText
+        decodedTextCache[activeClip.entryId] = previewEditText
         clipListModel.setProperty(selectedIndex, "entryText", previewEditText)
         clipListModel.setProperty(selectedIndex, "edited", true)
         previewEditing = false
@@ -1376,7 +1511,7 @@ Window {
             return
         }
         if (searchField.activeFocus) {
-            reclaimFocus()
+            close()
             return
         }
         close()
@@ -1410,24 +1545,42 @@ Window {
         if (previewEditing)
             return
 
-        if (!clipListModel.count)
+        if (!clipListModel.count && (!event.text || event.text.length === 0))
             return
 
-        if (event.key === Qt.Key_Up) { moveSelection(-1); event.accepted = true }
-        else if (event.key === Qt.Key_Down) { moveSelection(1); event.accepted = true }
-        else if (event.key === Qt.Key_Home) { jumpSelection(0); event.accepted = true }
-        else if (event.key === Qt.Key_End) { jumpSelection(clipListModel.count - 1); event.accepted = true }
+        if (event.key === Qt.Key_Up) { moveSelection(-1); event.accepted = true; return }
+        else if (event.key === Qt.Key_Down) { moveSelection(1); event.accepted = true; return }
+        else if (event.key === Qt.Key_Home) {
+            if (!searchField.activeFocus) { jumpSelection(0); event.accepted = true; return }
+        }
+        else if (event.key === Qt.Key_End) {
+            if (!searchField.activeFocus) { jumpSelection(clipListModel.count - 1); event.accepted = true; return }
+        }
         else if (event.key === Qt.Key_PageUp) {
-            moveSelection(-Math.max(1, Math.floor(listView.height / 48))); event.accepted = true
+            moveSelection(-Math.max(1, Math.floor(listView.height / 48))); event.accepted = true; return
         } else if (event.key === Qt.Key_PageDown) {
-            moveSelection(Math.max(1, Math.floor(listView.height / 48))); event.accepted = true
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { win.copySelected(); event.accepted = true }
-        else if (event.key === Qt.Key_Delete) { deleteSelected(); event.accepted = true }
+            moveSelection(Math.max(1, Math.floor(listView.height / 48))); event.accepted = true; return
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            win.copySelected(); event.accepted = true; return
+        }
+        else if (event.key === Qt.Key_Delete) {
+            if (!searchField.activeFocus) { deleteSelected(); event.accepted = true; return }
+        }
         else if (event.key === Qt.Key_Backspace) {
             if (!searchField.activeFocus || searchField.text.length === 0) {
                 deleteSelected()
                 event.accepted = true
+                return
             }
+        }
+
+        // If user is typing normal printable text and searchField isn't focused, forward to searchField
+        if (!searchField.activeFocus && event.text && event.text.length > 0 && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+            searchField.forceActiveFocus()
+            searchField.text += event.text
+            searchField.cursorPosition = searchField.text.length
+            event.accepted = true
+            return
         }
     }
 
@@ -1467,10 +1620,13 @@ Window {
     function filterCount(mode) {
         let n = 0
         const items = cliphistItems()
+        const q = searchQuery.trim().toLowerCase()
+        const terms = q.length > 0 ? q.split(/\s+/).filter(t => t.length > 0) : []
         for (let i = 0; i < items.length; i++) {
             const item = items[i]
             if (mode === "text" && item.isImage) continue
             if (mode === "image" && !item.isImage) continue
+            if (terms.length > 0 && searchScore(item, q, terms) < 0) continue
             n++
         }
         return n
@@ -1506,43 +1662,43 @@ Window {
     Shortcut {
         sequence: "Up"
         context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
+        enabled: !previewEditing && clipListModel.count > 0 && !searchField.activeFocus
         onActivated: moveSelection(-1)
     }
     Shortcut {
         sequence: "Down"
         context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
+        enabled: !previewEditing && clipListModel.count > 0 && !searchField.activeFocus
         onActivated: moveSelection(1)
     }
     Shortcut {
         sequences: ["Home", StandardKey.MoveToStartOfDocument]
         context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
+        enabled: !previewEditing && clipListModel.count > 0 && !searchField.activeFocus
         onActivated: jumpSelection(0)
     }
     Shortcut {
         sequences: ["End", StandardKey.MoveToEndOfDocument]
         context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
+        enabled: !previewEditing && clipListModel.count > 0 && !searchField.activeFocus
         onActivated: jumpSelection(clipListModel.count - 1)
     }
     Shortcut {
         sequences: ["PgUp", StandardKey.MoveToPreviousPage]
         context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
+        enabled: !previewEditing && clipListModel.count > 0 && !searchField.activeFocus
         onActivated: moveSelection(-Math.max(1, Math.floor(listView.height / 48)))
     }
     Shortcut {
         sequences: ["PgDown", StandardKey.MoveToNextPage]
         context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
+        enabled: !previewEditing && clipListModel.count > 0 && !searchField.activeFocus
         onActivated: moveSelection(Math.max(1, Math.floor(listView.height / 48)))
     }
     Shortcut {
         sequence: "Delete"
         context: Qt.WindowShortcut
-        enabled: !previewEditing && clipListModel.count > 0
+        enabled: !previewEditing && clipListModel.count > 0 && !searchField.activeFocus
         onActivated: deleteSelected()
     }
 
@@ -1551,7 +1707,7 @@ Window {
             shellEntrance.start()
         else
             shellScale = 1
-        reclaimFocus()
+        searchField.forceActiveFocus(Qt.ShortcutFocusReason)
         if (typeof Cliphist !== "undefined" && Cliphist)
             refreshHistory()
     }
@@ -1780,17 +1936,24 @@ Window {
                                     selectByMouse: true
                                     background: Item {}
                                     onTextChanged: {
-                                        searchQuery = text
-                                        selectedIndex = 0
-                                        applyFilter()
+                                        if (searchQuery !== text) {
+                                            searchQuery = text
+                                            applyFilter()
+                                        }
                                     }
                                     Keys.priority: Keys.BeforeItem
                                     Keys.onPressed: function(event) {
                                         if (win.handleFilterArrow(event))
                                             return
-                                        if (event.key === Qt.Key_Backspace && searchField.text.length > 0)
+                                        if (event.key === Qt.Key_Up || event.key === Qt.Key_Down || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                            win.handleKey(event)
                                             return
-                                        win.handleKey(event)
+                                        }
+                                        if (event.key === Qt.Key_Escape) {
+                                            win.handleEscape()
+                                            event.accepted = true
+                                            return
+                                        }
                                     }
                                 }
 
