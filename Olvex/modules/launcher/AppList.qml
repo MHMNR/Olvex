@@ -7,6 +7,7 @@ import qs.components
 import qs.components.containers
 import qs.components.controls
 import qs.services
+import qs.modules.settings
 import qs.modules.launcher.items
 import qs.modules.launcher.services
 
@@ -122,11 +123,13 @@ Item {
         if (isTerminalCommand(text))
             return "command";
 
-        if (text.trim().length > 0) {
-            const apps = Apps.search(text);
-            if (apps.length === 0)
-                return "command";
-        }
+        if (text.startsWith(">scheme") || text.startsWith("> scheme"))
+            return "scheme";
+        if (text.startsWith(">variant") || text.startsWith("> variant"))
+            return "variant";
+
+        if (text.trim().length > 0)
+            return "search";
 
         return "apps";
     }
@@ -154,19 +157,96 @@ Item {
         if (state === "command") return getCommandActionItems(getTerminalCommand(search.text));
         if (state === "scheme") return Schemes.query(search.text);
         if (state === "variant") return M3Variants.query(search.text);
+        if (state === "search") {
+            const q = search.text.trim();
+            if (!q) return [];
+
+            // 1. Matching quick toggles
+            const toggles = QuickToggles.search(q);
+
+            // 2. Matching desktop apps
+            const apps = Apps.search(q);
+            const appItems = [];
+            for (let i = 0; i < apps.length; i++) {
+                const a = apps[i];
+                if (!a) continue;
+                appItems.push({
+                    type: "app",
+                    id: a.id,
+                    name: a.name,
+                    desc: a.comment || a.genericName || qsTr("Application"),
+                    entry: a,
+                    icon: a.icon || ""
+                });
+            }
+
+            // 3. Matching settings items from PaneRegistry
+            const matchedSettingIds = {};
+            for (let i = 0; i < toggles.length; i++) {
+                if (toggles[i].settingId)
+                    matchedSettingIds[toggles[i].settingId] = true;
+            }
+
+            const rawSettings = PaneRegistry.search(q);
+            const settingItems = [];
+            for (let i = 0; i < rawSettings.length; i++) {
+                const s = rawSettings[i];
+                if (!s) continue;
+                if (matchedSettingIds[s.id])
+                    continue;
+
+                settingItems.push({
+                    type: "setting",
+                    id: s.id,
+                    pageId: s.pageId,
+                    sectionId: s.sectionId,
+                    title: s.title,
+                    sub: s.sub,
+                    breadcrumb: s.breadcrumb,
+                    icon: s.icon,
+                    accentRole: s.accentRole,
+                    searchQuery: q,
+                    score: s.score || 0
+                });
+            }
+
+            // 4. Combine results:
+            const highToggles = [];
+            const lowToggles = [];
+            for (let i = 0; i < toggles.length; i++) {
+                if (toggles[i].score >= 140)
+                    highToggles.push(toggles[i]);
+                else
+                    lowToggles.push(toggles[i]);
+            }
+
+            const combined = [];
+            for (let i = 0; i < highToggles.length; i++) combined.push(highToggles[i]);
+            for (let i = 0; i < appItems.length; i++) combined.push(appItems[i]);
+            for (let i = 0; i < lowToggles.length; i++) combined.push(lowToggles[i]);
+            for (let i = 0; i < settingItems.length; i++) combined.push(settingItems[i]);
+
+            // 5. If no matches at all, fallback to terminal commands
+            if (combined.length === 0)
+                return getCommandActionItems(getTerminalCommand(search.text));
+
+            return combined;
+        }
         if (state === "apps") return Apps.search(search.text);
         return [];
     }
 
     readonly property var modelValues: {
-        if (state !== "apps" || !rawModelValues || sortMode === "recent") return rawModelValues;
-        const list = rawModelValues.slice();
-        if (sortMode === "az") {
-            return list.sort((a, b) => (a?.name ?? "").localeCompare(b?.name ?? ""));
-        } else if (sortMode === "za") {
-            return list.sort((a, b) => (b?.name ?? "").localeCompare(a?.name ?? ""));
+        if (state === "apps" && rawModelValues && sortMode !== "recent") {
+            const list = rawModelValues.slice();
+            if (sortMode === "az") {
+                return list.sort((a, b) => ((a && a.name) ? a.name : "").localeCompare((b && b.name) ? b.name : ""));
+            } else if (sortMode === "za") {
+                return list.sort((a, b) => ((b && b.name) ? b.name : "").localeCompare((a && a.name) ? a.name : ""));
+            }
+            return list;
         }
-        return list;
+        return rawModelValues;
     }
 
     Connections {
@@ -994,7 +1074,8 @@ Item {
             y: markerY
             height: markerH
             radius: Tokens.rounding.normal
-            color: Colours.palette.m3primary
+            color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.14 : 0.18)
+            border.width: 0
             opacity: active ? 1 : 0
             enabled: false
 
@@ -1094,6 +1175,8 @@ Item {
                     return schemeItem;
                 if (root.state === "variant")
                     return variantItem;
+                if (root.state === "search")
+                    return searchResultItem;
                 return null;
             }
 
@@ -1131,5 +1214,13 @@ Item {
     Component {
         id: variantItem
         VariantItem { list: actionList }
+    }
+
+    Component {
+        id: searchResultItem
+        SearchResultItem {
+            list: actionList
+            visibilities: root.visibilities
+        }
     }
 }

@@ -123,7 +123,7 @@ Item {
             topPadding: Tokens.padding.larger
             bottomPadding: Tokens.padding.larger
 
-            placeholderText: qsTr("Search apps, math, terminal commands...")
+            placeholderText: qsTr("Search apps, settings, toggles, math...")
 
             onAccepted: {
                 const curList = list.currentList;
@@ -131,11 +131,14 @@ Item {
                 const cur = curList.currentItem;
                 if (!cur) return;
 
+                if (cur.select) {
+                    cur.select();
+                    return;
+                }
+
                 if (curList.state === "calc") {
                     if (cur.onClicked)
                         cur.onClicked();
-                    else if (cur.select)
-                        cur.select();
                     return;
                 }
 
@@ -149,10 +152,6 @@ Item {
                     root.visibilities.launcher = false;
                     Visibilities.launcherInterrupted = true;
                     return;
-                }
-
-                if (cur.select) {
-                    cur.select();
                 }
             }
 
@@ -205,12 +204,18 @@ Item {
                     if (curList && curList.count > 0) {
                         const cur = curList.currentItem;
                         if (cur) {
-                            if (curList.state === "calc" && cur.onClicked) {
+                            if ((event.modifiers & Qt.ShiftModifier) && cur.openSettings) {
+                                cur.openSettings();
+                                event.accepted = true;
+                                return;
+                            }
+
+                            if (cur.select) {
+                                cur.select();
+                            } else if (curList.state === "calc" && cur.onClicked) {
                                 cur.onClicked();
                             } else if (cur.modelData && cur.modelData.onClicked) {
                                 cur.modelData.onClicked(curList);
-                            } else if (cur.select) {
-                                cur.select();
                             } else if (cur.modelData && cur.modelData.id) {
                                 Apps.launch(cur.modelData);
                                 root.visibilities.launcher = false;
@@ -265,6 +270,7 @@ Item {
             Connections {
                 function onLauncherChanged() {
                     if (!root.visibilities.launcher) {
+                        search.focus = false;
                         search.text = "";
                         focusTimer.stop();
                     } else {

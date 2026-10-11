@@ -73,14 +73,14 @@ Item {
             StyledText {
                 text: root.modelData?.flavour ?? ""
                 textPointSize: Tokens.font.size.normal
-                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                color: Colours.palette.m3onSurface
                 font.weight: isCurrent ? Font.DemiBold : Font.Normal
             }
 
             StyledText {
                 text: root.modelData?.name ?? ""
                 textPointSize: Tokens.font.size.small
-                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3outline
+                color: isCurrent ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3outline
 
                 elide: Text.ElideRight
                 anchors.left: parent.left
@@ -99,7 +99,7 @@ Item {
 
             sourceComponent: MaterialIcon {
                 text: "check"
-                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                 iconPointSize: Tokens.font.size.large
             }
         }

@@ -14,10 +14,14 @@ Item {
     property Session session
     property string activeSection: "wifi"
 
+    onActiveSectionChanged: flick.contentY = 0
+
     StyledFlickable {
+        id: flick
         anchors.fill: parent
+        contentWidth: width
         flickableDirection: Flickable.VerticalFlick
-        contentHeight: detailsLoader.implicitHeight + (Tokens.padding.large * 2)
+        contentHeight: detailsLoader.height + (Tokens.padding.large * 2)
         clip: true
         smoothWheel: true
 
@@ -27,7 +31,13 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.padding.large
-            height: item ? item.implicitHeight : 0
+            height: item ? (item.implicitHeight > 0 ? item.implicitHeight : item.height) : 0
+            onLoaded: {
+                if (item) {
+                    item.width = Qt.binding(() => width);
+                    height = Qt.binding(() => item ? (item["implicitHeight"] || item["height"] || 0) : 0);
+                }
+            }
                         
             source: {
                 switch(root.activeSection) {

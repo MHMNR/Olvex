@@ -218,6 +218,7 @@ Item {
 
         // ── 3. Bottom Section: Scrollable Inspector Content ─────
         StyledFlickable {
+            id: displayFlick
             visible: opacity > 0.01
             opacity: displayCanvas.isFullscreen ? 0 : 1
             Layout.fillWidth: true
@@ -225,7 +226,13 @@ Item {
             clip: true
             contentWidth: width
             contentHeight: activeTabItem.implicitHeight + 40
-            boundsBehavior: Flickable.StopAtBounds
+
+            Connections {
+                target: root
+                function onCurrentTabChanged() {
+                    displayFlick.contentY = 0;
+                }
+            }
 
             Behavior on opacity { Anim { type: Anim.FastEffects } }
 

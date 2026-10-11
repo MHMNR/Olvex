@@ -26,9 +26,8 @@ Item {
     property bool clickable: false
     property bool divider: true
 
-    // Accent color for description text — set by parent Section or page.
-    // Defaults to a gentle primary tint; override per-page for themed look.
-    property color descriptionColor: Qt.alpha(Colours.palette.m3primary, 0.65)
+    // Clean neutral variant for description text — follows M3 specification
+    property color descriptionColor: Colours.palette.m3onSurfaceVariant
 
     default property alias control: controlHolder.data
 

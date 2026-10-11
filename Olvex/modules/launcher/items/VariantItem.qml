@@ -34,7 +34,7 @@ Item {
 
             text: root.modelData?.icon ?? ""
             // removed font.pointSize to avoid point/pixel conflict warnings
-            color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+            color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
 
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -50,14 +50,14 @@ Item {
             StyledText {
                 text: root.modelData?.name ?? ""
                 // removed font.pointSize to avoid point/pixel conflict warnings
-                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                color: Colours.palette.m3onSurface
                 font.weight: isCurrent ? Font.DemiBold : Font.Normal
             }
 
             StyledText {
                 text: root.modelData?.description ?? ""
                 // removed font.pointSize to avoid point/pixel conflict warnings
-                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3outline
+                color: isCurrent ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3outline
 
                 elide: Text.ElideRight
                 anchors.left: parent.left
@@ -77,7 +77,7 @@ Item {
             sourceComponent: MaterialIcon {
                 id: checkIcon
                 text: "check"
-                color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                 // removed font.pointSize to avoid point/pixel conflict warnings
             }
         }

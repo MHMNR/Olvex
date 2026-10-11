@@ -15,10 +15,12 @@ ScrollBar {
     property bool _updatingFromUser: false
 
     onHoveredChanged: {
-        if (hovered)
+        if (hovered) {
             shouldBeActive = true;
-        else
-            shouldBeActive = flickable.moving;
+            hideDelay.stop();
+        } else {
+            hideDelay.restart();
+        }
     }
 
     // Sync nonAnimPosition with Qt's automatic position binding
@@ -92,17 +94,21 @@ ScrollBar {
                 }
                 root._updatingFromFlickable = false;
             }
+            root.shouldBeActive = true;
+            hideDelay.restart();
         }
 
         target: root.flickable
     }
 
     Connections {
-        function onMovingChanged(): void {
-            if (root.flickable.moving)
+        function onMovingChanged() {
+            if (root.flickable && root.flickable.moving) {
                 root.shouldBeActive = true;
-            else
+                hideDelay.stop();
+            } else {
                 hideDelay.restart();
+            }
         }
 
         target: root.flickable
@@ -111,14 +117,14 @@ ScrollBar {
     Timer {
         id: hideDelay
 
-        interval: 600
-        onTriggered: root.shouldBeActive = root.flickable.moving || root.hovered
+        interval: 800
+        onTriggered: root.shouldBeActive = (root.flickable && root.flickable.moving) || root.hovered
     }
 
     CustomMouseArea {
         id: fullMouse
 
-        function onWheel(event: WheelEvent): void {
+        function onWheel(event) {
             root.animating = true;
             root._updatingFromUser = true;
             let newPos = root.nonAnimPosition;

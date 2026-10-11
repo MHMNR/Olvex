@@ -121,7 +121,7 @@ Item {
         property string icon: ""
         property string label: ""
         property color fg: root.accent
-        property color bg: Qt.alpha(root.accent, 0.16)
+        property color bg: Qt.alpha(pill.fg, 0.10)
         property int maxLabelW: 72
         property int stagger: 0
         // Cap to parent width when available so dual rows never overflow
@@ -131,7 +131,7 @@ Item {
         implicitWidth: Math.min(contentW, maxWidth, maxLabelW + (icon !== "" ? 22 : 0) + Tokens.padding.normal * 2)
         implicitHeight: 22
         radius: height / 2
-        color: root.hovered ? Qt.alpha(pill.fg, 0.22) : pill.bg
+        color: root.hovered ? Qt.alpha(pill.fg, 0.18) : pill.bg
         clip: false
         antialiasing: true
         smooth: true

@@ -32,8 +32,7 @@ Item {
     // (`true && undefined` → undefined → "Unable to assign to bool")
     readonly property bool hovered: !root.animsFrozen && !!(hover && hover.containsMouse)
 
-    // Geometry tokens (8px grid) — guard Tokens before screen attach
-    readonly property int contentPad: Tokens?.padding?.large ?? 16
+    readonly property int contentPad: (typeof Tokens !== "undefined" && Tokens && Tokens.padding) ? Tokens.padding.large : 16
     readonly property int iconSize: root.tall ? 44 : 36
     // Tall heroes: preview owns most of the card (alive stage). Short: right strip.
     readonly property int previewW: {
@@ -80,8 +79,8 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            // Light wash only — strong accent (was error/red) made tiles look off-palette
-            color: Qt.alpha(root.accent, root.hovered ? 0.12 : 0.06)
+            // Refined subtle accent wash — balanced professional grade
+            color: Qt.alpha(root.accent, root.hovered ? 0.045 : 0.012)
 
             Behavior on color {
                 enabled: !root.animsFrozen
@@ -94,7 +93,7 @@ Item {
             radius: parent.radius
             color: "transparent"
             border.width: 1
-            border.color: Qt.alpha(root.hovered ? root.accent : Colours.palette.m3outlineVariant, root.hovered ? 0.45 : 0.22)
+            border.color: root.hovered ? Qt.alpha(root.accent, 0.35) : Qt.alpha(Colours.palette.m3outlineVariant, 0.14)
 
             Behavior on border.color {
                 enabled: !root.animsFrozen
@@ -185,8 +184,8 @@ Item {
                 width: root.iconSize
                 height: root.iconSize
                 radius: Tokens.rounding.normal
-                // Per-tile accent container (more alive than flat primaryContainer)
-                color: Qt.alpha(root.accent, 0.22)
+                // Refined accent container badge
+                color: Qt.alpha(root.accent, 0.12)
 
                 anchors.left: parent.left
                 anchors.top: parent.top
@@ -200,19 +199,19 @@ Item {
                 }
             }
 
-            // Soft ambient blob behind preview — skip for wallpaper (no grey/underlay behind image)
+            // Soft ambient blob behind preview — subtle depth, not dominant wash
             Rectangle {
                 visible: root.tall && root.kind !== "wallpaper"
                 z: 0
                 anchors.right: parent.right
                 anchors.rightMargin: -root.contentPad * 0.3
                 anchors.verticalCenter: parent.verticalCenter
-                width: root.previewW * 1.15
-                height: width * 0.75
+                width: root.previewW * 1.05
+                height: width * 0.70
                 radius: width / 2
                 rotation: -12
-                color: Qt.alpha(root.accent, root.hovered ? 0.14 : 0.08)
-                opacity: 0.9
+                color: Qt.alpha(root.accent, root.hovered ? 0.05 : 0.025)
+                opacity: 0.75
 
                 Behavior on color {
                     enabled: !root.animsFrozen

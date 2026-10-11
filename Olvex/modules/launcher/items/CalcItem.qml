@@ -64,7 +64,7 @@ Item {
         MaterialIcon {
             text: "function"
             Layout.alignment: Qt.AlignVCenter
-            color: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+            color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
         }
 
         StyledText {
@@ -74,8 +74,8 @@ Item {
                 if (text.includes("error: ") || text.includes("warning: "))
                     return Colours.palette.m3error;
                 if (!root.math)
-                    return isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant;
-                return isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface;
+                    return Colours.palette.m3onSurfaceVariant;
+                return Colours.palette.m3onSurface;
             }
 
             text: root.math.length > 0 ? (Qalculator.result || qsTr("Calculating...")) : qsTr("Type an expression to calculate")

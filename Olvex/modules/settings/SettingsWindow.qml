@@ -63,10 +63,10 @@ Item {
         color: Qt.alpha(Colours.palette.m3surface, Colours.transparencyEnabled ? Math.max(0.72, Math.min(Colours.transparencyBase + 0.16, 0.82)) : (Colours.light ? 0.80 : 0.76))
         border.width: 0
 
-        // ── Accent tint wash over background blur ─────────────────────
+        // ── Subtle ambient depth wash over background blur ─────────────────
         Rectangle {
             anchors.fill: parent
-            color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.05 : 0.09)
+            color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.015 : 0.02)
             Behavior on color { CAnim {} }
         }
 
@@ -74,9 +74,9 @@ Item {
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.07 : 0.10) }
-                GradientStop { position: 0.45; color: "transparent" }
-                GradientStop { position: 1.0; color: Qt.alpha(Colours.palette.m3secondary, Colours.light ? 0.03 : 0.06) }
+                GradientStop { position: 0.0; color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.02 : 0.03) }
+                GradientStop { position: 0.40; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.alpha(Colours.palette.m3secondary, Colours.light ? 0.01 : 0.015) }
             }
         }
 
@@ -610,14 +610,13 @@ Item {
                 }
             }
 
-            Flickable {
+            StyledFlickable {
                 id: home
 
                 anchors.fill: parent
                 clip: true
                 contentWidth: width
                 contentHeight: bento.height + Tokens.padding.large * 3
-                boundsBehavior: Flickable.StopAtBounds
                 interactive: !stack.transformActive && !stack.pageOpen
                 layer.enabled: false
                 visible: stack.homeOpacity > 0.001

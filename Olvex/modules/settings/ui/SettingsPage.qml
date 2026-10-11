@@ -36,6 +36,11 @@ Item {
         z: -1
     }
 
+    onVisibleChanged: {
+        if (visible)
+            flick.contentY = 0;
+    }
+
     StyledFlickable {
         id: flick
 
@@ -47,7 +52,6 @@ Item {
         clip: true
         contentWidth: width
         contentHeight: contentCol.implicitHeight + Tokens.padding.large * 2
-        boundsBehavior: Flickable.StopAtBounds
         flickableDirection: Flickable.VerticalFlick
 
         ColumnLayout {
