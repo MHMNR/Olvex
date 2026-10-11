@@ -141,8 +141,8 @@ Window {
                 event.accepted = true
                 return
             }
-            if (searchInput.text.length > 0) {
-                searchInput.text = ""
+            if (searchPill.searchActive) {
+                searchPill.closeSearch()
                 event.accepted = true
                 return
             }
@@ -158,7 +158,15 @@ Window {
         anchors.fill: parent
         focus: true
 
-        Keys.onPressed: function(event) { win.handleKey(event) }
+        Keys.onPressed: function(event) {
+            if (event.text && event.text.length > 0 && event.key !== Qt.Key_Escape && event.key !== Qt.Key_Tab && event.key !== Qt.Key_Backtab) {
+                if (!searchPill.searchActive) {
+                    searchPill.searchExpanded = true
+                    searchInput.forceActiveFocus()
+                }
+            }
+            win.handleKey(event)
+        }
 
         Item {
             id: shell
@@ -174,6 +182,18 @@ Window {
                 NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
             }
 
+            // ── Search Dismiss Backdrop (Closes searchbar on any click outside searchPill) ──
+            MouseArea {
+                id: searchDismissBackdrop
+                anchors.fill: parent
+                z: 40
+                enabled: searchPill.searchActive
+                cursorShape: Qt.ArrowCursor
+                onPressed: function(mouse) {
+                    searchPill.closeSearch()
+                }
+            }
+
             // ── Main Layout Column ───────────────────────────────────────────
             ColumnLayout {
                 anchors.fill: parent
@@ -182,111 +202,198 @@ Window {
                 // ── Top Header: Search Field, Tone Swatch & Close Button ─────
                 Item {
                     id: headerContainer
+                    z: 50
                     Layout.fillWidth: true
                     Layout.preferredHeight: 52
                     Layout.leftMargin: 12
                     Layout.rightMargin: 12
                     Layout.topMargin: 8
 
+                    // Header empty space dismiss
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        enabled: searchPill.searchActive
+                        onPressed: searchPill.closeSearch()
+                    }
+
                     RowLayout {
                         anchors.fill: parent
                         spacing: 8
 
-                        // ── Search Field Container ───────────────────────────
-                        Rectangle {
-                            id: searchBox
+                        // ── Window Title on Left ──────────────────────────────
+                        Text {
+                            id: windowTitle
+                            text: qsTr("Emoji")
+                            font.pixelSize: 16
+                            font.weight: Font.DemiBold
+                            color: tok.palette.fgSurface
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.leftMargin: 4
+                            opacity: searchPill.searchActive ? 0.0 : 1.0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                        }
+
+                        Item {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 38
+                        }
+
+                        // ── Expandable Search Pill (Circle 38px → 320px input field) ──
+                        Rectangle {
+                            id: searchPill
+
+                            property bool searchExpanded: false
+                            readonly property bool searchActive: searchExpanded || (searchInput && (searchInput.text.length > 0 || searchInput.activeFocus))
+
+                            function closeSearch() {
+                                searchExpanded = false
+                                if (searchInput) {
+                                    searchInput.text = ""
+                                    searchInput.focus = false
+                                }
+                                win.searchText = ""
+                                rootFocus.forceActiveFocus()
+                            }
+
+                            implicitWidth: searchActive ? Math.min(320, headerContainer.width - 150) : 38
+                            implicitHeight: 38
                             radius: 19
+                            clip: true
+
                             color: searchInput.activeFocus
                                 ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.primary, 0.08))
-                                : tok.palette.stageHigh
-                            border.width: 0
+                                : (searchHover.containsMouse ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.08)) : tok.palette.stageHigh)
 
+                            Behavior on implicitWidth { NumberAnimation { duration: 280; easing.type: Easing.OutQuint } }
                             Behavior on color { ColorAnimation { duration: 120 } }
 
-                            RowLayout {
+                            HoverHandler {
+                                id: searchHover
+                                cursorShape: searchPill.searchActive ? Qt.IBeamCursor : Qt.PointingHandCursor
+                            }
+
+                            // Collapsed Click-to-Expand Trigger
+                            MouseArea {
                                 anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 8
-                                spacing: 8
+                                visible: !searchPill.searchActive
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    searchPill.searchExpanded = true
+                                    Qt.callLater(() => searchInput.forceActiveFocus())
+                                }
+                            }
+
+                            // Single Persistent Search Icon (Smoothly transitions position & tint)
+                            Item {
+                                id: searchIconBox
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: searchPill.searchActive ? 12 : 10
+                                width: 18
+                                height: 18
+
+                                Behavior on anchors.leftMargin { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
 
                                 Text {
+                                    anchors.centerIn: parent
                                     font.family: "Material Symbols Rounded"
                                     text: "search"
                                     font.pixelSize: 18
-                                    color: searchInput.activeFocus ? tok.palette.primary : tok.palette.fgMuted
-                                    Layout.alignment: Qt.AlignVCenter
+                                    color: searchInput.activeFocus ? tok.palette.primary : (searchPill.searchActive ? tok.palette.fgMuted : tok.palette.fgSurface)
                                     Behavior on color { ColorAnimation { duration: 120 } }
                                 }
+                            }
 
-                                Item {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
+                            // Text Input & Placeholder Holder
+                            Item {
+                                id: inputHolder
+                                anchors.left: searchIconBox.right
+                                anchors.leftMargin: 8
+                                anchors.right: clearBtn.left
+                                anchors.rightMargin: 4
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                clip: true
+                                opacity: searchPill.searchActive ? 1.0 : 0.0
+                                visible: opacity > 0.01
 
-                                    TextInput {
-                                        id: searchInput
-                                        anchors.fill: parent
-                                        verticalAlignment: TextInput.AlignVCenter
-                                        font.pixelSize: 14
-                                        color: tok.palette.fgSurface
-                                        selectionColor: Qt.alpha(tok.palette.primary, 0.35)
-                                        selectedTextColor: tok.palette.fgSurface
-                                        selectByMouse: true
-                                        clip: true
+                                Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
-                                        onTextChanged: {
-                                            win.searchText = text
-                                            if (text)
-                                                searchList.contentY = 0
-                                        }
+                                TextInput {
+                                    id: searchInput
+                                    anchors.fill: parent
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    font.pixelSize: 14
+                                    color: tok.palette.fgSurface
+                                    selectionColor: Qt.alpha(tok.palette.primary, 0.35)
+                                    selectedTextColor: tok.palette.fgSurface
+                                    selectByMouse: true
+                                    clip: true
+                                    cursorVisible: activeFocus
 
-                                        Keys.onEscapePressed: function(event) {
-                                            win.handleKey(event)
-                                        }
-
-                                        Component.onCompleted: {
-                                            forceActiveFocus()
-                                        }
+                                    onTextChanged: {
+                                        win.searchText = text
+                                        if (text)
+                                            searchList.contentY = 0
                                     }
 
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        text: qsTr("Search emojis…")
-                                        font.pixelSize: 14
-                                        color: Qt.alpha(tok.palette.fgSurface, 0.4)
-                                        visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
+                                    Keys.onEscapePressed: function(event) {
+                                        if (text.length > 0) {
+                                            text = ""
+                                            event.accepted = true
+                                        } else {
+                                            searchPill.closeSearch()
+                                            event.accepted = true
+                                        }
                                     }
                                 }
 
-                                // Clear Button
-                                Rectangle {
-                                    id: clearBtn
-                                    visible: searchInput.text.length > 0
-                                    implicitWidth: 26
-                                    implicitHeight: 26
-                                    radius: 13
-                                    color: clearBtnMa.pressed ? Qt.alpha(tok.palette.fgSurface, 0.15)
-                                         : clearBtnMa.containsMouse ? Qt.alpha(tok.palette.fgSurface, 0.08) : "transparent"
+                                Text {
+                                    anchors.fill: parent
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: qsTr("Search emojis…")
+                                    font.pixelSize: 14
+                                    color: Qt.alpha(tok.palette.fgSurface, 0.4)
+                                    visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
+                                    opacity: searchInput.text.length === 0 ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 120 } }
+                                }
+                            }
 
-                                    Text {
-                                        anchors.centerIn: parent
-                                        font.family: "Material Symbols Rounded"
-                                        text: "close"
-                                        font.pixelSize: 14
-                                        color: tok.palette.fgMuted
-                                    }
+                            // Clear / Close 'x' Button
+                            Rectangle {
+                                id: clearBtn
+                                anchors.right: parent.right
+                                anchors.rightMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                implicitWidth: 26
+                                implicitHeight: 26
+                                radius: 13
+                                color: clearBtnMa.pressed ? Qt.alpha(tok.palette.fgSurface, 0.15)
+                                     : clearBtnMa.containsMouse ? Qt.alpha(tok.palette.fgSurface, 0.08) : "transparent"
+                                opacity: (searchPill.searchActive && searchInput.text.length > 0) ? 1.0 : 0.0
+                                visible: opacity > 0.01
 
-                                    MouseArea {
-                                        id: clearBtnMa
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            searchInput.text = ""
-                                            searchInput.forceActiveFocus()
-                                        }
+                                Behavior on opacity { NumberAnimation { duration: 120 } }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    font.family: "Material Symbols Rounded"
+                                    text: "close"
+                                    font.pixelSize: 16
+                                    color: tok.palette.fgMuted
+                                }
+
+                                MouseArea {
+                                    id: clearBtnMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        searchInput.text = ""
+                                        searchInput.forceActiveFocus()
                                     }
                                 }
                             }
@@ -295,7 +402,10 @@ Window {
                         // ── Skin Tone Selector Pill in Header ────────────────
                         Rectangle {
                             id: toneSelectorBtn
-                            implicitWidth: 38
+
+                            readonly property bool isExpanded: toneBtnMa.containsMouse || tonePopup.isOpen
+
+                            implicitWidth: isExpanded ? (toneBtnText.implicitWidth + 46) : 38
                             implicitHeight: 38
                             radius: 19
                             color: toneBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
@@ -303,19 +413,41 @@ Window {
                                  : tok.palette.stageHigh
 
                             Behavior on color { ColorAnimation { duration: 100 } }
+                            Behavior on implicitWidth { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
+                            clip: true
 
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 22
-                                height: 22
-                                radius: 11
-                                color: {
-                                    let idx = win.skinTones.indexOf(win.currentSkinTone)
-                                    if (idx <= 0) return "#FFD43F"
-                                    return ["#FADCBC", "#E0BB95", "#BF8F68", "#9B643D", "#5A3825"][idx - 1]
+                            Item {
+                                anchors.fill: parent
+
+                                Rectangle {
+                                    id: toneSwatchBox
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 22
+                                    height: 22
+                                    radius: 11
+                                    color: {
+                                        let idx = win.skinTones.indexOf(win.currentSkinTone)
+                                        if (idx <= 0) return "#FFD43F"
+                                        return ["#FADCBC", "#E0BB95", "#BF8F68", "#9B643D", "#5A3825"][idx - 1]
+                                    }
+                                    border.color: Qt.alpha(tok.palette.fgSurface, 0.2)
+                                    border.width: 1
                                 }
-                                border.color: Qt.alpha(tok.palette.fgSurface, 0.2)
-                                border.width: 1
+
+                                Text {
+                                    id: toneBtnText
+                                    anchors.left: toneSwatchBox.right
+                                    anchors.leftMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: qsTr("Tone")
+                                    font.pixelSize: 13
+                                    font.weight: Font.Medium
+                                    color: tok.palette.fgSurface
+                                    opacity: toneSelectorBtn.isExpanded ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                }
                             }
 
                             MouseArea {
@@ -324,6 +456,8 @@ Window {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
+                                    if (searchPill.searchActive)
+                                        searchPill.closeSearch()
                                     tonePopup.toggle(toneSelectorBtn)
                                 }
                             }
@@ -332,7 +466,10 @@ Window {
                         // ── Rebuild Database Button ──────────────────────────
                         Rectangle {
                             id: rebuildBtn
-                            implicitWidth: 38
+
+                            readonly property bool isExpanded: rebuildBtnMa.containsMouse || EmojiBackend.isUpdating || (EmojiBackend.updateStatus !== "")
+
+                            implicitWidth: isExpanded ? (rebuildBtnText.implicitWidth + 46) : 38
                             implicitHeight: 38
                             radius: 19
                             color: rebuildBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
@@ -340,22 +477,49 @@ Window {
                                  : tok.palette.stageHigh
 
                             Behavior on color { ColorAnimation { duration: 100 } }
+                            Behavior on implicitWidth { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
                             clip: true
 
-                            Text {
-                                id: rebuildIcon
-                                anchors.centerIn: parent
-                                font.family: "Material Symbols Rounded"
-                                text: EmojiBackend.isUpdating ? "progress_activity" : "refresh"
-                                font.pixelSize: 18
-                                color: tok.palette.fgSurface
-                                transformOrigin: Item.Center
-                                
-                                RotationAnimation on rotation {
-                                    running: EmojiBackend.isUpdating
-                                    from: 0; to: 360
-                                    duration: 1000
-                                    loops: Animation.Infinite
+                            Item {
+                                anchors.fill: parent
+
+                                Item {
+                                    id: rebuildIconBox
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 18
+                                    height: 18
+
+                                    Text {
+                                        id: rebuildIcon
+                                        anchors.centerIn: parent
+                                        font.family: "Material Symbols Rounded"
+                                        text: EmojiBackend.isUpdating ? "progress_activity" : "refresh"
+                                        font.pixelSize: 18
+                                        color: tok.palette.fgSurface
+                                        transformOrigin: Item.Center
+
+                                        RotationAnimation on rotation {
+                                            running: EmojiBackend.isUpdating
+                                            from: 0; to: 360
+                                            duration: 1000
+                                            loops: Animation.Infinite
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    id: rebuildBtnText
+                                    anchors.left: rebuildIconBox.right
+                                    anchors.leftMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: EmojiBackend.updateStatus ? EmojiBackend.updateStatus : (EmojiBackend.isUpdating ? qsTr("Updating…") : qsTr("Rebuild"))
+                                    font.pixelSize: 13
+                                    font.weight: Font.Medium
+                                    color: tok.palette.fgSurface
+                                    opacity: rebuildBtn.isExpanded ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                                 }
                             }
 
@@ -364,14 +528,20 @@ Window {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: EmojiBackend.isUpdating ? Qt.ArrowCursor : Qt.PointingHandCursor
-                                onClicked: EmojiBackend.rebuildDatabase()
+                                onClicked: {
+                                    if (!EmojiBackend.isUpdating)
+                                        EmojiBackend.rebuildDatabase()
+                                }
                             }
                         }
 
                         // ── Close Window Button ──────────────────────────────
                         Rectangle {
                             id: closeBtn
-                            implicitWidth: 38
+
+                            readonly property bool isExpanded: closeBtnMa.containsMouse
+
+                            implicitWidth: isExpanded ? (closeBtnText.implicitWidth + 46) : 38
                             implicitHeight: 38
                             radius: 19
                             color: closeBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
@@ -379,13 +549,41 @@ Window {
                                  : tok.palette.stageHigh
 
                             Behavior on color { ColorAnimation { duration: 100 } }
+                            Behavior on implicitWidth { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
+                            clip: true
 
-                            Text {
-                                anchors.centerIn: parent
-                                font.family: "Material Symbols Rounded"
-                                text: "close"
-                                font.pixelSize: 18
-                                color: tok.palette.fgSurface
+                            Item {
+                                anchors.fill: parent
+
+                                Item {
+                                    id: closeIconBox
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 18
+                                    height: 18
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        font.family: "Material Symbols Rounded"
+                                        text: "close"
+                                        font.pixelSize: 18
+                                        color: tok.palette.fgSurface
+                                    }
+                                }
+
+                                Text {
+                                    id: closeBtnText
+                                    anchors.left: closeIconBox.right
+                                    anchors.leftMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: qsTr("Close")
+                                    font.pixelSize: 13
+                                    font.weight: Font.Medium
+                                    color: tok.palette.fgSurface
+                                    opacity: closeBtn.isExpanded ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                }
                             }
 
                             MouseArea {
@@ -488,6 +686,7 @@ Window {
                 // ── Search Results List ──────────────────────────────────────
                 ListView {
                     id: searchList
+                    z: 45
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     visible: !!win.searchText
@@ -497,6 +696,13 @@ Window {
                     maximumFlickVelocity: 3000
                     cacheBuffer: 600
                     interactive: !tonePopup.isOpen && (exactContentHeight > height)
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        enabled: searchPill.searchActive
+                        onPressed: searchPill.closeSearch()
+                    }
 
                     readonly property real exactContentHeight: (searchList.model ? searchList.model.length : 0) * win.baseHeight
 
@@ -717,8 +923,8 @@ Window {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        if (win.searchText)
-                                            searchInput.text = ""
+                                        if (searchPill.searchActive)
+                                            searchPill.closeSearch()
                                         bottomBar.activeCategory = index
                                         let targetY = win.yPositionForCat(index)
                                         mainList.scrollToY(targetY, 300)
