@@ -272,7 +272,7 @@ void RootConfig::setupFileBackend(const QString& path, const QString& screen) {
     updateWatch();
 
     // If shell.json is missing, generate default configuration directly
-    if (m_screen.isEmpty() && !QFile::exists(m_filePath)) {
+    if (m_screen.isEmpty() && !QFile::exists(m_filePath) && m_filePath.endsWith(QStringLiteral("shell.json")) && !m_filePath.contains(QStringLiteral("token"))) {
         QDir().mkpath(QFileInfo(m_filePath).absolutePath());
         QFile file(m_filePath);
         if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -357,7 +357,7 @@ std::optional<QString> RootConfig::reloadFromFile() {
 
     if (!file.exists()) {
         qCDebug(lcConfig) << "File does not exist:" << m_filePath;
-        if (m_screen.isEmpty()) {
+        if (m_screen.isEmpty() && m_filePath.endsWith(QStringLiteral("shell.json")) && !m_filePath.contains(QStringLiteral("token"))) {
             QDir().mkpath(QFileInfo(m_filePath).absolutePath());
             if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
                 file.write(defaultShellJson());
