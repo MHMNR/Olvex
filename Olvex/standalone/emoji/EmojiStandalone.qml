@@ -367,7 +367,7 @@ Window {
                         // ── Rebuild Database Button ──────────────────────────
                         Rectangle {
                             id: rebuildBtn
-                            implicitWidth: rebuildBtnMa.containsMouse ? rebuildBtnText.implicitWidth + 46 : 38
+                            implicitWidth: 38
                             implicitHeight: 38
                             radius: 19
                             color: rebuildBtnMa.pressed ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.fgSurface, 0.12))
@@ -375,41 +375,22 @@ Window {
                                  : tok.palette.stageHigh
 
                             Behavior on color { ColorAnimation { duration: 100 } }
-                            Behavior on implicitWidth { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
                             clip: true
 
-                            Item {
-                                anchors.fill: parent
+                            Text {
+                                id: rebuildIcon
+                                anchors.centerIn: parent
+                                font.family: "Material Symbols Rounded"
+                                text: EmojiBackend.isUpdating ? "progress_activity" : "refresh"
+                                font.pixelSize: 18
+                                color: tok.palette.fgSurface
+                                transformOrigin: Item.Center
                                 
-                                Text {
-                                    id: rebuildIcon
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 10
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    font.family: "Material Symbols Rounded"
-                                    text: EmojiBackend.isUpdating ? "progress_activity" : "refresh"
-                                    font.pixelSize: 18
-                                    color: tok.palette.fgSurface
-                                    
-                                    RotationAnimation on rotation {
-                                        running: EmojiBackend.isUpdating
-                                        from: 0; to: 360
-                                        duration: 1000
-                                        loops: Animation.Infinite
-                                    }
-                                }
-                                
-                                Text {
-                                    id: rebuildBtnText
-                                    anchors.left: rebuildIcon.right
-                                    anchors.leftMargin: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: EmojiBackend.updateStatus ? EmojiBackend.updateStatus : (EmojiBackend.isUpdating ? qsTr("Updating…") : qsTr("Rebuild"))
-                                    font.pixelSize: 13
-                                    font.weight: Font.Medium
-                                    color: tok.palette.fgSurface
-                                    opacity: rebuildBtnMa.containsMouse ? 1 : 0
-                                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                                RotationAnimation on rotation {
+                                    running: EmojiBackend.isUpdating
+                                    from: 0; to: 360
+                                    duration: 1000
+                                    loops: Animation.Infinite
                                 }
                             }
 

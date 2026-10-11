@@ -251,6 +251,7 @@ Item {
                     }
                     return p.startsWith("file://") ? p : "file://" + p;
                 }
+                sourceSize: Qt.size(480, 280)
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
@@ -301,20 +302,41 @@ Item {
             }
         }
 
+        Timer {
+            id: searchDebounce
+            interval: 50
+            repeat: false
+            onTriggered: scriptModel.updateValues()
+        }
+
         ScriptModel {
             id: scriptModel
 
-            readonly property string searchQuery: root.search.text.split(" ").slice(1).join(" ")
+            readonly property string rawSearch: root.search.text.trim()
+            readonly property string searchQuery: rawSearch
 
             function updateValues() {
-                const results = Wallpapers.query(searchQuery) || [];
-                const statics = results.filter(w => !w.isVideo);
-                const lives = results.filter(w => w.isVideo);
-                console.log(`[WallpaperList] updateValues() mode=${root.mode} | total=${results.length} | static=${statics.length} | live=${lives.length}`);
-                values = root.mode === "static" ? statics : lives;
+                const q = root.search.text.trim();
+                const results = Wallpapers.query(q) || [];
+                if (root.mode === "static") {
+                    values = results.filter(w => !w.isVideo);
+                } else {
+                    values = results.filter(w => w.isVideo);
+                }
+                if (q !== "") {
+                    view.jumpTo(0);
+                }
             }
 
-            onSearchQueryChanged: updateValues()
+            onRawSearchChanged: {
+                if (rawSearch === "") {
+                    searchDebounce.stop();
+                    updateValues();
+                } else {
+                    searchDebounce.restart();
+                }
+            }
+
             Component.onCompleted: updateValues()
         }
 

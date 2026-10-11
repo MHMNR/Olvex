@@ -32,6 +32,17 @@ Item {
         animatedIndex = currentIndex
     }
 
+    onModelChanged: {
+        if (!model || model.length === 0) {
+            animBehavior.enabled = false;
+            currentIndex = 0;
+            animatedIndex = 0;
+            animBehavior.enabled = true;
+        } else if (currentIndex >= model.length) {
+            jumpTo(0);
+        }
+    }
+
     property Component delegate
 
     signal itemClicked(int index, var itemData)
@@ -49,17 +60,25 @@ Item {
     }
 
     function snapTo(index) {
-        if (model && index >= 0 && index < model.length) {
-            currentIndex = index
+        if (model && model.length > 0) {
+            currentIndex = Math.max(0, Math.min(model.length - 1, index));
+        } else {
+            currentIndex = 0;
         }
     }
 
     function jumpTo(index) {
-        if (model && index >= 0 && index < model.length) {
-            animBehavior.enabled = false
-            currentIndex = index
-            animatedIndex = index
-            animBehavior.enabled = true
+        if (model && model.length > 0) {
+            const clamped = Math.max(0, Math.min(model.length - 1, index));
+            animBehavior.enabled = false;
+            currentIndex = clamped;
+            animatedIndex = clamped;
+            animBehavior.enabled = true;
+        } else {
+            animBehavior.enabled = false;
+            currentIndex = 0;
+            animatedIndex = 0;
+            animBehavior.enabled = true;
         }
     }
 
@@ -100,7 +119,7 @@ Item {
         const arr = [];
         if (!model || model.length === 0) return arr;
         const total = model.length;
-        const centerIdx = Math.round(animatedIndex);
+        const centerIdx = Math.max(0, Math.min(total - 1, Math.round(animatedIndex)));
         for (let offset = -3; offset <= 3; offset++) {
             const idx = centerIdx + offset;
             if (idx >= 0 && idx < total) {

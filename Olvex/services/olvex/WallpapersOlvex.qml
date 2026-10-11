@@ -511,6 +511,8 @@ Searcher {
 
     catalog: entries
     key: "relativePath"
+    keys: ["relativePath", "name"]
+    weights: [1.0, 1.0]
     useFuzzy: GlobalConfig.launcher.useFuzzy.wallpapers
     extraOpts: useFuzzy ? ({}) : ({
             forward: false
