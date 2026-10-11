@@ -55,7 +55,7 @@ Item {
             anchors.rightMargin: Tokens.padding.small
             radius: Tokens.rounding.large
             color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
             border.width: 1
             clip: false
 
@@ -213,7 +213,7 @@ Item {
             anchors.rightMargin: Tokens.padding.normal
             radius: Tokens.rounding.large
             color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
             border.width: 1
 
             Loader {

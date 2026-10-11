@@ -81,7 +81,7 @@ Item {
             anchors.fill: parent
             radius: parent.radius
             // Light wash only — strong accent (was error/red) made tiles look off-palette
-            color: Qt.alpha(root.accent, root.hovered ? 0.08 : 0.04)
+            color: Qt.alpha(root.accent, root.hovered ? 0.12 : 0.06)
 
             Behavior on color {
                 enabled: !root.animsFrozen
@@ -94,7 +94,7 @@ Item {
             radius: parent.radius
             color: "transparent"
             border.width: 1
-            border.color: Qt.alpha(root.hovered ? root.accent : Colours.palette.m3outlineVariant, root.hovered ? 0.35 : 0.15)
+            border.color: Qt.alpha(root.hovered ? root.accent : Colours.palette.m3outlineVariant, root.hovered ? 0.45 : 0.22)
 
             Behavior on border.color {
                 enabled: !root.animsFrozen
@@ -211,7 +211,7 @@ Item {
                 height: width * 0.75
                 radius: width / 2
                 rotation: -12
-                color: Qt.alpha(root.accent, root.hovered ? 0.1 : 0.06)
+                color: Qt.alpha(root.accent, root.hovered ? 0.14 : 0.08)
                 opacity: 0.9
 
                 Behavior on color {

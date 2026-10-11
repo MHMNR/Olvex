@@ -41,7 +41,7 @@ Singleton {
     // ── Transparency ────────────────────────────────
     readonly property bool transparencyEnabled: Tokens.transparency.enabled
     readonly property real transparencyBase: Math.max(0.01, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
-    readonly property real transparencyLayers: Tokens.transparency.layers
+    readonly property real transparencyLayers: Math.max(0.58, Math.min(0.92, (Tokens.transparency.layers || 0.4) + 0.18))
     readonly property bool transparencyBlur: Tokens.transparency.blur
     property int customBlurRadius: -1
     property int customBlurPasses: -1
@@ -196,12 +196,14 @@ Singleton {
             return bootPalette.m3surfaceContainerHighest;
         }
 
+        const layerAlpha = Math.min(0.95, transparencyLayers + (layer > 1 ? (layer - 1) * 0.05 : 0));
+
         if (light && layer > 0)
-            return Qt.alpha(opaqueLightContainer(layer), transparencyLayers);
+            return Qt.alpha(opaqueLightContainer(layer), layerAlpha);
 
         return layer === 0
             ? Qt.alpha(c, transparencyBase)
-            : alterColour(c, transparencyLayers, layer);
+            : alterColour(c, layerAlpha, layer);
     }
 
     // Declarative fast-path elevation properties for standard surface container

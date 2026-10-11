@@ -60,8 +60,25 @@ Item {
     StyledRect {
         anchors.fill: parent
         radius: 0
-        color: Qt.alpha(Colours.palette.m3surface, Colours.transparencyEnabled ? Math.min(Colours.transparencyBase, 0.68) : (Colours.light ? 0.76 : 0.64))
+        color: Qt.alpha(Colours.palette.m3surface, Colours.transparencyEnabled ? Math.max(0.72, Math.min(Colours.transparencyBase + 0.16, 0.82)) : (Colours.light ? 0.80 : 0.76))
         border.width: 0
+
+        // ── Accent tint wash over background blur ─────────────────────
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.05 : 0.09)
+            Behavior on color { CAnim {} }
+        }
+
+        // Ambient depth gradient wash using M3 primary & secondary
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.07 : 0.10) }
+                GradientStop { position: 0.45; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.alpha(Colours.palette.m3secondary, Colours.light ? 0.03 : 0.06) }
+            }
+        }
 
         // ── top bar ─────────────────────────────────────────────────────
         Item {
@@ -140,7 +157,7 @@ Item {
                         radius: Tokens.rounding.full
                         color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
                         border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
 
                         MaterialIcon {
                             anchors.centerIn: parent
@@ -189,7 +206,7 @@ Item {
 
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
                     border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
 
                     Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
                     Behavior on color { CAnim {} }
@@ -383,7 +400,7 @@ Item {
                     radius: Tokens.rounding.full
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
                     border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
 
                     Row {
                         id: modeRow
@@ -428,7 +445,7 @@ Item {
                     radius: Tokens.rounding.full
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
                     border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15)
+                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
                     visible: root.floating
 
                     MaterialIcon {
