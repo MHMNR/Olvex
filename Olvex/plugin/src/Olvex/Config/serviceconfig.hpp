@@ -14,7 +14,7 @@ class UiSoundsConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
-    CONFIG_GLOBAL_PROPERTY(qreal, volume, 0.8)
+    CONFIG_GLOBAL_PROPERTY(qreal, volume, 1.0)
 
     // Charger
     CONFIG_GLOBAL_PROPERTY(bool, charger, true)
@@ -28,7 +28,7 @@ class UiSoundsConfig : public ConfigObject {
 
     // Notifications
     CONFIG_GLOBAL_PROPERTY(bool, notifications, true)
-    CONFIG_GLOBAL_PROPERTY(QString, notificationsSound, u"notif.mp3"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, notificationsSound, u"notif2.mp3"_s)
     CONFIG_GLOBAL_PROPERTY(QString, notificationsUrgentSound, u"notificationV.mp3"_s)
 
     // Toasts
@@ -57,9 +57,7 @@ class ServiceConfig : public ConfigObject {
             QLocale().measurementSystem() == QLocale::ImperialUKSystem)
     // This is always false by default cause apparently even imperial system users don't use it for perf temps?
     CONFIG_GLOBAL_PROPERTY(bool, useFahrenheitPerformance, false)
-    // Attempt to guess based on locale
-    CONFIG_GLOBAL_PROPERTY(
-        bool, useTwelveHourClock, QLocale().timeFormat(QLocale::ShortFormat).toLower().contains(u"a"_s))
+    CONFIG_GLOBAL_PROPERTY(bool, useTwelveHourClock, true)
     CONFIG_GLOBAL_PROPERTY(QString, gpuType)
     CONFIG_GLOBAL_PROPERTY(int, visualiserBars, 32)
     CONFIG_GLOBAL_PROPERTY(int, visualiserFps, 60)
@@ -69,13 +67,13 @@ class ServiceConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(bool, smartScheme, true)
     // "expressive" = M3 Expressive colour engine; "legacy" = pre-remake pipeline
     CONFIG_GLOBAL_PROPERTY(QString, colorEngine, u"expressive"_s)
-    CONFIG_GLOBAL_PROPERTY(QString, defaultPlayer, u"Spotify"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, defaultPlayer, u"auto"_s)
     CONFIG_GLOBAL_PROPERTY(QVariantList, playerAliases,
         { vmap({ { u"from"_s, u"com.github.th_ch.youtube_music"_s }, { u"to"_s, u"YT Music"_s } }) })
     CONFIG_GLOBAL_PROPERTY(QString, lyricsBackend, u"Auto"_s)
     CONFIG_GLOBAL_PROPERTY(bool, nightLight, false)
-    CONFIG_GLOBAL_PROPERTY(int, nightLightTemperature, 4500)
-    CONFIG_GLOBAL_PROPERTY(bool, nightLightAuto, true)
+    CONFIG_GLOBAL_PROPERTY(int, nightLightTemperature, 4750)
+    CONFIG_GLOBAL_PROPERTY(bool, nightLightAuto, false)
 
 public:
     explicit ServiceConfig(QObject* parent = nullptr)

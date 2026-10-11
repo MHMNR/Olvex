@@ -27,7 +27,7 @@ class BarPopouts : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, tray, true)
+    CONFIG_PROPERTY(bool, tray, false)
     CONFIG_PROPERTY(bool, systemPill, false)
 
 public:
@@ -49,7 +49,7 @@ class BarWorkspaces : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(bool, perMonitorWorkspaces, true)
     CONFIG_PROPERTY(QString, label, u""_s)
     CONFIG_PROPERTY(QString, occupiedLabel, u"󰮯"_s)
-    CONFIG_PROPERTY(QString, activeLabel, u"󰮯"_s)
+    CONFIG_PROPERTY(QString, activeLabel, u"filled_number"_s)
     CONFIG_PROPERTY(QString, capitalisation, u"preserve"_s)
     CONFIG_GLOBAL_PROPERTY(QVariantList, specialWorkspaceIcons)
     CONFIG_GLOBAL_PROPERTY(QVariantList, windowIcons,
@@ -67,7 +67,7 @@ class BarActiveWindow : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, compact, false)
+    CONFIG_PROPERTY(bool, compact, true)
     CONFIG_PROPERTY(bool, inverted, false)
     CONFIG_PROPERTY(bool, showOnHover, true)
 
@@ -80,9 +80,9 @@ class BarTray : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, background, false)
+    CONFIG_PROPERTY(bool, background, true)
     CONFIG_PROPERTY(bool, recolour, false)
-    CONFIG_PROPERTY(bool, compact, false)
+    CONFIG_PROPERTY(bool, compact, true)
     CONFIG_GLOBAL_PROPERTY(QVariantList, iconSubs)
     CONFIG_GLOBAL_PROPERTY(QStringList, hiddenIcons)
 
@@ -113,8 +113,8 @@ class BarClock : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, background, false)
-    CONFIG_PROPERTY(bool, showDate, false)
+    CONFIG_PROPERTY(bool, background, true)
+    CONFIG_PROPERTY(bool, showDate, true)
     CONFIG_PROPERTY(bool, showIcon, true)
 
 public:
@@ -127,9 +127,9 @@ class BarNetSpeed : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
-    CONFIG_PROPERTY(QString, mode, u"separate"_s)
+    CONFIG_PROPERTY(QString, mode, u"combined"_s)
     CONFIG_PROPERTY(bool, showIcons, true)
-    CONFIG_PROPERTY(bool, background, false)
+    CONFIG_PROPERTY(bool, background, true)
     CONFIG_PROPERTY(int, refreshInterval, 1000)
     CONFIG_PROPERTY(int, fontSize, 11)
     CONFIG_PROPERTY(int, maxDigits, 0)
@@ -144,7 +144,7 @@ class BarBottomPanel : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
-    CONFIG_PROPERTY(QString, visibilityMode, u"always"_s)
+    CONFIG_PROPERTY(QString, visibilityMode, u"smarthide"_s)
     CONFIG_PROPERTY(bool, dockBackground, true)
 
 public:
@@ -179,7 +179,7 @@ class BarConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, persistent, true)
-    CONFIG_PROPERTY(bool, showOnHover, true)
+    CONFIG_PROPERTY(bool, showOnHover, false)
     CONFIG_PROPERTY(int, dragThreshold, 20)
     CONFIG_SUBOBJECT(BarScrollActions, scrollActions)
     CONFIG_SUBOBJECT(BarPopouts, popouts)

@@ -52,10 +52,10 @@ class QspanelConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
-    CONFIG_PROPERTY(int, maxToasts, 4)
+    CONFIG_PROPERTY(int, maxToasts, 8)
     // Drag distance from top-right corner to open QS utilities panel
     CONFIG_PROPERTY(int, dragThreshold, 40)
-    CONFIG_GLOBAL_PROPERTY(bool, keepAwake, false)
+    CONFIG_GLOBAL_PROPERTY(bool, keepAwake, true)
     CONFIG_SUBOBJECT(UtilitiesToasts, toasts)
     CONFIG_SUBOBJECT(UtilitiesVpn, vpn)
     CONFIG_PROPERTY(QVariantList, quickToggles,

@@ -112,9 +112,9 @@ class FontFamily : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(QString, sans, QStringLiteral("Rubik"))
-    CONFIG_PROPERTY(QString, mono, QStringLiteral("CaskaydiaCove NF"))
-    CONFIG_PROPERTY(QString, clock, QStringLiteral("Rubik"))
+    CONFIG_PROPERTY(QString, sans, QStringLiteral("SF Pro Rounded"))
+    CONFIG_PROPERTY(QString, mono, QStringLiteral("SF Mono"))
+    CONFIG_PROPERTY(QString, clock, QStringLiteral("SF Pro Rounded"))
     CONFIG_PROPERTY(QString, material, QStringLiteral("Material Symbols Rounded"))
 
 public:
@@ -226,12 +226,12 @@ class AppearanceTransparency : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_GLOBAL_PROPERTY(bool, enabled, false)
+    CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
     CONFIG_GLOBAL_PROPERTY(bool, blur, true)
-    CONFIG_GLOBAL_PROPERTY(qreal, base, 0.85)
-    CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.4)
-    CONFIG_GLOBAL_PROPERTY(int, blurRadius, 8)
-    CONFIG_GLOBAL_PROPERTY(int, blurPasses, 2)
+    CONFIG_GLOBAL_PROPERTY(qreal, base, 0.49954530423280424)
+    CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.3995595079787234)
+    CONFIG_GLOBAL_PROPERTY(int, blurRadius, 10)
+    CONFIG_GLOBAL_PROPERTY(int, blurPasses, 3)
 
 public:
     explicit AppearanceTransparency(QObject* parent = nullptr)

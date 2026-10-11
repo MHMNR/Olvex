@@ -41,10 +41,6 @@ class GeneralIdle : public ConfigObject {
                 { u"idleAction"_s, u"dpms off"_s },
                 { u"returnAction"_s, u"dpms on"_s },
             }),
-            vmap({
-                { u"timeout"_s, 600 },
-                { u"idleAction"_s, QStringList{ u"systemctl"_s, u"suspend-then-hibernate"_s } },
-            }),
         })
 
 public:
@@ -78,7 +74,7 @@ class GeneralBattery : public ConfigObject {
                 { u"critical"_s, true },
             }),
         })
-    CONFIG_GLOBAL_PROPERTY(int, criticalLevel, 3)
+    CONFIG_GLOBAL_PROPERTY(int, criticalLevel, 10)
     CONFIG_GLOBAL_PROPERTY(bool, chargingRipple, true)
 
 public:

@@ -11,7 +11,7 @@ class BorderConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(int, thickness, 0)
-    CONFIG_PROPERTY(int, rounding, 25)
+    CONFIG_PROPERTY(int, rounding, 24)
     CONFIG_PROPERTY(int, smoothing, 32)
     CONFIG_PROPERTY(bool, floating, true)
     CONFIG_PROPERTY(int, gap, 5)

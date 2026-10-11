@@ -15,6 +15,167 @@ QString watchRoot() {
     return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
 }
 
+const char* defaultShellJson() {
+    return R"JSON({
+    "appearance": {
+        "anim": {
+            "durations": {
+                "scale": 1
+            }
+        },
+        "font": {
+            "family": {
+                "mono": "SF Mono",
+                "sans": "SF Pro Rounded"
+            }
+        },
+        "padding": {
+            "scale": 0.9966085271317829
+        },
+        "rounding": {
+            "scale": 0.9962148740310077
+        },
+        "schemeVariant": "tonalspot",
+        "spacing": {
+            "scale": 1.004425048828125
+        },
+        "themeMode": "dark",
+        "transparency": {
+            "base": 0.49954530423280424,
+            "blur": true,
+            "blurPasses": 3,
+            "blurRadius": 10,
+            "enabled": true,
+            "layers": 0.3995595079787234
+        }
+    },
+    "background": {
+        "desktopClock": {
+            "enabled": true,
+            "position": "bottom-right",
+            "scale": 1.02459716796875
+        },
+        "liveWallpaper": {
+            "enabled": false
+        },
+        "wallpaperTransition": {
+            "edgeSmoothness": 0.3
+        }
+    },
+    "bar": {
+        "activeWindow": {
+            "compact": true,
+            "inverted": false
+        },
+        "bottomPanel": {
+            "dockBackground": true,
+            "enabled": true,
+            "visibilityMode": "smarthide"
+        },
+        "clock": {
+            "background": true,
+            "showDate": true,
+            "showIcon": true
+        },
+        "netSpeed": {
+            "background": true,
+            "mode": "combined",
+            "showIcons": true
+        },
+        "persistent": true,
+        "popouts": {
+            "systemPill": false,
+            "tray": false
+        },
+        "showOnHover": false,
+        "status": {
+            "showAudio": true,
+            "showKbLayout": false,
+            "showMicrophone": false,
+            "showNetwork": true
+        },
+        "tray": {
+            "background": true,
+            "compact": true,
+            "recolour": false
+        },
+        "workspaces": {
+            "activeIndicator": true,
+            "activeLabel": "filled_number"
+        }
+    },
+    "border": {
+        "floating": true,
+        "gap": 5,
+        "rounding": 24
+    },
+    "dashboard": {
+        "enabled": true,
+        "performance": {
+            "showBattery": true
+        }
+    },
+    "general": {
+        "battery": {
+            "criticalLevel": 10
+        },
+        "idle": {
+            "timeouts": [
+                {
+                    "idleAction": "lock",
+                    "timeout": 180
+                },
+                {
+                    "idleAction": "dpms off",
+                    "returnAction": "dpms on",
+                    "timeout": 300
+                }
+            ]
+        },
+        "logo": ""
+    },
+    "launcher": {
+        "enableDangerousActions": true,
+        "showOnHover": false
+    },
+    "lock": {
+        "blurBackground": false,
+        "blurRadius": 80,
+        "cardBlur": true,
+        "hideNotifs": false,
+        "minimalOpacity": 1,
+        "recolourLogo": false,
+        "showOnStartup": false,
+        "style": "card"
+    },
+    "notifs": {
+        "openExpanded": true
+    },
+    "qspanel": {
+        "keepAwake": true,
+        "maxToasts": 8,
+        "toasts": {
+            "fullscreen": "off"
+        }
+    },
+    "services": {
+        "defaultPlayer": "auto",
+        "maxVolume": 1,
+        "nightLight": false,
+        "nightLightAuto": false,
+        "nightLightTemperature": 4750,
+        "uiSounds": {
+            "enabled": true,
+            "notificationsSound": "notif2.mp3",
+            "volume": 1
+        },
+        "useFahrenheit": false,
+        "useTwelveHourClock": true,
+        "weatherLocation": ""
+    }
+})JSON";
+}
+
 } // namespace
 
 RootConfig::RootConfig(QObject* parent)
@@ -110,6 +271,16 @@ void RootConfig::setupFileBackend(const QString& path, const QString& screen) {
 
     updateWatch();
 
+    // If shell.json is missing, generate default configuration directly
+    if (m_screen.isEmpty() && !QFile::exists(m_filePath)) {
+        QDir().mkpath(QFileInfo(m_filePath).absolutePath());
+        QFile file(m_filePath);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            file.write(defaultShellJson());
+            file.close();
+        }
+    }
+
     // Load immediately so values are available during construction.
     // Defer signal emissions to next event loop tick so QML has time to connect.
     auto result = reloadFromFile();
@@ -186,7 +357,15 @@ std::optional<QString> RootConfig::reloadFromFile() {
 
     if (!file.exists()) {
         qCDebug(lcConfig) << "File does not exist:" << m_filePath;
-        return std::nullopt;
+        if (m_screen.isEmpty()) {
+            QDir().mkpath(QFileInfo(m_filePath).absolutePath());
+            if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+                file.write(defaultShellJson());
+                file.close();
+            }
+        }
+        if (!file.exists())
+            return std::nullopt;
     }
 
     if (!file.open(QIODevice::ReadOnly)) {

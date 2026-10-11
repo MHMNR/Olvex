@@ -10,7 +10,7 @@ class LiveWallpaperConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(bool, enabled, false)
     CONFIG_PROPERTY(bool, muted, true)
 
 public:
@@ -48,8 +48,8 @@ class DesktopClock : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, enabled, false)
-    CONFIG_PROPERTY(qreal, scale, 1.0)
+    CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(qreal, scale, 1.02459716796875)
     CONFIG_PROPERTY(QString, position, QStringLiteral("bottom-right"))
     CONFIG_PROPERTY(bool, invertColors, false)
     CONFIG_SUBOBJECT(DesktopClockBackground, background)
@@ -83,7 +83,7 @@ class WallpaperTransitionConfig : public ConfigObject {
 
     CONFIG_PROPERTY(QString, type, QStringLiteral("random"))
     CONFIG_PROPERTY(int, duration, 1000)
-    CONFIG_PROPERTY(qreal, edgeSmoothness, 0.1)
+    CONFIG_PROPERTY(qreal, edgeSmoothness, 0.3)
 
 public:
     explicit WallpaperTransitionConfig(QObject* parent = nullptr)
