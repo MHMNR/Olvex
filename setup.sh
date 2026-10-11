@@ -754,7 +754,36 @@ deploy_system_configurations() {
         cp -r "${SCRIPT_DIR}/Olvex" "$TARGET_LOCAL"
         rm -rf "${TARGET_LOCAL}/build"
     fi
+    if [ -d "${SCRIPT_DIR}/.git" ]; then
+        cp -r "${SCRIPT_DIR}/.git" "${TARGET_LOCAL}/" 2>/dev/null || true
+    fi
     log_success "Olvex shell core deployed."
+}
+
+save_install_configuration() {
+    log_info "Writing system installation configuration to /etc/olvex/install.conf..."
+    sudo mkdir -p /etc/olvex
+    local current_commit="unknown"
+    if [ -d "${TARGET_LOCAL}/.git" ]; then
+        current_commit="$(git -C "${TARGET_LOCAL}" rev-parse HEAD 2>/dev/null || echo "unknown")"
+    elif [ -d "${SCRIPT_DIR}/.git" ]; then
+        current_commit="$(git -C "${SCRIPT_DIR}" rev-parse HEAD 2>/dev/null || echo "unknown")"
+    fi
+
+    sudo tee /etc/olvex/install.conf >/dev/null <<EOF
+# Olvex System Installation State
+REPO_URL="https://github.com/MHMNR/Olvex.git"
+BRANCH="Main"
+AUR_HELPER="${AUR_HELPER:-paru}"
+LOGIN_METHOD="${CONF_LOGIN_METHOD:-1}"
+DM_CHOICE="${CONF_DM_CHOICE:-1}"
+DRIVERS="${CONF_DRIVERS:-false}"
+SET_FISH="${CONF_SET_FISH:-false}"
+INSTALLED_COMMIT="${current_commit}"
+INSTALLED_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+EOF
+    sudo chmod 644 /etc/olvex/install.conf
+    log_success "System installation configuration saved (/etc/olvex/install.conf)."
 }
 
 build_and_setup_olvex() {
@@ -1095,6 +1124,7 @@ display_final_summary() {
     echo -e " ${BOX_V}   ${GLYPH_BULLET} Toggle Launcher  : ${CLR_YELLOW}olvex shell drawers toggle launcher${CLR_RESET}"
     echo -e " ${BOX_V}   ${GLYPH_BULLET} Reload Hyprland  : ${CLR_YELLOW}hyprctl reload${CLR_RESET}"
     echo -e " ${BOX_V}   ${GLYPH_BULLET} Rebuild Shell    : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}"
+    echo -e " ${BOX_V}   ${GLYPH_BULLET} Update Shell     : ${CLR_YELLOW}olvex update${CLR_RESET}"
     echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_BL}${bot_line}${BOX_BR}${CLR_RESET}\n"
 }
 
@@ -1121,6 +1151,7 @@ execute_all_changes() {
     # 3. Build & Setup Olvex
     section_header "Compiling C++ Plugins & System Integration" "[${current_step}/${total_exec_steps}]"
     build_and_setup_olvex
+    save_install_configuration
     ((current_step++))
 
     # 4. Apply Driver Configurations

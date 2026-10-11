@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Io
 import Olvex.Config
 import qs.services
 import qs.utils
@@ -17,6 +18,38 @@ Item {
     property Session session
     property string activeSection: ""
     signal back
+
+    property bool updateChecking: false
+    property bool updateAvailable: false
+    property string updateOldHash: ""
+    property string updateNewHash: ""
+
+    Process {
+        id: updateCheckProc
+        command: ["olvex", "update", "--check"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.updateChecking = false;
+                if (!text) return;
+                const match = text.match(/Update available:\s*([a-f0-9]+)\s*->\s*([a-f0-9]+)/i);
+                if (match) {
+                    root.updateAvailable = true;
+                    root.updateOldHash = match[1];
+                    root.updateNewHash = match[2];
+                } else if (text.includes("already up to date")) {
+                    root.updateAvailable = false;
+                }
+            }
+        }
+        onExited: {
+            root.updateChecking = false;
+        }
+    }
+
+    Component.onCompleted: {
+        root.updateChecking = true;
+        updateCheckProc.running = true;
+    }
 
     // Helper calculations for memory (RAM)
     readonly property real memUsedGB: SystemUsage.memTotal > 0 ? (SystemUsage.memUsed / 1048576.0) : 6.4
@@ -308,6 +341,134 @@ Item {
                                     font.weight: Font.Normal
                                     font.letterSpacing: 0.1
                                     textPointSize: Tokens.font.size.small
+                                }
+
+                                // Status badge (Up to date or checking)
+                                StyledRect {
+                                    visible: !root.updateAvailable
+                                    implicitWidth: statusRow.implicitWidth + 12
+                                    implicitHeight: 22
+                                    radius: Tokens.rounding.full
+                                    color: root.updateChecking ? Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.08) : Qt.alpha(Colours.palette.m3primary, 0.08)
+
+                                    RowLayout {
+                                        id: statusRow
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        MaterialIcon {
+                                            text: root.updateChecking ? "sync" : "check_circle"
+                                            color: root.updateChecking ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3primary
+                                            iconPointSize: 11
+                                        }
+
+                                        StyledText {
+                                            text: root.updateChecking ? qsTr("Checking...") : qsTr("Up to date")
+                                            color: root.updateChecking ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3primary
+                                            font.weight: Font.Medium
+                                            textPointSize: (Tokens.font.size.smaller) - 1
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Update Available Banner (Displays only when an update is available)
+                    StyledRect {
+                        id: updateBanner
+                        visible: root.updateAvailable
+                        Layout.fillWidth: true
+                        implicitHeight: updateRow.implicitHeight + 20
+                        radius: 14
+                        color: Qt.alpha(Colours.palette.m3primary, 0.12)
+                        border.color: Qt.alpha(Colours.palette.m3primary, 0.35)
+                        border.width: 1
+
+                        RowLayout {
+                            id: updateRow
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            StyledRect {
+                                implicitWidth: 36
+                                implicitHeight: 36
+                                radius: Tokens.rounding.full
+                                color: Qt.alpha(Colours.palette.m3primary, 0.2)
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "upgrade"
+                                    color: Colours.palette.m3primary
+                                    iconPointSize: 18
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                StyledText {
+                                    text: qsTr("Update Available") + (root.updateNewHash ? " · " + root.updateNewHash : "")
+                                    color: Colours.palette.m3primary
+                                    font.weight: Font.Bold
+                                    textPointSize: Tokens.font.size.normal
+                                }
+
+                                StyledText {
+                                    text: qsTr("Run 'olvex update' in your terminal to install the latest version.")
+                                    color: Colours.palette.m3onSurface
+                                    font.weight: Font.Normal
+                                    textPointSize: Tokens.font.size.smaller
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            // Click to copy command button
+                            StyledRect {
+                                id: copyBtn
+                                implicitWidth: copyRow.implicitWidth + 18
+                                implicitHeight: 32
+                                radius: Tokens.rounding.full
+                                color: copyMouse.pressed ? Qt.alpha(Colours.palette.m3primary, 0.35)
+                                     : copyMouse.containsMouse ? Qt.alpha(Colours.palette.m3primary, 0.25)
+                                     : Qt.alpha(Colours.palette.m3primary, 0.15)
+                                border.color: Qt.alpha(Colours.palette.m3primary, 0.3)
+                                border.width: 1
+
+                                Behavior on color { CAnim {} }
+
+                                RowLayout {
+                                    id: copyRow
+                                    anchors.centerIn: parent
+                                    spacing: 6
+
+                                    StyledText {
+                                        text: "olvex update"
+                                        color: Colours.palette.m3primary
+                                        font.family: Tokens.font.family.mono
+                                        font.weight: Font.Bold
+                                        textPointSize: (Tokens.font.size.smaller) - 1
+                                    }
+
+                                    MaterialIcon {
+                                        text: "content_copy"
+                                        color: Colours.palette.m3primary
+                                        iconPointSize: 13
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: copyMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        Quickshell.execDetached(["wl-copy", "olvex update"]);
+                                        Toaster.toast(qsTr("Copied 'olvex update' to clipboard"), "", "content_copy");
+                                    }
                                 }
                             }
                         }
