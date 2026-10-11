@@ -112,6 +112,20 @@ cd Olvex
 ./setup.sh
 ```
 
+### Updating Olvex
+
+To update an existing Olvex installation to the latest release while preserving your installer choices, run:
+
+```bash
+olvex update
+```
+
+To check whether upstream updates are available without applying them:
+
+```bash
+olvex update --check
+```
+
 ---
 
 ### Option B: Full Manual Installation (Step-by-Step)
@@ -287,6 +301,12 @@ olvex shell notifs clear                  # Dismiss All Active Notifications
 ```bash
 olvex shell restart                       # Soft-restart shell background process
 olvex shell kill                          # Terminate shell process
+```
+
+### Updates & Maintenance
+```bash
+olvex update                              # Update Olvex to latest release & rebuild plugins
+olvex update --check                      # Check if upstream update is available
 ```
 
 ---

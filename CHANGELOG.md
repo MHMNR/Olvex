@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-10-11
+
+### Added
+- **Automated Shell Updater (`olvex update`)**:
+  - Direct non-interactive updater command (`olvex update`) and update checker (`olvex update --check`).
+  - Automatically pulls latest updates from the official repository and rebuilds necessary native C++ plugins.
+  - Implemented persistent install-state tracking (`/etc/olvex/install.conf` with fallback to `~/.config/olvex/install.conf`) so user-selected packages, shell paths, and configurations are preserved across updates.
+  - Added safe git stash/pop and automated background daemon restart on update completion.
+- **In-App Update Notification & Tracker**:
+  - Added live update detection banner on the Settings **About Olvex** page.
+  - Displays current vs upstream git commit hashes with an interactive, copyable `olvex update` terminal command pill.
+- **Standalone Emoji Picker App (`olvex-emoji`)**:
+  - Dedicated standalone Qt/QML emoji picker window (`standalone/emoji`) with expandable search pill, category navigation, and backdrop dismiss.
+  - High-performance C++ backend search with on-the-fly emoji database rebuild integration.
+  - Bundled packaging support for `noto-fonts-emoji`.
+- **Embedded Default Configuration**:
+  - Embedded complete default shell JSON directly into the `RootConfig` C++ class, eliminating the need to read external files on initial boot.
+
+### Improved & Refactored
+- **Settings Glassmorphic Blur & Accent Tinting**:
+  - Added dynamic Material 3 Expressive accent tint wash (`Colours.palette.m3primary`) and ambient depth gradient wash (`m3primary` $\to$ `m3secondary`) over background blur.
+  - Adjusted base window glass opacity (`0.72–0.82`) to eliminate murky, dark backgrounds while keeping Hyprland frosted blur visible.
+  - Raised default surface container elevation (`transparencyLayers` floor raised to `0.58` with progressive layer alpha up to `0.76`).
+  - Sharpened Bento card and navigation card borders (`0.22` resting, `0.45` hover) and enriched subtle per-tile accent washes.
+- **Notification & Media Marquee Text Handling**:
+  - Added `MarqueeText` component with clean reset-on-activation state for long notification titles and media track labels.
+  - Refined media seekbar thumb dimensions and animation responsiveness across lockscreen and panel players.
+- **On-Screen Keyboard (OSK) Refinements**:
+  - Simplified OSK animation curves, improved background dragging, and tightened boundary safety checks.
+
+### Fixed
+- **Startup "Toast Bomb" Alert**:
+  - Fixed an issue where 8 unknown option warning toasts (`? border`, `? dashboard`, etc.) were displayed on shell launch due to `RootConfig` mistakenly writing shell configuration defaults into `shell-tokens.json`.
+  - Added path verification ensuring default shell JSON is strictly generated for `shell.json`.
+- **Carousel & Page Transition Glitches**:
+  - Added bounds checking to `M3Carousel` to prevent index out-of-range errors.
+  - Added transparent interaction shields during page transitions to prevent phantom clicks mid-animation.
+  - Fixed emoji picker list overscroll and content height estimation issues.
+
+---
+
 ## [1.4.0] - 2026-10-05
 
 ### Added
