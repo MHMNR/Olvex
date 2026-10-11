@@ -15,6 +15,8 @@
 #include <QRegularExpression>
 #include <QCoreApplication>
 #include <QStringList>
+#include <QSet>
+#include <QVector>
 #include <QTimer>
 #include <QDebug>
 #include <cstdio>
@@ -531,6 +533,118 @@ public:
         }
     }
 
+    Q_INVOKABLE QStringList search(const QString &query, int limit = 160) const {
+        const QString trimmed = query.trimmed();
+        if (trimmed.isEmpty())
+            return QStringList();
+
+        const QString q = trimmed.toLower();
+        static const QRegularExpression wsRe(QStringLiteral("\\s+"));
+        const QStringList queryTokens = q.split(wsRe, Qt::SkipEmptyParts);
+        if (queryTokens.isEmpty())
+            return QStringList();
+
+        const int maxMatches = qMax(1, limit);
+        QStringList exactMatches;
+        QStringList prefixMatches;
+        QStringList substringMatches;
+
+        const bool singleToken = (queryTokens.size() == 1);
+        const QString singleQ = singleToken ? queryTokens.first() : QString();
+
+        for (const auto &entry : m_emojiIndex) {
+            if (entry.emoji == trimmed) {
+                exactMatches.prepend(entry.emoji);
+                continue;
+            }
+
+            if (singleToken) {
+                bool isExact = false;
+                bool isPrefix = false;
+
+                for (const auto &w : entry.words) {
+                    if (w == singleQ) {
+                        isExact = true;
+                        break;
+                    }
+                    if (w.startsWith(singleQ)) {
+                        isPrefix = true;
+                    }
+                }
+
+                if (isExact) {
+                    exactMatches.append(entry.emoji);
+                } else if (isPrefix) {
+                    prefixMatches.append(entry.emoji);
+                } else if (entry.lowerKeywords.contains(singleQ)) {
+                    substringMatches.append(entry.emoji);
+                }
+            } else {
+                bool allMatch = true;
+                bool allExact = true;
+                bool allPrefix = true;
+
+                for (const auto &t : queryTokens) {
+                    bool tExact = false;
+                    bool tPrefix = false;
+
+                    for (const auto &w : entry.words) {
+                        if (w == t) {
+                            tExact = true;
+                            break;
+                        }
+                        if (w.startsWith(t)) {
+                            tPrefix = true;
+                        }
+                    }
+
+                    if (tExact) {
+                        // exact match for this token
+                    } else if (tPrefix) {
+                        allExact = false;
+                    } else if (entry.lowerKeywords.contains(t)) {
+                        allExact = false;
+                        allPrefix = false;
+                    } else {
+                        allMatch = false;
+                        break;
+                    }
+                }
+
+                if (allMatch) {
+                    if (allExact) {
+                        exactMatches.append(entry.emoji);
+                    } else if (allPrefix) {
+                        prefixMatches.append(entry.emoji);
+                    } else {
+                        substringMatches.append(entry.emoji);
+                    }
+                }
+            }
+        }
+
+        QStringList results;
+        results.reserve(qMin(maxMatches, exactMatches.size() + prefixMatches.size() + substringMatches.size()));
+
+        for (const auto &em : exactMatches) {
+            if (results.size() >= maxMatches)
+                return results;
+            results.append(em);
+        }
+        for (const auto &em : prefixMatches) {
+            if (results.size() >= maxMatches)
+                return results;
+            results.append(em);
+        }
+        for (const auto &em : substringMatches) {
+            if (results.size() >= maxMatches)
+                return results;
+            results.append(em);
+        }
+
+        return results;
+    }
+
 signals:
     void recentEmojisChanged();
     void skinToneChanged();
@@ -565,7 +679,35 @@ private:
         return QString();
     }
 
+    struct EmojiEntry {
+        QString emoji;
+        QString lowerKeywords;
+        QStringList words;
+    };
+
+    void buildSearchIndex() {
+        m_emojiIndex.clear();
+        m_emojiIndex.reserve(m_keywords.size());
+        static const QRegularExpression wsRe(QStringLiteral("\\s+"));
+        for (auto it = m_keywords.constBegin(); it != m_keywords.constEnd(); ++it) {
+            EmojiEntry entry;
+            entry.emoji = it.key();
+            entry.lowerKeywords = it.value().toString().toLower();
+            const QStringList rawWords = entry.lowerKeywords.split(wsRe, Qt::SkipEmptyParts);
+            QSet<QString> seenWords;
+            entry.words.reserve(rawWords.size());
+            for (const auto &w : rawWords) {
+                if (!seenWords.contains(w)) {
+                    seenWords.insert(w);
+                    entry.words.append(w);
+                }
+            }
+            m_emojiIndex.append(std::move(entry));
+        }
+    }
+
     void loadDatabase() {
+        bool loaded = false;
         QFile file(databaseFilePath());
         if (file.open(QIODevice::ReadOnly)) {
             const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
@@ -573,9 +715,39 @@ private:
                 const QJsonObject obj = doc.object();
                 m_categories = obj.value(QStringLiteral("categories")).toArray().toVariantList();
                 m_keywords = obj.value(QStringLiteral("keywords")).toObject().toVariantMap();
-                emit databaseUpdated();
+                if (!m_categories.isEmpty() && !m_keywords.isEmpty())
+                    loaded = true;
             }
         }
+
+        if (!loaded) {
+            const QStringList fallbackCandidates = {
+                QStringLiteral(":/emojis.js"),
+                QDir::homePath() + QStringLiteral("/.local/Olvex/standalone/emoji/emojis.js"),
+                QDir::homePath() + QStringLiteral("/Projects/QS-Config/Github/Olvex/standalone/emoji/emojis.js"),
+                QCoreApplication::applicationDirPath() + QStringLiteral("/emojis.js")
+            };
+            for (const auto &cand : fallbackCandidates) {
+                QFile jsFile(cand);
+                if (jsFile.open(QIODevice::ReadOnly)) {
+                    const QString content = QString::fromUtf8(jsFile.readAll());
+                    static const QRegularExpression re(
+                        QStringLiteral("var\\s+categories\\s*=\\s*(\\[.*?\\]);\\s*var\\s+emojiKeywords\\s*=\\s*(\\{.*?\\});"),
+                        QRegularExpression::DotMatchesEverythingOption
+                    );
+                    auto match = re.match(content);
+                    if (match.hasMatch()) {
+                        m_categories = QJsonDocument::fromJson(match.captured(1).toUtf8()).array().toVariantList();
+                        m_keywords = QJsonDocument::fromJson(match.captured(2).toUtf8()).object().toVariantMap();
+                        loaded = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        buildSearchIndex();
+        emit databaseUpdated();
     }
 
     void loadSettings() {
@@ -613,6 +785,7 @@ private:
     QString m_skinTone;
     QVariantList m_categories;
     QVariantMap m_keywords;
+    QVector<EmojiEntry> m_emojiIndex;
     bool m_isUpdating{false};
     QString m_updateStatus;
     QProcess *m_updateProcess{nullptr};

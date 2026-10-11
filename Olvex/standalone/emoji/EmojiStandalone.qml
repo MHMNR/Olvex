@@ -99,51 +99,16 @@ Window {
         return rows
     }
 
-    // ── Search Results Model (Ranked Match) ──────────────────────────────
+    // ── Search Results Model (C++ Search Engine) ─────────────────────────
     property var searchResults: {
         if (!searchText)
             return []
-        let query = searchText.toLowerCase().trim()
+        let query = searchText.trim()
         if (!query)
             return []
-        let keywords = (EmojiBackend.keywords && Object.keys(EmojiBackend.keywords).length > 0) 
-                       ? EmojiBackend.keywords 
-                       : ((typeof EmojiData !== "undefined" && EmojiData.emojiKeywords) ? EmojiData.emojiKeywords : {})
-
-        let exactWordMatches = []
-        let prefixWordMatches = []
-        let substringMatches = []
-        let seen = {}
-
-        for (let em in keywords) {
-            let kw = keywords[em]
-            if (!kw)
-                continue
-            let lowerKw = kw.toLowerCase()
-            let words = lowerKw.split(/\s+/)
-            let exactWord = false
-            let prefixWord = false
-            for (let w = 0; w < words.length; w++) {
-                if (words[w] === query) {
-                    exactWord = true
-                    break
-                }
-                if (words[w].startsWith(query)) {
-                    prefixWord = true
-                }
-            }
-
-            if (exactWord) {
-                if (!seen[em]) { seen[em] = true; exactWordMatches.push(em); }
-            } else if (prefixWord) {
-                if (!seen[em]) { seen[em] = true; prefixWordMatches.push(em); }
-            } else if (lowerKw.indexOf(query) !== -1) {
-                if (!seen[em]) { seen[em] = true; substringMatches.push(em); }
-            }
-        }
-
-        let sorted = exactWordMatches.concat(prefixWordMatches).concat(substringMatches)
-        return sorted.slice(0, 160)
+        if (typeof EmojiBackend !== "undefined" && EmojiBackend.search)
+            return EmojiBackend.search(query, 160)
+        return []
     }
 
     function yPositionForCat(catIdx) {
@@ -626,7 +591,7 @@ Window {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 44
                             orientation: ListView.Horizontal
-                            model: EmojiData.categories
+                            model: (EmojiBackend.categories && EmojiBackend.categories.length > 0) ? EmojiBackend.categories : EmojiData.categories
                             spacing: 2
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
