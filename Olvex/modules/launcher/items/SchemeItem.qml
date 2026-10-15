@@ -14,13 +14,16 @@ Item {
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
-    anchors.left: parent?.left
-    anchors.right: parent?.right
+    anchors.left: parent ? parent.left : undefined
+    anchors.right: parent ? parent.right : undefined
 
     StateLayer {
         radius: Tokens.rounding.normal
         showHoverBackground: false
-        onClicked: root.modelData?.onClicked(root.list)
+        onClicked: {
+            if (root.modelData && root.modelData.onClicked)
+                root.modelData.onClicked(root.list);
+        }
     }
 
     Item {
@@ -35,9 +38,9 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
 
             border.width: 1
-            border.color: Qt.alpha(`#${root.modelData?.colours?.outline}`, 0.5)
+            border.color: Qt.alpha((root.modelData && root.modelData.colours) ? `#${root.modelData.colours.outline}` : "#000000", 0.5)
 
-            color: `#${root.modelData?.colours?.surface}`
+            color: (root.modelData && root.modelData.colours) ? `#${root.modelData.colours.surface}` : "transparent"
             radius: Tokens.rounding.full
             implicitWidth: parent.height * 0.8
             implicitHeight: parent.height * 0.8
@@ -56,7 +59,7 @@ Item {
                     anchors.right: parent.right
 
                     implicitWidth: preview.implicitWidth
-                    color: `#${root.modelData?.colours?.primary}`
+                    color: (root.modelData && root.modelData.colours) ? `#${root.modelData.colours.primary}` : "transparent"
                     radius: Tokens.rounding.full
                 }
             }
@@ -71,16 +74,16 @@ Item {
             spacing: 0
 
             StyledText {
-                text: root.modelData?.flavour ?? ""
+                text: root.modelData ? (root.modelData.flavour || "") : ""
                 textPointSize: Tokens.font.size.normal
                 color: Colours.palette.m3onSurface
                 font.weight: isCurrent ? Font.DemiBold : Font.Normal
             }
 
             StyledText {
-                text: root.modelData?.name ?? ""
+                text: root.modelData ? (root.modelData.name || "") : ""
                 textPointSize: Tokens.font.size.small
-                color: isCurrent ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3outline
+                color: isCurrent ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
 
                 elide: Text.ElideRight
                 anchors.left: parent.left
@@ -95,7 +98,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
 
-            active: `${root.modelData?.name} ${root.modelData?.flavour}` === Schemes.currentScheme
+            active: Boolean(root.modelData && (`${root.modelData.name} ${root.modelData.flavour}` === Schemes.currentScheme))
 
             sourceComponent: MaterialIcon {
                 text: "check"

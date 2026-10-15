@@ -210,8 +210,9 @@ Item {
             id: name
 
             text: root.modelData && root.modelData.name ? root.modelData.name : ""
-            font.weight: Font.Normal
-            color: (root.isHovered || root.isSelected) ? (Colours.light ? "#000000" : "#ffffff") : Qt.alpha(Colours.light ? "#000000" : "#ffffff", 0.7)
+            textPointSize: Tokens.font.size.small
+            font.weight: (root.isHovered || root.isSelected) ? Font.DemiBold : Font.Normal
+            color: Colours.palette.m3onSurface
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             maximumLineCount: 2

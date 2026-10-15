@@ -99,12 +99,12 @@ StyledRect {
     implicitWidth: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
     implicitHeight: size
     radius: Tokens.rounding.full
-    color: Colours.light ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
+    color: Colours.palette.m3primary
 
     Colouriser {
         source: root.mask
-        sourceColor: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
-        colorizationColor: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onPrimary
+        sourceColor: Colours.palette.m3onPrimary
+        colorizationColor: Colours.palette.m3onPrimary
 
         y: -root.offset
         width: root.mask.width

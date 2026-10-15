@@ -90,9 +90,9 @@ Item {
 
                 StyledText {
                     text: qsTr("No results")
-                    color: Colours.palette.m3onSurfaceVariant
+                    color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.larger
-                    font.weight: 500
+                    font.weight: Font.DemiBold
                 }
 
                 StyledText {

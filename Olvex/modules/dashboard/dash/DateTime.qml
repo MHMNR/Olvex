@@ -77,7 +77,7 @@ Item {
     }
 
     readonly property color accentColor: Colours.palette.m3primary
-    readonly property color fillBase: Colours.light ? Colours.layer(Colours.palette.m3primaryContainer, 1) : Colours.palette.m3primary
+    readonly property color fillBase: Colours.palette.m3primary
 
     // ── Compiled Hardware GPU Shader Effect (clock_wave.frag.qsb) ──
     ShaderEffect {
@@ -89,7 +89,7 @@ Item {
         property real iTime: waveTimer.elapsed
         property real iFillProgress: waveTimer.fillProgress
         property color iPrimary: Colours.palette.m3primary
-        property color iPrimaryContainer: Colours.light ? Colours.layer(Colours.palette.m3primaryContainer, 1) : Colours.palette.m3primary
+        property color iPrimaryContainer: Colours.palette.m3primary
         property color iOnPrimaryContainer: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onPrimary
         property real iWidth: Math.max(width, 1)
         property real iHeight: Math.max(height, 1)

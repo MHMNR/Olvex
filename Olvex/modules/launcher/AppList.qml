@@ -477,7 +477,7 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             text: qsTr("Applications")
-            color: Colours.palette.m3onSurfaceVariant
+            color: Colours.palette.m3onSurface
             textPointSize: Tokens.font.size.normal
             font.weight: Font.DemiBold
         }

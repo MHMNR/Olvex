@@ -195,7 +195,7 @@ Item {
                     return root.modelData.desc || "";
                 }
                 textPointSize: Tokens.font.size.small
-                color: root.isCurrent ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3outline
+                color: root.isCurrent ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
                 elide: Text.ElideRight
 
                 Behavior on color { CAnim {} }
@@ -250,7 +250,7 @@ Item {
                         anchors.centerIn: parent
                         text: "open_in_new"
                         iconPointSize: 16
-                        color: root.isCurrent ? Colours.palette.m3primary : Colours.palette.m3outline
+                        color: openHover.hovered ? Colours.palette.m3primary : (root.isCurrent ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant)
                     }
 
                     HoverHandler {
@@ -271,7 +271,7 @@ Item {
                 visible: root.modelData && root.modelData.type === "setting"
                 text: "chevron_right"
                 iconPointSize: 20
-                color: root.isCurrent ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outline, 0.45)
+                color: root.isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
 
                 Behavior on color { CAnim {} }
             }
@@ -285,15 +285,15 @@ Item {
                 implicitHeight: 22
                 radius: Tokens.rounding.full
                 color: root.isCurrent 
-                    ? Qt.alpha(Colours.palette.m3primary, 0.22) 
-                    : Qt.alpha(Colours.palette.m3primary, 0.12)
+                    ? Colours.palette.m3secondaryContainer 
+                    : Qt.alpha(Colours.palette.m3secondaryContainer, 0.7)
 
                 Behavior on color { CAnim {} }
 
                 StyledText {
                     anchors.centerIn: parent
                     text: qsTr("App")
-                    color: Colours.palette.m3primary
+                    color: Colours.palette.m3onSecondaryContainer
                     textPointSize: Tokens.font.size.smaller
                     font.weight: Font.DemiBold
                 }
@@ -306,7 +306,7 @@ Item {
                 visible: root.modelData && (root.modelData.type === "command" || (!root.modelData.type && root.modelData.onClicked))
                 text: "arrow_forward"
                 iconPointSize: 18
-                color: root.isCurrent ? Colours.palette.m3primary : Colours.palette.m3outline
+                color: root.isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
 
                 Behavior on color { CAnim {} }
             }

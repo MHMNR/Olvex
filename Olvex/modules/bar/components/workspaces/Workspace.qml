@@ -43,6 +43,16 @@ Item {
     readonly property real targetTopMargin: index === 0 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (size / 2) - Tokens.padding.small) : 0
     readonly property real targetBottomMargin: index === Config.bar.workspaces.shown - 1 ? Math.max(0, (Tokens.sizes.bar.innerWidth / 2) - (size / 2) - Tokens.padding.small) : 0
 
+    readonly property string nerdFontFamily: {
+        const families = Qt.fontFamilies();
+        const propo = families.find(f => f.toLowerCase().includes("nerd font propo"));
+        if (propo) return propo;
+        const nf = families.find(f => f.toLowerCase().includes("nerd font"));
+        if (nf) return nf;
+        return "CaskaydiaCove Nerd Font Propo";
+    }
+    readonly property bool isNerdFontPropo: nerdFontFamily.toLowerCase().includes("propo")
+
     Layout.alignment: Qt.AlignHCenter
     Layout.preferredHeight: size
     Layout.topMargin: targetTopMargin
@@ -197,9 +207,9 @@ Item {
         width: root.collapsedHeight
         height: width
         radius: width / 2
-        color: root.isOccupied ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) : "transparent"
+        color: root.isOccupied ? (root.isCurrent ? (Colours.light ? Colours.palette.m3onPrimary : Colours.palette.m3onPrimary) : (Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface)) : "transparent"
         border.width: root.isOccupied ? 0 : 2
-        border.color: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+        border.color: Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurfaceVariant
 
         opacity: isExpandedState ? 0 : 1
         scale: isExpandedState ? 0.6 : 1.0
@@ -345,6 +355,14 @@ Item {
                     || (code >= 0x24EB && code <= 0x24F4)
                     || (code >= 0x2780 && code <= 0x2789);
             }
+            readonly property bool isNerdIcon: {
+                const t = currentText;
+                if (!t || t.length === 0) return false;
+                const code = t.codePointAt(0);
+                return (code >= 0xE000 && code <= 0xF8FF)
+                    || (code >= 0xF0000 && code <= 0xFFFFD)
+                    || (code >= 0x100000 && code <= 0x10FFFD);
+            }
 
             Rectangle {
                 id: dotIcon
@@ -355,9 +373,9 @@ Item {
                 radius: width / 2
 
                 visible: labelContainer.isCircleDot
-                color: root.isOccupied || root.isCurrent 
-                    ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) 
-                    : (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant)
+                color: root.isCurrent
+                    ? Colours.palette.m3onPrimary
+                    : (Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface)
 
                 Behavior on color {
                     CAnim {}
@@ -368,16 +386,18 @@ Item {
                 id: labelText
 
                 anchors.centerIn: parent
+                anchors.horizontalCenterOffset: (labelContainer.isNerdIcon && !root.isNerdFontPropo) ? -2 : 0
                 width: parent.width
 
+                font.family: labelContainer.isNerdIcon ? root.nerdFontFamily : ((Tokens && Tokens.font && Tokens.font.family) ? Tokens.font.family.sans : "sans-serif")
                 textPointSize: labelContainer.isCircledNumber ? ((Tokens ? Tokens.font.size.larger : 18) + 1) : (Tokens ? Tokens.font.size.normal : 13)
 
                 visible: !labelContainer.isMaterial && !labelContainer.isCircleDot
                 animate: false
                 text: labelContainer.currentText
-                color: root.isOccupied || root.isCurrent 
-                    ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) 
-                    : (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant)
+                color: root.isCurrent
+                    ? Colours.palette.m3onPrimary
+                    : (Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurfaceVariant)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -393,9 +413,9 @@ Item {
                 visible: labelContainer.isMaterial && !labelContainer.isCircleDot
                 animate: false
                 text: labelContainer.currentText
-                color: root.isOccupied || root.isCurrent 
-                    ? (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface) 
-                    : (Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant)
+                color: root.isCurrent
+                    ? Colours.palette.m3onPrimary
+                    : (Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurfaceVariant)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -458,7 +478,7 @@ Item {
 
                         grade: 0
                         text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
-                        color: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                        color: root.isCurrent ? Colours.palette.m3onPrimary : (Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurfaceVariant)
                     }
                 }
             }

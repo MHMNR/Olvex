@@ -14,13 +14,16 @@ Item {
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
-    anchors.left: parent?.left
-    anchors.right: parent?.right
+    anchors.left: parent ? parent.left : undefined
+    anchors.right: parent ? parent.right : undefined
 
     StateLayer {
         radius: Tokens.rounding.normal
         showHoverBackground: false
-        onClicked: root.modelData?.onClicked(root.list)
+        onClicked: {
+            if (root.modelData && root.modelData.onClicked)
+                root.modelData.onClicked(root.list);
+        }
     }
 
     Item {
@@ -32,7 +35,7 @@ Item {
         MaterialIcon {
             id: icon
 
-            text: root.modelData?.icon ?? ""
+            text: root.modelData ? (root.modelData.icon || "") : ""
             // removed font.pointSize to avoid point/pixel conflict warnings
             color: isCurrent ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
 
@@ -48,16 +51,16 @@ Item {
             spacing: 0
 
             StyledText {
-                text: root.modelData?.name ?? ""
+                text: root.modelData ? (root.modelData.name || "") : ""
                 // removed font.pointSize to avoid point/pixel conflict warnings
                 color: Colours.palette.m3onSurface
                 font.weight: isCurrent ? Font.DemiBold : Font.Normal
             }
 
             StyledText {
-                text: root.modelData?.description ?? ""
+                text: root.modelData ? (root.modelData.description || "") : ""
                 // removed font.pointSize to avoid point/pixel conflict warnings
-                color: isCurrent ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3outline
+                color: isCurrent ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
 
                 elide: Text.ElideRight
                 anchors.left: parent.left
@@ -72,7 +75,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
 
-            active: root.modelData?.variant === Schemes.currentVariant
+            active: Boolean(root.modelData && root.modelData.variant === Schemes.currentVariant)
 
             sourceComponent: MaterialIcon {
                 id: checkIcon

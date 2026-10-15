@@ -64,7 +64,7 @@ Item {
 
                 text: root.modelData ? (root.modelData.desc || "") : ""
                 textPointSize: Tokens.font.size.small
-                color: isCurrent ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3outline
+                color: isCurrent ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
 
                 elide: Text.ElideRight
                 width: root.width - icon.width - Tokens.rounding.normal * 2
