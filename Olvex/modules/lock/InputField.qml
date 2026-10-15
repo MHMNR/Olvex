@@ -162,7 +162,6 @@ Item {
                     opacity = 1;
                     scale = 1;
                 }
-                ListView.onRemove: removeAnim.start()
 
                 property bool isMorphed: false
 
@@ -251,17 +250,7 @@ Item {
                     }
                 }
 
-                // ── Remove animation ──────────────────────────────────────────
-                SequentialAnimation {
-                    id: removeAnim
 
-                    PropertyAction { target: ch; property: "ListView.delayRemove"; value: true }
-                    ParallelAnimation {
-                        NumberAnimation { target: ch; property: "opacity"; to: 0; duration: 120; easing.type: Easing.InQuad }
-                        NumberAnimation { target: ch; property: "scale";   to: 0.3; duration: 120; easing.type: Easing.InQuad }
-                    }
-                    PropertyAction { target: ch; property: "ListView.delayRemove"; value: false }
-                }
 
                 Behavior on opacity {
                     NumberAnimation { duration: 180; easing: Tokens.anim.expressiveFastSpatial }

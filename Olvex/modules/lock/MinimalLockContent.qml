@@ -1660,9 +1660,8 @@ Item {
                             id: passInputHover
                         }
 
-                        StateLayer {
-                            onClicked: root.forceActiveFocus()
-                            hoverEnabled: false
+                        TapHandler {
+                            onTapped: root.forceActiveFocus()
                             cursorShape: Qt.IBeamCursor
                         }
 

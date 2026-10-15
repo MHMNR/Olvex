@@ -92,7 +92,7 @@ ColumnLayout {
 
         transform: Translate { id: clockTrans; y: -800 }
 
-        layer.enabled: !entranceAnim.running && !exitAnim.running
+        layer.enabled: true
         layer.smooth: true
         layer.effect: MultiEffect {
             shadowEnabled: true
@@ -422,9 +422,8 @@ ColumnLayout {
                     id: passInputHover
                 }
 
-                StateLayer {
-                    onClicked: parent.forceActiveFocus()
-                    hoverEnabled: false
+                TapHandler {
+                    onTapped: parent.forceActiveFocus()
                     cursorShape: Qt.IBeamCursor
                 }
 
