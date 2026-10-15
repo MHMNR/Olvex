@@ -14,7 +14,7 @@ import qs.modules.launcher.services
 Item {
     id: root
 
-    required property StyledTextField search
+    property alias search: searchInput
     required property DrawerVisibilities visibilities
     required property var panels
 
@@ -380,13 +380,28 @@ Item {
     Connections {
         target: visibilities
         function onLauncherChanged() {
-            if (visibilities.launcher)
+            if (visibilities.launcher) {
                 resume();
-            else {
+                if (visibilities.launcherSearchText) {
+                    searchInput.text = visibilities.launcherSearchText;
+                    visibilities.launcherSearchText = "";
+                }
+                Qt.callLater(() => searchInput.forceActiveFocus());
+            } else {
                 suspend();
                 sortContainer.expanded = false;
+                searchPill.searchExpanded = false;
+                searchInput.text = "";
+                searchInput.focus = false;
                 // Dismiss context menu when launcher closes
                 sharedContextMenu.expanded = false;
+            }
+        }
+        function onLauncherSearchTextChanged() {
+            if (visibilities.launcherSearchText) {
+                searchInput.text = visibilities.launcherSearchText;
+                visibilities.launcherSearchText = "";
+                Qt.callLater(() => searchInput.forceActiveFocus());
             }
         }
     }
@@ -458,16 +473,16 @@ Item {
         if (state === "apps")
             return appsPaneHeight;
         const maxShown = Config.launcher.maxShown ? Config.launcher.maxShown : 6;
-        return (Tokens.sizes.launcher.itemHeight + 8) * Math.min(maxShown, count) - 8;
+        return (Tokens.sizes.launcher.itemHeight + 8) * Math.min(maxShown, count) + 36;
     }
 
-    // Top Header Bar with Sort Button
+    // Top Header Bar with Search Pill and Sort Button
     Item {
         id: headerBar
 
-        visible: root.state === "apps"
+        visible: true
         width: 550
-        height: 32
+        height: 38
         z: 100
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
@@ -482,13 +497,290 @@ Item {
             font.weight: Font.DemiBold
         }
 
-        // Container Transform Sort Control (Icon morphs into sorting list menu)
+        // Expandable Morphing Search Pill (Circle 38px -> 320px input field)
+        Item {
+            id: searchPillHost
+            anchors.right: sortControlHost.left
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            width: searchPill.width
+            height: searchPill.height
+            z: searchPill.searchActive ? 98 : 1
+
+            // Click-outside overlay: dismiss search when clicking anywhere outside searchbar
+            MouseArea {
+                anchors.fill: parent
+                anchors.margins: -2000
+                visible: searchPill.searchActive
+                z: 0
+                onClicked: {
+                    searchPill.searchExpanded = false;
+                    searchInput.text = "";
+                    searchInput.focus = false;
+                }
+            }
+
+            StyledRect {
+                id: searchPill
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                z: 1
+
+                property bool searchExpanded: false
+                readonly property bool searchActive: searchExpanded || searchInput.text.length > 0 || (searchInput.activeFocus && (searchInput.text.length > 0 || searchExpanded))
+
+                implicitWidth: searchActive ? 320 : 38
+                implicitHeight: 38
+                radius: 19
+                clip: true
+
+            color: searchActive ? Colours.palette.m3surfaceContainerHigh
+                                : (searchPillHover.hovered ? Colours.palette.m3surfaceContainerHigh
+                                                           : Colours.palette.m3surfaceContainer)
+            border.width: 0
+
+            Behavior on implicitWidth { Anim { type: Anim.Emphasized } }
+            Behavior on color { CAnim {} }
+
+            HoverHandler {
+                id: searchPillHover
+                cursorShape: searchPill.searchActive ? Qt.IBeamCursor : Qt.PointingHandCursor
+            }
+
+            // Collapsed Click-to-Expand Trigger
+            MouseArea {
+                anchors.fill: parent
+                visible: !searchPill.searchActive
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    searchPill.searchExpanded = true;
+                    Qt.callLater(() => searchInput.forceActiveFocus());
+                }
+            }
+
+            // Single Search Icon
+            MaterialIcon {
+                id: searchPillIcon
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: searchPill.searchActive ? 12 : Math.round((38 - searchPillIcon.implicitWidth) / 2)
+                text: "search"
+                iconPointSize: 18
+                color: searchInput.activeFocus ? Colours.palette.m3primary
+                     : (searchPill.searchActive ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3primary)
+
+                Behavior on anchors.leftMargin { Anim { type: Anim.Emphasized } }
+                Behavior on color { CAnim {} }
+            }
+
+            // Text Input & Placeholder Holder
+            Item {
+                id: searchInputHolder
+                anchors.left: searchPillIcon.right
+                anchors.leftMargin: 6
+                anchors.right: searchClearBtn.left
+                anchors.rightMargin: 4
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                clip: true
+                opacity: searchPill.searchActive ? 1.0 : 0.0
+                visible: opacity > 0.01
+
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                TextInput {
+                    id: searchInput
+                    anchors.fill: parent
+                    verticalAlignment: TextInput.AlignVCenter
+                    color: Colours.palette.m3onSurface
+                    selectionColor: Qt.alpha(Colours.palette.m3primary, 0.3)
+                    selectedTextColor: Colours.palette.m3onSurface
+                    font.family: Tokens.font.family.sans
+                    font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                    selectByMouse: true
+                    cursorVisible: activeFocus
+
+                    onAccepted: {
+                        if (root.count > 0 && root.currentItem) {
+                            const cur = root.currentItem;
+                            if (cur.select) {
+                                cur.select();
+                            } else if (root.state === "calc" && cur.onClicked) {
+                                cur.onClicked();
+                            } else if (cur.modelData && cur.modelData.onClicked) {
+                                cur.modelData.onClicked(root);
+                            } else if (cur.modelData && cur.modelData.id) {
+                                Apps.launch(cur.modelData);
+                                root.visibilities.launcher = false;
+                                Visibilities.launcherInterrupted = true;
+                            }
+                        }
+                    }
+
+                    Keys.priority: Keys.BeforeItem
+                    Keys.onUpPressed: event => {
+                        root.showKeyboardHighlight();
+                        root.decrementCurrentIndex();
+                        event.accepted = true;
+                    }
+                    Keys.onDownPressed: event => {
+                        root.showKeyboardHighlight();
+                        root.incrementCurrentIndex();
+                        event.accepted = true;
+                    }
+                    Keys.onLeftPressed: event => {
+                        root.showKeyboardHighlight();
+                        root.moveLeft();
+                        event.accepted = true;
+                    }
+                    Keys.onRightPressed: event => {
+                        root.showKeyboardHighlight();
+                        root.moveRight();
+                        event.accepted = true;
+                    }
+                    Keys.onEscapePressed: event => {
+                        if (text.length > 0) {
+                            text = "";
+                            event.accepted = true;
+                        } else {
+                            searchPill.searchExpanded = false;
+                            focus = false;
+                            root.visibilities.launcher = false;
+                            event.accepted = true;
+                        }
+                    }
+
+                    Keys.onPressed: event => {
+                        if (event.key === Qt.Key_Left) {
+                            root.showKeyboardHighlight();
+                            root.moveLeft();
+                            event.accepted = true;
+                            return;
+                        }
+                        if (event.key === Qt.Key_Right) {
+                            root.showKeyboardHighlight();
+                            root.moveRight();
+                            event.accepted = true;
+                            return;
+                        }
+                        if (event.key === Qt.Key_Up) {
+                            root.showKeyboardHighlight();
+                            root.decrementCurrentIndex();
+                            event.accepted = true;
+                            return;
+                        }
+                        if (event.key === Qt.Key_Down) {
+                            root.showKeyboardHighlight();
+                            root.incrementCurrentIndex();
+                            event.accepted = true;
+                            return;
+                        }
+
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            if (root.count > 0 && root.currentItem) {
+                                const cur = root.currentItem;
+                                if ((event.modifiers & Qt.ShiftModifier) && cur.openSettings) {
+                                    cur.openSettings();
+                                    event.accepted = true;
+                                    return;
+                                }
+
+                                if (cur.select) {
+                                    cur.select();
+                                } else if (root.state === "calc" && cur.onClicked) {
+                                    cur.onClicked();
+                                } else if (cur.modelData && cur.modelData.onClicked) {
+                                    cur.modelData.onClicked(root);
+                                } else if (cur.modelData && cur.modelData.id) {
+                                    Apps.launch(cur.modelData);
+                                    root.visibilities.launcher = false;
+                                    Visibilities.launcherInterrupted = true;
+                                }
+                            }
+                            event.accepted = true;
+                        }
+                    }
+
+                    cursorDelegate: Rectangle {
+                        width: 2
+                        height: searchInput.font.pixelSize * 1.2
+                        radius: 1
+                        color: Colours.palette.m3primary
+                        SequentialAnimation on opacity {
+                            loops: Animation.Infinite
+                            running: searchInput.activeFocus
+                            NumberAnimation { to: 1.0; duration: 80 }
+                            PauseAnimation   { duration: 520 }
+                            NumberAnimation { to: 0.0; duration: 80 }
+                            PauseAnimation   { duration: 380 }
+                        }
+                    }
+                }
+
+                StyledText {
+                    anchors.fill: parent
+                    verticalAlignment: Text.AlignVCenter
+                    text: qsTr("Search apps, math...")
+                    color: Colours.palette.m3outline
+                    font.family: Tokens.font.family.sans
+                    font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                    visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
+                    opacity: searchInput.text.length === 0 ? 0.75 : 0
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
+            }
+
+            // Clear / Close Button
+            StyledRect {
+                id: searchClearBtn
+                anchors.right: parent.right
+                anchors.rightMargin: 6
+                anchors.verticalCenter: parent.verticalCenter
+                implicitWidth: 26
+                implicitHeight: 26
+                radius: 13
+                color: searchClearMa.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.12) :
+                       searchClearMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
+                opacity: searchPill.searchActive ? 1.0 : 0.0
+                visible: opacity > 0.01
+
+                Behavior on color { CAnim {} }
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "close"
+                    color: Colours.palette.m3onSurfaceVariant
+                    iconPointSize: 15
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                MouseArea {
+                    id: searchClearMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (searchInput.text.length > 0) {
+                            searchInput.text = "";
+                            searchInput.forceActiveFocus();
+                        } else {
+                            searchPill.searchExpanded = false;
+                            searchInput.focus = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Container Transform Sort Control (Icon morphs into sorting list menu)
         Item {
             id: sortControlHost
             anchors.right: parent.right
             anchors.top: parent.top
             width: sortContainer.width
-            height: sortContainer.height
+            height: 38
             z: sortContainer.expanded ? 99 : 1
 
             // Click-outside overlay to dismiss menu & block mouse focus/hover leaks
@@ -511,9 +803,9 @@ Item {
 
                 property bool expanded: false
 
-                width: expanded ? 208 : 32
-                height: expanded ? 124 : 32
-                radius: 16
+                width: expanded ? 208 : 38
+                height: expanded ? 124 : 38
+                radius: expanded ? 16 : 19
 
                 // Opaque Material 3 surface color (m3surfaceContainerHigh)
                 color: expanded ? Colours.palette.m3surfaceContainerHigh
@@ -532,8 +824,8 @@ Item {
                     id: collapsedIcon
                     anchors.top: parent.top
                     anchors.right: parent.right
-                    width: 32
-                    height: 32
+                    width: 38
+                    height: 38
                     opacity: sortContainer.expanded ? 0 : 1
                     scale: sortContainer.expanded ? 0.5 : 1
                     visible: !sortContainer.expanded && opacity > 0.01
@@ -877,7 +1169,9 @@ Item {
             width: 102
             height: 112
             radius: 16
-            color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+            color: root.keyboardHighlightActive 
+                ? Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.20 : 0.24)
+                : Qt.alpha(Colours.palette.m3onSurface, Colours.light ? 0.12 : 0.08)
             border.width: 0
             x: markerX
             y: markerY
@@ -890,22 +1184,20 @@ Item {
                     return;
                 const nx = item.x + 4;
                 const ny = item.y - appGrid.contentY + 4;
-                springEnabled = animate && root.visibilities.launcher && !root.revealPending;
+                springEnabled = animate && root.visibilities.launcher && !root.revealPending && opacity > 0.05;
                 markerX = nx;
                 markerY = ny;
-                if (!animate) {
-                    // Re-enable springs after first land so next move animates
-                    Qt.callLater(() => {
-                        if (gridFocusMarker.targetItem)
-                            gridFocusMarker.springEnabled = root.visibilities.launcher;
-                    });
-                }
+                // Keep spring enabled for continuous movement
+                gridFocusMarker.springEnabled = root.visibilities.launcher && !root.revealPending;
             }
 
-            onTargetItemChanged: retarget(springEnabled && targetItem !== null)
+            onTargetItemChanged: {
+                if (targetItem !== null)
+                    retarget(active && opacity > 0.05);
+            }
             onActiveChanged: {
                 if (active)
-                    retarget(false);
+                    retarget(opacity > 0.05);
                 else
                     springEnabled = false;
             }
@@ -919,8 +1211,9 @@ Item {
                     gridFocusMarker.retarget(true);
                 }
                 function onContentYChanged() {
-                    // Stick to item while scrolling — no spring lag
-                    gridFocusMarker.retarget(false);
+                    // Animate smoothly during smoothScrollAnim; stick directly only during manual drag
+                    const animate = smoothScrollAnim.running;
+                    gridFocusMarker.retarget(animate);
                 }
             }
 
@@ -934,6 +1227,8 @@ Item {
                         gridFocusMarker.retarget(false);
                 }
             }
+
+            Behavior on color { CAnim {} }
 
             Behavior on markerX {
                 enabled: gridFocusMarker.springEnabled
@@ -1054,7 +1349,11 @@ Item {
         id: actionListHost
 
         visible: root.state !== "apps"
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.top: headerBar.bottom
+        anchors.topMargin: 4
         clip: true
 
         // Sliding focus marker under list rows

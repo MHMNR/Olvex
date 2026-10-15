@@ -19,11 +19,19 @@ Item {
     required property int index
 
     readonly property bool isCurrent: list.currentIndex === index
-    readonly property color itemAccent: {
-        if (!modelData) return Colours.palette.m3primary;
-        const role = modelData.accentRole;
-        return (role && Colours.palette[role]) ? Colours.palette[role] : Colours.palette.m3primary;
-    }
+    readonly property string rawRole: (modelData && modelData.accentRole) ? modelData.accentRole : "m3primary"
+    readonly property color itemAccent: Colours.palette[rawRole] || Colours.palette.m3primary
+    readonly property color itemAccentContainer: Colours.palette[rawRole + "Container"] || Colours.palette.m3primaryContainer
+    readonly property color itemOnAccentContainer: Colours.palette["m3on" + rawRole.replace(/^m3/, "").charAt(0).toUpperCase() + rawRole.replace(/^m3/, "").slice(1) + "Container"] || Colours.palette.m3onPrimaryContainer
+
+    // M3 Expressive light-mode calibrated badge background & foreground colors
+    readonly property color badgeBg: Colours.light
+        ? (root.isCurrent ? Qt.alpha(itemAccent, 0.22) : Qt.alpha(itemAccent, 0.12))
+        : (root.isCurrent ? Qt.alpha(itemAccent, 0.28) : Qt.alpha(itemAccent, 0.16))
+
+    readonly property color badgeFg: Colours.light
+        ? (itemOnAccentContainer || itemAccent)
+        : (root.isCurrent ? itemAccent : Colours.palette.m3primary)
 
     implicitHeight: Tokens.sizes.launcher.itemHeight || 56
 
@@ -112,9 +120,7 @@ Item {
             Layout.preferredWidth: 38
             Layout.preferredHeight: 38
             radius: 10
-            color: root.isCurrent 
-                ? Qt.alpha(root.itemAccent, 0.26) 
-                : Qt.alpha(root.itemAccent, 0.14)
+            color: root.badgeBg
             Layout.alignment: Qt.AlignVCenter
 
             Behavior on color { CAnim {} }
@@ -152,7 +158,7 @@ Item {
                 }
                 fill: (root.modelData && root.modelData.type === "toggle" && root.modelData.getter && root.modelData.getter()) ? 1 : 0
                 iconPointSize: 19
-                color: root.itemAccent
+                color: root.badgeFg
 
                 Behavior on color { CAnim {} }
             }
