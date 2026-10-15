@@ -174,7 +174,7 @@ Item {
                     return root.modelData.name || "";
                 }
                 textPointSize: Tokens.font.size.normal
-                font.weight: root.isCurrent ? Font.DemiBold : Font.Normal
+                font.weight: Font.Normal
                 color: Colours.palette.m3onSurface
                 elide: Text.ElideRight
 

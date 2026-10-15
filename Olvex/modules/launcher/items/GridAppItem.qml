@@ -151,7 +151,7 @@ Item {
             anchors.top: parent.top
             anchors.topMargin: 12
             anchors.horizontalCenter: parent.horizontalCenter
-            scale: (root.isHovered || root.isSelected) ? 1.06 : 1
+            scale: 1
 
             SequentialAnimation {
                 id: iconClickAnim
@@ -211,7 +211,7 @@ Item {
 
             text: root.modelData && root.modelData.name ? root.modelData.name : ""
             textPointSize: Tokens.font.size.small
-            font.weight: (root.isHovered || root.isSelected) ? Font.DemiBold : Font.Normal
+            font.weight: Font.Normal
             color: Colours.palette.m3onSurface
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
