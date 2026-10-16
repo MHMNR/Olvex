@@ -281,6 +281,7 @@ Item {
             Qt.callLater(scrollToCurrentItem);
         } else {
             actionList.decrementCurrentIndex();
+            Qt.callLater(scrollToActionCurrentItem);
         }
     }
 
@@ -293,6 +294,7 @@ Item {
             Qt.callLater(scrollToCurrentItem);
         } else {
             actionList.incrementCurrentIndex();
+            Qt.callLater(scrollToActionCurrentItem);
         }
     }
 
@@ -305,6 +307,7 @@ Item {
             Qt.callLater(scrollToCurrentItem);
         } else {
             actionList.decrementCurrentIndex();
+            Qt.callLater(scrollToActionCurrentItem);
         }
     }
 
@@ -317,6 +320,7 @@ Item {
             Qt.callLater(scrollToCurrentItem);
         } else {
             actionList.incrementCurrentIndex();
+            Qt.callLater(scrollToActionCurrentItem);
         }
     }
 
@@ -341,6 +345,32 @@ Item {
         smoothScrollAnim.from = appGrid.contentY;
         smoothScrollAnim.to = target;
         smoothScrollAnim.start();
+    }
+
+    // Smoothly scroll actionList (search/command/calc/scheme results) so selected item is fully visible
+    function scrollToActionCurrentItem() {
+        const idx = actionList.currentIndex;
+        if (idx < 0) return;
+        const itemH = (Tokens.sizes.launcher.itemHeight || 56);
+        const itemSpacing = actionList.spacing || 8;
+        const totalItemH = itemH + itemSpacing;
+        const itemTop = idx * totalItemH;
+        const itemBot = itemTop + itemH;
+        const visTop = actionList.contentY;
+        const visBot = visTop + actionList.height;
+        const maxScroll = Math.max(0, actionList.contentHeight - actionList.height);
+        let target = -1;
+        if (itemTop < visTop) {
+            target = Math.max(0, itemTop - 12);
+        } else if (itemBot > visBot) {
+            target = Math.min(maxScroll, itemBot - actionList.height + 12);
+        }
+        if (target >= 0 && Math.abs(target - actionList.contentY) > 1) {
+            actionListSmoothScrollAnim.stop();
+            actionListSmoothScrollAnim.from = actionList.contentY;
+            actionListSmoothScrollAnim.to = target;
+            actionListSmoothScrollAnim.start();
+        }
     }
 
     property int revealEpoch: 0
@@ -415,6 +445,14 @@ Item {
         easing.type: Easing.OutCubic
 
         onStopped: root.checkOverscrollBounds()
+    }
+
+    NumberAnimation {
+        id: actionListSmoothScrollAnim
+        target: actionList
+        property: "contentY"
+        duration: 220
+        easing.type: Easing.OutCubic
     }
 
     // Elastic Overscroll Rebound Spring
@@ -507,11 +545,11 @@ Item {
             height: searchPill.height
             z: searchPill.searchActive ? 98 : 1
 
-            // Click-outside overlay: dismiss search when clicking anywhere outside searchbar
+            // Click-outside overlay: dismiss search when clicking anywhere outside searchbar (only when not searching results)
             MouseArea {
                 anchors.fill: parent
                 anchors.margins: -2000
-                visible: searchPill.searchActive
+                visible: searchPill.searchActive && searchInput.text.trim().length === 0
                 z: 0
                 onClicked: {
                     searchPill.searchExpanded = false;
@@ -1211,9 +1249,8 @@ Item {
                     gridFocusMarker.retarget(true);
                 }
                 function onContentYChanged() {
-                    // Animate smoothly during smoothScrollAnim; stick directly only during manual drag
-                    const animate = smoothScrollAnim.running;
-                    gridFocusMarker.retarget(animate);
+                    // Smoothly animate markerY with spring when scrolling
+                    gridFocusMarker.retarget(true);
                 }
             }
 
@@ -1409,7 +1446,7 @@ Item {
                     listFocusMarker.retarget(true);
                 }
                 function onContentYChanged() {
-                    listFocusMarker.retarget(false);
+                    listFocusMarker.retarget(true);
                 }
                 function onCountChanged() {
                     listFocusMarker.retarget(false);

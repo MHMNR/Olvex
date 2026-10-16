@@ -111,6 +111,24 @@ Window {
         return []
     }
 
+    property var searchRowModel: {
+        const COLS = 10
+        let chunks = []
+        let sr = searchResults || []
+        for (let i = 0; i < sr.length; i += COLS) {
+            chunks.push({ type: "row", emojis: sr.slice(i, i + COLS), catIdx: -1 })
+        }
+        return chunks
+    }
+
+    onSearchRowModelChanged: {
+        if (win.searchText) {
+            selectedRowIndex = 0
+            selectedColIndex = 0
+            searchList.contentY = 0
+        }
+    }
+
     function yPositionForCat(catIdx) {
         let y = 0
         for (let i = 0; i < rowModel.length; i++) {
@@ -131,6 +149,162 @@ Window {
         return total
     }
 
+    // ── Keyboard Navigation & Selection State ──
+    property int selectedRowIndex: 1
+    property int selectedColIndex: 0
+    property bool keyboardNavActive: false
+
+    onRowModelChanged: {
+        if (!win.searchText) {
+            let m = rowModel || []
+            if (selectedRowIndex < 0 || selectedRowIndex >= m.length || (m[selectedRowIndex] && m[selectedRowIndex].type !== "row")) {
+                for (let i = 0; i < m.length; i++) {
+                    if (m[i].type === "row") {
+                        selectedRowIndex = i
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    function currentEmojiList() {
+        if (win.searchText) {
+            return win.searchResults || []
+        }
+        let list = []
+        let rows = win.rowModel || []
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].type === "row" && rows[i].emojis) {
+                for (let j = 0; j < rows[i].emojis.length; j++) {
+                    list.push(rows[i].emojis[j])
+                }
+            }
+        }
+        return list
+    }
+
+    function selectCurrentEmoji() {
+        let activeList = (win.searchText ? searchList : mainList)
+        let model = activeList.model || []
+        if (selectedRowIndex >= 0 && selectedRowIndex < model.length) {
+            let row = model[selectedRowIndex]
+            if (row && row.type === "row" && row.emojis && selectedColIndex >= 0 && selectedColIndex < row.emojis.length) {
+                let base = row.emojis[selectedColIndex]
+                let displayed = win.applySkinTone(base)
+                EmojiBackend.copyEmoji(displayed, base)
+            }
+        }
+    }
+
+    function scrollCurrentSelectionIntoView() {
+        let activeList = (win.searchText ? searchList : mainList)
+        let rowY = 0
+        let model = activeList.model || []
+        for (let i = 0; i < selectedRowIndex && i < model.length; i++) {
+            rowY += (model[i].type === "header" ? 28 : win.baseHeight)
+        }
+        let rowH = (model[selectedRowIndex] && model[selectedRowIndex].type === "header") ? 28 : win.baseHeight
+        let visTop = activeList.contentY
+        let visBot = visTop + activeList.height
+        let maxScroll = Math.max(0, (activeList.exactContentHeight || 0) - activeList.height)
+
+        let target = -1
+        if (rowY < visTop) {
+            target = Math.max(0, rowY - 18)
+        } else if (rowY + rowH > visBot) {
+            target = Math.min(maxScroll, (rowY + rowH) - activeList.height + 18)
+        }
+        if (target >= 0) {
+            if (win.searchText) {
+                searchSmoothScrollAnim.stop()
+                searchSmoothScrollAnim.duration = 220
+                searchSmoothScrollAnim.from = searchList.contentY
+                searchSmoothScrollAnim.to = target
+                searchSmoothScrollAnim.start()
+            } else {
+                bounceBackSpring.stop()
+                mainSmoothScrollAnim.stop()
+                mainSmoothScrollAnim.duration = 220
+                mainSmoothScrollAnim.from = mainList.contentY
+                mainSmoothScrollAnim.to = target
+                mainSmoothScrollAnim.start()
+            }
+        }
+    }
+
+    function navMove(dRow, dCol) {
+        let activeList = (win.searchText ? searchList : mainList)
+        let model = activeList.model || []
+        if (model.length === 0) return
+
+        if (!keyboardNavActive) {
+            // First activation: find first visible row at or near contentY
+            let curY = activeList.contentY
+            let accY = 0
+            let targetRow = -1
+            for (let i = 0; i < model.length; i++) {
+                let h = (model[i].type === "header" ? 28 : win.baseHeight)
+                if (model[i].type === "row" && (accY + h > curY || targetRow === -1)) {
+                    targetRow = i
+                    if (accY + h > curY) break
+                }
+                accY += h
+            }
+            if (targetRow >= 0) {
+                selectedRowIndex = targetRow
+            }
+            selectedColIndex = 0
+            keyboardNavActive = true
+            scrollCurrentSelectionIntoView()
+            return
+        }
+
+        let r = selectedRowIndex
+        let c = selectedColIndex
+
+        if (dRow !== 0) {
+            let step = dRow > 0 ? 1 : -1
+            let nr = r + step
+            while (nr >= 0 && nr < model.length && model[nr].type !== "row") {
+                nr += step
+            }
+            if (nr >= 0 && nr < model.length && model[nr].type === "row") {
+                r = nr
+                let maxCols = model[r].emojis ? model[r].emojis.length : 10
+                c = Math.min(c, maxCols - 1)
+            }
+        }
+
+        if (dCol !== 0) {
+            let rowItem = model[r]
+            let maxCols = (rowItem && rowItem.emojis) ? rowItem.emojis.length : 10
+            let nc = c + dCol
+            if (nc >= 0 && nc < maxCols) {
+                c = nc
+            } else if (nc >= maxCols) {
+                let nr = r + 1
+                while (nr < model.length && model[nr].type !== "row") nr++
+                if (nr < model.length) {
+                    r = nr
+                    c = 0
+                }
+            } else if (nc < 0) {
+                let nr = r - 1
+                while (nr >= 0 && model[nr].type !== "row") nr--
+                if (nr >= 0) {
+                    r = nr
+                    let prevCols = model[r].emojis ? model[r].emojis.length : 10
+                    c = Math.max(0, prevCols - 1)
+                }
+            }
+        }
+
+        selectedRowIndex = r
+        selectedColIndex = c
+        scrollCurrentSelectionIntoView()
+    }
+
     // ── Key Handling ─────────────────────────────────────────────────────
     function handleKey(event) {
         if (!event)
@@ -147,6 +321,32 @@ Window {
                 return
             }
             win.close()
+            event.accepted = true
+            return
+        }
+
+        if (event.key === Qt.Key_Up) {
+            navMove(-1, 0)
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_Down) {
+            navMove(1, 0)
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_Left) {
+            navMove(0, -1)
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_Right) {
+            navMove(0, 1)
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            selectCurrentEmoji()
             event.accepted = true
             return
         }
@@ -182,15 +382,16 @@ Window {
                 NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
             }
 
-            // ── Search Dismiss Backdrop (Closes searchbar on any click outside searchPill) ──
-            MouseArea {
-                id: searchDismissBackdrop
-                anchors.fill: parent
-                z: 40
+            // ── Dismiss search when clicking anywhere outside searchPill ──
+            TapHandler {
                 enabled: searchPill.searchActive
-                cursorShape: Qt.ArrowCursor
-                onPressed: function(mouse) {
-                    searchPill.closeSearch()
+                gesturePolicy: TapHandler.ReleaseWithinBounds
+                onTapped: function(eventPoint) {
+                    let scenePt = eventPoint.scenePosition
+                    let localPt = searchPill.mapFromItem(null, scenePt.x, scenePt.y)
+                    if (localPt.x < 0 || localPt.y < 0 || localPt.x > searchPill.width || localPt.y > searchPill.height) {
+                        searchPill.closeSearch()
+                    }
                 }
             }
 
@@ -335,8 +536,37 @@ Window {
 
                                     onTextChanged: {
                                         win.searchText = text
+                                        win.keyboardNavActive = false
+                                        win.selectedRowIndex = 0
+                                        win.selectedColIndex = 0
                                         if (text)
                                             searchList.contentY = 0
+                                    }
+
+                                    Keys.priority: Keys.BeforeItem
+                                    Keys.onUpPressed: function(event) {
+                                        win.navMove(-1, 0)
+                                        event.accepted = true
+                                    }
+                                    Keys.onDownPressed: function(event) {
+                                        win.navMove(1, 0)
+                                        event.accepted = true
+                                    }
+                                    Keys.onLeftPressed: function(event) {
+                                        win.navMove(0, -1)
+                                        event.accepted = true
+                                    }
+                                    Keys.onRightPressed: function(event) {
+                                        win.navMove(0, 1)
+                                        event.accepted = true
+                                    }
+                                    Keys.onReturnPressed: function(event) {
+                                        win.selectCurrentEmoji()
+                                        event.accepted = true
+                                    }
+                                    Keys.onEnterPressed: function(event) {
+                                        win.selectCurrentEmoji()
+                                        event.accepted = true
                                     }
 
                                     Keys.onEscapePressed: function(event) {
@@ -597,20 +827,39 @@ Window {
                     }
                 }
 
-                // ── Main Category Emoji List ─────────────────────────────────
-                ListView {
-                    id: mainList
+                // ── Emoji List Viewport Area ─────────────────────────────────
+                Item {
+                    id: listArea
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    visible: !win.searchText
-                    model: win.rowModel
-                    spacing: 0
-                    boundsBehavior: Flickable.StopAtBounds
-                    flickDeceleration: 2500
-                    maximumFlickVelocity: 3000
-                    cacheBuffer: 600
-                    interactive: !tonePopup.isOpen
+
+                    // Dismiss search when clicking anywhere in list area
+                    MouseArea {
+                        id: listAreaSearchDismiss
+                        anchors.fill: parent
+                        z: 99
+                        enabled: searchPill.searchActive
+                        cursorShape: Qt.ArrowCursor
+                        onPressed: function(mouse) {
+                            searchPill.closeSearch()
+                        }
+                    }
+
+                    ListView {
+                        id: mainList
+                        anchors.fill: parent
+                        clip: true
+                        visible: !win.searchText
+                        model: win.rowModel
+                        spacing: 0
+                        boundsBehavior: Flickable.StopAtBounds
+                        flickDeceleration: 2500
+                        maximumFlickVelocity: 3000
+                        cacheBuffer: 600
+                        interactive: !tonePopup.isOpen
+
+                        readonly property real exactContentHeight: win.exactContentHeight
 
                     NumberAnimation {
                         id: mainSmoothScrollAnim
@@ -618,63 +867,104 @@ Window {
                         property: "contentY"
                         duration: 260
                         easing.type: Easing.OutCubic
+                        onStopped: mainList.checkOverscrollBounds()
                     }
 
-                    onMovementStarted: mainSmoothScrollAnim.stop()
-                    onFlickStarted: mainSmoothScrollAnim.stop()
+                    SpringAnimation {
+                        id: bounceBackSpring
+                        target: mainList
+                        property: "contentY"
+                        spring: 4.8
+                        damping: 0.70
+                        epsilon: 0.15
+                    }
 
-                    function clampScrollY(y) {
+                    Timer {
+                        id: touchpadReleaseTimer
+                        interval: 85
+                        repeat: false
+                        onTriggered: mainList.checkOverscrollBounds()
+                    }
+
+                    function checkOverscrollBounds() {
                         let maxScroll = Math.max(0, win.exactContentHeight - mainList.height)
-                        return Math.max(0, Math.min(maxScroll, y))
+                        if (mainList.contentY < 0) {
+                            mainSmoothScrollAnim.stop()
+                            bounceBackSpring.stop()
+                            bounceBackSpring.from = mainList.contentY
+                            bounceBackSpring.to = 0
+                            bounceBackSpring.start()
+                        } else if (mainList.contentY > maxScroll) {
+                            mainSmoothScrollAnim.stop()
+                            bounceBackSpring.stop()
+                            bounceBackSpring.from = mainList.contentY
+                            bounceBackSpring.to = maxScroll
+                            bounceBackSpring.start()
+                        }
                     }
 
-                    function applyScrollDelta(deltaPx, animMs) {
-                        let base = mainSmoothScrollAnim.running ? mainSmoothScrollAnim.to : mainList.contentY
-                        let targetY = clampScrollY(base + deltaPx)
-                        if (Math.abs(targetY - mainList.contentY) < 0.5 && !mainSmoothScrollAnim.running)
-                            return
+                    onMovementStarted: {
+                        if (searchPill.searchActive) searchPill.closeSearch()
                         mainSmoothScrollAnim.stop()
-                        mainSmoothScrollAnim.duration = animMs || 260
-                        mainSmoothScrollAnim.from = mainList.contentY
-                        mainSmoothScrollAnim.to = targetY
-                        mainSmoothScrollAnim.start()
+                        bounceBackSpring.stop()
                     }
-
-                    function scrollToY(targetY, animMs) {
-                        let clamped = clampScrollY(targetY)
+                    onFlickStarted: {
+                        if (searchPill.searchActive) searchPill.closeSearch()
                         mainSmoothScrollAnim.stop()
-                        mainSmoothScrollAnim.duration = animMs || 300
-                        mainSmoothScrollAnim.from = mainList.contentY
-                        mainSmoothScrollAnim.to = clamped
-                        mainSmoothScrollAnim.start()
+                        bounceBackSpring.stop()
                     }
 
                     WheelHandler {
                         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         onWheel: function(event) {
-                            let isTouchPad = event.device && event.device.type === PointerDevice.TouchPad
-                            if (isTouchPad && event.pixelDelta.y !== 0) {
-                                mainList.applyScrollDelta(-event.pixelDelta.y, 120)
-                                event.accepted = true
-                                return
-                            }
                             let delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
-                            if (delta === 0)
-                                return
-                            let notchPx = -(delta / 120) * 140
-                            mainList.applyScrollDelta(notchPx, isTouchPad ? 120 : 260)
+                            if (!delta) return
+
+                            let maxScroll = Math.max(0, win.exactContentHeight - mainList.height)
+                            let isDiscrete = Math.abs(delta) >= 120
+                            let direction = delta > 0 ? -1 : 1
+
+                            if (isDiscrete) {
+                                bounceBackSpring.stop()
+                                touchpadReleaseTimer.stop()
+
+                                let step = win.baseHeight * 2
+                                let base = mainSmoothScrollAnim.running ? mainSmoothScrollAnim.to : mainList.contentY
+                                let nextTarget = base + direction * step
+
+                                const maxOvershoot = 36
+                                if (nextTarget < -maxOvershoot) {
+                                    nextTarget = -maxOvershoot
+                                } else if (nextTarget > maxScroll + maxOvershoot) {
+                                    nextTarget = maxScroll + maxOvershoot
+                                }
+
+                                mainSmoothScrollAnim.stop()
+                                mainSmoothScrollAnim.from = mainList.contentY
+                                mainSmoothScrollAnim.to = nextTarget
+                                mainSmoothScrollAnim.start()
+                            } else {
+                                mainSmoothScrollAnim.stop()
+                                bounceBackSpring.stop()
+
+                                let dy = -delta * 0.65
+                                let newY = mainList.contentY + dy
+
+                                if (newY < 0) {
+                                    newY = mainList.contentY + dy * 0.35
+                                } else if (newY > maxScroll) {
+                                    newY = mainList.contentY + dy * 0.35
+                                }
+
+                                mainList.contentY = newY
+                                touchpadReleaseTimer.restart()
+                            }
                             event.accepted = true
                         }
                     }
 
                     onContentYChanged: {
-                        let maxScroll = Math.max(0, win.exactContentHeight - height)
-                        if (contentY > maxScroll + 0.5)
-                            contentY = maxScroll
-                        else if (contentY < -0.5)
-                            contentY = 0
-
-                        let idx = indexAt(10, contentY + 12)
+                        let idx = indexAt(10, Math.max(0, contentY) + 12)
                         if (idx >= 0 && idx < win.rowModel.length) {
                             bottomBar.activeCategory = win.rowModel[idx].catIdx
                         }
@@ -687,8 +977,7 @@ Window {
                 ListView {
                     id: searchList
                     z: 45
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    anchors.fill: parent
                     visible: !!win.searchText
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
@@ -696,13 +985,6 @@ Window {
                     maximumFlickVelocity: 3000
                     cacheBuffer: 600
                     interactive: !tonePopup.isOpen && (exactContentHeight > height)
-
-                    MouseArea {
-                        anchors.fill: parent
-                        z: -1
-                        enabled: searchPill.searchActive
-                        onPressed: searchPill.closeSearch()
-                    }
 
                     readonly property real exactContentHeight: (searchList.model ? searchList.model.length : 0) * win.baseHeight
 
@@ -712,66 +994,206 @@ Window {
                         property: "contentY"
                         duration: 260
                         easing.type: Easing.OutCubic
+                        onStopped: searchList.checkOverscrollBounds()
                     }
 
-                    onMovementStarted: searchSmoothScrollAnim.stop()
-                    onFlickStarted: searchSmoothScrollAnim.stop()
+                    SpringAnimation {
+                        id: searchBounceBackSpring
+                        target: searchList
+                        property: "contentY"
+                        spring: 4.8
+                        damping: 0.70
+                        epsilon: 0.15
+                    }
 
-                    function clampScrollY(y) {
+                    Timer {
+                        id: searchTouchpadReleaseTimer
+                        interval: 85
+                        repeat: false
+                        onTriggered: searchList.checkOverscrollBounds()
+                    }
+
+                    function checkOverscrollBounds() {
                         let maxScroll = Math.max(0, searchList.exactContentHeight - searchList.height)
-                        return Math.max(0, Math.min(maxScroll, y))
+                        if (searchList.contentY < 0) {
+                            searchSmoothScrollAnim.stop()
+                            searchBounceBackSpring.stop()
+                            searchBounceBackSpring.from = searchList.contentY
+                            searchBounceBackSpring.to = 0
+                            searchBounceBackSpring.start()
+                        } else if (searchList.contentY > maxScroll) {
+                            searchSmoothScrollAnim.stop()
+                            searchBounceBackSpring.stop()
+                            searchBounceBackSpring.from = searchList.contentY
+                            searchBounceBackSpring.to = maxScroll
+                            searchBounceBackSpring.start()
+                        }
                     }
 
-                    function applyScrollDelta(deltaPx, animMs) {
-                        let base = searchSmoothScrollAnim.running ? searchSmoothScrollAnim.to : searchList.contentY
-                        let targetY = clampScrollY(base + deltaPx)
-                        if (Math.abs(targetY - searchList.contentY) < 0.5 && !searchSmoothScrollAnim.running)
-                            return
+                    onMovementStarted: {
                         searchSmoothScrollAnim.stop()
-                        searchSmoothScrollAnim.duration = animMs || 260
-                        searchSmoothScrollAnim.from = searchList.contentY
-                        searchSmoothScrollAnim.to = targetY
-                        searchSmoothScrollAnim.start()
+                        searchBounceBackSpring.stop()
                     }
-
-                    onContentYChanged: {
-                        let maxScroll = Math.max(0, searchList.exactContentHeight - height)
-                        if (contentY > maxScroll + 0.5)
-                            contentY = maxScroll
-                        else if (contentY < -0.5)
-                            contentY = 0
+                    onFlickStarted: {
+                        searchSmoothScrollAnim.stop()
+                        searchBounceBackSpring.stop()
                     }
 
                     WheelHandler {
                         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         onWheel: function(event) {
-                            let isTouchPad = event.device && event.device.type === PointerDevice.TouchPad
-                            if (isTouchPad && event.pixelDelta.y !== 0) {
-                                searchList.applyScrollDelta(-event.pixelDelta.y, 120)
-                                event.accepted = true
-                                return
-                            }
                             let delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
-                            if (delta === 0)
-                                return
-                            let notchPx = -(delta / 120) * 140
-                            searchList.applyScrollDelta(notchPx, isTouchPad ? 120 : 260)
+                            if (!delta) return
+
+                            let maxScroll = Math.max(0, searchList.exactContentHeight - searchList.height)
+                            let isDiscrete = Math.abs(delta) >= 120
+                            let direction = delta > 0 ? -1 : 1
+
+                            if (isDiscrete) {
+                                searchBounceBackSpring.stop()
+                                searchTouchpadReleaseTimer.stop()
+
+                                let step = win.baseHeight * 2
+                                let base = searchSmoothScrollAnim.running ? searchSmoothScrollAnim.to : searchList.contentY
+                                let nextTarget = base + direction * step
+
+                                const maxOvershoot = 36
+                                if (nextTarget < -maxOvershoot) {
+                                    nextTarget = -maxOvershoot
+                                } else if (nextTarget > maxScroll + maxOvershoot) {
+                                    nextTarget = maxScroll + maxOvershoot
+                                }
+
+                                searchSmoothScrollAnim.stop()
+                                searchSmoothScrollAnim.from = searchList.contentY
+                                searchSmoothScrollAnim.to = nextTarget
+                                searchSmoothScrollAnim.start()
+                            } else {
+                                searchSmoothScrollAnim.stop()
+                                searchBounceBackSpring.stop()
+
+                                let dy = -delta * 0.65
+                                let newY = searchList.contentY + dy
+
+                                if (newY < 0) {
+                                    newY = searchList.contentY + dy * 0.35
+                                } else if (newY > maxScroll) {
+                                    newY = searchList.contentY + dy * 0.35
+                                }
+
+                                searchList.contentY = newY
+                                searchTouchpadReleaseTimer.restart()
+                            }
                             event.accepted = true
                         }
                     }
 
-                    model: {
-                        const COLS = 10
-                        let chunks = []
-                        let sr = win.searchResults
-                        for (let i = 0; i < sr.length; i += COLS) {
-                            chunks.push({ type: "row", emojis: sr.slice(i, i + COLS), catIdx: -1 })
-                        }
-                        return chunks
-                    }
+                    model: win.searchRowModel
 
                     delegate: unifiedDelegate
                 }
+
+                // ── Sliding Spring Focus Highlight Marker (Launcher style) ─
+                Rectangle {
+                    id: emojiFocusMarker
+                    z: 10
+                    width: win.baseWidth - 6
+                    height: win.baseHeight - 6
+                    radius: 8
+                    color: Qt.alpha(tok.palette.primary, 0.28)
+                    border.width: 0
+
+                    property bool springEnabled: false
+
+                    readonly property var activeList: win.searchText ? searchList : mainList
+                    readonly property real startX: (listArea.width - 10 * win.baseWidth) / 2 + 3
+
+                    readonly property real calcTargetY: {
+                        let y = 0
+                        let m = activeList.model || []
+                        let targetIdx = win.selectedRowIndex
+                        if (targetIdx < 0) targetIdx = 0
+                        if (targetIdx >= m.length) targetIdx = m.length - 1
+
+                        for (let i = 0; i < targetIdx && i < m.length; i++) {
+                            y += (m[i].type === "header" ? 28 : win.baseHeight)
+                        }
+                        return y - activeList.contentY + 3
+                    }
+                    readonly property real calcTargetX: startX + win.selectedColIndex * win.baseWidth
+
+                    property real markerX: calcTargetX
+                    property real markerY: calcTargetY
+
+                    x: markerX
+                    y: markerY
+                    opacity: win.keyboardNavActive ? 1 : 0
+                    visible: opacity > 0.01
+
+                    function retarget(animate) {
+                        springEnabled = animate && win.keyboardNavActive && opacity > 0.05
+                        markerX = calcTargetX
+                        markerY = calcTargetY
+                        if (win.keyboardNavActive) {
+                            Qt.callLater(() => {
+                                emojiFocusMarker.springEnabled = true
+                            })
+                        }
+                    }
+
+                    onCalcTargetXChanged: retarget(win.keyboardNavActive && opacity > 0.05)
+                    onCalcTargetYChanged: retarget(win.keyboardNavActive && opacity > 0.05)
+
+                    Connections {
+                        target: win
+                        function onKeyboardNavActiveChanged() {
+                            if (win.keyboardNavActive) {
+                                emojiFocusMarker.springEnabled = false
+                                emojiFocusMarker.markerX = emojiFocusMarker.calcTargetX
+                                emojiFocusMarker.markerY = emojiFocusMarker.calcTargetY
+                                Qt.callLater(() => {
+                                    emojiFocusMarker.springEnabled = true
+                                })
+                            } else {
+                                emojiFocusMarker.springEnabled = false
+                            }
+                        }
+                    }
+
+                    Connections {
+                        target: emojiFocusMarker.activeList
+                        function onContentYChanged() {
+                            if (win.keyboardNavActive) {
+                                emojiFocusMarker.retarget(true)
+                            }
+                        }
+                    }
+
+                    Behavior on markerX {
+                        enabled: emojiFocusMarker.springEnabled
+                        SpringAnimation {
+                            spring: 4.8
+                            damping: 0.72
+                            mass: 1.0
+                            epsilon: 0.005
+                        }
+                    }
+                    Behavior on markerY {
+                        enabled: emojiFocusMarker.springEnabled
+                        SpringAnimation {
+                            spring: 4.8
+                            damping: 0.72
+                            mass: 1.0
+                            epsilon: 0.005
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                    }
+                }
+            }
+
+
 
                 // ── Bottom Bar: Category Tabs ────────────────────────────────
                 Item {
@@ -781,6 +1203,17 @@ Window {
                     Layout.leftMargin: 8
                     Layout.rightMargin: 8
                     Layout.bottomMargin: 6
+
+                    // Dismiss search on bottom bar click when search active
+                    MouseArea {
+                        anchors.fill: parent
+                        z: 99
+                        enabled: searchPill.searchActive
+                        cursorShape: Qt.ArrowCursor
+                        onPressed: function(mouse) {
+                            searchPill.closeSearch()
+                        }
+                    }
 
                     RowLayout {
                         id: bottomBar
@@ -1257,6 +1690,7 @@ Window {
     Component {
         id: unifiedDelegate
         Item {
+            id: rowItem
             required property var modelData
             required property int index
 
@@ -1307,13 +1741,18 @@ Window {
                             readonly property string emojiStr: modelData || ""
                             readonly property string emojiDisplayed: win.applySkinTone(emojiStr)
 
+                            readonly property bool isKeyboardSelected: win.keyboardNavActive &&
+                                                                       (rowItem.index === win.selectedRowIndex) &&
+                                                                       (emojiCell.index === win.selectedColIndex)
+
                             Rectangle {
                                 anchors.fill: parent
                                 anchors.margins: 3
                                 radius: 8
                                 color: emojiArea.pressed ? Qt.alpha(tok.palette.fgSurface, 0.18)
                                      : emojiArea.containsMouse ? Qt.alpha(tok.palette.fgSurface, 0.08) : "transparent"
-                                Behavior on color { ColorAnimation { duration: 80 } }
+
+                                Behavior on color { ColorAnimation { duration: 120 } }
                             }
 
                             Text {
@@ -1331,6 +1770,9 @@ Window {
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                                 onClicked: function(mouse) {
+                                    if (searchPill.searchActive)
+                                        searchPill.closeSearch()
+
                                     let targetDisplayed = emojiCell.emojiDisplayed
                                     let targetBase = emojiCell.emojiStr
 
