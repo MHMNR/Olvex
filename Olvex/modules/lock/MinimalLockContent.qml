@@ -584,14 +584,14 @@ Item {
                     MarqueeText {
                         width: parent.width
                         text: Players.active ? (Players.active.trackTitle || "Unknown Title") : "Nothing Playing"
-                        color: Qt.rgba(1, 1, 1, 0.95); textPointSize: Tokens.font.size.normal
+                        color: Colours.palette.m3onSurface; textPointSize: Tokens.font.size.normal
                         font.weight: Font.DemiBold
                         running: musicPill.expanded && trackInfo.opacity > 0.95
                     }
                     StyledText {
                         width: parent.width
                         text: Players.active ? (Players.active.trackArtist || "Unknown Artist") : ""
-                        color: Qt.rgba(1, 1, 1, 0.50); textPointSize: Tokens.font.size.small
+                        color: Colours.palette.m3onSurfaceVariant; textPointSize: Tokens.font.size.small
                         elide: Text.ElideRight; horizontalAlignment: Text.AlignLeft
                         visible: text !== ""
                         anchors.topMargin: -2
@@ -901,7 +901,7 @@ Item {
                         id: osLabel
                         anchors.verticalCenter: parent.verticalCenter
                         text: SysInfo.osPrettyName || SysInfo.osName || "Linux"
-                        color: Qt.rgba(1, 1, 1, 0.90)
+                        color: Colours.palette.m3onSurface
                         textPointSize: Tokens.font.size.normal
                         font.weight: Font.Light
                         rightPadding: 8
@@ -909,7 +909,7 @@ Item {
 
                     // Separator
                     Rectangle {
-                        width: 1; height: 22; color: Qt.rgba(1, 1, 1, 0.10)
+                        width: 1; height: 22; color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
@@ -922,7 +922,7 @@ Item {
 
                     // Separator
                     Rectangle {
-                        width: 1; height: 22; color: Qt.rgba(1, 1, 1, 0.10)
+                        width: 1; height: 22; color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
@@ -942,7 +942,7 @@ Item {
                             }
                             StyledText {
                                 text: root.formatSpeed(NetworkUsage.downloadSpeed)
-                                color: Qt.rgba(1, 1, 1, 0.90)
+                                color: Colours.palette.m3onSurface
                                 textPointSize: Tokens.font.size.small
                                 width: 72
                                 horizontalAlignment: Text.AlignRight
@@ -959,7 +959,7 @@ Item {
                             }
                             StyledText {
                                 text: root.formatSpeed(NetworkUsage.uploadSpeed)
-                                color: Qt.rgba(1, 1, 1, 0.90)
+                                color: Colours.palette.m3onSurface
                                 textPointSize: Tokens.font.size.small
                                 width: 72
                                 horizontalAlignment: Text.AlignRight
@@ -969,7 +969,7 @@ Item {
 
                     // Separator
                     Rectangle {
-                        width: 1; height: 22; color: Qt.rgba(1, 1, 1, 0.10)
+                        width: 1; height: 22; color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         anchors.verticalCenter: parent.verticalCenter
                         visible: batRow.visible
                     }
@@ -1001,7 +1001,7 @@ Item {
                                 ? "#30d158"
                                 : pct <= 0.20 ? "#ff453a"
                                 : pct <= 0.40 ? "#ffd60a"
-                                : Qt.rgba(1, 1, 1, 0.88)
+                                : Colours.palette.m3onSurface
 
                             // Nub on top
                             Rectangle {
@@ -1010,7 +1010,7 @@ Item {
                                 width: 5
                                 height: 3
                                 radius: 1
-                                color: Qt.rgba(1, 1, 1, 0.55)
+                                color: Qt.alpha(Colours.palette.m3onSurface, 0.55)
                             }
 
                             // Body
@@ -1022,7 +1022,7 @@ Item {
                                 height: 24
                                 radius: 3
                                 color: "transparent"
-                                border.color: Qt.rgba(1, 1, 1, 0.55)
+                                border.color: Qt.alpha(Colours.palette.m3onSurface, 0.55)
                                 border.width: 1.5
                                 clip: true
 
@@ -1047,7 +1047,7 @@ Item {
                                     text: "bolt"
                                     color: parent.parent.pct > 0.55
                                         ? Qt.rgba(0, 0, 0, 0.75)
-                                        : Qt.rgba(1, 1, 1, 0.95)
+                                        : Colours.palette.m3onSurface
                                     iconPointSize: 8
                                 }
                             }
@@ -1058,7 +1058,7 @@ Item {
                             spacing: 1
                             StyledText {
                                 text: Math.round(UPower.displayDevice.percentage * 100) + "%"
-                                color: Qt.rgba(1, 1, 1, 0.90)
+                                color: Colours.palette.m3onSurface
                                 textPointSize: Tokens.font.size.small + 1
                                 font.bold: true
                             }
@@ -1072,7 +1072,7 @@ Item {
                                         return "Full";
                                     return "Discharging";
                                 }
-                                color: Qt.rgba(1, 1, 1, 0.45)
+                                color: Colours.palette.m3onSurfaceVariant
                                 textPointSize: Math.max(7, Tokens.font.size.small - 2)
                                 font.capitalization: Font.AllUppercase
                                 font.letterSpacing: 1
@@ -1156,7 +1156,7 @@ Item {
 
                             Rectangle {
                                 anchors.fill: parent
-                                color: (Notifs.notClosed.length > 0 && notifHeaderAppIcon.visible) ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.08)
+                                color: (Notifs.notClosed.length > 0 && notifHeaderAppIcon.visible) ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : Qt.alpha(Colours.palette.m3onSurface, 0.08)
                             }
 
                             ColouredIcon {
@@ -1176,14 +1176,14 @@ Item {
                                 }
                                 visible: !GlobalConfig.lock.hideNotifs && Notifs.notClosed.length > 0 && notifHeaderIconSource.length > 0
                                 source: notifHeaderIconSource
-                                colour: Qt.rgba(1, 1, 1, 0.85)
+                                colour: Colours.palette.m3onSurface
                                 layer.enabled: (topNotif && topNotif.appIcon && topNotif.appIcon.endsWith("symbolic")) || String(source).indexOf("symbolic") >= 0
                             }
 
                             MaterialIcon {
                                 anchors.centerIn: parent
                                 text: (GlobalConfig.lock.hideNotifs && Notifs.notClosed.length > 0) ? "lock" : "notifications"
-                                color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.75) : Qt.rgba(1, 1, 1, 0.3)
+                                color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.40)
                                 iconPointSize: 15
                                 fill: 1
                                 visible: !notifHeaderAppIcon.visible
@@ -1194,7 +1194,7 @@ Item {
                             anchors.fill: parent
                             radius: width / 2
                             color: "transparent"
-                            border.color: (Notifs.notClosed.length > 0 && notifHeaderAppIcon.visible) ? "transparent" : Qt.rgba(1, 1, 1, 0.15)
+                            border.color: (Notifs.notClosed.length > 0 && notifHeaderAppIcon.visible) ? "transparent" : Qt.alpha(Colours.palette.m3outlineVariant, 0.40)
                             border.width: 1
                         }
 
@@ -1214,7 +1214,7 @@ Item {
                             : (Notifs.notClosed.length === 0
                                 ? qsTr("No Notifications")
                                 : (Notifs.notClosed.length + (Notifs.notClosed.length === 1 ? " New Notification" : " New Notifications")))
-                        color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Qt.rgba(1, 1, 1, 0.90) : Qt.rgba(1, 1, 1, 0.40)
+                        color: (notifPill.expanded || Notifs.notClosed.length > 0) ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
                         textPointSize: Tokens.font.size.normal - 1; font.weight: Font.Medium
                     }
                 }
@@ -1261,7 +1261,7 @@ Item {
                     delegate: Item {
                         required property var modelData
                         width: ListView.view.width; height: 58
-                        Rectangle { anchors.fill: parent; radius: 12; color: Qt.rgba(1, 1, 1, 0.05) }
+                        Rectangle { anchors.fill: parent; radius: 12; color: Qt.alpha(Colours.palette.m3onSurface, 0.06) }
                         Row {
                             anchors.fill: parent; anchors.margins: 10; spacing: 10
                             // Real thumbnail/app-icon, matching the card lock screen's
@@ -1278,7 +1278,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: Qt.rgba(1, 1, 1, 0.10)
+                                        color: Qt.alpha(Colours.palette.m3onSurface, 0.10)
                                     }
 
                                     Image {
@@ -1306,7 +1306,7 @@ Item {
                                         }
                                         visible: !notifItemImg.visible && resolvedSource.length > 0
                                         source: resolvedSource
-                                        colour: Qt.rgba(1, 1, 1, 0.85)
+                                        colour: Colours.palette.m3onSurface
                                         layer.enabled: (modelData.appIcon && modelData.appIcon.endsWith("symbolic")) || String(source).indexOf("symbolic") >= 0
                                     }
 
@@ -1314,7 +1314,7 @@ Item {
                                         anchors.centerIn: parent
                                         visible: !notifItemImg.visible && !notifItemAppIcon.visible
                                         text: "info"
-                                        color: Qt.rgba(1, 1, 1, 0.5)
+                                        color: Colours.palette.m3onSurfaceVariant
                                         iconPointSize: 14
                                         fill: 1
                                     }
@@ -1327,7 +1327,7 @@ Item {
                                 StyledText {
                                     width: parent.width
                                     text: modelData.summary || "Notification"
-                                    color: Qt.rgba(1, 1, 1, 0.90)
+                                    color: Colours.palette.m3onSurface
                                     textPointSize: Tokens.font.size.normal - 1
                                     font.weight: Font.Medium
                                     elide: Text.ElideRight
@@ -1335,7 +1335,7 @@ Item {
                                 StyledText {
                                     width: parent.width
                                     text: modelData.body || ""
-                                    color: Qt.rgba(1, 1, 1, 0.45)
+                                    color: Colours.palette.m3onSurfaceVariant
                                     textPointSize: Tokens.font.size.small
                                     elide: Text.ElideRight
                                     visible: text !== ""
@@ -1838,7 +1838,7 @@ Item {
             StyledText {
                 width: parent.width - 20 // approximate for percentage text
                 text: label
-                color: Qt.rgba(1, 1, 1, 0.55)
+                color: Colours.palette.m3onSurfaceVariant
                 textPointSize: Math.max(7, Tokens.font.size.small - 1)
                 font.weight: Font.DemiBold
                 font.letterSpacing: 1
@@ -1856,7 +1856,7 @@ Item {
             width: parent.width
             height: 5
             radius: 3
-            color: Qt.rgba(1, 1, 1, 0.10)
+            color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
 
             Rectangle {
                 width: parent.width * value
