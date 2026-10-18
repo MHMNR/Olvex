@@ -106,9 +106,23 @@ Singleton {
         }
     }
 
+    property real _lastToastSoundTime: 0
+
     function playToast(type) {
         if (!GlobalConfig.services.uiSounds.enabled || !GlobalConfig.services.uiSounds.toasts)
             return;
+
+        // Suppress duplicate chime only if a dedicated hardware chime (charger/USB/BT)
+        // was explicitly fired within the last 300ms
+        if (Date.now() - root._lastHardwareSoundTime < 300)
+            return;
+
+        // Debounce to prevent duplicate chimes across multi-monitors
+        const now = Date.now();
+        if (now - _lastToastSoundTime < 250)
+            return;
+        _lastToastSoundTime = now;
+
         if (type === 2 || type === 3) // Warning or Error
             play(GlobalConfig.services.uiSounds.warningSound || "warning.mp3");
         else
@@ -119,17 +133,5 @@ Singleton {
         _lastHardwareSoundTime = Date.now();
         if (GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.warnings)
             play(GlobalConfig.services.uiSounds.warningSound || "warning.mp3");
-    }
-
-    Connections {
-        target: Toaster
-        function onToastAdded(title, message, icon, type) {
-            // Suppress duplicate chime only if a dedicated hardware chime (charger/USB/BT)
-            // was explicitly fired within the last 300ms
-            if (Date.now() - root._lastHardwareSoundTime < 300)
-                return;
-
-            root.playToast(type);
-        }
     }
 }

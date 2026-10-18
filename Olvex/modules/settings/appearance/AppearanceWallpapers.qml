@@ -53,7 +53,6 @@ ColumnLayout {
         root.wallpaperMode = mode === "live" ? "live" : "static";
         if (GlobalConfig.background?.liveWallpaper)
             GlobalConfig.background.liveWallpaper.enabled = root.wallpaperMode === "live";
-        GlobalConfig.save();
         Wallpapers.ensureCatalog();
     }
 

@@ -6,7 +6,7 @@ import Olvex.Config
 Scope {
     Connections {
         function onLoaded(): void {
-            if (GlobalConfig.qspanel.toasts.configLoaded)
+            if (GlobalConfig.qspanel?.toasts?.configLoaded === true)
                 Toaster.toast(qsTr("Config loaded"), qsTr("Config loaded successfully!"), "rule_settings");
         }
 

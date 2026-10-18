@@ -131,7 +131,6 @@ StyledWindow {
         function onWallpaperLauncherChanged() { root.pulseShellMotion(); }
         function onPowermenuChanged() { root.pulseShellMotion(); }
         function onNotificationcenterChanged() { root.pulseShellMotion(); }
-        function onClipboardChanged() { root.pulseShellMotion(); }
     }
 
     Connections {
@@ -164,7 +163,11 @@ StyledWindow {
                                         || audioBrightnessMorph.active
                                         || audioBrightnessMorph.morphAnimating
 
-    mask: (hasFullscreen || anyPanelActive) ? null : regions
+    Region {
+        id: emptyRegion
+    }
+
+    mask: anyPanelActive ? null : (hasFullscreen ? emptyRegion : regions)
 
     Regions {
         id: regions

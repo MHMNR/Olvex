@@ -109,6 +109,13 @@ Item {
         Component.onCompleted: {
             modelData.lock(this);
             enterAnim.start();
+            if (!previewHidden)
+                UiSounds.playToast(modelData.type);
+        }
+
+        onPreviewHiddenChanged: {
+            if (!previewHidden && !modelData.closed)
+                UiSounds.playToast(modelData.type);
         }
 
         // M3 Emphasized Decelerate Spline: [0.05, 0.7, 0.1, 1.0]
