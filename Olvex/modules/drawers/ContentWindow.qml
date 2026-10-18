@@ -35,7 +35,6 @@ StyledWindow {
     }
 
     name: "drawers"
-    visible: !LockState.locked || LockState.unlocking
     readonly property alias bar: bar
     readonly property alias interactionWrapper: interactions
     readonly property alias visibilities: visibilities
@@ -462,7 +461,7 @@ StyledWindow {
     }
 
     // Entrance Animation State
-    readonly property bool isVisible: !LockState.locked || LockState.unlocking
+    readonly property bool isVisible: !LockState.locked
 
     Item {
         id: revealContainer

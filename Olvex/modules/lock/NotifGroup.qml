@@ -252,7 +252,7 @@ StyledRect {
 
             Repeater {
                 model: ScriptModel {
-                    values: root.notifs.slice(0, root.Config.notifs.groupPreviewNum)
+                    values: root.notifs.slice(0, Config.notifs.groupPreviewNum)
                 }
 
                 NotifLine {
@@ -305,7 +305,7 @@ StyledRect {
             }
 
             Loader {
-                asynchronous: true
+                asynchronous: false
                 Layout.fillWidth: true
 
                 opacity: root.expanded ? 1 : 0
@@ -315,7 +315,7 @@ StyledRect {
                 sourceComponent: ColumnLayout {
                     Repeater {
                         model: ScriptModel {
-                            values: root.notifs.slice(root.Config.notifs.groupPreviewNum)
+                            values: root.notifs.slice(Config.notifs.groupPreviewNum)
                         }
 
                         NotifLine {}

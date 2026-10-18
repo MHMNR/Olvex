@@ -24,7 +24,7 @@ Item {
     readonly property real nonAnimHeight: expanded
         ? summary.implicitHeight
             + expandedContent.implicitHeight + expandedContent.anchors.topMargin
-            + (indexHairline.visible ? indexHairline.height + Tokens.spacing.small / 2 : 0)
+            + (indexHairline.visible ? indexHairline.height + (Tokens.spacing?.small ?? 7) / 2 : 0)
         : summaryHeightMetrics.height
 
     implicitHeight: nonAnimHeight
@@ -46,12 +46,12 @@ Item {
         name: "expanded"
 
         PropertyChanges {
-            summary.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
-            dummySummary.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
-            compactBody.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
-            timeStr.anchors.topMargin: indexHairline.visible ? Tokens.spacing.small : 0
-            expandedContent.anchors.topMargin: Tokens.spacing.smaller
-            summary.width: root.width - timeStr.implicitWidth - Tokens.spacing.small
+            summary.anchors.topMargin: indexHairline.visible ? (Tokens.spacing?.small ?? 7) : 0
+            dummySummary.anchors.topMargin: indexHairline.visible ? (Tokens.spacing?.small ?? 7) : 0
+            compactBody.anchors.topMargin: indexHairline.visible ? (Tokens.spacing?.small ?? 7) : 0
+            timeStr.anchors.topMargin: indexHairline.visible ? (Tokens.spacing?.small ?? 7) : 0
+            expandedContent.anchors.topMargin: Tokens.spacing?.smaller ?? 10
+            summary.width: root.width - timeStr.implicitWidth - (Tokens.spacing?.small ?? 7)
             summary.maximumLineCount: Number.MAX_SAFE_INTEGER
         }
     }
@@ -111,7 +111,7 @@ Item {
         anchors.top: parent.top
         anchors.left: dummySummary.right
         anchors.right: parent.right
-        anchors.leftMargin: Tokens.spacing.small
+        anchors.leftMargin: Tokens.spacing?.small ?? 7
 
         sourceComponent: StyledText {
             text: root.bodyText.replace(/\n/g, " ")
@@ -148,7 +148,7 @@ Item {
         anchors.top: summary.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.topMargin: Tokens.spacing.smaller
+        anchors.topMargin: Tokens.spacing?.smaller ?? 10
 
         sourceComponent: ExpandedBody {}
     }
@@ -162,7 +162,7 @@ Item {
     component ExpandedBody: ColumnLayout {
         readonly property alias body: bodyText
 
-        spacing: Tokens.spacing.smaller
+        spacing: Tokens.spacing?.smaller ?? 10
 
         StyledText {
             id: bodyText

@@ -266,7 +266,7 @@ Item {
         id: geometrySyncLoop
         interval: 350
         property int ticksLeft: 0
-        running: ticksLeft > 0 && bottomPanelMode === "smarthide" && root.bottomPanelEnabled && (!LockState.locked || LockState.unlocking)
+        running: ticksLeft > 0 && bottomPanelMode === "smarthide" && root.bottomPanelEnabled && !LockState.locked
         repeat: true
         onTriggered: {
             ticksLeft--;

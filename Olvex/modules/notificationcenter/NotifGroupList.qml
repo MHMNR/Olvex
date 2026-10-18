@@ -42,7 +42,7 @@ LazyListView {
 
             let count = 0;
             let i = 0;
-            const previewNum = root.Config.notifs.groupPreviewNum;
+            const previewNum = (root.Config?.notifs?.groupPreviewNum ?? Config?.notifs?.groupPreviewNum ?? 3);
             while (i < root.notifs.length && count < previewNum) {
                 if (!(root.notifs[i]?.closed ?? true))
                     count++;

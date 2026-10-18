@@ -60,8 +60,23 @@ Popup {
         });
     }
 
+    readonly property Item overlayParent: {
+        let win = root.target ? root.target.Window.window : root.Window.window;
+        if (win) {
+            if (win.interactionWrapper)
+                return win.interactionWrapper;
+            if (win.contentItem)
+                return win.contentItem;
+            return win;
+        }
+        let p = root.target || root;
+        while (p && p.parent)
+            p = p.parent;
+        return p;
+    }
+
     // Popup properties - doesn't affect layout
-    parent: Overlay.overlay
+    parent: overlayParent
 
     visible: tooltipVisible
     modal: false

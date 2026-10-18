@@ -42,7 +42,7 @@ Variants {
                 asynchronous: true
 
                 anchors.fill: parent
-                active: Config.background.wallpaperEnabled && (!LockState.locked || LockState.unlocking)
+                active: Config.background.wallpaperEnabled
 
                 sourceComponent: Olvex.BackgroundWallpaper {
                     screen: win.modelData
@@ -73,13 +73,13 @@ Variants {
             id: clockLoader
 
             asynchronous: true
-            active: Config.background.desktopClock.enabled && (!LockState.locked || LockState.unlocking)
+            active: Config.background.desktopClock.enabled
 
             anchors.margins: Tokens.padding.large * 2
             anchors.leftMargin: Tokens.padding.large * 2 + Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.smaller, ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness)
 
             // In always/smarthide mode the panel is always visible — push clock 40px above it
-            readonly property string _bottomMode: GlobalConfig.bar?.bottomPanel ? GlobalConfig.bar.bottomPanel.visibilityMode : "always"
+            readonly property string _bottomMode: (GlobalConfig.bar && GlobalConfig.bar.bottomPanel) ? GlobalConfig.bar.bottomPanel.visibilityMode : "always"
             readonly property real _panelOffset: (_bottomMode === "always" || _bottomMode === "smarthide") ? 40 : 0
             readonly property real _baseMargin: Tokens.padding.large * 2
 

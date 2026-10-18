@@ -164,8 +164,8 @@ WlSessionLockSurface {
 
         ScriptAction {
             script: {
-                LockState.locked = false;
                 root.lock.locked = false;
+                LockState.locked = false;
                 LockState.unlocking = false;
             }
         }
