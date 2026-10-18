@@ -81,6 +81,13 @@ Window {
             readonly property color error: SystemAccent.error
             readonly property color errorContainer: SystemAccent.errorContainer
             readonly property color fgErrorContainer: SystemAccent.fgErrorContainer
+
+            function tint(baseColor, alpha) {
+                const a = (alpha !== undefined) ? alpha : (isLight ? 0.045 : 0.06)
+                if (!baseColor || !primary || (primary.r === undefined))
+                    return baseColor || surface
+                return Qt.tint(baseColor, Qt.rgba(primary.r, primary.g, primary.b, a))
+            }
         }
         readonly property QtObject shape: QtObject {
             readonly property int xs: 4
@@ -239,7 +246,10 @@ Window {
         Rectangle {
             anchors.fill: parent
             radius: tok.shape.full
-            color: tok.palette.isLight ? "#DFE4E3" : Qt.alpha(tok.palette.fgSurface, 0.13)
+            color: tok.palette.tint(tok.palette.isLight
+                ? (tok.palette.stageContent.isValid ? tok.palette.stageContent : "#DFE4E3")
+                : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.alpha(tok.palette.fgSurface, 0.13)),
+                tok.palette.isLight ? 0.04 : 0.05)
             border.width: 0
             border.color: "transparent"
         }
@@ -2106,9 +2116,10 @@ Window {
                 id: mainCard
                 anchors.fill: parent
                 radius: 0
-                color: tok.palette.isLight
-                    ? (tok.palette.stageContent.isValid ? Qt.darker(tok.palette.stageContent, 1.02) : "#D6E0DE")
-                    : Qt.rgba(0.05, 0.05, 0.08, 0.94)
+                color: tok.palette.tint(tok.palette.isLight
+                    ? (tok.palette.stageContent.isValid ? tok.palette.stageContent : "#D6E0DE")
+                    : (tok.palette.surface.isValid ? tok.palette.surface : Qt.rgba(0.06, 0.06, 0.08, 0.96)),
+                    tok.palette.isLight ? 0.03 : 0.04)
                 border.width: 0
                 border.color: "transparent"
                 clip: true
@@ -2124,9 +2135,10 @@ Window {
                         Layout.preferredWidth: 380
                         Layout.fillHeight: true
                         radius: tok.shape.lg
-                        color: tok.palette.isLight
-                            ? "#FFFFFF"
-                            : Qt.rgba(0.12, 0.12, 0.16, 0.96)
+                        color: tok.palette.tint(tok.palette.isLight
+                            ? tok.palette.rail
+                            : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.rgba(0.12, 0.12, 0.16, 0.96)),
+                            tok.palette.isLight ? 0.045 : 0.06)
                         clip: true
                         border.width: 0
 
@@ -2226,16 +2238,21 @@ Window {
                             Layout.preferredHeight: 4
                         }
 
-                        // Command search — illuminated M3 glassmorphic field
+                        // Command search — illuminated M3 field
                         Rectangle {
                             id: searchBox
                             Layout.fillWidth: true
                             property int boxHeight: 44
                             Layout.preferredHeight: boxHeight
                             radius: tok.shape.full
-                            color: searchField.activeFocus
-                                ? (tok.palette.isLight ? "#E2ECE9" : Qt.alpha(tok.palette.fgSurface, 0.12))
-                                : (tok.palette.isLight ? "#EDF3F1" : Qt.alpha(tok.palette.fgSurface, 0.065))
+                            color: {
+                                const base = tok.palette.isLight
+                                    ? (tok.palette.stageContent.isValid ? tok.palette.stageContent : "#EDF3F1")
+                                    : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.alpha(tok.palette.fgSurface, 0.08))
+                                if (searchField.activeFocus)
+                                    return tok.palette.tint(base, tok.palette.isLight ? 0.08 : 0.09)
+                                return tok.palette.tint(base, tok.palette.isLight ? 0.04 : 0.05)
+                            }
                             border.width: 0
                             border.color: "transparent"
 
@@ -2832,9 +2849,10 @@ Window {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         radius: tok.shape.lg
-                        color: tok.palette.isLight
-                            ? "#FFFFFF"
-                            : Qt.rgba(0.12, 0.12, 0.16, 0.96)
+                        color: tok.palette.tint(tok.palette.isLight
+                            ? tok.palette.rail
+                            : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.rgba(0.12, 0.12, 0.16, 0.96)),
+                            tok.palette.isLight ? 0.045 : 0.06)
                         clip: true
                         border.width: 0
 
@@ -3056,9 +3074,10 @@ Window {
                                                     Layout.fillHeight: true
                                                     Layout.minimumHeight: 140
                                                     radius: tok.shape.md
-                                                    color: tok.palette.isLight
+                                                    color: tok.palette.tint(tok.palette.isLight
                                                         ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
-                                                        : Qt.alpha(tok.palette.fgSurface, 0.055)
+                                                        : (tok.palette.stage.isValid ? tok.palette.stage : Qt.alpha(tok.palette.fgSurface, 0.055)),
+                                                        tok.palette.isLight ? 0.04 : 0.055)
                                                     border.width: 0
                                                     border.color: "transparent"
                                                     clip: true
@@ -3300,9 +3319,10 @@ Window {
                                                         width: Math.min(parent.width, parent.height * 1.4)
                                                         height: Math.min(parent.height, width * 0.72)
                                                         radius: tok.shape.md
-                                                        color: tok.palette.isLight
+                                                        color: tok.palette.tint(tok.palette.isLight
                                                             ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
-                                                            : Qt.alpha(tok.palette.fgSurface, 0.055)
+                                                            : (tok.palette.stage.isValid ? tok.palette.stage : Qt.alpha(tok.palette.fgSurface, 0.055)),
+                                                            tok.palette.isLight ? 0.04 : 0.055)
                                                         border.width: 0
                                                         border.color: "transparent"
                                                         clip: true
@@ -3412,7 +3432,7 @@ Window {
                                 id: stageFooter
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 48
-                                color: tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.02) : Qt.rgba(255, 255, 255, 0.02)
+                                color: "transparent"
                                 border.width: 0
                                 visible: win.hasClips
 
