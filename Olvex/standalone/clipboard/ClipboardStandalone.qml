@@ -35,8 +35,8 @@ Window {
     property int selectionPulse: 0
     property int previewRev: 0
     property int imageRev: 0
-    property real shellOpacity: 0
-    property real shellScale: 0.94
+    property real shellOpacity: 1
+    property real shellScale: 1.0
     property real previewOpacity: 1
     property string previewEditText: ""
     property string previewAppliedText: ""
@@ -861,59 +861,12 @@ Window {
         height: 60
         implicitHeight: 60
 
-        property real rowRevealOpacity: win.reducedMotion ? 1.0 : 0.0
-        property real rowRevealScale: win.reducedMotion ? 1.0 : 0.94
-        property real rowRevealY: win.reducedMotion ? 0.0 : 12.0
-
-        opacity: rowRevealOpacity
-        scale: rowRevealScale
-        transform: Translate { y: row.rowRevealY }
-
-        Timer {
-            id: rowStaggerTimer
-            interval: Math.min(row.index * 26, 220)
-            running: false
-            repeat: false
-            onTriggered: rowRevealAnim.start()
-        }
-
-        ParallelAnimation {
-            id: rowRevealAnim
-            NumberAnimation {
-                target: row
-                property: "rowRevealOpacity"
-                to: 1.0
-                duration: 200
-                easing.type: Easing.OutCubic
-            }
-            NumberAnimation {
-                target: row
-                property: "rowRevealY"
-                to: 0.0
-                duration: 240
-                easing.type: Easing.OutBack
-                easing.overshoot: 1.35
-            }
-            NumberAnimation {
-                target: row
-                property: "rowRevealScale"
-                to: 1.0
-                duration: 240
-                easing.type: Easing.OutBack
-                easing.overshoot: 1.35
-            }
-        }
+        opacity: 1.0
+        scale: 1.0
 
         Component.onCompleted: {
             if (row.isImage && (!row.imagePath || row.imagePath.length === 0))
                 win.requestDecodeClipImageById(row.entryId)
-            if (!win.reducedMotion && row.index < 12)
-                rowStaggerTimer.start()
-            else {
-                rowRevealOpacity = 1.0
-                rowRevealScale = 1.0
-                rowRevealY = 0.0
-            }
         }
 
         onEntryIdChanged: {
@@ -1462,13 +1415,45 @@ Window {
         return true
     }
 
+    property int initialBatchLimit: 30
+
+    Timer {
+        id: lazyBatchTimer
+        interval: 16
+        repeat: false
+        running: false
+        onTriggered: {
+            if (searchQuery.trim().length > 0) return
+            const items = filteredCliphistItems()
+            const start = clipListModel.count
+            if (start >= items.length) return
+            for (let i = start; i < items.length; i++) {
+                const it = items[i]
+                clipListModel.append({
+                    entryId: it.entryId,
+                    entryPreview: it.entryPreview,
+                    entryRaw: it.entryRaw,
+                    entryText: it.entryText,
+                    isImage: it.isImage,
+                    imagePath: it.imagePath || "",
+                    imageDecodeFailed: false,
+                    decoded: it.decoded || false,
+                    edited: it.edited || false
+                })
+            }
+        }
+    }
+
     function rebuildClipList() {
         const items = filteredCliphistItems()
         if (clipListMatches(items))
             return false
 
         clipListModel.clear()
-        for (let i = 0; i < items.length; i++) {
+        const isSearching = searchQuery.trim().length > 0
+        const batchCount = isSearching ? items.length : Math.min(items.length, initialBatchLimit)
+
+        for (let i = 0; i < batchCount; i++) {
             const it = items[i]
             clipListModel.append({
                 entryId: it.entryId,
@@ -1481,6 +1466,10 @@ Window {
                 decoded: it.decoded || false,
                 edited: it.edited || false
             })
+        }
+
+        if (!isSearching && batchCount < items.length) {
+            lazyBatchTimer.restart()
         }
 
         if (selectedIndex >= clipListModel.count)
@@ -2039,37 +2028,11 @@ Window {
     }
 
     Component.onCompleted: {
-        if (!reducedMotion) {
-            shellEntrance.start()
-        } else {
-            shellOpacity = 1
-            shellScale = 1
-        }
+        shellOpacity = 1
+        shellScale = 1
         searchField.forceActiveFocus(Qt.ShortcutFocusReason)
         if (typeof Cliphist !== "undefined" && Cliphist)
             refreshHistory()
-    }
-
-    ParallelAnimation {
-        id: shellEntrance
-        running: false
-        NumberAnimation {
-            target: win
-            property: "shellScale"
-            from: 0.94
-            to: 1.0
-            duration: 260
-            easing.type: Easing.OutBack
-            easing.overshoot: 1.15
-        }
-        NumberAnimation {
-            target: win
-            property: "shellOpacity"
-            from: 0.0
-            to: 1.0
-            duration: 180
-            easing.type: Easing.OutCubic
-        }
     }
 
     onSelectedIndexChanged: {
@@ -3321,91 +3284,99 @@ Window {
                                             }
                                         }
 
-                                        Item {
+                                        Loader {
                                             anchors.fill: parent
-                                            visible: activeClip && activeClip.isImage
+                                            active: Boolean(activeClip && activeClip.isImage)
+                                            asynchronous: true
+                                            visible: active
 
-                                            Rectangle {
-                                                id: imageFrame
-                                                anchors.centerIn: parent
-                                                width: Math.min(parent.width, parent.height * 1.4)
-                                                height: Math.min(parent.height, width * 0.72)
-                                                radius: tok.shape.md
-                                                color: tok.palette.isLight
-                                                    ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
-                                                    : Qt.alpha(tok.palette.fgSurface, 0.055)
-                                                border.width: 0
-                                                border.color: "transparent"
-                                                clip: true
-                                                scale: stageImage.status === Image.Ready ? 1 : 0.96
-                                                opacity: stageImage.status === Image.Ready ? 1 : 0.85
-
-                                                Behavior on scale {
-                                                    enabled: !win.reducedMotion
-                                                    NumberAnimation {
-                                                        duration: tok.motion.effectsExpressive.defaultMs
-                                                        easing.type: Easing.OutBack
-                                                        easing.overshoot: tok.motion.expressiveOvershoot
-                                                    }
-                                                }
-                                                Behavior on opacity {
-                                                    enabled: !win.reducedMotion
-                                                    NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                                }
-
-                                                Image {
-                                                    id: stageImage
+                                            sourceComponent: Component {
+                                                Item {
                                                     anchors.fill: parent
-                                                    anchors.margins: 4
-                                                    opacity: status === Image.Ready ? 1 : 0
 
-                                                    Behavior on opacity {
-                                                        enabled: !win.reducedMotion
-                                                        NumberAnimation {
-                                                            duration: tok.motion.effectsExpressive.defaultMs
-                                                            easing.type: Easing.OutCubic
-                                                        }
-                                                    }
-                                                    source: {
-                                                        const _rev = win.imageRev
-                                                        const _id = win.selectedEntryId
-                                                        if (!_id.length) return ""
-                                                        for (let i = 0; i < clipListModel.count; i++) {
-                                                            const item = clipListModel.get(i)
-                                                            if (!item || item.entryId !== _id || !item.isImage)
-                                                                continue
-                                                            const p = item.imagePath
-                                                            return (p && p.length > 0) ? ("file://" + p) : ""
-                                                        }
-                                                        return ""
-                                                    }
-                                                    sourceSize: Qt.size(1200, 900)
-                                                    fillMode: Image.PreserveAspectFit
-                                                    asynchronous: true
-                                                }
-
-                                                Rectangle {
-                                                    anchors.fill: parent
-                                                    visible: stageImage.status !== Image.Ready
-                                                    color: tok.palette.stageHigh
-                                                    Text {
+                                                    Rectangle {
+                                                        id: imageFrame
                                                         anchors.centerIn: parent
-                                                        text: {
-                                                            const _id = win.selectedEntryId
-                                                            for (let i = 0; i < clipListModel.count; i++) {
-                                                                const item = clipListModel.get(i)
-                                                                if (!item || item.entryId !== _id)
-                                                                    continue
-                                                                if (item.imageDecodeFailed)
-                                                                    return qsTr("Image decode failed")
-                                                                break
+                                                        width: Math.min(parent.width, parent.height * 1.4)
+                                                        height: Math.min(parent.height, width * 0.72)
+                                                        radius: tok.shape.md
+                                                        color: tok.palette.isLight
+                                                            ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
+                                                            : Qt.alpha(tok.palette.fgSurface, 0.055)
+                                                        border.width: 0
+                                                        border.color: "transparent"
+                                                        clip: true
+                                                        scale: stageImage.status === Image.Ready ? 1 : 0.96
+                                                        opacity: stageImage.status === Image.Ready ? 1 : 0.85
+
+                                                        Behavior on scale {
+                                                            enabled: !win.reducedMotion
+                                                            NumberAnimation {
+                                                                duration: tok.motion.effectsExpressive.defaultMs
+                                                                easing.type: Easing.OutBack
+                                                                easing.overshoot: tok.motion.expressiveOvershoot
                                                             }
-                                                            if (stageImage.status === Image.Error)
-                                                                return qsTr("Image decode failed")
-                                                            return qsTr("Decoding image…")
                                                         }
-                                                        font: tok.type.label
-                                                        color: tok.palette.fgMuted
+                                                        Behavior on opacity {
+                                                            enabled: !win.reducedMotion
+                                                            NumberAnimation { duration: tok.motion.effectsExpressive.fast }
+                                                        }
+
+                                                        Image {
+                                                            id: stageImage
+                                                            anchors.fill: parent
+                                                            anchors.margins: 4
+                                                            opacity: status === Image.Ready ? 1 : 0
+
+                                                            Behavior on opacity {
+                                                                enabled: !win.reducedMotion
+                                                                NumberAnimation {
+                                                                    duration: tok.motion.effectsExpressive.defaultMs
+                                                                    easing.type: Easing.OutCubic
+                                                                }
+                                                            }
+                                                            source: {
+                                                                const _rev = win.imageRev
+                                                                const _id = win.selectedEntryId
+                                                                if (!_id.length) return ""
+                                                                for (let i = 0; i < clipListModel.count; i++) {
+                                                                    const item = clipListModel.get(i)
+                                                                    if (!item || item.entryId !== _id || !item.isImage)
+                                                                        continue
+                                                                    const p = item.imagePath
+                                                                    return (p && p.length > 0) ? ("file://" + p) : ""
+                                                                }
+                                                                return ""
+                                                            }
+                                                            sourceSize: Qt.size(1200, 900)
+                                                            fillMode: Image.PreserveAspectFit
+                                                            asynchronous: true
+                                                        }
+
+                                                        Rectangle {
+                                                            anchors.fill: parent
+                                                            visible: stageImage.status !== Image.Ready
+                                                            color: tok.palette.stageHigh
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: {
+                                                                    const _id = win.selectedEntryId
+                                                                    for (let i = 0; i < clipListModel.count; i++) {
+                                                                        const item = clipListModel.get(i)
+                                                                        if (!item || item.entryId !== _id)
+                                                                            continue
+                                                                        if (item.imageDecodeFailed)
+                                                                            return qsTr("Image decode failed")
+                                                                        break
+                                                                    }
+                                                                    if (stageImage.status === Image.Error)
+                                                                        return qsTr("Image decode failed")
+                                                                    return qsTr("Decoding image…")
+                                                                }
+                                                                font: tok.type.label
+                                                                color: tok.palette.fgMuted
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
