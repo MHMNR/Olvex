@@ -59,7 +59,7 @@ StyledWindow {
     property real borderRounding: hasFullscreen ? 0 : safeBorder.rounding
     readonly property real drawerRounding: hasFullscreen ? 0 : (safeBorder.drawerRounding ?? Math.max(0, safeBorder.rounding - (safeBorder.gap ?? 5)))
     property real shadowOpacity: hasFullscreen ? 0 : 0.7
-    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || morph.morphAnimating || notifMorph.active || notifMorph.morphAnimating || audioBrightnessMorph.active || audioBrightnessMorph.morphAnimating || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || visibilities.clipboard || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
+    readonly property bool effectLayerActive: shadowOpacity > 0.01 && (visibilities.shellMotionActive || morph.active || morph.morphAnimating || notifMorph.active || notifMorph.morphAnimating || audioBrightnessMorph.active || audioBrightnessMorph.morphAnimating || visibilities.qspanel || visibilities.dashboard || visibilities.launcher || visibilities.wallpaperLauncher || visibilities.powermenu || visibilities.notificationcenter || panels.popouts.hasCurrent || panels.contextMenuVisible || panels.overflowFlyoutVisible || (panels.overflowFlyoutContainer && panels.overflowFlyoutContainer.isMorphAnimating))
 
     property real bottomBorderHeight: {
         if (hasFullscreen)
@@ -153,7 +153,6 @@ StyledWindow {
                                         || (visibilities.qspanel && (Config.qspanel.enabled ?? true))
                                         || (visibilities.notificationcenter && (Config.notificationcenter.enabled ?? true))
                                         || (visibilities.powermenu && (Config.powermenu.enabled ?? true))
-                                        || (visibilities.clipboard)
                                         || panels.popouts.hasCurrent
                                         || panels.contextMenuVisible
                                         || panels.overflowFlyoutVisible
@@ -211,8 +210,6 @@ StyledWindow {
                 visibilities.dashboard = false;
             else if (visibilities.qspanel)
                 visibilities.qspanel = false;
-            else if (visibilities.clipboard)
-                visibilities.clipboard = false;
             else if (visibilities.notificationcenter)
                 visibilities.notificationcenter = false;
             else if (visibilities.powermenu)
@@ -227,7 +224,7 @@ StyledWindow {
     HyprlandFocusGrab {
         id: focusGrab
 
-        active: !Visibilities.areaPickerActive && ((visibilities.launcher && (GlobalConfig.launcher.enabled ?? true)) || (visibilities.wallpaperLauncher && (GlobalConfig.launcher.enabled ?? true)) || (visibilities.powermenu && (GlobalConfig.powermenu.enabled ?? true)) || (visibilities.notificationcenter && (GlobalConfig.notificationcenter.enabled ?? true)) || (visibilities.dashboard && (GlobalConfig.dashboard.enabled ?? true)) || (panels.popouts.hasCurrent && panels.popouts.currentName.startsWith("traymenu")) || (panels.qspanel && panels.qspanel.needsKeyboard && visibilities.qspanel) || visibilities.clipboard)
+        active: !Visibilities.areaPickerActive && ((visibilities.launcher && (GlobalConfig.launcher.enabled ?? true)) || (visibilities.wallpaperLauncher && (GlobalConfig.launcher.enabled ?? true)) || (visibilities.powermenu && (GlobalConfig.powermenu.enabled ?? true)) || (visibilities.notificationcenter && (GlobalConfig.notificationcenter.enabled ?? true)) || (visibilities.dashboard && (GlobalConfig.dashboard.enabled ?? true)) || (panels.popouts.hasCurrent && panels.popouts.currentName.startsWith("traymenu")) || (panels.qspanel && panels.qspanel.needsKeyboard && visibilities.qspanel))
         windows: [root]
         onActiveChanged: {
             if (active) {
@@ -244,7 +241,6 @@ StyledWindow {
             visibilities.notificationcenter = false;
             visibilities.dashboard = false;
             visibilities.qspanel = false;
-            visibilities.clipboard = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -563,7 +559,7 @@ StyledWindow {
             }
         }
 
-        // Dismiss QS panel / clipboard when clicking outside — logic moved to Interactions.qml
+        // Dismiss QS panel when clicking outside — logic moved to Interactions.qml
         // so event.accepted=false properly reaches app windows through the null mask.
 
         // Dismiss layer: closes launcher when clicking outside it

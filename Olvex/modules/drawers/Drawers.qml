@@ -3,7 +3,6 @@ import QtQuick
 import Quickshell
 import Olvex.Config
 import qs.services
-import qs.modules.clipboard as Clipboard
 import "../dashboard/dash/osk"
 
 Variants {

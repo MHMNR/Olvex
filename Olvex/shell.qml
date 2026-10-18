@@ -17,7 +17,6 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
-import "modules/clipboard"
 import "modules/olvex" as Olvex
 import Olvex.Internal
 import Quickshell
@@ -46,7 +45,6 @@ ShellRoot {
     Lock {
         id: lock
     }
-    ClipboardFloating {}
 
     ConfigToasts {}
     Shortcuts {}

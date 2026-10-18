@@ -22,7 +22,6 @@ import qs.modules.bar.popouts as BarPopouts
 import qs.modules.qspanel.toasts as Toasts
 import Quickshell.Widgets
 import qs.modules.launcher.services as LauncherServices
-import qs.modules.clipboard as Clipboard
 import qs.utils
 
 Item {
@@ -93,9 +92,6 @@ Item {
             event.accepted = true;
         } else if (visibilities.qspanel) {
             visibilities.qspanel = false;
-            event.accepted = true;
-        } else if (visibilities.clipboard) {
-            visibilities.clipboard = false;
             event.accepted = true;
         } else if (visibilities.notificationcenter) {
             visibilities.notificationcenter = false;
@@ -540,8 +536,6 @@ Item {
                     }
                     if (root.visibilities.qspanel) {
                         root.visibilities.qspanel = false;
-                    } else if (root.visibilities.clipboard) {
-                        root.visibilities.clipboard = false;
                     }
                 }
             }

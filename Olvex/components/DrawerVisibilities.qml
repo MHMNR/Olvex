@@ -13,7 +13,6 @@ QtObject {
     property bool qspanel: false
     property bool notificationcenter: false
     property bool bottomPanel: false
-    property bool clipboard: false
     property bool osk: false
 
     // Persistent properties (saved to disk)
