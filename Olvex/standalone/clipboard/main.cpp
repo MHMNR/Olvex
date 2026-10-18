@@ -35,6 +35,7 @@ class SystemAccent : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString schemeMode READ schemeMode NOTIFY paletteChanged)
     Q_PROPERTY(QString schemeFilePath READ schemeFilePath NOTIFY paletteChanged)
+    Q_PROPERTY(bool isLight READ isLight NOTIFY paletteChanged)
     Q_PROPERTY(QColor accent READ accent NOTIFY paletteChanged)
     Q_PROPERTY(QColor accentContainer READ accentContainer NOTIFY paletteChanged)
     Q_PROPERTY(QColor onAccentContainer READ onAccentContainer NOTIFY paletteChanged)
@@ -88,6 +89,13 @@ public:
 
     QString schemeMode() const { return m_schemeMode; }
     QString schemeFilePath() const { return m_activeSchemePath; }
+    bool isLight() const {
+        if (m_schemeMode == QLatin1String("light"))
+            return true;
+        if (m_schemeMode == QLatin1String("dark"))
+            return false;
+        return m_surface.isValid() ? (m_surface.lightness() > 128) : false;
+    }
     QColor accent() const { return m_primary; }
     QColor accentContainer() const { return m_primaryContainer; }
     QColor onAccentContainer() const { return m_fgPrimaryContainer; }
@@ -133,12 +141,13 @@ signals:
     void paletteChanged();
 
 private:
-    // PaletteRole: token name, scheme.json key, default hex.
-    // 14 essential tokens read from scheme.json; 7 derived at apply time.
+    // PaletteRole: token name, scheme.json key, dark default hex, light default hex.
+    // 17 essential tokens read from scheme.json; 4 derived at apply time.
     struct PaletteRole {
         const char *token;
         const char *schemeKey;  // "" = derived, not read from scheme.json
         const char *defaultHex;
+        const char *lightDefaultHex;
     };
 
     static const PaletteRole kRoles[];
@@ -306,15 +315,16 @@ private:
         if (colours.isEmpty())
             return false;
 
-        const QVariantMap next = paletteFromScheme(colours, paletteFallback());
-        if (m_paletteReady && next == m_cachedPalette && m_activeSchemePath == sourceLabel)
-            return false;
-
         const QString schemeMode = root.value(QStringLiteral("mode")).toString();
         if (!schemeMode.isEmpty())
             m_schemeMode = schemeMode;
         m_schemeName = root.value(QStringLiteral("name")).toString();
         m_activeSchemePath = sourceLabel;
+
+        const QVariantMap next = paletteFromScheme(colours, paletteFallback());
+        if (m_paletteReady && next == m_cachedPalette && m_activeSchemePath == sourceLabel)
+            return false;
+
         m_cachedPalette = next;
         m_paletteReady = true;
         applyColors(next);
@@ -337,8 +347,10 @@ private:
 
     QVariantMap defaultPalette() const {
         QVariantMap palette;
+        const bool light = isLight();
         for (int i = 0; i < kRoleCount; ++i)
-            palette.insert(QString::fromLatin1(kRoles[i].token), QString::fromLatin1(kRoles[i].defaultHex));
+            palette.insert(QString::fromLatin1(kRoles[i].token),
+                           QString::fromLatin1(light ? kRoles[i].lightDefaultHex : kRoles[i].defaultHex));
         return palette;
     }
 
@@ -351,14 +363,15 @@ private:
         return parsed.isValid() ? parsed : fallback;
     }
 
-    // 14 essential scheme.json keys → 21 clipboard tokens.
-    // 7 tokens (tertiary, tertiaryContainer, fgTertiaryContainer, rail, outline,
-    // stageContent, fgErrorContainer) are derived from the 14 essentials.
+    // Maps scheme.json keys to 21 clipboard tokens with full M3 Light/Dark role fidelity.
     QVariantMap paletteFromScheme(const QJsonObject &colours, const QVariantMap &fallback) const {
         auto fb = [&](const char *token) {
             return parseHex(fallback.value(QString::fromLatin1(token)).toString());
         };
         auto hex = [](const QColor &c) { return c.isValid() ? c.name(QColor::HexRgb) : QString(); };
+
+        const bool lightMode = (m_schemeMode == QLatin1String("light"))
+            || (colours.contains(QLatin1String("surface")) && parseHex(colours.value(QLatin1String("surface")).toString()).lightness() > 128);
 
         const QColor primary = schemeColour(colours, "primary", fb("primary"));
         const QColor onPrimary = schemeColour(colours, "onPrimary", fb("fgPrimary"));
@@ -366,12 +379,24 @@ private:
         const QColor onPrimaryContainer = schemeColour(colours, "onPrimaryContainer", fb("fgPrimaryContainer"));
         const QColor secondaryContainer = schemeColour(colours, "secondaryContainer", fb("secondaryContainer"));
         const QColor onSecondaryContainer = schemeColour(colours, "onSecondaryContainer", fb("fgSecondaryContainer"));
+
+        // Read genuine M3 tertiary roles with fallback to primary
+        const QColor tertiary = schemeColour(colours, "tertiary", schemeColour(colours, "primary", fb("tertiary")));
+        const QColor tertiaryContainer = schemeColour(colours, "tertiaryContainer", schemeColour(colours, "primaryContainer", fb("tertiaryContainer")));
+        const QColor onTertiaryContainer = schemeColour(colours, "onTertiaryContainer", schemeColour(colours, "onPrimaryContainer", fb("fgTertiaryContainer")));
+
         const QColor surface = schemeColour(colours, "surface", fb("surface"));
         const QColor onSurface = schemeColour(colours, "onSurface", fb("fgSurface"));
         const QColor onSurfaceVariant = schemeColour(colours, "onSurfaceVariant", fb("fgMuted"));
+
+        const QColor surfaceContainerLowest = schemeColour(colours, "surfaceContainerLowest",
+            lightMode ? QColor(QStringLiteral("#FFFFFF")) : QColor(QStringLiteral("#0F0D13")));
+        const QColor surfaceContainerLow = schemeColour(colours, "surfaceContainerLow",
+            lightMode ? QColor(QStringLiteral("#EEF5F3")) : QColor(QStringLiteral("#1D1B20")));
         const QColor surfaceContainer = schemeColour(colours, "surfaceContainer", fb("stage"));
         const QColor surfaceContainerHigh = schemeColour(colours, "surfaceContainerHigh", fb("stageHigh"));
         const QColor surfaceContainerHighest = schemeColour(colours, "surfaceContainerHighest", fb("stageContent"));
+
         const QColor outline = schemeColour(colours, "outline", fb("outline"));
         const QColor outlineVariant = schemeColour(colours, "outlineVariant", fb("outlineVariant"));
         const QColor error = schemeColour(colours, "error", fb("error"));
@@ -386,23 +411,53 @@ private:
         palette.insert(QStringLiteral("fgPrimaryContainer"), hex(onPrimaryContainer));
         palette.insert(QStringLiteral("secondaryContainer"), hex(secondaryContainer));
         palette.insert(QStringLiteral("fgSecondaryContainer"), hex(onSecondaryContainer));
-        // Derived: tertiary ≈ primary, tertiaryContainer ≈ primaryContainer
-        palette.insert(QStringLiteral("tertiary"), hex(primary));
-        palette.insert(QStringLiteral("tertiaryContainer"), hex(primaryContainer));
-        palette.insert(QStringLiteral("fgTertiaryContainer"), hex(onPrimaryContainer));
+        palette.insert(QStringLiteral("tertiary"), hex(tertiary));
+        palette.insert(QStringLiteral("tertiaryContainer"), hex(tertiaryContainer));
+        palette.insert(QStringLiteral("fgTertiaryContainer"), hex(onTertiaryContainer));
         palette.insert(QStringLiteral("surface"), hex(surface));
         palette.insert(QStringLiteral("fgSurface"), hex(onSurface));
         palette.insert(QStringLiteral("fgMuted"), hex(onSurfaceVariant));
-        // Opaque M3 surface ladder (no glass alpha)
-        palette.insert(QStringLiteral("rail"), hex(surface));
-        palette.insert(QStringLiteral("stage"), hex(surfaceContainer));
-        palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainerHigh));
-        palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHighest));
+
+        // M3 Elevation Surface Ladder:
+        // In light mode:
+        // rail = surfaceContainerLowest (Tone 100 #FFFFFF, clean elevated card/text edit frame)
+        // stage = surfaceContainerLow (Tone 96 #EEF5F3, main window canvas)
+        // stageHigh = surfaceContainer (Tone 94 #E7F0EE, rail and stage pane containers)
+        // stageContent = surfaceContainerHigh (Tone 92 #E1EAE8, inner controls / chips)
+        //
+        // In dark mode:
+        // rail = surface (Tone 6 #141218)
+        // stage = surfaceContainer (Tone 12 #211F26, main canvas)
+        // stageHigh = surfaceContainerHigh (Tone 17 #2B2930, panels)
+        // stageContent = surfaceContainerHighest (Tone 22 #36343B, elevated cards)
+        if (lightMode) {
+            palette.insert(QStringLiteral("rail"), hex(surfaceContainerLowest.isValid() ? surfaceContainerLowest : QColor(QStringLiteral("#FFFFFF"))));
+            palette.insert(QStringLiteral("stage"), hex(surfaceContainerLow.isValid() ? surfaceContainerLow : surfaceContainer));
+            palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainer.isValid() ? surfaceContainer : surfaceContainerLow));
+            palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHigh.isValid() ? surfaceContainerHigh : surfaceContainerHighest));
+
+            // Fix light mode error tokens if the loaded errorContainer from scheme is dark or neon coral
+            if (!errorContainer.isValid() || errorContainer.lightness() < 160) {
+                palette.insert(QStringLiteral("error"), QStringLiteral("#BA1A1A"));
+                palette.insert(QStringLiteral("errorContainer"), QStringLiteral("#FFDAD6"));
+                palette.insert(QStringLiteral("fgErrorContainer"), QStringLiteral("#410002"));
+            } else {
+                palette.insert(QStringLiteral("error"), hex(error));
+                palette.insert(QStringLiteral("errorContainer"), hex(errorContainer));
+                palette.insert(QStringLiteral("fgErrorContainer"), hex(onErrorContainer));
+            }
+        } else {
+            palette.insert(QStringLiteral("rail"), hex(surface));
+            palette.insert(QStringLiteral("stage"), hex(surfaceContainer));
+            palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainerHigh));
+            palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHighest));
+            palette.insert(QStringLiteral("error"), hex(error));
+            palette.insert(QStringLiteral("errorContainer"), hex(errorContainer));
+            palette.insert(QStringLiteral("fgErrorContainer"), hex(onErrorContainer));
+        }
+
         palette.insert(QStringLiteral("outline"), hex(outline));
         palette.insert(QStringLiteral("outlineVariant"), hex(outlineVariant));
-        palette.insert(QStringLiteral("error"), hex(error));
-        palette.insert(QStringLiteral("errorContainer"), hex(errorContainer));
-        palette.insert(QStringLiteral("fgErrorContainer"), hex(onErrorContainer));
         Q_UNUSED(onError);
         return palette;
     }
@@ -545,27 +600,27 @@ private:
 };
 
 const SystemAccent::PaletteRole SystemAccent::kRoles[] = {
-    {"primary", "primary", "#CFBCFF"},
-    {"fgPrimary", "onPrimary", "#381E72"},
-    {"primaryContainer", "primaryContainer", "#4F378A"},
-    {"fgPrimaryContainer", "onPrimaryContainer", "#E9DDFF"},
-    {"secondaryContainer", "secondaryContainer", "#4A4458"},
-    {"fgSecondaryContainer", "onSecondaryContainer", "#E8DEF8"},
-    {"tertiary", "tertiary", "#EFB8C8"},
-    {"tertiaryContainer", "tertiaryContainer", "#633B48"},
-    {"fgTertiaryContainer", "onTertiaryContainer", "#FFD8E4"},
-    {"surface", "surface", "#141218"},
-    {"fgSurface", "onSurface", "#E6E1E5"},
-    {"fgMuted", "onSurfaceVariant", "#CAC4D0"},
-    {"rail", "surfaceContainerLowest", "#0F0D13"},
-    {"stage", "surfaceContainer", "#211F26"},
-    {"stageHigh", "surfaceContainerHigh", "#2B2930"},
-    {"stageContent", "surfaceContainerHighest", "#36343B"},
-    {"outline", "outline", "#938F99"},
-    {"outlineVariant", "outlineVariant", "#49454F"},
-    {"error", "error", "#F2B8B5"},
-    {"errorContainer", "errorContainer", "#8C1D18"},
-    {"fgErrorContainer", "onErrorContainer", "#F9DEDC"},
+    {"primary", "primary", "#CFBCFF", "#1C6A65"},
+    {"fgPrimary", "onPrimary", "#381E72", "#FFFFFF"},
+    {"primaryContainer", "primaryContainer", "#4F378A", "#A8F0E9"},
+    {"fgPrimaryContainer", "onPrimaryContainer", "#E9DDFF", "#015C58"},
+    {"secondaryContainer", "secondaryContainer", "#4A4458", "#CCE8E5"},
+    {"fgSecondaryContainer", "onSecondaryContainer", "#E8DEF8", "#3D5654"},
+    {"tertiary", "tertiary", "#EFB8C8", "#36657A"},
+    {"tertiaryContainer", "tertiaryContainer", "#633B48", "#B5E3FD"},
+    {"fgTertiaryContainer", "onTertiaryContainer", "#FFD8E4", "#245469"},
+    {"surface", "surface", "#141218", "#F6FAF9"},
+    {"fgSurface", "onSurface", "#E6E1E5", "#191C1B"},
+    {"fgMuted", "onSurfaceVariant", "#CAC4D0", "#3F4947"},
+    {"rail", "surfaceContainerLowest", "#0F0D13", "#FFFFFF"},
+    {"stage", "surfaceContainer", "#211F26", "#F0F5F3"},
+    {"stageHigh", "surfaceContainerHigh", "#2B2930", "#E8F0EE"},
+    {"stageContent", "surfaceContainerHighest", "#36343B", "#E2EAE8"},
+    {"outline", "outline", "#938F99", "#6F7977"},
+    {"outlineVariant", "outlineVariant", "#49454F", "#BFC9C6"},
+    {"error", "error", "#F2B8B5", "#BA1A1A"},
+    {"errorContainer", "errorContainer", "#8C1D18", "#FFDAD6"},
+    {"fgErrorContainer", "onErrorContainer", "#F9DEDC", "#410002"},
 };
 
 static QString defaultCliphistDbPath() {

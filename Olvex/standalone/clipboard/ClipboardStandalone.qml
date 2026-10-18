@@ -16,7 +16,7 @@ Window {
     visible: true
     title: qsTr("Olvex Clipboard")
     flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
-    color: tok.palette.stage
+    color: "transparent"
 
     // ── App state ─────────────────────────────────────────────────────────────
     ListModel { id: clipListModel }
@@ -35,8 +35,8 @@ Window {
     property int selectionPulse: 0
     property int previewRev: 0
     property int imageRev: 0
-    property real shellOpacity: 1
-    property real shellScale: 0.96
+    property real shellOpacity: 0
+    property real shellScale: 0.94
     property real previewOpacity: 1
     property string previewEditText: ""
     property string previewAppliedText: ""
@@ -59,6 +59,7 @@ Window {
     // ── M3 tokens — extracted from current wallpaper (same pipeline as Olvex shell) ─
     readonly property QtObject tok: QtObject {
         readonly property QtObject palette: QtObject {
+            readonly property bool isLight: Boolean(SystemAccent && SystemAccent.isLight)
             readonly property color primary: SystemAccent.primary
             readonly property color fgPrimary: SystemAccent.fgPrimary
             readonly property color primaryContainer: SystemAccent.primaryContainer
@@ -87,6 +88,7 @@ Window {
             readonly property int md: 12
             readonly property int lg: 16
             readonly property int xl: 24
+            readonly property int xxl: 28
             readonly property int full: 999
         }
         // M3 Expressive motion — spatial + effects schemes (m3.material.io)
@@ -124,19 +126,102 @@ Window {
             readonly property int expressiveDefaultSpatialMs: 500
         }
         readonly property QtObject type: QtObject {
-            readonly property font title: Qt.font({ family: "Sans Serif", pixelSize: 15, weight: Font.DemiBold })
-            readonly property font titleEmph: Qt.font({ family: "Sans Serif", pixelSize: 20, weight: Font.Bold })
-            readonly property font body: Qt.font({ family: "Sans Serif", pixelSize: 14, weight: Font.Normal })
-            readonly property font bodyEmph: Qt.font({ family: "Sans Serif", pixelSize: 14, weight: Font.Medium })
-            readonly property font label: Qt.font({ family: "Sans Serif", pixelSize: 12, weight: Font.Medium })
-            readonly property font labelEmph: Qt.font({ family: "Sans Serif", pixelSize: 12, weight: Font.DemiBold })
-            readonly property font mono: Qt.font({ family: "Monospace", pixelSize: 13, weight: Font.Normal })
-            readonly property font preview: Qt.font({ family: "Sans Serif", pixelSize: 17, weight: Font.Normal })
-            readonly property font previewEmph: Qt.font({ family: "Sans Serif", pixelSize: 28, weight: Font.DemiBold })
+            readonly property string uiFamily: "Inter, Roboto, Noto Sans, Adwaita Sans, Sans Serif"
+            readonly property string monoFamily: "JetBrains Mono, Geist Mono, SF Mono, Monospace, monospace"
+            readonly property font title: Qt.font({ family: uiFamily, pixelSize: 15, weight: Font.DemiBold })
+            readonly property font titleEmph: Qt.font({ family: uiFamily, pixelSize: 18, weight: Font.Bold })
+            readonly property font body: Qt.font({ family: uiFamily, pixelSize: 13, weight: Font.Normal })
+            readonly property font bodyEmph: Qt.font({ family: uiFamily, pixelSize: 13, weight: Font.DemiBold })
+            readonly property font label: Qt.font({ family: uiFamily, pixelSize: 12, weight: Font.Normal })
+            readonly property font labelEmph: Qt.font({ family: uiFamily, pixelSize: 12, weight: Font.Medium })
+            readonly property font mono: Qt.font({ family: monoFamily, pixelSize: 11, weight: Font.Normal })
+            readonly property font preview: Qt.font({ family: monoFamily, pixelSize: 13, weight: Font.Normal })
+            readonly property font previewEmph: Qt.font({ family: uiFamily, pixelSize: 22, weight: Font.DemiBold })
         }
     }
 
     // ── Components ──────────────────────────────────────────────────────────
+
+    // Authentic Material Symbols Rounded ligature icon
+    component MIcon: Text {
+        id: mi
+        property string name: ""
+        property int size: 18
+        property color iconColor: tok.palette.fgSurface
+        property real fill: 0
+        property int weight: 400
+
+        text: name
+        textFormat: Text.PlainText
+        font.family: "Material Symbols Rounded"
+        font.pixelSize: size
+        font.features: ({ "liga": 1 })
+        font.hintingPreference: Font.PreferFullHinting
+        font.variableAxes: ({
+            FILL: mi.fill,
+            GRAD: 0,
+            opsz: Math.max(20, Math.min(48, size)),
+            wght: mi.weight
+        })
+        font.weight: Font.Normal
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        color: iconColor
+        antialiasing: true
+        renderType: Text.NativeRendering
+    }
+
+    // Keycap badge for shortcuts
+    component KbdKey: Rectangle {
+        id: kk
+        property string key: ""
+        property color textColor: tok.palette.fgMuted
+        property color bg: "transparent"
+        property color borderColor: "transparent"
+
+        readonly property bool isBackspace: kk.key === "⌫" || kk.key === "backspace"
+        readonly property bool isReturn: kk.key === "⏎" || kk.key === "return" || kk.key === "enter"
+
+        implicitWidth: isBackspace ? 18 : (isReturn ? 16 : keyText.implicitWidth)
+        implicitHeight: 20
+        radius: 0
+        color: bg
+        border.width: 0
+        border.color: "transparent"
+
+        MIcon {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: 2
+            visible: kk.isBackspace
+            name: "backspace"
+            size: 16
+            iconColor: kk.textColor
+        }
+
+        MIcon {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: 2
+            visible: kk.isReturn
+            name: "keyboard_return"
+            size: 15
+            iconColor: kk.textColor
+        }
+
+        Text {
+            id: keyText
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: 1
+            visible: !kk.isBackspace && !kk.isReturn
+            text: kk.key
+            textFormat: Text.PlainText
+            font.pixelSize: 11
+            font.weight: Font.Bold
+            font.family: tok.type.monoFamily
+            font.hintingPreference: Font.PreferFullHinting
+            renderType: Text.NativeRendering
+            color: kk.textColor
+        }
+    }
 
     // M3 Expressive ButtonGroup — fixed pill indicator, smooth slide, stable layout
     component FilterButtonGroup: Item {
@@ -145,16 +230,18 @@ Window {
         property var options: []
         signal picked(int index, string value)
 
-        implicitHeight: 44
+        implicitHeight: 36
         readonly property int segmentCount: Math.max(1, options.length)
         readonly property real segmentWidth: width > 0 ? width / segmentCount : 0
-        readonly property real inset: 4
+        readonly property real inset: 3
         readonly property real indicatorW: Math.max(0, segmentWidth - inset * 2)
 
         Rectangle {
             anchors.fill: parent
             radius: tok.shape.full
-            color: tok.palette.secondaryContainer
+            color: tok.palette.isLight ? "#DFE4E3" : Qt.alpha(tok.palette.fgSurface, 0.13)
+            border.width: 0
+            border.color: "transparent"
         }
 
         Rectangle {
@@ -208,8 +295,7 @@ Window {
                         anchors.fill: parent
                         radius: tok.shape.full
                         color: tok.palette.fgSurface
-                        opacity: segMa.pressed ? 0.1
-                            : (segMa.containsMouse && !fbgSeg.active ? 0.06 : 0)
+                        opacity: segMa.pressed ? 0.08 : 0
                         Behavior on opacity {
                             enabled: !win.reducedMotion
                             NumberAnimation {
@@ -223,37 +309,18 @@ Window {
                         anchors.centerIn: parent
                         spacing: 6
 
-                        Text {
-                            id: segGlyph
-                            visible: (fbgSeg.modelData.glyph || "").length > 0
-                            scale: fbgSeg.active ? 1.12 : 1.0
-
-                            Behavior on scale {
-                                enabled: !win.reducedMotion
-                                NumberAnimation {
-                                    duration: tok.motion.effectsExpressive.defaultMs
-                                    easing.type: Easing.OutBack
-                                    easing.overshoot: tok.motion.expressiveOvershoot
-                                }
-                            }
-                            Layout.preferredWidth: visible ? 22 : 0
-                            Layout.preferredHeight: 22
+                        MIcon {
+                            visible: (fbgSeg.modelData.icon || "").length > 0
                             Layout.alignment: Qt.AlignVCenter
-                            text: fbgSeg.modelData.glyph || ""
-                            font.pixelSize: 14
-                            font.weight: Font.Bold
-                            font.family: tok.type.mono.family
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            color: fbgSeg.active
-                                ? tok.palette.fgPrimary : tok.palette.fgMuted
+                            name: fbgSeg.modelData.icon || ""
+                            size: 16
+                            iconColor: fbgSeg.active
+                                ? tok.palette.fgPrimary
+                                : (tok.palette.isLight ? tok.palette.fgSurface : tok.palette.fgMuted)
 
-                            Behavior on color {
+                            Behavior on iconColor {
                                 enabled: !win.reducedMotion
-                                ColorAnimation {
-                                    duration: tok.motion.effectsExpressive.fast
-                                    easing.type: Easing.OutQuad
-                                }
+                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
                             }
                         }
 
@@ -263,7 +330,8 @@ Window {
                             text: fbgSeg.modelData.label || ""
                             font: tok.type.labelEmph
                             color: fbgSeg.active
-                                ? tok.palette.fgPrimary : tok.palette.fgMuted
+                                ? tok.palette.fgPrimary
+                                : (tok.palette.isLight ? tok.palette.fgSurface : tok.palette.fgMuted)
 
                             Behavior on color {
                                 enabled: !win.reducedMotion
@@ -271,47 +339,25 @@ Window {
                             }
                         }
 
-                        // Badge: pill container with contrasting fill matching mock
                         Rectangle {
-                            id: segBadge
                             Layout.alignment: Qt.AlignVCenter
-                            implicitWidth: Math.max(22, badgeTxt.implicitWidth + 10)
-                            implicitHeight: 20
+                            implicitWidth: Math.max(16, countText.implicitWidth + 8)
+                            implicitHeight: 16
                             radius: tok.shape.full
                             color: fbgSeg.active
-                                ? Qt.darker(tok.palette.primary, 1.25)
-                                : tok.palette.stageHigh
-                            scale: fbgSeg.active ? 1.05 : 1.0
-
-                            Behavior on scale {
-                                enabled: !win.reducedMotion
-                                NumberAnimation {
-                                    duration: tok.motion.effectsExpressive.defaultMs
-                                    easing.type: Easing.OutBack
-                                    easing.overshoot: tok.motion.expressiveOvershoot
-                                }
-                            }
-
-                            Behavior on color {
-                                enabled: !win.reducedMotion
-                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                            }
+                                ? Qt.rgba(255, 255, 255, 0.22)
+                                : (tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.05) : Qt.rgba(255, 255, 255, 0.08))
 
                             Text {
-                                id: badgeTxt
+                                id: countText
                                 anchors.centerIn: parent
-                                text: fbgSeg.tabCount.toString()
-                                font.pixelSize: 11
+                                text: fbgSeg.tabCount
+                                font.pixelSize: 10
                                 font.weight: Font.DemiBold
-                                font.family: tok.type.mono.family
+                                font.family: tok.type.monoFamily
                                 color: fbgSeg.active
                                     ? tok.palette.fgPrimary
                                     : tok.palette.fgMuted
-
-                                Behavior on color {
-                                    enabled: !win.reducedMotion
-                                    ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                                }
                             }
                         }
                     }
@@ -331,61 +377,90 @@ Window {
         }
     }
 
-    component IconButton: Rectangle {
+    component IconButton: Item {
         id: ib
+        property string icon: ""
         property string glyph: ""
         property string accessibleName: ""
         property string tone: "neutral"
         signal triggered()
 
-        implicitWidth: 34
-        implicitHeight: 34
-        radius: tok.shape.full
-        color: {
-            if (ib.tone === "error")
-                return ibMa.pressed
-                    ? Qt.darker(tok.palette.errorContainer, 1.08)
-                    : (ibMa.containsMouse ? tok.palette.errorContainer : tok.palette.errorContainer)
-            return ibMa.pressed
-                ? tok.palette.stageHigh
-                : (ibMa.containsMouse ? tok.palette.secondaryContainer : "transparent")
-        }
-        border.width: 0
-        scale: ibMa.pressed ? 0.9 : (ibMa.containsMouse ? 1.06 : 1.0)
+        implicitWidth: 32
+        implicitHeight: 32
 
-        Behavior on scale {
-            enabled: !win.reducedMotion
-            NumberAnimation {
-                duration: tok.motion.effectsExpressive.fast
-                easing.type: Easing.OutBack
-                easing.overshoot: tok.motion.expressiveOvershoot
+        // Silky smooth background fade layer
+        Rectangle {
+            id: ibHoverBg
+            anchors.fill: parent
+            radius: tok.shape.full
+            color: ib.tone === "error"
+                ? (ibMa.pressed
+                    ? Qt.darker(tok.palette.errorContainer, tok.palette.isLight ? 1.15 : 0.85)
+                    : tok.palette.errorContainer)
+                : (ibMa.pressed
+                    ? Qt.alpha(tok.palette.fgSurface, 0.14)
+                    : Qt.alpha(tok.palette.fgSurface, 0.08))
+            opacity: ibMa.containsMouse || ibMa.pressed ? 1.0 : 0.0
+
+            Behavior on opacity {
+                enabled: !win.reducedMotion
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on color {
+                enabled: !win.reducedMotion
+                ColorAnimation { duration: 120 }
             }
         }
-        Behavior on color {
-            enabled: !win.reducedMotion
-            ColorAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutQuad }
+
+        MIcon {
+            id: ibIcon
+            anchors.centerIn: parent
+            visible: ib.icon.length > 0
+            name: ib.icon
+            size: 18
+            iconColor: ib.tone === "error"
+                ? (ibMa.containsMouse || ibMa.pressed ? tok.palette.fgErrorContainer : tok.palette.error)
+                : (ibMa.containsMouse ? tok.palette.fgSurface : tok.palette.fgMuted)
+            scale: ibMa.pressed ? 0.90 : 1.0
+
+            Behavior on iconColor {
+                enabled: !win.reducedMotion
+                ColorAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on scale {
+                enabled: !win.reducedMotion
+                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+            }
         }
 
         Shape {
             id: ibIconShape
-            visible: ib.glyph === "delete" || ib.glyph === "trash"
+            visible: ib.icon.length === 0 && (ib.glyph === "delete" || ib.glyph === "trash")
             anchors.centerIn: parent
-            width: 15
-            height: 15
+            width: 16
+            height: 16
             layer.enabled: true
             layer.samples: 4
-            scale: ibMa.pressed ? 0.9 : 1.0
+            scale: ibMa.pressed ? 0.90 : 1.0
 
             Behavior on scale {
                 enabled: !win.reducedMotion
-                NumberAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutBack; easing.overshoot: 1.1 }
+                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
             }
 
             ShapePath {
-                fillColor: ib.tone === "error" ? tok.palette.fgErrorContainer : tok.palette.fgMuted
+                fillColor: ib.tone === "error"
+                    ? (ibMa.containsMouse || ibMa.pressed ? tok.palette.fgErrorContainer : tok.palette.error)
+                    : (ibMa.containsMouse ? tok.palette.fgSurface : tok.palette.fgMuted)
                 strokeColor: "transparent"
                 strokeWidth: 0
-                scale: Qt.size(15 / 24, 15 / 24)
+                scale: Qt.size(16 / 24, 16 / 24)
                 PathSvg {
                     path: "M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"
                 }
@@ -394,20 +469,22 @@ Window {
 
         Text {
             anchors.centerIn: parent
-            visible: !ibIconShape.visible && ib.glyph.length > 0
+            visible: ib.icon.length === 0 && !ibIconShape.visible && ib.glyph.length > 0
             text: ib.glyph
             font.pixelSize: 14
             font.weight: Font.DemiBold
-            color: ib.tone === "error" ? tok.palette.fgErrorContainer : tok.palette.fgMuted
-            scale: ibMa.pressed ? 0.9 : 1.0
+            color: ib.tone === "error"
+                ? (ibMa.containsMouse || ibMa.pressed ? tok.palette.fgErrorContainer : tok.palette.error)
+                : (ibMa.containsMouse ? tok.palette.fgSurface : tok.palette.fgMuted)
+            scale: ibMa.pressed ? 0.90 : 1.0
 
             Behavior on scale {
                 enabled: !win.reducedMotion
-                NumberAnimation { duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutBack; easing.overshoot: 1.1 }
+                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
             }
             Behavior on color {
                 enabled: !win.reducedMotion
-                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
+                ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
             }
         }
 
@@ -420,21 +497,25 @@ Window {
         }
 
         Accessible.role: Accessible.Button
-        Accessible.name: ib.accessibleName.length > 0 ? ib.accessibleName : ib.glyph
+        Accessible.name: ib.accessibleName.length > 0 ? ib.accessibleName : (ib.icon.length > 0 ? ib.icon : ib.glyph)
     }
 
     component PrimaryButton: Rectangle {
         id: pbtn
         property string label: ""
+        property string icon: ""
         property string glyph: ""
+        property string kbd: ""
         signal triggered()
 
-        implicitHeight: 40
-        implicitWidth: Math.max(92, pbtnRow.implicitWidth + 28)
+        implicitHeight: 32
+        implicitWidth: Math.max(76, pbtnRow.implicitWidth + 20)
         radius: tok.shape.full
-        color: pMa.pressed ? Qt.darker(tok.palette.primary, 1.1) : tok.palette.primary
+        color: pMa.pressed
+            ? Qt.darker(tok.palette.primary, tok.palette.isLight ? 1.15 : 1.1)
+            : (pMa.containsMouse ? Qt.darker(tok.palette.primary, tok.palette.isLight ? 1.06 : 1.04) : tok.palette.primary)
         opacity: enabled ? 1 : 0.38
-        scale: enabled && pMa.pressed ? 0.92 : (enabled && pMa.containsMouse ? 1.05 : 1.0)
+        scale: enabled && pMa.pressed ? 0.94 : (enabled && pMa.containsMouse ? 1.03 : 1.0)
 
         Behavior on scale {
             enabled: !win.reducedMotion
@@ -458,18 +539,25 @@ Window {
             anchors.centerIn: parent
             spacing: 6
 
-            Item {
-                Layout.preferredWidth: 28
-                Layout.preferredHeight: 22
+            MIcon {
+                visible: pbtn.icon.length > 0
                 Layout.alignment: Qt.AlignVCenter
-                visible: pbtn.glyph.length > 0
+                name: pbtn.icon
+                size: 16
+                iconColor: tok.palette.fgPrimary
+            }
+
+            Item {
+                Layout.preferredWidth: 20
+                Layout.preferredHeight: 20
+                Layout.alignment: Qt.AlignVCenter
+                visible: pbtn.icon.length === 0 && pbtn.glyph.length > 0
 
                 Text {
                     anchors.centerIn: parent
                     text: pbtn.glyph
                     font.pixelSize: 12
                     font.weight: Font.Bold
-                    font.family: pbtn.glyph.length > 1 ? "Monospace" : "Sans Serif"
                     horizontalAlignment: Text.AlignHCenter
                     color: tok.palette.fgPrimary
                 }
@@ -480,6 +568,15 @@ Window {
                 text: pbtn.label
                 font: tok.type.labelEmph
                 color: tok.palette.fgPrimary
+            }
+
+            KbdKey {
+                visible: pbtn.kbd.length > 0
+                Layout.alignment: Qt.AlignVCenter
+                key: pbtn.kbd
+                textColor: tok.palette.fgPrimary
+                bg: "transparent"
+                borderColor: "transparent"
             }
         }
 
@@ -503,31 +600,42 @@ Window {
 
         SequentialAnimation {
             id: clickAnim
-            NumberAnimation { target: pbtn; property: "scale"; to: 0.92; duration: tok.motion.effectsExpressive.fast; easing.type: Easing.OutBack }
-            NumberAnimation { target: pbtn; property: "scale"; to: 1.0; duration: tok.motion.effectsExpressive.defaultMs; easing.type: Easing.OutCubic }
+            NumberAnimation { target: pbtn; property: "scale"; to: 0.90; duration: 80; easing.type: Easing.OutCubic }
+            NumberAnimation { target: pbtn; property: "scale"; to: 1.0; duration: 120; easing.type: Easing.OutBack; easing.overshoot: 1.35 }
         }
     }
 
     component TonalButton: Rectangle {
         id: tbtn
         property string label: ""
+        property string icon: ""
         property string glyph: ""
+        property string kbd: ""
         property string tone: "neutral" // neutral | error
         signal triggered()
 
-        readonly property color _fg: tbtn.tone === "error"
-            ? tok.palette.fgErrorContainer
-            : tok.palette.fgSecondaryContainer
-        readonly property color _bg: {
+        readonly property color _fg: {
             if (tbtn.tone === "error")
-                return tMa.pressed
-                    ? Qt.darker(tok.palette.errorContainer, 1.08)
-                    : tok.palette.errorContainer
-            return tMa.pressed ? tok.palette.stageHigh : tok.palette.secondaryContainer
+                return tok.palette.fgErrorContainer
+            return tok.palette.fgSecondaryContainer
+        }
+        readonly property color _bg: {
+            if (tbtn.tone === "error") {
+                if (tMa.pressed)
+                    return Qt.darker(tok.palette.errorContainer, tok.palette.isLight ? 1.15 : 0.85)
+                if (tMa.containsMouse)
+                    return Qt.darker(tok.palette.errorContainer, tok.palette.isLight ? 1.07 : 0.92)
+                return tok.palette.errorContainer
+            }
+            if (tMa.pressed)
+                return Qt.darker(tok.palette.secondaryContainer, tok.palette.isLight ? 1.10 : 0.88)
+            if (tMa.containsMouse)
+                return Qt.darker(tok.palette.secondaryContainer, tok.palette.isLight ? 1.05 : 0.94)
+            return tok.palette.secondaryContainer
         }
 
-        implicitHeight: 40
-        implicitWidth: Math.max(tbtn.label.length > 0 ? 88 : 40, tbtnRow.implicitWidth + 24)
+        implicitHeight: 32
+        implicitWidth: Math.max(tbtn.label.length > 0 ? 76 : 32, tbtnRow.implicitWidth + 20)
         radius: tok.shape.full
         color: tbtn._bg
         border.width: 0
@@ -557,18 +665,25 @@ Window {
             anchors.centerIn: parent
             spacing: 6
 
-            Item {
-                Layout.preferredWidth: tbtn.glyph.length > 0 ? 22 : 0
-                Layout.preferredHeight: 22
+            MIcon {
+                visible: tbtn.icon.length > 0
                 Layout.alignment: Qt.AlignVCenter
-                visible: tbtn.glyph.length > 0
+                name: tbtn.icon
+                size: 16
+                iconColor: tbtn._fg
+            }
+
+            Item {
+                Layout.preferredWidth: tbtn.glyph.length > 0 ? 20 : 0
+                Layout.preferredHeight: 20
+                Layout.alignment: Qt.AlignVCenter
+                visible: tbtn.icon.length === 0 && tbtn.glyph.length > 0
 
                 Text {
                     anchors.centerIn: parent
                     text: tbtn.glyph
                     font.pixelSize: tbtn.glyph.length > 1 ? 11 : 13
                     font.weight: Font.DemiBold
-                    font.family: tbtn.glyph.length > 1 ? "Monospace" : "Sans Serif"
                     horizontalAlignment: Text.AlignHCenter
                     color: tbtn._fg
                 }
@@ -580,6 +695,15 @@ Window {
                 text: tbtn.label
                 font: tok.type.labelEmph
                 color: tbtn._fg
+            }
+
+            KbdKey {
+                visible: tbtn.kbd.length > 0
+                Layout.alignment: Qt.AlignVCenter
+                key: tbtn.kbd
+                textColor: tbtn._fg
+                bg: "transparent"
+                borderColor: "transparent"
             }
         }
 
@@ -594,48 +718,120 @@ Window {
 
         Accessible.role: Accessible.Button
         Accessible.name: tbtn.label.length > 0 ? tbtn.label : tbtn.glyph
+
+        function simulateClick() {
+            if (!enabled) return
+            clickAnim.restart()
+            triggered()
+        }
+
+        SequentialAnimation {
+            id: clickAnim
+            NumberAnimation { target: tbtn; property: "scale"; to: 0.90; duration: 80; easing.type: Easing.OutCubic }
+            NumberAnimation { target: tbtn; property: "scale"; to: 1.0; duration: 120; easing.type: Easing.OutBack; easing.overshoot: 1.35 }
+        }
     }
 
     // Compact kbd hint chip for footer shortcuts — solid M3 surface
-    component KbdHint: Rectangle {
+    component KbdHint: Item {
         id: kh
         property string keys: ""
         property string caption: ""
 
+        readonly property bool isLeftRight: kh.keys === "←→"
+        readonly property bool isUpDown: kh.keys === "↑↓"
+
         implicitHeight: 22
-        implicitWidth: khRow.implicitWidth + 10
-        radius: tok.shape.sm
-        color: "transparent"
+        implicitWidth: khRow.implicitWidth
 
-        Row {
+        RowLayout {
             id: khRow
-            anchors.centerIn: parent
-            spacing: 5
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 7
 
-            Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                implicitWidth: Math.max(22, keyLbl.implicitWidth + 10)
-                implicitHeight: 18
-                radius: 5
-                color: tok.palette.stageHigh
-                border.width: 0
+            // Arrow keycaps or single keycap
+            Row {
+                spacing: 3
+                Layout.alignment: Qt.AlignVCenter
 
-                Text {
-                    id: keyLbl
-                    anchors.centerIn: parent
-                    text: kh.keys
-                    font.pixelSize: 10
-                    font.weight: Font.DemiBold
-                    font.family: "Monospace"
-                    color: tok.palette.fgMuted
+                // First keycap
+                Rectangle {
+                    width: (kh.isLeftRight || kh.isUpDown) ? 22 : Math.max(22, keyLbl.implicitWidth + 8)
+                    height: 22
+                    radius: 5
+                    color: tok.palette.isLight ? tok.palette.stageContent : tok.palette.stageHigh
+                    border.width: 0
+
+                    MIcon {
+                        anchors.centerIn: parent
+                        anchors.verticalCenterOffset: 1
+                        visible: kh.isLeftRight
+                        name: "arrow_back"
+                        size: 15
+                        weight: 600
+                        iconColor: tok.palette.fgSurface
+                    }
+
+                    MIcon {
+                        anchors.centerIn: parent
+                        anchors.verticalCenterOffset: 1
+                        visible: kh.isUpDown
+                        name: "arrow_upward"
+                        size: 15
+                        weight: 600
+                        iconColor: tok.palette.fgSurface
+                    }
+
+                    Text {
+                        id: keyLbl
+                        anchors.centerIn: parent
+                        visible: !kh.isLeftRight && !kh.isUpDown
+                        text: kh.keys
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        font.family: tok.type.monoFamily
+                        font.hintingPreference: Font.PreferFullHinting
+                        renderType: Text.NativeRendering
+                        color: tok.palette.fgSurface
+                    }
+                }
+
+                // Second keycap (for arrow pairs)
+                Rectangle {
+                    visible: kh.isLeftRight || kh.isUpDown
+                    width: 22
+                    height: 22
+                    radius: 5
+                    color: tok.palette.isLight ? tok.palette.stageContent : tok.palette.stageHigh
+                    border.width: 0
+
+                    MIcon {
+                        anchors.centerIn: parent
+                        anchors.verticalCenterOffset: 1
+                        visible: kh.isLeftRight
+                        name: "arrow_forward"
+                        size: 15
+                        weight: 600
+                        iconColor: tok.palette.fgSurface
+                    }
+
+                    MIcon {
+                        anchors.centerIn: parent
+                        anchors.verticalCenterOffset: 1
+                        visible: kh.isUpDown
+                        name: "arrow_downward"
+                        size: 15
+                        weight: 600
+                        iconColor: tok.palette.fgSurface
+                    }
                 }
             }
 
             Text {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 text: kh.caption
                 font: tok.type.label
-                color: tok.palette.fgMuted
+                color: tok.palette.fgSurface
             }
         }
     }
@@ -664,11 +860,60 @@ Window {
         width: ListView.view ? ListView.view.width : implicitWidth
         height: 60
         implicitHeight: 60
-        opacity: 1
+
+        property real rowRevealOpacity: win.reducedMotion ? 1.0 : 0.0
+        property real rowRevealScale: win.reducedMotion ? 1.0 : 0.94
+        property real rowRevealY: win.reducedMotion ? 0.0 : 12.0
+
+        opacity: rowRevealOpacity
+        scale: rowRevealScale
+        transform: Translate { y: row.rowRevealY }
+
+        Timer {
+            id: rowStaggerTimer
+            interval: Math.min(row.index * 26, 220)
+            running: false
+            repeat: false
+            onTriggered: rowRevealAnim.start()
+        }
+
+        ParallelAnimation {
+            id: rowRevealAnim
+            NumberAnimation {
+                target: row
+                property: "rowRevealOpacity"
+                to: 1.0
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                target: row
+                property: "rowRevealY"
+                to: 0.0
+                duration: 240
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.35
+            }
+            NumberAnimation {
+                target: row
+                property: "rowRevealScale"
+                to: 1.0
+                duration: 240
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.35
+            }
+        }
 
         Component.onCompleted: {
             if (row.isImage && (!row.imagePath || row.imagePath.length === 0))
                 win.requestDecodeClipImageById(row.entryId)
+            if (!win.reducedMotion && row.index < 12)
+                rowStaggerTimer.start()
+            else {
+                rowRevealOpacity = 1.0
+                rowRevealScale = 1.0
+                rowRevealY = 0.0
+            }
         }
 
         onEntryIdChanged: {
@@ -699,14 +944,14 @@ Window {
             anchors.rightMargin: 2
             anchors.topMargin: 2
             anchors.bottomMargin: 2
-            scale: rowMa.pressed ? 0.985 : (row.isCurrent ? 1.0 : 1.0)
+            scale: rowMa.pressed ? 0.94 : 1.0
             transformOrigin: Item.Center
 
             Behavior on scale {
                 enabled: !win.reducedMotion
                 SpringAnimation {
-                    spring: rowMa.pressed ? 5.0 : 4.2
-                    damping: rowMa.pressed ? 0.65 : 0.70
+                    spring: rowMa.pressed ? 5.5 : 4.4
+                    damping: rowMa.pressed ? 0.60 : 0.68
                     mass: tok.motion.springMass
                     epsilon: tok.motion.springEpsilon
                 }
@@ -746,24 +991,17 @@ Window {
                 id: rowSurface
 
                 anchors.fill: parent
-                radius: rowMa.pressed ? tok.shape.lg : tok.shape.md
+                radius: tok.shape.md
                 color: {
                     if (row.isCurrent)
                         return "transparent"
                     if (rowHover.hovered)
-                        return tok.palette.stageContent
+                        return Qt.alpha(tok.palette.fgSurface, tok.palette.isLight ? 0.07 : 0.09)
                     return "transparent"
                 }
                 border.width: 0
+                border.color: "transparent"
 
-                Behavior on radius {
-                    enabled: !win.reducedMotion
-                    NumberAnimation {
-                        duration: tok.motion.emphasizedMedium
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: tok.motion.emphasized
-                    }
-                }
                 Behavior on color {
                     enabled: !win.reducedMotion
                     ColorAnimation {
@@ -774,54 +1012,29 @@ Window {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 12
-                // Room for gliding delete on focus marker
+                anchors.leftMargin: 20
                 anchors.rightMargin: 44
                 spacing: 10
                 z: 1
 
-                // ID chip — solid M3
+                // Leading text icon container — perfectly matches 38x38 image thumbnail
                 Rectangle {
-                    Layout.preferredWidth: Math.max(34, idLbl.implicitWidth + 10)
-                    Layout.preferredHeight: 22
-                    radius: tok.shape.full
+                    visible: !row.isImage
+                    Layout.preferredWidth: 38
+                    Layout.preferredHeight: 38
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: tok.shape.md
                     color: row.isCurrent
-                        ? tok.palette.primary
-                        : tok.palette.stageContent
-                    border.width: 0
+                        ? tok.palette.primaryContainer
+                        : (tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.04) : Qt.rgba(255, 255, 255, 0.06))
 
-                    Behavior on color {
-                        enabled: !win.reducedMotion
-                        ColorAnimation {
-                            duration: tok.motion.emphasizedMedium
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: tok.motion.emphasized
-                        }
-                    }
-
-                    Text {
-                        id: idLbl
+                    MIcon {
                         anchors.centerIn: parent
-                        textFormat: win.searchQuery.trim().length > 0 ? Text.RichText : Text.PlainText
-                        text: {
-                            const raw = "#" + row.entryId
-                            if (!win.searchQuery || win.searchQuery.trim().length === 0)
-                                return raw
-                            return win.highlightQuery(raw, win.searchQuery, row.isCurrent ? tok.palette.fgPrimary : tok.palette.primary)
-                        }
-                        font.pixelSize: 11
-                        font.weight: Font.DemiBold
-                        font.family: tok.type.mono.family
-                        color: row.isCurrent ? tok.palette.fgPrimary : tok.palette.fgMuted
-
-                        Behavior on color {
-                            enabled: !win.reducedMotion
-                            ColorAnimation {
-                                duration: tok.motion.emphasizedMedium
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: tok.motion.emphasized
-                            }
-                        }
+                        name: "notes"
+                        size: 18
+                        iconColor: row.isCurrent
+                            ? tok.palette.fgPrimaryContainer
+                            : tok.palette.fgMuted
                     }
                 }
 
@@ -831,6 +1044,7 @@ Window {
                     visible: row.isImage
                     Layout.preferredWidth: 38
                     Layout.preferredHeight: 38
+                    Layout.alignment: Qt.AlignVCenter
 
                     // Mask shape with layer.enabled
                     Item {
@@ -855,12 +1069,12 @@ Window {
                         color: tok.palette.primaryContainer
                         border.width: 0
 
-                        Text {
+                        MIcon {
                             anchors.centerIn: parent
                             visible: thumbImg.status !== Image.Ready
-                            text: "▦"
-                            font.pixelSize: 15
-                            color: tok.palette.fgPrimaryContainer
+                            name: "image"
+                            size: 18
+                            iconColor: tok.palette.fgPrimaryContainer
                         }
                     }
 
@@ -895,28 +1109,115 @@ Window {
                     }
                 }
 
-                Text {
+                // Image two-line metadata hierarchy
+                ColumnLayout {
+                    id: imageMetaCol
+                    visible: row.isImage
                     Layout.fillWidth: true
-                    textFormat: win.searchQuery.trim().length > 0 ? Text.RichText : Text.PlainText
-                    text: {
-                        const raw = row.isImage
-                            ? win.cleanImagePreview(row.entryPreview)
-                            : row.entryPreview
-                        if (!win.searchQuery || win.searchQuery.trim().length === 0)
-                            return raw
-                        return win.highlightQuery(raw, win.searchQuery, tok.palette.primary)
-                    }
-                    font: row.isCurrent ? tok.type.bodyEmph : tok.type.body
-                    color: row.isCurrent ? tok.palette.fgSurface : tok.palette.fgMuted
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
+                    spacing: 2
+                    Layout.alignment: Qt.AlignVCenter
 
-                    Behavior on color {
-                        enabled: !win.reducedMotion
-                        ColorAnimation {
-                            duration: tok.motion.emphasizedMedium
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: tok.motion.emphasized
+                    readonly property var meta: win.parseImageMetadata(row.entryPreview)
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: (imageMetaCol.meta && imageMetaCol.meta.title) ? imageMetaCol.meta.title : qsTr("Image")
+                        font.pixelSize: 13
+                        font.weight: Font.Medium
+                        color: row.isCurrent
+                            ? tok.palette.fgSecondaryContainer
+                            : (tok.palette.isLight ? tok.palette.fgSurface : tok.palette.fgMuted)
+                        elide: Text.ElideRight
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 5
+
+                        Text {
+                            text: (imageMetaCol.meta && imageMetaCol.meta.subtitle) ? imageMetaCol.meta.subtitle : ""
+                            font.pixelSize: 11
+                            font.family: tok.type.monoFamily
+                            color: tok.palette.fgMuted
+                            opacity: 0.65
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            text: "•"
+                            font.pixelSize: 9
+                            color: tok.palette.fgMuted
+                            opacity: 0.4
+                        }
+
+                        Text {
+                            text: "#" + row.entryId
+                            font.pixelSize: 11
+                            font.family: tok.type.monoFamily
+                            color: tok.palette.fgMuted
+                            opacity: 0.65
+                        }
+                    }
+                }
+
+                // Text two-line hierarchy (Line 1: snippet; Line 2: #ID • count)
+                ColumnLayout {
+                    visible: !row.isImage
+                    Layout.fillWidth: true
+                    spacing: 2
+                    Layout.alignment: Qt.AlignVCenter
+
+                    Text {
+                        Layout.fillWidth: true
+                        textFormat: win.searchQuery.trim().length > 0 ? Text.RichText : Text.PlainText
+                        text: {
+                            if (!win.searchQuery || win.searchQuery.trim().length === 0)
+                                return row.entryPreview
+                            return win.highlightQuery(row.entryPreview, win.searchQuery, tok.palette.primary)
+                        }
+                        font: row.isCurrent ? tok.type.bodyEmph : tok.type.body
+                        color: row.isCurrent
+                            ? tok.palette.fgSecondaryContainer
+                            : (tok.palette.isLight ? tok.palette.fgSurface : tok.palette.fgMuted)
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+
+                        Behavior on color {
+                            enabled: !win.reducedMotion
+                            ColorAnimation {
+                                duration: tok.motion.emphasizedMedium
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: tok.motion.emphasized
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 5
+
+                        Text {
+                            text: "#" + row.entryId
+                            font.pixelSize: 11
+                            font.family: tok.type.monoFamily
+                            color: tok.palette.fgMuted
+                            opacity: 0.65
+                        }
+
+                        Text {
+                            text: "•"
+                            font.pixelSize: 9
+                            color: tok.palette.fgMuted
+                            opacity: 0.4
+                        }
+
+                        Text {
+                            text: qsTr("%1 chars").arg(row.entryText ? row.entryText.length : (row.entryPreview ? row.entryPreview.length : 0))
+                            font.pixelSize: 11
+                            font.family: tok.type.monoFamily
+                            color: tok.palette.fgMuted
+                            opacity: 0.65
+                            elide: Text.ElideRight
                         }
                     }
                 }
@@ -944,7 +1245,7 @@ Window {
         if (!q || !q.trim())
             return escapeHtml(text)
 
-        const accentHex = accentColor ? (accentColor.toString ? accentColor.toString() : String(accentColor)) : "#a8c7fa"
+        const accentHex = accentColor ? (accentColor.toString ? accentColor.toString() : String(accentColor)) : (tok.palette.isLight ? tok.palette.primary.toString() : "#a8c7fa")
         const rawTerms = q.trim().split(/\s+/).filter(t => t.length > 0)
         if (rawTerms.length === 0)
             return escapeHtml(text)
@@ -979,6 +1280,35 @@ Window {
             return info.length > 0 ? (info + " • Image") : qsTr("Image clip")
         }
         return raw
+    }
+
+    function parseImageMetadata(raw) {
+        if (!raw || raw.length === 0)
+            return { title: qsTr("Image"), subtitle: "" }
+        let inner = raw
+        const mBin = raw.match(/\[\[\s*binary data\s*(.*?)\s*\]\]/)
+        if (mBin && mBin[1]) inner = mBin[1].trim()
+
+        const match = inner.match(/([\d.]+\s*(?:[KkMmGg]i?[Bb]|bytes))\s+([a-zA-Z0-9]+)\s+(\d+)\s*[xX×]\s*(\d+)/)
+        if (match) {
+            const size = match[1].replace(/KiB/i, "KB").replace(/MiB/i, "MB")
+            const ext = match[2].toUpperCase()
+            const dim = match[3] + " × " + match[4]
+            return {
+                title: qsTr("Image (%1)").arg(dim),
+                subtitle: ext + " • " + size
+            }
+        }
+        const matchNoDim = inner.match(/([\d.]+\s*(?:[KkMmGg]i?[Bb]|bytes))\s+([a-zA-Z0-9]+)/)
+        if (matchNoDim) {
+            const size = matchNoDim[1].replace(/KiB/i, "KB").replace(/MiB/i, "MB")
+            const ext = matchNoDim[2].toUpperCase()
+            return {
+                title: qsTr("Image"),
+                subtitle: ext + " • " + size
+            }
+        }
+        return { title: qsTr("Image"), subtitle: inner }
     }
 
     function clipId(entry) {
@@ -1548,6 +1878,12 @@ Window {
         if (!clipListModel.count && (!event.text || event.text.length === 0))
             return
 
+        if (event.key === Qt.Key_E && (event.modifiers & Qt.ControlModifier) && activeClip && !activeClip.isImage && !previewEditing) {
+            beginPreviewEdit()
+            event.accepted = true
+            return
+        }
+
         if (event.key === Qt.Key_Up) { moveSelection(-1); event.accepted = true; return }
         else if (event.key === Qt.Key_Down) { moveSelection(1); event.accepted = true; return }
         else if (event.key === Qt.Key_Home) {
@@ -1703,24 +2039,37 @@ Window {
     }
 
     Component.onCompleted: {
-        if (!reducedMotion)
+        if (!reducedMotion) {
             shellEntrance.start()
-        else
+        } else {
+            shellOpacity = 1
             shellScale = 1
+        }
         searchField.forceActiveFocus(Qt.ShortcutFocusReason)
         if (typeof Cliphist !== "undefined" && Cliphist)
             refreshHistory()
     }
 
-    NumberAnimation {
+    ParallelAnimation {
         id: shellEntrance
         running: false
-        target: win
-        property: "shellScale"
-        from: 0.96
-        to: 1
-        duration: tok.motion.effectsExpressive.fast
-        easing.type: Easing.OutCubic
+        NumberAnimation {
+            target: win
+            property: "shellScale"
+            from: 0.94
+            to: 1.0
+            duration: 260
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.15
+        }
+        NumberAnimation {
+            target: win
+            property: "shellOpacity"
+            from: 0.0
+            to: 1.0
+            duration: 180
+            easing.type: Easing.OutCubic
+        }
     }
 
     onSelectedIndexChanged: {
@@ -1774,8 +2123,9 @@ Window {
                 Text {
                     anchors.centerIn: parent
                     font.pixelSize: 11
-                    color: tok.palette.fgSurface
+                    color: "#FFFFFF"
                     text: (SystemAccent.wallpaperSource || "no wallpaper")
+                        + " | mode: " + (SystemAccent.schemeMode || "auto")
                         + " | primary: " + SystemAccent.primary
                         + " | " + (SystemAccent.schemeName || "extracting…")
                 }
@@ -1788,21 +2138,36 @@ Window {
 
 
 
-            RowLayout {
+            // Unified main card — clean surface, corner roundness handled by Hyprland
+            Rectangle {
+                id: mainCard
                 anchors.fill: parent
-                anchors.margins: 16
-                spacing: 18
+                radius: 0
+                color: tok.palette.isLight
+                    ? (tok.palette.stageContent.isValid ? Qt.darker(tok.palette.stageContent, 1.02) : "#D6E0DE")
+                    : Qt.rgba(0.05, 0.05, 0.08, 0.94)
+                border.width: 0
+                border.color: "transparent"
+                clip: true
 
-                // ═══ LEFT RAIL — command + timeline ═══════════════════════════
-                Rectangle {
-                    id: rail
-                    Layout.preferredWidth: 400
-                    Layout.fillHeight: true
-                    color: tok.palette.stageHigh
-                    radius: tok.shape.xl
-                    clip: true
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 8
 
-                    ColumnLayout {
+                    // ═══ LEFT RAIL — command + timeline ═══════════════════════════
+                    Rectangle {
+                        id: rail
+                        Layout.preferredWidth: 380
+                        Layout.fillHeight: true
+                        radius: tok.shape.lg
+                        color: tok.palette.isLight
+                            ? "#FFFFFF"
+                            : Qt.rgba(0.12, 0.12, 0.16, 0.96)
+                        clip: true
+                        border.width: 0
+
+                        ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 14
                         spacing: 10
@@ -1812,9 +2177,24 @@ Window {
                             spacing: 10
                             Layout.bottomMargin: 2
 
+                            // Leading icon badge
+                            Rectangle {
+                                Layout.preferredWidth: 36
+                                Layout.preferredHeight: 36
+                                radius: tok.shape.md
+                                color: tok.palette.primaryContainer
+
+                                MIcon {
+                                    anchors.centerIn: parent
+                                    name: "content_paste"
+                                    size: 20
+                                    iconColor: tok.palette.fgPrimaryContainer
+                                }
+                            }
+
                             Column {
                                 Layout.fillWidth: true
-                                spacing: 2
+                                spacing: 1
 
                                 Text {
                                     text: qsTr("Clipboard")
@@ -1824,12 +2204,15 @@ Window {
 
                                 Text {
                                     id: statusLbl
-                                    text: statusMessage.length > 0
-                                        ? statusMessage
-                                        : qsTr("%1 clips in history").arg(clipListModel.count)
+                                    text: {
+                                        if (statusMessage.length > 0)
+                                            return statusMessage
+                                        const c = clipListModel.count
+                                        return c === 0 ? qsTr("No items") : (c === 1 ? qsTr("1 item") : qsTr("%1 items").arg(c))
+                                    }
                                     font: tok.type.label
                                     color: tok.palette.fgMuted
-                                    opacity: 0.85
+                                    opacity: 0.75
 
                                     Connections {
                                         target: win
@@ -1849,13 +2232,13 @@ Window {
                                         NumberAnimation {
                                             target: statusLbl
                                             property: "opacity"
-                                            to: 0.4
+                                            to: 0.35
                                             duration: win.reducedMotion ? 1 : 80
                                         }
                                         NumberAnimation {
                                             target: statusLbl
                                             property: "opacity"
-                                            to: 0.85
+                                            to: 0.75
                                             duration: win.reducedMotion ? 1 : 160
                                             easing.type: Easing.OutCubic
                                         }
@@ -1867,7 +2250,7 @@ Window {
                             TonalButton {
                                 Layout.alignment: Qt.AlignVCenter
                                 label: qsTr("Clear")
-                                glyph: "⌫"
+                                icon: ""
                                 tone: "error"
                                 implicitHeight: 32
                                 enabled: clipListModel.count > 0
@@ -1880,7 +2263,7 @@ Window {
                             Layout.preferredHeight: 4
                         }
 
-                        // Command search — solid M3 field
+                        // Command search — illuminated M3 glassmorphic field
                         Rectangle {
                             id: searchBox
                             Layout.fillWidth: true
@@ -1888,9 +2271,18 @@ Window {
                             Layout.preferredHeight: boxHeight
                             radius: tok.shape.full
                             color: searchField.activeFocus
-                                ? tok.palette.primaryContainer
-                                : tok.palette.stageContent
+                                ? (tok.palette.isLight ? "#E2ECE9" : Qt.alpha(tok.palette.fgSurface, 0.12))
+                                : (tok.palette.isLight ? "#EDF3F1" : Qt.alpha(tok.palette.fgSurface, 0.065))
                             border.width: 0
+                            border.color: "transparent"
+
+                            HoverHandler {
+                                cursorShape: Qt.IBeamCursor
+                            }
+
+                            TapHandler {
+                                onTapped: searchField.forceActiveFocus(Qt.MouseFocusReason)
+                            }
 
                             Behavior on color {
                                 ColorAnimation { duration: tok.motion.effectsExpressive.fast }
@@ -1898,24 +2290,19 @@ Window {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 14
+                                anchors.leftMargin: 12
                                 anchors.rightMargin: 10
                                 spacing: 8
 
-                                Text {
-                                    Layout.preferredWidth: 20
-                                    Layout.preferredHeight: 20
+                                MIcon {
                                     Layout.alignment: Qt.AlignVCenter
-                                    text: "⌕"
-                                    font.pixelSize: 18
-                                    font.weight: Font.Bold
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    color: searchField.activeFocus
-                                        ? tok.palette.fgPrimaryContainer
+                                    name: "search"
+                                    size: 18
+                                    iconColor: searchField.activeFocus
+                                        ? tok.palette.primary
                                         : tok.palette.fgMuted
 
-                                    Behavior on color {
+                                    Behavior on iconColor {
                                         enabled: !win.reducedMotion
                                         ColorAnimation { duration: tok.motion.effectsExpressive.fast }
                                     }
@@ -1927,14 +2314,14 @@ Window {
                                     placeholderText: qsTr("Search or jump…")
                                     text: searchQuery
                                     font: tok.type.body
-                                    color: searchField.activeFocus
-                                        ? tok.palette.fgPrimaryContainer
-                                        : tok.palette.fgSurface
-                                    placeholderTextColor: searchField.activeFocus
-                                        ? Qt.alpha(tok.palette.fgPrimaryContainer, 0.7)
-                                        : tok.palette.fgMuted
+                                    color: tok.palette.fgSurface
+                                    placeholderTextColor: tok.palette.fgMuted
                                     selectByMouse: true
                                     background: Item {}
+
+                                    HoverHandler {
+                                        cursorShape: Qt.IBeamCursor
+                                    }
                                     onTextChanged: {
                                         if (searchQuery !== text) {
                                             searchQuery = text
@@ -1957,34 +2344,19 @@ Window {
                                     }
                                 }
 
-                                Rectangle {
+                                Row {
                                     visible: searchField.text.length === 0
-                                    implicitWidth: kbdCtrlK.implicitWidth + 10
-                                    implicitHeight: 20
-                                    radius: 5
-                                    color: searchField.activeFocus
-                                        ? Qt.alpha(tok.palette.fgPrimaryContainer, 0.15)
-                                        : tok.palette.stageHigh
-                                    border.width: 0
+                                    Layout.alignment: Qt.AlignVCenter
+                                    spacing: 3
 
-                                    Text {
-                                        id: kbdCtrlK
-                                        anchors.centerIn: parent
-                                        text: "Ctrl+K"
-                                        font.pixelSize: 10
-                                        font.weight: Font.DemiBold
-                                        font.family: tok.type.mono.family
-                                        color: searchField.activeFocus
-                                            ? tok.palette.fgPrimaryContainer
-                                            : tok.palette.fgMuted
-                                        opacity: 0.8
-                                    }
+                                    KbdKey { key: "Ctrl" }
+                                    KbdKey { key: "K" }
                                 }
 
                                 IconButton {
                                     opacity: searchField.text.length > 0 ? 1 : 0
                                     visible: opacity > 0
-                                    glyph: "×"
+                                    icon: "close"
                                     accessibleName: qsTr("Clear search")
                                     onTriggered: searchField.clear()
 
@@ -2002,7 +2374,7 @@ Window {
 
                         Item {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 44
+                            Layout.preferredHeight: 36
                             z: 2
                             clip: true
 
@@ -2011,9 +2383,9 @@ Window {
                                 anchors.fill: parent
                                 current: win.filterIndexForMode(filterMode)
                                 options: [
-                                    { label: qsTr("All"), value: "all" },
-                                    { label: qsTr("Text"), value: "text" },
-                                    { label: qsTr("Images"), value: "image" }
+                                    { label: qsTr("All"), value: "all", icon: "view_list" },
+                                    { label: qsTr("Text"), value: "text", icon: "notes" },
+                                    { label: qsTr("Images"), value: "image", icon: "image" }
                                 ]
                                 onPicked: function(index, value) { win.setFilter(value) }
                             }
@@ -2030,7 +2402,7 @@ Window {
                                 id: railEmptyState
                                 anchors.fill: parent
                                 z: 0
-                                spacing: 6
+                                spacing: 8
                                 visible: !win.hasClips
                                 opacity: visible ? 1 : 0
 
@@ -2043,6 +2415,14 @@ Window {
                                 }
 
                                 Item { Layout.fillHeight: true }
+
+                                MIcon {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    name: "search_off"
+                                    size: 36
+                                    iconColor: tok.palette.fgMuted
+                                    opacity: 0.45
+                                }
 
                                 Text {
                                     Layout.alignment: Qt.AlignHCenter
@@ -2071,7 +2451,7 @@ Window {
 
                                 Rectangle {
                                     anchors.fill: parent
-                                    color: tok.palette.stageHigh
+                                    color: "transparent"
                                 }
 
                             // List-level pointer routing — avoids scaled-row hitbox overlap (±1 bug)
@@ -2210,10 +2590,22 @@ Window {
                                 // Soft tonal pill under row content — secondaryContainer for clearer contrast vs rail
                                 Rectangle {
                                     anchors.fill: parent
-                                    // Less stadium, more M3 container (was height/2)
                                     radius: tok.shape.md
                                     color: tok.palette.secondaryContainer
                                     border.width: 0
+
+                                    // Left 3px accent indicator bar
+                                    Rectangle {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: 5
+                                        anchors.top: parent.top
+                                        anchors.topMargin: 8
+                                        anchors.bottom: parent.bottom
+                                        anchors.bottomMargin: 8
+                                        width: 3
+                                        radius: 1.5
+                                        color: tok.palette.primary
+                                    }
                                 }
                             }
 
@@ -2221,10 +2613,14 @@ Window {
                                 id: listView
                                 z: 1
                                 anchors.fill: parent
+                                topMargin: 2
+                                bottomMargin: 16
                                 clip: true
                                 model: clipListModel
                                 spacing: 8
-                                boundsBehavior: Flickable.StopAtBounds
+                                boundsBehavior: Flickable.DragAndOvershootBounds
+                                flickDeceleration: 2200
+                                maximumFlickVelocity: 3200
                                 keyNavigationEnabled: false
                                 highlightFollowsCurrentItem: false
                                 cacheBuffer: 600
@@ -2240,39 +2636,69 @@ Window {
                                     }
                                 }
 
-                                // Smooth scroll — mouse: animated notches; touchpad: pixel-direct
-                                readonly property real scrollLineStep: 56
+                                // Fluid Momentum Wheel Physics (StyledListView / AppList architecture — DESIGN.md Pillar A)
+                                readonly property real scrollLineStep: 48
                                 readonly property real scrollLinesPerNotch: 3
+                                readonly property real scrollStep: scrollLineStep * scrollLinesPerNotch
+                                readonly property int wheelAnimMs: 280
+                                property real touchpadVelocity: 0
 
                                 NumberAnimation {
                                     id: smoothScrollAnim
                                     target: listView
                                     property: "contentY"
-                                    duration: tok.motion.emphasizedMedium
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: tok.motion.emphasized
+                                    duration: listView.wheelAnimMs
+                                    easing.type: Easing.OutCubic
+                                    onStopped: listView.checkOverscrollBounds()
                                 }
 
-                                onMovementStarted: smoothScrollAnim.stop()
-                                onFlickStarted: smoothScrollAnim.stop()
+                                SpringAnimation {
+                                    id: bounceBackSpring
+                                    target: listView
+                                    property: "contentY"
+                                    spring: 4.8
+                                    damping: 0.70
+                                    epsilon: 0.15
+                                }
+
+                                Timer {
+                                    id: touchpadReleaseTimer
+                                    interval: 85
+                                    repeat: false
+                                    onTriggered: listView.checkOverscrollBounds()
+                                }
+
+                                onDraggingChanged: {
+                                    if (dragging) {
+                                        smoothScrollAnim.stop()
+                                        bounceBackSpring.stop()
+                                        touchpadReleaseTimer.stop()
+                                        touchpadVelocity = 0
+                                    }
+                                }
+                                onFlickEnded: checkOverscrollBounds()
+                                onMovementEnded: checkOverscrollBounds()
+
+                                function checkOverscrollBounds() {
+                                    const maxScroll = Math.max(0, contentHeight - height)
+                                    if (contentY < 0) {
+                                        smoothScrollAnim.stop()
+                                        bounceBackSpring.stop()
+                                        bounceBackSpring.from = contentY
+                                        bounceBackSpring.to = 0
+                                        bounceBackSpring.start()
+                                    } else if (contentY > maxScroll) {
+                                        smoothScrollAnim.stop()
+                                        bounceBackSpring.stop()
+                                        bounceBackSpring.from = contentY
+                                        bounceBackSpring.to = maxScroll
+                                        bounceBackSpring.start()
+                                    }
+                                }
 
                                 function clampScrollY(y) {
                                     const maxScroll = Math.max(0, contentHeight - height)
                                     return Math.max(0, Math.min(maxScroll, y))
-                                }
-
-                                function applyScrollDelta(deltaPx, animate, animMs) {
-                                    const targetY = clampScrollY(
-                                        (smoothScrollAnim.running ? smoothScrollAnim.to : contentY) + deltaPx)
-                                    if (animate && !win.reducedMotion) {
-                                        smoothScrollAnim.stop()
-                                        smoothScrollAnim.duration = animMs
-                                        smoothScrollAnim.to = targetY
-                                        smoothScrollAnim.start()
-                                    } else {
-                                        smoothScrollAnim.stop()
-                                        contentY = targetY
-                                    }
                                 }
 
                                 function smoothEnsureVisible(idx) {
@@ -2298,9 +2724,11 @@ Window {
                                     }
 
                                     if (Math.abs(targetY - currentY) > 0.5) {
+                                        bounceBackSpring.stop()
                                         if (!win.reducedMotion) {
                                             smoothScrollAnim.stop()
-                                            smoothScrollAnim.duration = tok.motion.emphasizedMedium
+                                            smoothScrollAnim.duration = listView.wheelAnimMs
+                                            smoothScrollAnim.from = contentY
                                             smoothScrollAnim.to = targetY
                                             smoothScrollAnim.start()
                                         } else {
@@ -2310,48 +2738,76 @@ Window {
                                 }
 
                                 ScrollBar.vertical: ScrollBar {
+                                    id: listScrollBar
                                     policy: ScrollBar.AsNeeded
                                     contentItem: Rectangle {
-                                        implicitWidth: 3
+                                        implicitWidth: 4
                                         radius: 2
-                                        color: tok.palette.primary
+                                        color: tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.22) : Qt.rgba(255, 255, 255, 0.28)
+                                        opacity: (listScrollBar.hovered || listScrollBar.pressed || listView.moving) ? 1 : 0
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: 150 }
+                                        }
                                     }
                                 }
 
                                 WheelHandler {
                                     id: smoothScrollHandler
+                                    target: null
                                     acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                                    onWheel: function(event) {
-                                        const dev = event.device
-                                        const isTouchPad = dev
-                                            && dev.type === PointerDevice.TouchPad
-
-                                        // Touchpad pixel deltas — smooth glide, not instant jump
-                                        if (isTouchPad && event.pixelDelta.y !== 0) {
-                                            listView.applyScrollDelta(
-                                                -event.pixelDelta.y, true,
-                                                tok.motion.effectsExpressive.fast)
-                                            event.accepted = true
-                                            return
-                                        }
-
-                                        const angleY = event.angleDelta.y
-                                        if (angleY === 0)
+                                    onWheel: event => {
+                                        const delta = event.angleDelta.y
+                                        const pDelta = event.pixelDelta ? event.pixelDelta.y : 0
+                                        if (!delta && !pDelta)
                                             return
 
-                                        const notchPx = -(angleY / 120)
-                                            * listView.scrollLineStep
-                                            * listView.scrollLinesPerNotch
+                                        const effectiveDelta = delta !== 0 ? delta : (pDelta * 4)
+                                        const maxScroll = Math.max(0, listView.contentHeight - listView.height)
+                                        const isDiscrete = Math.abs(effectiveDelta) >= 120
+                                        const direction = effectiveDelta > 0 ? -1 : 1
 
-                                        if (isTouchPad) {
-                                            listView.applyScrollDelta(
-                                                -(angleY / 120) * listView.scrollLineStep * 1.25,
-                                                true, tok.motion.effectsExpressive.fast)
+                                        if (isDiscrete) {
+                                            // Discrete mouse wheel notch: fluid momentum step (AppList physics)
+                                            bounceBackSpring.stop()
+                                            touchpadReleaseTimer.stop()
+                                            listView.touchpadVelocity = 0
+
+                                            const step = listView.scrollStep
+                                            const base = smoothScrollAnim.running ? smoothScrollAnim.to : listView.contentY
+                                            let nextTarget = base + direction * step
+
+                                            // Allow elastic overscroll bounce up to 36px past edge limits
+                                            const maxOvershoot = 36
+                                            if (nextTarget < -maxOvershoot) {
+                                                nextTarget = -maxOvershoot
+                                            } else if (nextTarget > maxScroll + maxOvershoot) {
+                                                nextTarget = maxScroll + maxOvershoot
+                                            }
+
+                                            smoothScrollAnim.stop()
+                                            smoothScrollAnim.duration = listView.wheelAnimMs
+                                            smoothScrollAnim.from = listView.contentY
+                                            smoothScrollAnim.to = nextTarget
+                                            smoothScrollAnim.start()
                                         } else {
-                                            // Mouse wheel — always animated notch scroll
-                                            listView.applyScrollDelta(
-                                                notchPx, true, tok.motion.emphasizedMedium)
+                                            // Smooth pixel touchpad scrolling with elastic edge resistance
+                                            smoothScrollAnim.stop()
+                                            bounceBackSpring.stop()
+
+                                            let dy = pDelta !== 0 ? -pDelta : -effectiveDelta * 0.65
+                                            listView.touchpadVelocity = dy
+
+                                            let newY = listView.contentY + dy
+                                            if (newY < 0) {
+                                                newY = listView.contentY + dy * 0.35
+                                            } else if (newY > maxScroll) {
+                                                newY = listView.contentY + dy * 0.35
+                                            }
+
+                                            listView.contentY = newY
+                                            touchpadReleaseTimer.restart()
                                         }
+
                                         event.accepted = true
                                     }
                                 }
@@ -2379,12 +2835,12 @@ Window {
                             IconButton {
                                 id: listFocusDelete
                                 z: 2
-                                x: listFocusMarker.x + listFocusMarker.width - width - 8
-                                y: listFocusMarker.y + (listFocusMarker.height - height) / 2
+                                x: Math.round(listFocusMarker.x + listFocusMarker.width - width - 8)
+                                y: Math.round(listFocusMarker.y + (listFocusMarker.height - height) / 2)
                                 opacity: listFocusMarker.active ? 1 : 0
                                 visible: opacity > 0.01
                                 enabled: listFocusMarker.active
-                                glyph: "delete"
+                                icon: "delete"
                                 tone: "error"
                                 accessibleName: qsTr("Delete")
                                 onTriggered: {
@@ -2400,571 +2856,49 @@ Window {
                                     }
                                 }
                             }
+
+
                             }
                         }
                     }
                 }
 
-                // ═══ RIGHT STAGE — preview canvas ═════════════════════════════
-                Rectangle {
-                    id: stage
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: tok.palette.stageContent
-                    radius: tok.shape.xl
-                    clip: true
-                    border.width: 0
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 12
-                        visible: win.hasClips
-
-                        // Preview meta header
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
-                            opacity: activeClip !== null ? 1 : 0
-                            scale: activeClip !== null ? 1 : 0.96
-                            visible: opacity > 0
-
-                            Behavior on opacity {
-                                enabled: !win.reducedMotion
-                                NumberAnimation {
-                                    duration: tok.motion.effectsExpressive.fast
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
-                            Behavior on scale {
-                                enabled: !win.reducedMotion
-                                NumberAnimation {
-                                    duration: tok.motion.effectsExpressive.defaultMs
-                                    easing.type: Easing.OutBack
-                                    easing.overshoot: 1.08
-                                }
-                            }
-
-                            Rectangle {
-                                implicitWidth: metaId.implicitWidth + 16
-                                implicitHeight: 26
-                                radius: tok.shape.full
-                                color: tok.palette.primaryContainer
-                                border.width: 0
-
-                                Text {
-                                    id: metaId
-                                    anchors.centerIn: parent
-                                    text: activeClip ? ("#" + activeClip.entryId) : ""
-                                    font.pixelSize: 12
-                                    font.weight: Font.DemiBold
-                                    font.family: tok.type.mono.family
-                                    color: tok.palette.fgPrimaryContainer
-                                }
-                            }
-
-                            Rectangle {
-                                opacity: activeClip && activeClip.isImage ? 1 : 0
-                                visible: opacity > 0
-                                implicitWidth: metaType.implicitWidth + 16
-                                implicitHeight: 26
-                                radius: tok.shape.full
-                                color: tok.palette.tertiaryContainer
-                                border.width: 0
-
-                                Text {
-                                    id: metaType
-                                    anchors.centerIn: parent
-                                    text: qsTr("Image")
-                                    font: tok.type.label
-                                    color: tok.palette.fgTertiaryContainer
-                                }
-                            }
-
-                            Rectangle {
-                                opacity: activeClip && !activeClip.isImage ? 1 : 0
-                                visible: opacity > 0
-                                implicitWidth: metaType2.implicitWidth + 16
-                                implicitHeight: 26
-                                radius: tok.shape.full
-                                color: tok.palette.secondaryContainer
-                                border.width: 0
-
-                                Text {
-                                    id: metaType2
-                                    anchors.centerIn: parent
-                                    text: qsTr("Text")
-                                    font: tok.type.label
-                                    color: tok.palette.fgSecondaryContainer
-                                }
-                            }
-
-                            Rectangle {
-                                opacity: activeClip && activeClip.edited ? 1 : 0
-                                visible: opacity > 0
-                                implicitWidth: editedLbl.implicitWidth + 16
-                                implicitHeight: 26
-                                radius: tok.shape.full
-                                color: tok.palette.primaryContainer
-                                border.width: 0
-
-                                Text {
-                                    id: editedLbl
-                                    anchors.centerIn: parent
-                                    text: qsTr("Edited")
-                                    font: tok.type.labelEmph
-                                    color: tok.palette.primary
-                                }
-                            }
-
-                            Item { Layout.fillWidth: true }
-
-                            Text {
-                                text: activeClip
-                                    ? (activeClip.isImage ? "" : qsTr("%1 chars").arg(activeClip.entryText.length))
-                                    : ""
-                                font: tok.type.label
-                                color: tok.palette.fgMuted
-                                opacity: activeClip && !activeClip.isImage ? 0.8 : 0
-                                visible: opacity > 0
-                            }
-                        }
-
-                        // Preview content (empty text lives on stage overlay — fixed position)
-                        Item {
-                            id: stagePageHost
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            visible: win.hasClips
-                            clip: true
-
-                            Item {
-                                id: previewBody
-                                anchors.fill: parent
-                                opacity: win.previewOpacity
-                                visible: activeClip !== null
-
-                                Item {
-                                    anchors.fill: parent
-                                    visible: activeClip && !activeClip.isImage
-                                    z: win.previewEditing ? 100 : 0
-
-                                    ColumnLayout {
-                                        anchors.fill: parent
-                                        spacing: 6
-
-                                    Rectangle {
-                                        id: previewEditFrame
-                                        property bool isHovered: false
-
-                                        // Handle click-to-edit in view mode (disabled in edit mode so text selection works)
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            z: 10
-                                            enabled: !win.previewEditing
-                                            onClicked: win.beginPreviewEdit()
-                                        }
-
-                                        // Independent cursor overlay (z:10 to sit above TextEdit, independent of MouseArea)
-                                        Item {
-                                            anchors.fill: parent
-                                            z: 10
-                                            HoverHandler {
-                                                id: previewFrameHover
-                                                cursorShape: win.previewEditing ? Qt.IBeamCursor : Qt.ArrowCursor
-                                                onHoveredChanged: previewEditFrame.isHovered = hovered
-                                            }
-                                        }
-
-
-
-                                        Layout.fillWidth: true
-                                        Layout.fillHeight: true
-                                        Layout.minimumHeight: 140
-                                        radius: tok.shape.lg
-                                        color: tok.palette.stageHigh
-                                        clip: true
-
-                                        // Arrow cursor overlay for view mode — sits on top of everything
-                                        Behavior on radius {
-                                            enabled: !win.reducedMotion
-                                            NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                        }
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 0
-                                            spacing: 0
-
-                                            RowLayout {
-                                                id: previewEditBar
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: win.previewEditing ? 40 : 0
-                                                Layout.leftMargin: 8
-                                                Layout.rightMargin: 8
-                                                Layout.topMargin: win.previewEditing ? 8 : 0
-                                                spacing: 6
-                                                opacity: win.previewEditing ? 1 : 0
-                                                visible: opacity > 0
-
-                                                Behavior on opacity {
-                                                    enabled: !win.reducedMotion
-                                                    NumberAnimation {
-                                                        duration: tok.motion.effectsExpressive.fast
-                                                        easing.type: Easing.OutCubic
-                                                    }
-                                                }
-
-                                                Item { Layout.fillWidth: true }
-
-                                                TonalButton {
-                                                    implicitHeight: 32
-                                                    label: qsTr("Undo")
-                                                    glyph: "↶"
-                                                    enabled: win.canPreviewUndo
-                                                    onTriggered: win.undoPreview()
-                                                }
-
-                                                TonalButton {
-                                                    implicitHeight: 32
-                                                    label: qsTr("Redo")
-                                                    glyph: "↷"
-                                                    enabled: win.canPreviewRedo
-                                                    onTriggered: win.redoPreview()
-                                                }
-
-                                                PrimaryButton {
-                                                    implicitHeight: 32
-                                                    label: qsTr("Apply")
-                                                    glyph: "✓"
-                                                    enabled: win.previewDirty
-                                                    onTriggered: win.applyPreviewEdit()
-                                                }
-                                            }
-
-                                            // Flickable + TextEdit — reliable caret (ScrollView/TextArea often eats focus)
-                                            Flickable {
-                                                id: previewScroll
-                                                Layout.fillWidth: true
-                                                Layout.fillHeight: true
-                                                clip: true
-                                                contentWidth: width
-                                                contentHeight: Math.max(previewEditor.implicitHeight, height)
-                                                boundsBehavior: Flickable.StopAtBounds
-                                                flickableDirection: Flickable.VerticalFlick
-                                                interactive: contentHeight > height + 1
-                                                // Never take keyboard focus from the editor
-                                                focus: false
-
-                                                TextEdit {
-                                                    id: previewEditor
-                                                    width: previewScroll.width
-                                                    // Fill viewport so empty area is still clickable for caret
-                                                    height: Math.max(implicitHeight, previewScroll.height)
-                                                    // Imperative text — binding would fight caret/selection
-                                                    readOnly: !win.previewEditing
-                                                    wrapMode: TextEdit.Wrap
-                                                    textFormat: TextEdit.PlainText
-                                                    font: tok.type.preview
-                                                    color: tok.palette.fgSurface
-                                                    selectedTextColor: tok.palette.fgPrimary
-                                                    selectionColor: tok.palette.primary
-                                                    leftPadding: 12
-                                                    rightPadding: 12
-                                                    topPadding: 12
-                                                    bottomPadding: 12
-
-                                                    selectByMouse: true
-                                                    selectByKeyboard: true
-                                                    persistentSelection: true
-                                                    activeFocusOnPress: true
-                                                    // Always allow caret paint when focused; hide when read-only
-                                                    cursorVisible: !readOnly && activeFocus
-                                                    // Ensure IME / input method enabled
-                                                    inputMethodHints: Qt.ImhNone
-
-                                                    // Material-style blinking caret (high contrast)
-                                                    cursorDelegate: Rectangle {
-                                                        id: caret
-                                                        width: 2
-                                                        height: previewEditor.cursorRectangle.height > 0
-                                                            ? previewEditor.cursorRectangle.height
-                                                            : Math.max(20, previewEditor.font.pixelSize * 1.2)
-                                                        color: tok.palette.primary
-                                                        visible: previewEditor.activeFocus
-                                                            && !previewEditor.readOnly
-                                                            && previewEditor.selectionStart === previewEditor.selectionEnd
-
-                                                        Connections {
-                                                            target: previewEditor
-                                                            function onCursorPositionChanged() {
-                                                                caret.opacity = 1
-                                                                caretBlink.restart()
-                                                            }
-                                                            function onActiveFocusChanged() {
-                                                                caret.opacity = 1
-                                                                if (previewEditor.activeFocus)
-                                                                    caretBlink.restart()
-                                                            }
-                                                        }
-
-                                                        Timer {
-                                                            id: caretBlink
-                                                            interval: 500
-                                                            running: caret.visible
-                                                            repeat: true
-                                                            onTriggered: caret.opacity = caret.opacity > 0.5 ? 0 : 1
-                                                            onRunningChanged: if (running) caret.opacity = 1
-                                                        }
-                                                    }
-
-                                                    Component.onCompleted: text = win.previewEditText
-
-                                                    Connections {
-                                                        target: win
-                                                        function onPreviewRevChanged() {
-                                                            if (win.previewEditing || win.previewUndoLock)
-                                                                return
-                                                            previewEditor.text = win.previewEditText
-                                                        }
-                                                        function onPreviewEditingChanged() {
-                                                            if (win.previewEditing) {
-                                                                previewEditor.readOnly = false
-                                                                previewEditor.forceActiveFocus(Qt.OtherFocusReason)
-                                                                previewEditor.cursorVisible = true
-                                                            } else {
-                                                                previewEditor.cursorVisible = false
-                                                            }
-                                                        }
-                                                    }
-
-                                                    onActiveFocusChanged: {
-                                                        if (activeFocus && win.previewEditing)
-                                                            cursorVisible = true
-                                                    }
-
-                                                    onTextChanged: {
-                                                        if (win.previewUndoLock || !win.previewEditing)
-                                                            return
-                                                        if (text !== win.previewLastText)
-                                                            win.pushPreviewUndo(win.previewLastText)
-                                                        win.previewLastText = text
-                                                        win.previewEditText = text
-                                                    }
-
-                                                    Keys.priority: Keys.BeforeItem
-                                                    Keys.onPressed: function(event) {
-                                                        if (win.handleFilterArrow(event))
-                                                            return
-                                                        if (!win.previewEditing)
-                                                            win.handleKey(event)
-                                                    }
-                                                    Keys.onEscapePressed: function(event) {
-                                                        win.handleEscape()
-                                                        event.accepted = true
-                                                    }
-
-                                                    Shortcut {
-                                                        sequence: "Ctrl+Z"
-                                                        enabled: win.previewEditing && previewEditor.activeFocus
-                                                        onActivated: win.undoPreview()
-                                                    }
-
-                                                    Shortcut {
-                                                        sequences: [StandardKey.Redo]
-                                                        enabled: win.previewEditing && previewEditor.activeFocus
-                                                        onActivated: win.redoPreview()
-                                                    }
-                                                }
-
-                                                ScrollBar.vertical: ScrollBar {
-                                                    policy: ScrollBar.AsNeeded
-                                                    contentItem: Rectangle {
-                                                        implicitWidth: 3
-                                                        radius: 2
-                                                        color: tok.palette.primary
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    Text {
-                                        id: editHint
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: editHint.visible ? implicitHeight : 0
-                                        horizontalAlignment: Text.AlignRight
-                                        rightPadding: 4
-                                        visible: !win.previewEditing
-                                        text: qsTr("Click to edit")
-                                        font: tok.type.label
-                                        color: previewEditFrame.isHovered
-                                            ? tok.palette.primary
-                                            : tok.palette.fgMuted
-                                        opacity: visible ? (previewEditFrame.isHovered ? 0.85 : 0.6) : 0
-
-                                        Behavior on opacity {
-                                            enabled: !win.reducedMotion
-                                            NumberAnimation {
-                                                duration: tok.motion.effectsExpressive.fast
-                                                easing.type: Easing.OutCubic
-                                            }
-                                        }
-                                        Behavior on color {
-                                            enabled: !win.reducedMotion
-                                            ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                                        }
-                                    }
-
-                                    }
-                                }
-
-                                Item {
-                                    anchors.fill: parent
-                                    visible: activeClip && activeClip.isImage
-
-                                    Rectangle {
-                                        id: imageFrame
-                                        anchors.centerIn: parent
-                                        width: Math.min(parent.width, parent.height * 1.4)
-                                        height: Math.min(parent.height, width * 0.72)
-                                        radius: tok.shape.xl
-                                        color: tok.palette.stageHigh
-                                        clip: true
-                                        border.width: 0
-                                        scale: stageImage.status === Image.Ready ? 1 : 0.96
-                                        opacity: stageImage.status === Image.Ready ? 1 : 0.85
-
-                                        Behavior on scale {
-                                            enabled: !win.reducedMotion
-                                            NumberAnimation {
-                                                duration: tok.motion.effectsExpressive.defaultMs
-                                                easing.type: Easing.OutBack
-                                                easing.overshoot: tok.motion.expressiveOvershoot
-                                            }
-                                        }
-                                        Behavior on opacity {
-                                            enabled: !win.reducedMotion
-                                            NumberAnimation { duration: tok.motion.effectsExpressive.fast }
-                                        }
-
-                                        Image {
-                                            id: stageImage
-                                            anchors.fill: parent
-                                            anchors.margins: 4
-                                            opacity: status === Image.Ready ? 1 : 0
-
-                                            Behavior on opacity {
-                                                enabled: !win.reducedMotion
-                                                NumberAnimation {
-                                                    duration: tok.motion.effectsExpressive.defaultMs
-                                                    easing.type: Easing.OutCubic
-                                                }
-                                            }
-                                            source: {
-                                                const _rev = win.imageRev
-                                                const _id = win.selectedEntryId
-                                                if (!_id.length) return ""
-                                                for (let i = 0; i < clipListModel.count; i++) {
-                                                    const item = clipListModel.get(i)
-                                                    if (!item || item.entryId !== _id || !item.isImage)
-                                                        continue
-                                                    const p = item.imagePath
-                                                    return (p && p.length > 0) ? ("file://" + p) : ""
-                                                }
-                                                return ""
-                                            }
-                                            sourceSize: Qt.size(1200, 900)
-                                            fillMode: Image.PreserveAspectFit
-                                            asynchronous: true
-                                        }
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            visible: stageImage.status !== Image.Ready
-                                            color: tok.palette.stageHigh
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: {
-                                                    const _id = win.selectedEntryId
-                                                    for (let i = 0; i < clipListModel.count; i++) {
-                                                        const item = clipListModel.get(i)
-                                                        if (!item || item.entryId !== _id)
-                                                            continue
-                                                        if (item.imageDecodeFailed)
-                                                            return qsTr("Image decode failed")
-                                                        break
-                                                    }
-                                                    if (stageImage.status === Image.Error)
-                                                        return qsTr("Image decode failed")
-                                                    return qsTr("Decoding image…")
-                                                }
-                                                font: tok.type.label
-                                                color: tok.palette.fgMuted
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            ColumnLayout {
-                                id: stagePickState
-                                anchors.centerIn: parent
-                                spacing: 8
-                                visible: activeClip === null
-
-                                Text {
-                                    Layout.alignment: Qt.AlignHCenter
-                                    text: "◇"
-                                    font.pixelSize: 32
-                                    color: tok.palette.fgMuted
-                                    opacity: 0.35
-                                }
-                                Text {
-                                    Layout.alignment: Qt.AlignHCenter
-                                    text: qsTr("Select a clip to preview")
-                                    font: tok.type.title
-                                    color: tok.palette.fgMuted
-                                }
-                            }
-                        }
+                    // ═══ RIGHT STAGE — preview canvas ═════════════════════════════
+                    Rectangle {
+                        id: stage
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: tok.shape.lg
+                        color: tok.palette.isLight
+                            ? "#FFFFFF"
+                            : Qt.rgba(0.12, 0.12, 0.16, 0.96)
+                        clip: true
+                        border.width: 0
 
                         ColumnLayout {
-                            id: actionFooter
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: clipListModel.count > 0 ? 80 : 0
-                            spacing: 8
+                            anchors.fill: parent
+                            spacing: 0
 
-                            Item {
+                            // Top preview canvas area
+                            ColumnLayout {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 48
-                                Layout.alignment: Qt.AlignHCenter
+                                Layout.fillHeight: true
+                                Layout.margins: 16
+                                spacing: 12
+                                visible: win.hasClips
 
-                                Rectangle {
-                                    id: actionPill
-                                    readonly property int pillPad: 4
-
-                                    anchors.centerIn: parent
-                                    width: actionRow.width + pillPad * 2
-                                    height: actionRow.height + pillPad * 2
-                                    radius: tok.shape.full
-                                    color: tok.palette.stageHigh
-                                    border.width: 0
-                                    opacity: clipListModel.count > 0 ? 1 : 0
-                                    scale: clipListModel.count > 0 ? 1 : 0.92
+                                // Preview meta header
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    opacity: activeClip !== null ? 1 : 0
+                                    scale: activeClip !== null ? 1 : 0.96
                                     visible: opacity > 0
 
-                                    Behavior on width {
-                                        enabled: !win.reducedMotion
-                                        NumberAnimation {
-                                            duration: tok.motion.effectsExpressive.fast
-                                            easing.type: Easing.OutCubic
-                                        }
-                                    }
                                     Behavior on opacity {
                                         enabled: !win.reducedMotion
                                         NumberAnimation {
-                                            duration: tok.motion.effectsExpressive.defaultMs
+                                            duration: tok.motion.effectsExpressive.fast
                                             easing.type: Easing.OutCubic
                                         }
                                     }
@@ -2973,129 +2907,731 @@ Window {
                                         NumberAnimation {
                                             duration: tok.motion.effectsExpressive.defaultMs
                                             easing.type: Easing.OutBack
-                                            easing.overshoot: tok.motion.expressiveOvershoot
+                                            easing.overshoot: 1.08
                                         }
                                     }
 
-                                    Row {
-                                        id: actionRow
+                                    // ID tag badge
+                                    Rectangle {
+                                        implicitWidth: metaIdRow.implicitWidth + 14
+                                        implicitHeight: 22
+                                        radius: tok.shape.full
+                                        color: tok.palette.primaryContainer
+                                        border.width: 0
+
+                                        Row {
+                                            id: metaIdRow
+                                            anchors.centerIn: parent
+                                            spacing: 3
+
+                                            MIcon {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                name: "tag"
+                                                size: 12
+                                                iconColor: tok.palette.fgPrimaryContainer
+                                            }
+
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                text: activeClip ? activeClip.entryId : ""
+                                                font.pixelSize: 11
+                                                font.weight: Font.DemiBold
+                                                font.family: tok.type.monoFamily
+                                                color: tok.palette.fgPrimaryContainer
+                                                verticalAlignment: Text.AlignVCenter
+                                            }
+                                        }
+                                    }
+
+                                    // Image type badge
+                                    Rectangle {
+                                        opacity: activeClip && activeClip.isImage ? 1 : 0
+                                        visible: opacity > 0
+                                        implicitWidth: metaTypeImgRow.implicitWidth + 14
+                                        implicitHeight: 22
+                                        radius: tok.shape.full
+                                        color: tok.palette.tertiaryContainer
+                                        border.width: 0
+
+                                        RowLayout {
+                                            id: metaTypeImgRow
+                                            anchors.centerIn: parent
+                                            spacing: 4
+
+                                            MIcon {
+                                                name: "image"
+                                                size: 13
+                                                iconColor: tok.palette.fgTertiaryContainer
+                                            }
+
+                                            Text {
+                                                text: qsTr("Image")
+                                                font: tok.type.label
+                                                color: tok.palette.fgTertiaryContainer
+                                            }
+                                        }
+                                    }
+
+                                    // Text type badge
+                                    Rectangle {
+                                        opacity: activeClip && !activeClip.isImage ? 1 : 0
+                                        visible: opacity > 0
+                                        implicitWidth: metaTypeTextRow.implicitWidth + 14
+                                        implicitHeight: 22
+                                        radius: tok.shape.full
+                                        color: tok.palette.secondaryContainer
+                                        border.width: 0
+
+                                        RowLayout {
+                                            id: metaTypeTextRow
+                                            anchors.centerIn: parent
+                                            spacing: 4
+
+                                            MIcon {
+                                                name: "notes"
+                                                size: 13
+                                                iconColor: tok.palette.fgSecondaryContainer
+                                            }
+
+                                            Text {
+                                                text: qsTr("Text")
+                                                font: tok.type.label
+                                                color: tok.palette.fgSecondaryContainer
+                                            }
+                                        }
+                                    }
+
+                                    // Edited status badge
+                                    Rectangle {
+                                        opacity: activeClip && activeClip.edited ? 1 : 0
+                                        visible: opacity > 0
+                                        implicitWidth: editedRow.implicitWidth + 14
+                                        implicitHeight: 22
+                                        radius: tok.shape.full
+                                        color: tok.palette.primaryContainer
+                                        border.width: 0
+
+                                        RowLayout {
+                                            id: editedRow
+                                            anchors.centerIn: parent
+                                            spacing: 4
+
+                                            MIcon {
+                                                name: "edit"
+                                                size: 12
+                                                iconColor: tok.palette.fgPrimaryContainer
+                                            }
+
+                                            Text {
+                                                text: qsTr("Edited")
+                                                font: tok.type.labelEmph
+                                                color: tok.palette.fgPrimaryContainer
+                                            }
+                                        }
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Text {
+                                        text: {
+                                            if (!activeClip || activeClip.isImage || !activeClip.entryText) return ""
+                                            const lines = activeClip.entryText.split("\n").length
+                                            return qsTr("%1 lines • %2 chars").arg(lines).arg(activeClip.entryText.length)
+                                        }
+                                        font: tok.type.mono
+                                        color: tok.palette.fgMuted
+                                        opacity: activeClip && !activeClip.isImage ? 0.75 : 0
+                                        visible: opacity > 0
+                                    }
+                                }
+
+                                // Preview content
+                                Item {
+                                    id: stagePageHost
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    visible: win.hasClips
+                                    clip: true
+
+                                    Item {
+                                        id: previewBody
+                                        anchors.fill: parent
+                                        opacity: win.previewOpacity
+                                        visible: activeClip !== null
+
+                                        Item {
+                                            anchors.fill: parent
+                                            visible: activeClip && !activeClip.isImage
+                                            z: win.previewEditing ? 100 : 0
+
+                                            ColumnLayout {
+                                                anchors.fill: parent
+                                                spacing: 0
+
+                                                Rectangle {
+                                                    id: previewEditFrame
+                                                    property bool isHovered: false
+
+                                                    // Handle click-to-edit in view mode (disabled in edit mode so text selection works)
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        z: 10
+                                                        visible: !win.previewEditing
+                                                        enabled: !win.previewEditing
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.IBeamCursor
+                                                        onClicked: win.beginPreviewEdit()
+                                                    }
+
+                                                    HoverHandler {
+                                                        id: previewFrameHover
+                                                        cursorShape: Qt.IBeamCursor
+                                                        onHoveredChanged: previewEditFrame.isHovered = hovered
+                                                    }
+
+                                                    Layout.fillWidth: true
+                                                    Layout.fillHeight: true
+                                                    Layout.minimumHeight: 140
+                                                    radius: tok.shape.md
+                                                    color: tok.palette.isLight
+                                                        ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
+                                                        : Qt.alpha(tok.palette.fgSurface, 0.055)
+                                                    border.width: 0
+                                                    border.color: "transparent"
+                                                    clip: true
+
+                                                    ColumnLayout {
+                                                        anchors.fill: parent
+                                                        anchors.margins: 0
+                                                        spacing: 0
+
+                                                        RowLayout {
+                                                            id: previewEditBar
+                                                            Layout.fillWidth: true
+                                                            Layout.preferredHeight: win.previewEditing ? 36 : 0
+                                                            Layout.leftMargin: 8
+                                                            Layout.rightMargin: 8
+                                                            Layout.topMargin: win.previewEditing ? 6 : 0
+                                                            spacing: 6
+                                                            opacity: win.previewEditing ? 1 : 0
+                                                            visible: opacity > 0
+
+                                                            Behavior on opacity {
+                                                                enabled: !win.reducedMotion
+                                                                NumberAnimation {
+                                                                    duration: tok.motion.effectsExpressive.fast
+                                                                    easing.type: Easing.OutCubic
+                                                                }
+                                                            }
+
+                                                            Item { Layout.fillWidth: true }
+
+                                                            TonalButton {
+                                                                implicitHeight: 28
+                                                                label: qsTr("Undo")
+                                                                icon: ""
+                                                                enabled: win.canPreviewUndo
+                                                                onTriggered: win.undoPreview()
+                                                            }
+
+                                                            TonalButton {
+                                                                implicitHeight: 28
+                                                                label: qsTr("Redo")
+                                                                icon: ""
+                                                                enabled: win.canPreviewRedo
+                                                                onTriggered: win.redoPreview()
+                                                            }
+
+                                                            PrimaryButton {
+                                                                implicitHeight: 28
+                                                                label: qsTr("Apply")
+                                                                icon: ""
+                                                                enabled: win.previewDirty
+                                                                onTriggered: win.applyPreviewEdit()
+                                                            }
+                                                        }
+
+                                                        // Flickable + TextEdit with clean monospace typography
+                                                        Flickable {
+                                                            id: previewScroll
+                                                            Layout.fillWidth: true
+                                                            Layout.fillHeight: true
+                                                            clip: true
+                                                            contentWidth: width
+                                                            contentHeight: Math.max(previewEditor.implicitHeight, height)
+                                                            boundsBehavior: Flickable.StopAtBounds
+                                                            flickableDirection: Flickable.VerticalFlick
+                                                            interactive: contentHeight > height + 1
+                                                            focus: false
+
+                                                            HoverHandler {
+                                                                cursorShape: Qt.IBeamCursor
+                                                            }
+
+                                                            TextEdit {
+                                                                id: previewEditor
+                                                                width: previewScroll.width
+                                                                height: Math.max(implicitHeight, previewScroll.height)
+                                                                readOnly: !win.previewEditing
+                                                                wrapMode: TextEdit.Wrap
+                                                                textFormat: TextEdit.PlainText
+                                                                font.family: "JetBrains Mono, Geist Mono, SF Mono, Monospace, monospace"
+                                                                font.pixelSize: 13
+                                                                color: tok.palette.fgSurface
+                                                                selectedTextColor: tok.palette.fgPrimary
+                                                                selectionColor: tok.palette.primary
+                                                                leftPadding: 14
+                                                                rightPadding: 14
+                                                                topPadding: 12
+                                                                bottomPadding: 12
+
+                                                                selectByMouse: true
+                                                                selectByKeyboard: true
+                                                                persistentSelection: true
+                                                                activeFocusOnPress: true
+                                                                cursorVisible: !readOnly && activeFocus
+                                                                inputMethodHints: Qt.ImhNone
+
+                                                                HoverHandler {
+                                                                    cursorShape: Qt.IBeamCursor
+                                                                }
+
+                                                                onActiveFocusChanged: {
+                                                                    if (activeFocus && win.previewEditing) {
+                                                                        cursorVisible = true
+                                                                    } else if (!activeFocus && win.previewEditing) {
+                                                                        Qt.callLater(function() {
+                                                                            if (win.previewEditing && !previewEditFrame.isHovered && (!previewEditor || !previewEditor.activeFocus)) {
+                                                                                win.exitPreviewEdit()
+                                                                            }
+                                                                        })
+                                                                    }
+                                                                }
+
+                                                                cursorDelegate: Rectangle {
+                                                                    id: caret
+                                                                    width: 2
+                                                                    height: previewEditor.cursorRectangle.height > 0
+                                                                        ? previewEditor.cursorRectangle.height
+                                                                        : Math.max(18, previewEditor.font.pixelSize * 1.2)
+                                                                    color: tok.palette.primary
+                                                                    visible: previewEditor.activeFocus
+                                                                        && !previewEditor.readOnly
+                                                                        && previewEditor.selectionStart === previewEditor.selectionEnd
+
+                                                                    Connections {
+                                                                        target: previewEditor
+                                                                        function onCursorPositionChanged() {
+                                                                            caret.opacity = 1
+                                                                            caretBlink.restart()
+                                                                        }
+                                                                        function onActiveFocusChanged() {
+                                                                            caret.opacity = 1
+                                                                            if (previewEditor.activeFocus)
+                                                                                caretBlink.restart()
+                                                                        }
+                                                                    }
+
+                                                                    Timer {
+                                                                        id: caretBlink
+                                                                        interval: 500
+                                                                        running: caret.visible
+                                                                        repeat: true
+                                                                        onTriggered: caret.opacity = caret.opacity > 0.5 ? 0 : 1
+                                                                        onRunningChanged: if (running) caret.opacity = 1
+                                                                    }
+                                                                }
+
+                                                                Component.onCompleted: text = win.previewEditText
+
+                                                                Connections {
+                                                                    target: win
+                                                                    function onPreviewRevChanged() {
+                                                                        if (win.previewEditing || win.previewUndoLock)
+                                                                            return
+                                                                        previewEditor.text = win.previewEditText
+                                                                    }
+                                                                    function onPreviewEditingChanged() {
+                                                                        if (win.previewEditing) {
+                                                                            previewEditor.readOnly = false
+                                                                            previewEditor.forceActiveFocus(Qt.OtherFocusReason)
+                                                                            previewEditor.cursorVisible = true
+                                                                        } else {
+                                                                            previewEditor.cursorVisible = false
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                onTextChanged: {
+                                                                    if (win.previewUndoLock || !win.previewEditing)
+                                                                        return
+                                                                    if (text !== win.previewLastText)
+                                                                        win.pushPreviewUndo(win.previewLastText)
+                                                                    win.previewLastText = text
+                                                                    win.previewEditText = text
+                                                                }
+
+                                                                Keys.priority: Keys.BeforeItem
+                                                                Keys.onPressed: function(event) {
+                                                                    if (win.previewEditing && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && (event.modifiers & Qt.ControlModifier)) {
+                                                                        win.applyPreviewEdit()
+                                                                        event.accepted = true
+                                                                        return
+                                                                    }
+                                                                    if (win.handleFilterArrow(event))
+                                                                        return
+                                                                    if (!win.previewEditing)
+                                                                        win.handleKey(event)
+                                                                }
+                                                                Keys.onEscapePressed: function(event) {
+                                                                    win.handleEscape()
+                                                                    event.accepted = true
+                                                                }
+
+                                                                Shortcut {
+                                                                    sequence: "Ctrl+Z"
+                                                                    enabled: win.previewEditing && previewEditor.activeFocus
+                                                                    onActivated: win.undoPreview()
+                                                                }
+
+                                                                Shortcut {
+                                                                    sequences: [StandardKey.Redo]
+                                                                    enabled: win.previewEditing && previewEditor.activeFocus
+                                                                    onActivated: win.redoPreview()
+                                                                }
+                                                            }
+
+                                                            // Refined inset muted scrollbar
+                                                            ScrollBar.vertical: ScrollBar {
+                                                                id: pScrollBar
+                                                                policy: ScrollBar.AsNeeded
+                                                                contentItem: Rectangle {
+                                                                    implicitWidth: 4
+                                                                    radius: 2
+                                                                    color: tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.22) : Qt.rgba(255, 255, 255, 0.28)
+                                                                    opacity: (pScrollBar.hovered || pScrollBar.pressed || previewScroll.moving) ? 1 : 0
+                                                                    Behavior on opacity {
+                                                                        NumberAnimation { duration: 150 }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Item {
+                                            anchors.fill: parent
+                                            visible: activeClip && activeClip.isImage
+
+                                            Rectangle {
+                                                id: imageFrame
+                                                anchors.centerIn: parent
+                                                width: Math.min(parent.width, parent.height * 1.4)
+                                                height: Math.min(parent.height, width * 0.72)
+                                                radius: tok.shape.md
+                                                color: tok.palette.isLight
+                                                    ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
+                                                    : Qt.alpha(tok.palette.fgSurface, 0.055)
+                                                border.width: 0
+                                                border.color: "transparent"
+                                                clip: true
+                                                scale: stageImage.status === Image.Ready ? 1 : 0.96
+                                                opacity: stageImage.status === Image.Ready ? 1 : 0.85
+
+                                                Behavior on scale {
+                                                    enabled: !win.reducedMotion
+                                                    NumberAnimation {
+                                                        duration: tok.motion.effectsExpressive.defaultMs
+                                                        easing.type: Easing.OutBack
+                                                        easing.overshoot: tok.motion.expressiveOvershoot
+                                                    }
+                                                }
+                                                Behavior on opacity {
+                                                    enabled: !win.reducedMotion
+                                                    NumberAnimation { duration: tok.motion.effectsExpressive.fast }
+                                                }
+
+                                                Image {
+                                                    id: stageImage
+                                                    anchors.fill: parent
+                                                    anchors.margins: 4
+                                                    opacity: status === Image.Ready ? 1 : 0
+
+                                                    Behavior on opacity {
+                                                        enabled: !win.reducedMotion
+                                                        NumberAnimation {
+                                                            duration: tok.motion.effectsExpressive.defaultMs
+                                                            easing.type: Easing.OutCubic
+                                                        }
+                                                    }
+                                                    source: {
+                                                        const _rev = win.imageRev
+                                                        const _id = win.selectedEntryId
+                                                        if (!_id.length) return ""
+                                                        for (let i = 0; i < clipListModel.count; i++) {
+                                                            const item = clipListModel.get(i)
+                                                            if (!item || item.entryId !== _id || !item.isImage)
+                                                                continue
+                                                            const p = item.imagePath
+                                                            return (p && p.length > 0) ? ("file://" + p) : ""
+                                                        }
+                                                        return ""
+                                                    }
+                                                    sourceSize: Qt.size(1200, 900)
+                                                    fillMode: Image.PreserveAspectFit
+                                                    asynchronous: true
+                                                }
+
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    visible: stageImage.status !== Image.Ready
+                                                    color: tok.palette.stageHigh
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: {
+                                                            const _id = win.selectedEntryId
+                                                            for (let i = 0; i < clipListModel.count; i++) {
+                                                                const item = clipListModel.get(i)
+                                                                if (!item || item.entryId !== _id)
+                                                                    continue
+                                                                if (item.imageDecodeFailed)
+                                                                    return qsTr("Image decode failed")
+                                                                break
+                                                            }
+                                                            if (stageImage.status === Image.Error)
+                                                                return qsTr("Image decode failed")
+                                                            return qsTr("Decoding image…")
+                                                        }
+                                                        font: tok.type.label
+                                                        color: tok.palette.fgMuted
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        id: stagePickState
                                         anchors.centerIn: parent
-                                        spacing: 6
+                                        spacing: 12
+                                        visible: activeClip === null
+
+                                        MIcon {
+                                            Layout.alignment: Qt.AlignHCenter
+                                            name: "content_paste_off"
+                                            size: 44
+                                            iconColor: tok.palette.fgMuted
+                                            opacity: 0.35
+                                        }
+
+                                        Text {
+                                            Layout.alignment: Qt.AlignHCenter
+                                            text: qsTr("Select a clip to preview")
+                                            font: tok.type.title
+                                            color: tok.palette.fgMuted
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Full-width anchored footer bar with 1px top divider
+                            Rectangle {
+                                id: stageFooter
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 48
+                                color: tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.02) : Qt.rgba(255, 255, 255, 0.02)
+                                border.width: 0
+                                visible: win.hasClips
+
+                                // 1px top border (Olvex surface physics)
+                                Rectangle {
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    height: 1
+                                    color: tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(255, 255, 255, 0.07)
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 16
+                                    anchors.rightMargin: 16
+                                    spacing: 12
+
+                                    // Bottom-left: Click to edit interactive button chip
+                                    Rectangle {
+                                        id: editChip
+                                        visible: activeClip && !activeClip.isImage && !win.previewEditing
+                                        Layout.alignment: Qt.AlignVCenter
+                                        implicitHeight: 28
+                                        implicitWidth: editChipRow.implicitWidth + 16
+                                        radius: tok.shape.full
+                                        color: editChipMa.containsMouse
+                                            ? (tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(255, 255, 255, 0.08))
+                                            : "transparent"
+
+                                        RowLayout {
+                                            id: editChipRow
+                                            anchors.centerIn: parent
+                                            spacing: 6
+
+                                            MIcon {
+                                                name: "edit"
+                                                size: 14
+                                                iconColor: editChipMa.containsMouse ? tok.palette.primary : tok.palette.fgMuted
+                                            }
+
+                                            Text {
+                                                text: qsTr("Click to edit")
+                                                font: tok.type.label
+                                                color: editChipMa.containsMouse ? tok.palette.primary : tok.palette.fgMuted
+                                            }
+
+                                            KbdKey {
+                                                key: "E"
+                                                textColor: editChipMa.containsMouse ? tok.palette.primary : tok.palette.fgMuted
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: editChipMa
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: win.beginPreviewEdit()
+                                        }
+                                    }
+
+                                    // Shortcuts when editing
+                                    RowLayout {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 10
+                                        visible: win.previewEditing
+
+                                        Row {
+                                            spacing: 5
+                                            KbdKey { key: "Esc" }
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                text: qsTr("Cancel")
+                                                font: tok.type.label
+                                                color: tok.palette.fgMuted
+                                            }
+                                        }
+
+                                        Row {
+                                            spacing: 5
+                                            KbdKey { key: "Ctrl" }
+                                            KbdKey { key: "⏎" }
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                text: qsTr("Apply")
+                                                font: tok.type.label
+                                                color: tok.palette.fgMuted
+                                            }
+                                        }
+                                    }
+
+                                    // Shortcuts when in image view
+                                    RowLayout {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 12
+                                        visible: !activeClip || activeClip.isImage
+
+                                        KbdHint { keys: "←→"; caption: qsTr("Filter") }
+                                        KbdHint { keys: "↑↓"; caption: qsTr("Navigate") }
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    // Bottom-right: Action buttons
+                                    RowLayout {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 8
+                                        visible: clipListModel.count > 0
 
                                         PrimaryButton {
                                             id: copyBtn
                                             label: qsTr("Copy")
-                                            glyph: "⏎"
-                                            implicitHeight: 38
+                                            icon: ""
+                                            kbd: "⏎"
+                                            implicitHeight: 32
                                             onTriggered: win.copySelected()
                                         }
 
                                         TonalButton {
                                             label: qsTr("Delete")
-                                            glyph: "⌫"
+                                            icon: ""
+                                            kbd: "⌫"
                                             tone: "error"
-                                            implicitHeight: 38
+                                            implicitHeight: 32
                                             onTriggered: win.deleteSelected()
                                         }
 
                                         TonalButton {
                                             label: qsTr("Close")
-                                            glyph: "Esc"
-                                            implicitHeight: 38
+                                            icon: ""
+                                            kbd: "Esc"
+                                            implicitHeight: 32
                                             onTriggered: win.close()
                                         }
                                     }
                                 }
                             }
+                        }
 
-                            Row {
-                                Layout.alignment: Qt.AlignHCenter
-                                spacing: 16
-                                opacity: clipListModel.count > 0 ? 0.75 : 0
-                                visible: opacity > 0.01
+                        // Empty stage — flat pane, centered copy
+                        Item {
+                            id: stageEmptyOverlay
+                            anchors.fill: parent
+                            z: 2
+                            visible: !win.hasClips
+                            enabled: false
 
-                                Behavior on opacity {
-                                    enabled: !win.reducedMotion
-                                    NumberAnimation {
-                                        duration: tok.motion.effectsExpressive.defaultMs
-                                        easing.type: Easing.OutCubic
-                                    }
+                            Rectangle {
+                                anchors.fill: parent
+                                color: "transparent"
+                                border.width: 0
+                            }
+
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 10
+                                width: Math.min(360, parent.width - 48)
+
+                                MIcon {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    name: "inbox"
+                                    size: 48
+                                    iconColor: tok.palette.fgMuted
+                                    opacity: 0.3
                                 }
 
-                                KbdHint { keys: "←→"; caption: qsTr("Filter") }
-                                KbdHint { keys: "↑↓"; caption: qsTr("Navigate") }
-                            }
-                        }
-                    }
+                                Text {
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: qsTr("Ready when you are")
+                                    font: tok.type.previewEmph
+                                    color: tok.palette.fgSurface
+                                }
 
-                    // Empty stage — flat pane, centered copy (no card, no motion)
-                    Item {
-                        id: stageEmptyOverlay
-                        anchors.fill: parent
-                        z: 2
-                        visible: !win.hasClips
-                        enabled: false
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: tok.palette.stageContent
-                            radius: stage.radius
-                        }
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 8
-                            width: Math.min(360, parent.width - 48)
-
-                            Text {
-                                width: parent.width
-                                horizontalAlignment: Text.AlignHCenter
-                                text: qsTr("Ready when you are")
-                                font: tok.type.previewEmph
-                                color: tok.palette.fgSurface
-                            }
-
-                            Text {
-                                width: parent.width
-                                horizontalAlignment: Text.AlignHCenter
-                                wrapMode: Text.WordWrap
-                                text: qsTr("Your clipboard history will appear in the rail on the left")
-                                font: tok.type.body
-                                color: tok.palette.fgMuted
-                                opacity: 0.85
+                                Text {
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    wrapMode: Text.WordWrap
+                                    text: qsTr("Your clipboard history will appear in the rail on the left")
+                                    font: tok.type.body
+                                    color: tok.palette.fgMuted
+                                    opacity: 0.85
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Dismiss edit when clicking outside the editor frame.
-            // Uses hoverEnabled:false + accepted:false inside so TextEdit keeps focus/caret.
-            MouseArea {
-                anchors.fill: parent
-                visible: win.previewEditing
-                enabled: win.previewEditing
-                z: 40
-                propagateComposedEvents: true
-                hoverEnabled: false
-                preventStealing: false
-                onPressed: function(mouse) {
-                    const pt = mapToItem(previewEditFrame, mouse.x, mouse.y)
-                    const inside = pt.x >= 0 && pt.y >= 0
-                        && pt.x <= previewEditFrame.width && pt.y <= previewEditFrame.height
-                    if (inside) {
-                        mouse.accepted = false
-                        // Re-assert editor focus if something stole it
-                        Qt.callLater(function() {
-                            if (win.previewEditing && previewEditor)
-                                previewEditor.forceActiveFocus(Qt.MouseFocusReason)
-                        })
-                        return
-                    }
-                    win.exitPreviewEdit()
-                    mouse.accepted = true
-                }
-            }
         }
     }
 }
