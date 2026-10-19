@@ -133,56 +133,77 @@ Item {
             }
         }
 
+        property real targetGlowX: width / 2
+        property real targetGlowY: height / 2
+        property real glowX: targetGlowX
+        property real glowY: targetGlowY
+
+        Behavior on glowX { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
+        Behavior on glowY { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
+
         height: mainRow.height
         clip: true
 
         readonly property color accentColor: Colours.palette[`m3${col.hue.toLowerCase()}`] || Colours.palette.m3primary
         readonly property color onAccentColor: Colours.palette[`m3on${col.hue}`] || Colours.palette.m3onPrimary
 
-        // Frosted M3 Container Backing (Clean margins, no harsh borders)
+        // Frosted M3 Container Backing (Polished translucent surface elevation)
         StyledRect {
             id: cardSurface
             anchors.fill: parent
             anchors.margins: 10
             radius: Tokens.rounding.large
+            clip: true
+
             color: col.isHovered
-                ? Qt.alpha(col.accentColor, Colours.light ? 0.16 : 0.22)
-                : Qt.alpha(Colours.palette.m3surfaceContainer, Colours.light ? 0.80 : 0.45)
+                ? Qt.alpha(col.accentColor, Colours.light ? 0.20 : 0.25)
+                : Qt.alpha(Colours.palette.m3surfaceContainerHigh, Colours.light ? 0.55 : 0.35)
 
-            Behavior on color { CAnim {} }
+            border.width: 1
+            border.color: col.isHovered
+                ? Qt.alpha(col.accentColor, 0.40)
+                : Qt.alpha(Colours.palette.m3outlineVariant, Colours.light ? 0.30 : 0.15)
 
-            // Radial Mesh Glow on Hover (GPU texture cached for zero-overhead opacity fade)
-            Shape {
-                anchors.centerIn: parent
-                width: 900
-                height: 900
-                layer.enabled: true
-                layer.smooth: true
+            Behavior on border.color { CAnim {} }
+
+            // Dynamic Cursor Radial Glow Spotlight
+            Item {
+                anchors.fill: parent
                 opacity: col.isHovered ? 1.0 : 0.0
-
-                ShapePath {
-                    strokeWidth: 0
-                    fillGradient: RadialGradient {
-                        centerX: 450; centerY: 450
-                        centerRadius: 450
-                        focalX: 450; focalY: 450
-                        GradientStop { position: 0.0; color: Qt.alpha(col.accentColor, Colours.light ? 0.35 : 0.45) }
-                        GradientStop { position: 0.65; color: Qt.alpha(col.accentColor, 0.08) }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                    startX: 0; startY: 0
-                    PathLine { x: 900; y: 0 }
-                    PathLine { x: 900; y: 900 }
-                    PathLine { x: 0; y: 900 }
-                    PathLine { x: 0; y: 0 }
-                }
 
                 Behavior on opacity {
                     NumberAnimation { duration: 320; easing.type: Easing.OutCubic }
                 }
+
+                Shape {
+                    id: cursorGlow
+                    width: 800
+                    height: 800
+                    x: col.glowX - width / 2
+                    y: col.glowY - height / 2
+                    layer.enabled: true
+                    layer.smooth: true
+
+                    ShapePath {
+                        strokeWidth: 0
+                        fillGradient: RadialGradient {
+                            centerX: 400; centerY: 400
+                            centerRadius: 400
+                            focalX: 400; focalY: 400
+                            GradientStop { position: 0.0; color: Qt.alpha(col.accentColor, Colours.light ? 0.45 : 0.55) }
+                            GradientStop { position: 0.45; color: Qt.alpha(col.accentColor, Colours.light ? 0.14 : 0.18) }
+                            GradientStop { position: 1.0; color: "transparent" }
+                        }
+                        startX: 0; startY: 0
+                        PathLine { x: 800; y: 0 }
+                        PathLine { x: 800; y: 800 }
+                        PathLine { x: 0; y: 800 }
+                        PathLine { x: 0; y: 0 }
+                    }
+                }
             }
 
-            // Massive Atmospheric Icon (GPU matrix-transformed scale, no font re-rasterization)
+            // Massive Atmospheric Icon (GPU matrix-transformed scale, unified resting tone)
             MaterialIcon {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
@@ -190,13 +211,14 @@ Item {
                 anchors.verticalCenterOffset: col.isHovered ? -50 : -80
 
                 text: col.icon
-                color: col.accentColor
+                color: col.isHovered ? col.accentColor : Colours.palette.m3onSurfaceVariant
                 iconPointSize: 190
                 scale: col.isHovered ? 1.15 : 1.0
                 opacity: col.isHovered
-                    ? (Colours.light ? 0.40 : 0.30)
-                    : (Colours.light ? 0.20 : 0.10)
+                    ? (Colours.light ? 0.50 : 0.40)
+                    : (Colours.light ? 0.25 : 0.15)
 
+                Behavior on color { CAnim {} }
                 Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 Behavior on anchors.horizontalCenterOffset { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
@@ -274,12 +296,24 @@ Item {
             }
         }
 
-        // Full Column Click & Interaction Target
+        // Full Column Click & Interaction Target with Cursor Tracking
         MouseArea {
             id: mouseArea
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onPositionChanged: mouse => {
+                col.targetGlowX = mouse.x;
+                col.targetGlowY = mouse.y;
+            }
+            onEntered: {
+                col.targetGlowX = mouseArea.mouseX;
+                col.targetGlowY = mouseArea.mouseY;
+            }
+            onExited: {
+                col.targetGlowX = col.width / 2;
+                col.targetGlowY = col.height / 2;
+            }
             onClicked: root.execute(col.command)
         }
 
