@@ -333,15 +333,6 @@ Item {
             sourceComponent: Column {
                 spacing: 0
 
-                add: Transition {
-                    Anim {
-                        properties: "scale"
-                        from: 0
-                        to: 1
-                        easing: Tokens.anim.standardDecel
-                    }
-                }
-
                 move: Transition {
                     Anim {
                         properties: "scale"
@@ -366,9 +357,26 @@ Item {
                     MaterialIcon {
                         required property var modelData
 
+                        scale: 1.0
+                        opacity: 1.0
+
                         grade: 0
                         text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
                         color: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
+
+                        NumberAnimation on scale {
+                            from: 0.5
+                            to: 1.0
+                            duration: Tokens.anim.durations.small
+                            easing: Tokens.anim.standardDecel
+                        }
+
+                        NumberAnimation on opacity {
+                            from: 0.0
+                            to: 1.0
+                            duration: Tokens.anim.durations.small
+                            easing: Tokens.anim.standardDecel
+                        }
                     }
                 }
             }

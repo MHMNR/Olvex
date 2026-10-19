@@ -439,17 +439,13 @@ Item {
                 spacing: 0
                 width: root.width
 
-                add: Transition {
+                move: Transition {
                     NumberAnimation {
                         properties: "scale,opacity"
-                        from: 0
-                        to: 1
+                        to: 1.0
                         duration: Tokens.anim.durations.small
                         easing: Tokens.anim.standardDecel
                     }
-                }
-
-                move: Transition {
                     NumberAnimation {
                         properties: "x,y"
                         duration: Tokens.anim.durations.small
@@ -476,9 +472,26 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
 
+                        scale: 1.0
+                        opacity: 1.0
+
                         grade: 0
                         text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
                         color: root.isCurrent ? Colours.palette.m3onPrimary : (Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurfaceVariant)
+
+                        NumberAnimation on scale {
+                            from: 0.5
+                            to: 1.0
+                            duration: Tokens.anim.durations.small
+                            easing: Tokens.anim.standardDecel
+                        }
+
+                        NumberAnimation on opacity {
+                            from: 0.0
+                            to: 1.0
+                            duration: Tokens.anim.durations.small
+                            easing: Tokens.anim.standardDecel
+                        }
                     }
                 }
             }
