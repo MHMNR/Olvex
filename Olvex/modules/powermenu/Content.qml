@@ -12,6 +12,10 @@ Item {
 
     required property DrawerVisibilities visibilities
 
+    readonly property bool isPowermenuOpen: root.visibilities.powermenu && (Config.powermenu.enabled ?? true)
+    readonly property var m3SpatialSpring: [0.22, 1.18, 0.45, 1.00, 1.0, 1.0]
+    readonly property var m3ExitAccel: [0.35, 0.0, 0.85, 0.15, 1.0, 1.0]
+
     property real totalWeight: shutdownBtn.weight + rebootBtn.weight + hibernateBtn.weight + logoutBtn.weight
 
     focus: true
@@ -68,6 +72,7 @@ Item {
 
         SessionColumn {
             id: shutdownBtn
+            columnIndex: 0
             width: (mainRow.width / root.totalWeight) * weight
             icon: Config.powermenu.icons.shutdown || "power_settings_new"
             keyLetter: "P"
@@ -79,6 +84,7 @@ Item {
 
         SessionColumn {
             id: rebootBtn
+            columnIndex: 1
             width: (mainRow.width / root.totalWeight) * weight
             icon: Config.powermenu.icons.reboot || "restart_alt"
             keyLetter: "R"
@@ -91,6 +97,7 @@ Item {
 
         SessionColumn {
             id: hibernateBtn
+            columnIndex: 2
             width: (mainRow.width / root.totalWeight) * weight
             icon: Config.powermenu.icons.suspend || Config.powermenu.icons.hibernate || "bedtime"
             keyLetter: "S"
@@ -103,6 +110,7 @@ Item {
 
         SessionColumn {
             id: logoutBtn
+            columnIndex: 3
             width: (mainRow.width / root.totalWeight) * weight
             icon: Config.powermenu.icons.logout || "logout"
             keyLetter: "L"
@@ -116,12 +124,55 @@ Item {
     component SessionColumn: Item {
         id: col
 
+        required property int columnIndex
         required property string icon
         required property var command
         required property string hue
         required property string keyLetter
         required property string restOfLabel
         readonly property string label: keyLetter + restOfLabel
+
+        property real cardEntryProgress: 0.0
+
+        states: [
+            State {
+                name: "opened"
+                when: root.isPowermenuOpen
+                PropertyChanges {
+                    target: col
+                    cardEntryProgress: 1.0
+                }
+            }
+        ]
+
+        transitions: [
+            Transition {
+                to: "opened"
+                SequentialAnimation {
+                    PauseAnimation { duration: col.columnIndex * 55 }
+                    NumberAnimation {
+                        target: col
+                        property: "cardEntryProgress"
+                        duration: 520
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: root.m3SpatialSpring
+                    }
+                }
+            },
+            Transition {
+                from: "opened"
+                SequentialAnimation {
+                    PauseAnimation { duration: (3 - col.columnIndex) * 25 }
+                    NumberAnimation {
+                        target: col
+                        property: "cardEntryProgress"
+                        duration: 240
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: root.m3ExitAccel
+                    }
+                }
+            }
+        ]
 
         property bool isHovered: mouseArea.containsMouse || col.activeFocus
         property real weight: isHovered ? 1.6 : 1.0
@@ -142,7 +193,7 @@ Item {
         Behavior on glowY { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
 
         height: mainRow.height
-        clip: true
+        clip: false
 
         readonly property color accentColor: Colours.palette[`m3${col.hue.toLowerCase()}`] || Colours.palette.m3primary
         readonly property color onAccentColor: Colours.palette[`m3on${col.hue}`] || Colours.palette.m3onPrimary
@@ -151,9 +202,16 @@ Item {
         StyledRect {
             id: cardSurface
             anchors.fill: parent
-            anchors.margins: 10
+            anchors.leftMargin: 10
+            anchors.rightMargin: 10
+            anchors.topMargin: 10 + (1.0 - col.cardEntryProgress) * 160
+            anchors.bottomMargin: 10 - (1.0 - col.cardEntryProgress) * 160
             radius: Tokens.rounding.large
             clip: true
+
+            opacity: Math.max(0.0, Math.min(1.0, col.cardEntryProgress * 1.25))
+            scale: 0.88 + 0.12 * col.cardEntryProgress
+            transformOrigin: Item.Center
 
             color: col.isHovered
                 ? Qt.alpha(col.accentColor, Colours.light ? 0.20 : 0.25)
@@ -197,6 +255,8 @@ Item {
                 renderType: Text.CurveRendering
                 smooth: true
                 iconPointSize: col.isHovered ? 218 : 190
+                scale: 0.72 + 0.28 * col.cardEntryProgress
+                transformOrigin: Item.Center
                 opacity: col.isHovered
                     ? (Colours.light ? 0.50 : 0.40)
                     : (Colours.light ? 0.25 : 0.15)
@@ -217,6 +277,9 @@ Item {
                 anchors.horizontalCenterOffset: col.isHovered ? -170 : 0
                 width: 52
                 height: verticalRow.width
+                opacity: Math.max(0.0, Math.min(1.0, (col.cardEntryProgress - 0.15) / 0.85))
+                scale: 0.90 + 0.10 * col.cardEntryProgress
+                transformOrigin: Item.Center
 
                 Behavior on anchors.verticalCenterOffset {
                     NumberAnimation { duration: 360; easing.type: Easing.OutCubic }
@@ -295,7 +358,8 @@ Item {
         MouseArea {
             id: mouseArea
             anchors.fill: parent
-            hoverEnabled: true
+            hoverEnabled: root.isPowermenuOpen && col.cardEntryProgress > 0.65
+            enabled: root.isPowermenuOpen && col.cardEntryProgress > 0.25
             cursorShape: Qt.PointingHandCursor
             onPositionChanged: mouse => {
                 col.targetGlowX = mouse.x;

@@ -22,17 +22,19 @@ Item {
         onTriggered: root.contentPrewarmed = true
     }
 
+    readonly property var m3EmphasizedDecel: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
+    readonly property var m3EmphasizedAccel: [0.35, 0.0, 0.85, 0.15, 1.0, 1.0]
+
     visible: offsetScale < 1
-    layer.enabled: offsetScale > 0 && offsetScale < 1
-    layer.smooth: true
     opacity: 1 - offsetScale
-    scale: 0.95 + (0.05 * (1 - offsetScale))
 
     anchors.fill: parent
 
     Behavior on offsetScale {
-        Anim {
-            type: Anim.DefaultSpatial
+        NumberAnimation {
+            duration: root.shouldBeActive ? 680 : 330
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: root.shouldBeActive ? root.m3EmphasizedDecel : root.m3EmphasizedAccel
         }
     }
 

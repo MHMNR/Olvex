@@ -84,6 +84,21 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        name: "session"
+        description: "Toggle powermenu menu (legacy session alias)"
+        onPressed: {
+            if (!root.shouldTrigger("powermenu")) return;
+            if (root.hasFullscreen)
+                return;
+            const visibilities = Visibilities.getForActive();
+            visibilities.powermenu = !visibilities.powermenu;
+            Visibilities.launcherInterrupted = true;
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
         name: "launcher"
         description: "Toggle launcher"
         onPressed: {
@@ -177,6 +192,7 @@ Scope {
 
     IpcHandler {
         function toggle(drawer: string) {
+            if (drawer === "session") drawer = "powermenu";
             if (list().split("\n").includes(drawer)) {
                 if (root.hasFullscreen && ["launcher", "powermenu", "dashboard"].includes(drawer))
                     return;
