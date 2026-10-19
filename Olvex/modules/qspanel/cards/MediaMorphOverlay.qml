@@ -271,6 +271,7 @@ Item {
         }
 
         // Initial expand from docked resting pill
+        Players.recomputeThemeAccents(undefined, true);
         applyLayout(x, y, w, h, color, artX, artY, artW, artH, btn1X, btn1Y, btn2X, btn2Y, btn3X, btn3Y, btnSize);
         docked = false;
         dockLayoutReady = true;

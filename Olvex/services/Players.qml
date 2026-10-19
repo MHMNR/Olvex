@@ -456,6 +456,7 @@ Singleton {
     property string _analyzedArtUrl: ""
     property string _analyzedTrackKey: ""
 
+
     // Stored accents — never bind to Colours.palette (caused binding recursion with pickers).
     property color bootVisualizerAccent: "#4F378A"
     property color bootPlayButtonBg: "#CFBCFF"
@@ -546,8 +547,28 @@ Singleton {
         root.musicOnAccent = Colours.on(root.displayVisualizerAccent);
     }
 
-    function _animateAccentTo(visualizer: color, playButtonBg: color, playIconColor: color, surfaceColor: color, onSurfaceColor: color): void {
+    function _animateAccentTo(visualizer: color, playButtonBg: color, playIconColor: color, surfaceColor: color, onSurfaceColor: color, immediate = false): void {
         accentBlendAnimation.stop();
+        if (immediate) {
+            root._accentAnimFromVisualizer = visualizer;
+            root._accentAnimFromPlayBg = playButtonBg;
+            root._accentAnimFromPlayIcon = playIconColor;
+            root._accentAnimFromSurface = surfaceColor;
+            root._accentAnimFromOnSurface = onSurfaceColor;
+            root._accentAnimToVisualizer = visualizer;
+            root._accentAnimToPlayBg = playButtonBg;
+            root._accentAnimToPlayIcon = playIconColor;
+            root._accentAnimToSurface = surfaceColor;
+            root._accentAnimToOnSurface = onSurfaceColor;
+            root.accentBlendProgress = 1;
+            root.displayVisualizerAccent = visualizer;
+            root.displayPlayButtonBg = playButtonBg;
+            root.displayPlayIconColor = playIconColor;
+            root.displaySurfaceColor = surfaceColor;
+            root.displayOnSurfaceColor = onSurfaceColor;
+            root.musicOnAccent = Colours.on(visualizer);
+            return;
+        }
         root._accentAnimFromVisualizer = root.displayVisualizerAccent;
         root._accentAnimFromPlayBg = root.displayPlayButtonBg;
         root._accentAnimFromPlayIcon = root.displayPlayIconColor;
@@ -562,6 +583,7 @@ Singleton {
         root._applyAccentBlend();
         accentBlendAnimation.restart();
     }
+
 
     NumberAnimation {
         id: accentBlendAnimation
@@ -649,14 +671,44 @@ Singleton {
         root._scheduleArtAnalysis();
     }
 
-    function recomputeThemeAccents(): void {
+    Timer {
+        id: themeChangeDebounceTimer
+        interval: 16
+        repeat: false
+        onTriggered: root.recomputeThemeAccents(undefined, true)
+    }
+
+    function recomputeThemeAccents(overrideLight, immediate = false): void {
         const hasArt = root.active && !!root.currentArtUrl;
-        const seed = (root.dominantSeed && root.dominantSeed.a > 0 && root.dominantSeed.hslLightness > 0.02)
+        let seed = (root.dominantSeed && root.dominantSeed.a > 0 && root.dominantSeed.hslLightness > 0.02)
             ? root.dominantSeed
             : null;
 
+        if (!seed && hasArt && root.currentArtUrl) {
+            const hit = root.getMediaAccent(root.currentArtUrl);
+            if (hit && (hit.seed || hit.visualizer)) {
+                const seedVal = hit.seed ?? hit.visualizer;
+                const seedColor = Qt.color(seedVal);
+                if (seedColor && seedColor.a > 0 && seedColor.hslLightness > 0.02) {
+                    seed = seedColor;
+                    root.dominantSeed = seedColor;
+                }
+            }
+        }
+
+        if (!seed && accentProps.lastSeed) {
+            const seedColor = Qt.color(accentProps.lastSeed);
+            if (seedColor && seedColor.a > 0 && seedColor.hslLightness > 0.02) {
+                seed = seedColor;
+                root.dominantSeed = seedColor;
+            }
+        }
+
         let vis, fill, icon, surf, onSurf;
-        const isLight = Colours.light;
+        const mode = GlobalConfig.appearance.themeMode;
+        const isLight = (overrideLight !== undefined)
+            ? Boolean(overrideLight)
+            : (mode === "light" ? true : (mode === "dark" ? false : Colours.light));
 
         if (hasArt && seed) {
             vis = accentAnalyser.vibrantAccent(seed) || seed;
@@ -668,15 +720,31 @@ Singleton {
             vis = Colours.palette.m3primaryContainer;
             fill = Colours.palette.m3primary;
             icon = accentAnalyser.playIconOnFill(isLight, fill);
-            surf = Colours.palette.m3surfaceContainerHigh;
-            onSurf = Colours.palette.m3onSurface;
+            surf = isLight ? Colours.opaqueLightContainer(3) : Colours.palette.m3surfaceContainerHigh;
+            onSurf = isLight ? Qt.rgba(0, 0, 0, 0.90) : Colours.palette.m3onSurface;
         }
 
         if (!vis || vis.a <= 0) vis = Colours.palette.m3primaryContainer;
         if (!fill || fill.a <= 0) fill = Colours.palette.m3primary;
         if (!icon || icon.a <= 0) icon = accentAnalyser.playIconOnFill(isLight, fill);
-        if (!surf || surf.a <= 0) surf = Colours.palette.m3surfaceContainerHigh;
-        if (!onSurf || onSurf.a <= 0) onSurf = Colours.palette.m3onSurface;
+        if (!surf || surf.a <= 0) surf = isLight ? Colours.opaqueLightContainer(3) : Colours.palette.m3surfaceContainerHigh;
+        if (!onSurf || onSurf.a <= 0) onSurf = isLight ? Qt.rgba(0, 0, 0, 0.90) : Colours.palette.m3onSurface;
+
+        // Theme contrast guards: ensure surface and button fill match current mode lightness
+        if (isLight) {
+            if (surf.hslLightness < 0.70)
+                surf = Colours.opaqueLightContainer(3);
+            if (fill.hslLightness > 0.55)
+                fill = accentAnalyser.playButtonFill(seed || Colours.palette.m3primary, true);
+        } else {
+            if (surf.hslLightness > 0.35)
+                surf = Colours.palette.m3surfaceContainerHigh;
+            if (fill.hslLightness < 0.65)
+                fill = accentAnalyser.playButtonFill(seed || Colours.palette.m3primary, false);
+        }
+        icon = accentAnalyser.playIconOnFill(isLight, fill);
+        if (!onSurf || onSurf.a <= 0 || (isLight && onSurf.hslLightness > 0.5) || (!isLight && onSurf.hslLightness < 0.5))
+            onSurf = isLight ? Qt.rgba(0, 0, 0, 0.90) : Qt.rgba(1, 1, 1, 0.90);
 
         root.liveVisualizerAccent = vis;
         root.livePlayButtonBg = fill;
@@ -690,16 +758,17 @@ Singleton {
         root.bootSurfaceColor = surf;
         root.bootOnSurfaceColor = onSurf;
 
-        root._animateAccentTo(vis, fill, icon, surf, onSurf);
+        root._animateAccentTo(vis, fill, icon, surf, onSurf, immediate);
         root._updateMusicOnAccent();
     }
 
     function syncBootAccentsFromSystem(force = false): void {
-        root.recomputeThemeAccents();
+        root.recomputeThemeAccents(undefined, true);
     }
 
-    function handleThemeChange(): void {
-        root.recomputeThemeAccents();
+    function handleThemeChange(overrideLight): void {
+        themeChangeDebounceTimer.stop();
+        root.recomputeThemeAccents(overrideLight, true);
     }
 
     property var _mediaAccentSession: ({})

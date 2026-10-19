@@ -28,9 +28,10 @@ Singleton {
     readonly property string schemeFlavour: bootSchemeFlavour
     readonly property bool configLight: {
         const mode = GlobalConfig.appearance.themeMode;
+        const schemeIsLight = (bootSchemeMode === "light");
         if (mode === "light") return true;
         if (mode === "dark") return false;
-        return bootSchemeMode === "light";
+        return schemeIsLight;
     }
     readonly property bool light: configLight
     readonly property var palette: bootPalette
@@ -116,6 +117,15 @@ Singleton {
     function opaqueLightContainer(layerLevel, againstColor) {
         let level = surfaceLayer(layerLevel ?? 2);
         let color = containerAtLevel(level);
+
+        // Guard: If bootPalette is still dark during async refresh, synthesize an instant light container
+        if (getLuminance(color) < 0.40) {
+            const h = color.hslHue >= 0 ? color.hslHue : 0;
+            const s = Math.min(0.20, color.hslSaturation * 0.35);
+            const l = Math.max(0.88, 0.96 - level * 0.02);
+            return Qt.hsla(h, s, l, 1.0);
+        }
+
         const ref = againstColor ?? bootPalette.m3surface;
         const target = againstColor ? 1.10 : 1.06;
         const refLum = getLuminance(ref);
@@ -412,10 +422,15 @@ Singleton {
         // Launcher actions call setMode without writing themeMode first.
         // Keep config in sync so schemeModeArg / configLight bind correctly.
         if (mode === "light" || mode === "dark" || mode === "auto") {
+            if (mode === "light" || mode === "dark") {
+                bootSchemeMode = mode;
+            }
             if (GlobalConfig.appearance.themeMode !== mode) {
                 GlobalConfig.appearance.themeMode = mode;
                 GlobalConfig.save();
             }
+            root._lastIngestedData = "";
+            root.themePaletteUpdated();
         }
         // Extract owns palette quality:
         //   auto  → smart mode+variant from wallpaper
