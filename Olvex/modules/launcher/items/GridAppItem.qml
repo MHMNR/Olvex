@@ -135,14 +135,6 @@ Item {
             }
         }
 
-        // Selected / Focused / Hovered background pill
-        StyledRect {
-            id: focusPill
-            anchors.fill: parent
-            radius: Tokens.rounding.normal
-            color: "transparent"
-        }
-
         Item {
             id: icon
 
@@ -182,7 +174,7 @@ Item {
                 anchors.fill: parent
                 implicitSize: parent.width
                 shape: MaterialShape.Square
-                color: Colours.layer(Colours.palette.m3surfaceVariant, 0.4)
+                color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, Colours.light ? 0.72 : 0.65)
             }
 
             IconImage {

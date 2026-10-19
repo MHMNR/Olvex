@@ -254,8 +254,10 @@ RowLayout {
                 const base = cardRoot.tonal ? Colours.tileFillTonal : Colours.tileSurface;
                 if (!Colours.light)
                     return base;
-                // m3inversePrimary = light-mode primary in M3 (correct token for light card tint)
-                return Qt.tint(base, Qt.alpha(Colours.palette.m3inversePrimary, 0.12));
+                const tintColor = (Colours.palette.m3surfaceTint && Colours.palette.m3surfaceTint != "" && Colours.palette.m3surfaceTint != "#000000")
+                    ? Colours.palette.m3surfaceTint
+                    : Colours.palette.m3primary;
+                return Qt.tint(base, Qt.alpha(tintColor, 0.08));
             }
 
             border.width: cardRoot.borderless ? 0 : 1

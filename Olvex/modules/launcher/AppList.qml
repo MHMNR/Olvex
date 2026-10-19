@@ -1177,27 +1177,21 @@ Item {
             }
         }
 
-        // Unified sliding focus marker — springs between tiles (hover + keyboard)
+        // Single unified sliding highlight — springs smoothly between tiles (mouse hover + keyboard nav)
         StyledRect {
             id: gridFocusMarker
 
-            // Prefer hover; keyboard nav clears hover so currentItem wins; context menu locks focus on target item
-            readonly property Item targetItem: {
-                if (root.state !== "apps" || !root.visibilities.launcher)
-                    return null;
-                if (sharedContextMenu.expanded) {
-                    if (root.sharedMenuItem)
-                        return root.sharedMenuItem;
-                    if (appGrid.currentItem)
-                        return appGrid.currentItem;
-                }
+            readonly property bool hasTarget: {
+                if (root.state !== "apps" || !root.visibilities.launcher || root.revealPending)
+                    return false;
+                if (sharedContextMenu.expanded && root.sharedMenuItem)
+                    return true;
                 if (appGrid.hoveredItem)
-                    return appGrid.hoveredItem;
-                if (appGrid.currentItem)
-                    return appGrid.currentItem;
-                return null;
+                    return true;
+                if (root.keyboardHighlightActive && appGrid.count > 0)
+                    return true;
+                return false;
             }
-            readonly property bool active: targetItem !== null && !root.revealPending
 
             property bool springEnabled: false
             property real markerX: 0
@@ -1207,34 +1201,50 @@ Item {
             width: 102
             height: 112
             radius: 16
-            color: root.keyboardHighlightActive 
-                ? Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.20 : 0.24)
-                : Qt.alpha(Colours.palette.m3onSurface, Colours.light ? 0.12 : 0.08)
+            color: Qt.alpha(Colours.palette.m3onSurface, Colours.light ? 0.12 : 0.08)
             border.width: 0
             x: markerX
             y: markerY
-            opacity: active ? 1 : 0
+            opacity: hasTarget ? 1 : 0
             enabled: false
 
             function retarget(animate) {
-                const item = targetItem;
-                if (!item)
+                if (!hasTarget)
                     return;
-                const nx = item.x + 4;
-                const ny = item.y - appGrid.contentY + 4;
+
+                let nx = 0;
+                let ny = 0;
+                let found = false;
+
+                if (sharedContextMenu.expanded && root.sharedMenuItem) {
+                    nx = root.sharedMenuItem.x + 4;
+                    ny = root.sharedMenuItem.y - appGrid.contentY + 4;
+                    found = true;
+                } else if (appGrid.hoveredItem) {
+                    nx = appGrid.hoveredItem.x + 4;
+                    ny = appGrid.hoveredItem.y - appGrid.contentY + 4;
+                    found = true;
+                } else if (root.keyboardHighlightActive && appGrid.count > 0) {
+                    const idx = Math.max(0, Math.min(appGrid.count - 1, appGrid.currentIndex));
+                    const cols = root.appsColumns || 5;
+                    const col = idx % cols;
+                    const row = Math.floor(idx / cols);
+                    nx = col * appGrid.cellWidth + 4;
+                    ny = row * root.appsRowHeight - appGrid.contentY + 4;
+                    found = true;
+                }
+
+                if (!found)
+                    return;
+
                 springEnabled = animate && root.visibilities.launcher && !root.revealPending && opacity > 0.05;
                 markerX = nx;
                 markerY = ny;
-                // Keep spring enabled for continuous movement
                 gridFocusMarker.springEnabled = root.visibilities.launcher && !root.revealPending;
             }
 
-            onTargetItemChanged: {
-                if (targetItem !== null)
-                    retarget(active && opacity > 0.05);
-            }
-            onActiveChanged: {
-                if (active)
+            onHasTargetChanged: {
+                if (hasTarget)
                     retarget(opacity > 0.05);
                 else
                     springEnabled = false;
@@ -1242,14 +1252,14 @@ Item {
 
             Connections {
                 target: appGrid
-                function onCurrentIndexChanged() {
-                    gridFocusMarker.retarget(true);
-                }
                 function onHoveredItemChanged() {
                     gridFocusMarker.retarget(true);
                 }
+                function onCurrentIndexChanged() {
+                    if (root.keyboardHighlightActive)
+                        gridFocusMarker.retarget(true);
+                }
                 function onContentYChanged() {
-                    // Smoothly animate markerY with spring when scrolling
                     gridFocusMarker.retarget(true);
                 }
             }
@@ -1257,10 +1267,10 @@ Item {
             Connections {
                 target: root
                 function onKeyboardHighlightActiveChanged() {
-                    gridFocusMarker.retarget(true);
+                    gridFocusMarker.retarget(root.keyboardHighlightActive);
                 }
                 function onRevealPendingChanged() {
-                    if (!root.revealPending && gridFocusMarker.targetItem)
+                    if (!root.revealPending && gridFocusMarker.hasTarget)
                         gridFocusMarker.retarget(false);
                 }
             }
@@ -1290,9 +1300,6 @@ Item {
                     duration: 160
                     easing.type: Easing.OutCubic
                 }
-            }
-            Behavior on border.color {
-                CAnim {}
             }
         }
     }
