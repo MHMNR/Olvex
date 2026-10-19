@@ -166,83 +166,73 @@ Item {
 
             Behavior on border.color { CAnim {} }
 
-            // Dynamic Cursor Radial Glow Spotlight
-            Item {
+            // Dynamic Cursor Radial Glow Spotlight Shader (C2-continuous smootherstep with TPDF dither)
+            ShaderEffect {
+                id: cursorGlowShader
                 anchors.fill: parent
                 opacity: col.isHovered ? 1.0 : 0.0
+                visible: opacity > 0.005
 
                 Behavior on opacity {
                     NumberAnimation { duration: 320; easing.type: Easing.OutCubic }
                 }
 
-                Shape {
-                    id: cursorGlow
-                    width: 800
-                    height: 800
-                    x: col.glowX - width / 2
-                    y: col.glowY - height / 2
-                    layer.enabled: true
-                    layer.smooth: true
+                property color uAccentColor: col.accentColor
+                property vector2d uLightPos: Qt.vector2d(col.glowX - cardSurface.x, col.glowY - cardSurface.y)
+                property vector2d uSize: Qt.vector2d(cardSurface.width, cardSurface.height)
+                property real uRadius: cardSurface.radius
 
-                    ShapePath {
-                        strokeWidth: 0
-                        fillGradient: RadialGradient {
-                            centerX: 400; centerY: 400
-                            centerRadius: 400
-                            focalX: 400; focalY: 400
-                            GradientStop { position: 0.0; color: Qt.alpha(col.accentColor, Colours.light ? 0.45 : 0.55) }
-                            GradientStop { position: 0.45; color: Qt.alpha(col.accentColor, Colours.light ? 0.14 : 0.18) }
-                            GradientStop { position: 1.0; color: "transparent" }
-                        }
-                        startX: 0; startY: 0
-                        PathLine { x: 800; y: 0 }
-                        PathLine { x: 800; y: 800 }
-                        PathLine { x: 0; y: 800 }
-                        PathLine { x: 0; y: 0 }
-                    }
-                }
+                fragmentShader: Quickshell.shellPath("assets/shaders/powermenu_glow.frag.qsb")
             }
 
-            // Massive Atmospheric Icon (GPU matrix-transformed scale, unified resting tone)
+            // Massive Atmospheric Icon (Sharp vector rendering with true point size scaling)
             MaterialIcon {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.horizontalCenterOffset: col.isHovered ? 60 : 0
-                anchors.verticalCenterOffset: col.isHovered ? -50 : -80
+                anchors.verticalCenterOffset: 0
 
                 text: col.icon
                 color: col.isHovered ? col.accentColor : Colours.palette.m3onSurfaceVariant
-                iconPointSize: 190
-                scale: col.isHovered ? 1.15 : 1.0
+                renderType: Text.CurveRendering
+                smooth: true
+                iconPointSize: col.isHovered ? 218 : 190
                 opacity: col.isHovered
                     ? (Colours.light ? 0.50 : 0.40)
                     : (Colours.light ? 0.25 : 0.15)
 
                 Behavior on color { CAnim {} }
                 Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                Behavior on iconPointSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 Behavior on anchors.horizontalCenterOffset { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
             }
 
             // Vertical Signature Display Typography with Keyboard Shortcut Keycap
             Item {
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 70
+                id: typographyContainer
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.verticalCenterOffset: col.isHovered ? 0 : Math.round(col.height * 0.5 - 70 - verticalRow.width * 0.5)
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: verticalRow.height
+                anchors.horizontalCenterOffset: col.isHovered ? -170 : 0
+                width: 52
                 height: verticalRow.width
+
+                Behavior on anchors.verticalCenterOffset {
+                    NumberAnimation { duration: 360; easing.type: Easing.OutCubic }
+                }
+                Behavior on anchors.horizontalCenterOffset {
+                    NumberAnimation { duration: 360; easing.type: Easing.OutCubic }
+                }
 
                 Row {
                     id: verticalRow
                     anchors.centerIn: parent
                     rotation: -90
-                    spacing: col.isHovered ? 16 : 14
+                    spacing: col.isHovered ? 20 : 12
                     height: 52
-                    scale: col.isHovered ? 1.05 : 1.0
 
-                    Behavior on spacing { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                    Behavior on scale { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                    Behavior on spacing { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
 
                     // Material 3 Keyboard Button Icon (Clean, borderless, tonal M3 container)
                     StyledRect {
@@ -251,14 +241,12 @@ Item {
                         width: 48
                         height: 48
                         radius: col.isHovered ? Tokens.rounding.medium : Tokens.rounding.small
-                        scale: mouseArea.pressed ? 0.90 : 1.0
 
                         color: col.isHovered
                             ? col.accentColor
                             : Qt.alpha(Colours.palette.m3surfaceContainerHighest, Colours.light ? 0.90 : 0.70)
 
-                        Behavior on radius { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                        Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                        Behavior on radius { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
 
                         StyledText {
                             anchors.centerIn: parent
@@ -267,9 +255,12 @@ Item {
                                 ? col.onAccentColor
                                 : Colours.palette.m3onSurface
                             font.family: Tokens.font.family.sans
-                            textPixelSize: 24
+                            renderType: Text.CurveRendering
+                            smooth: true
+                            textPixelSize: col.isHovered ? 26 : 24
                             font.weight: Font.Black
 
+                            Behavior on textPixelSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                             Behavior on color { CAnim {} }
                         }
                     }
@@ -284,13 +275,17 @@ Item {
                             ? col.accentColor
                             : Colours.palette.m3onSurface
                         font.family: Tokens.font.family.sans
-                        textPixelSize: 44
+                        renderType: Text.CurveRendering
+                        smooth: true
+                        textPixelSize: col.isHovered ? 46 : 44
                         font.weight: Font.Bold
-                        font.letterSpacing: 4
+                        font.letterSpacing: col.isHovered ? 14 : 2
                         opacity: col.isHovered ? 1.0 : (Colours.light ? 0.85 : 0.60)
 
+                        Behavior on textPixelSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                         Behavior on color { CAnim {} }
-                        Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                        Behavior on font.letterSpacing { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                     }
                 }
             }
