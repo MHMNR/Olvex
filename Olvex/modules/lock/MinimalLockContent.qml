@@ -433,14 +433,14 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
+                        radius: pillSurface.radius
                         color: Qt.alpha(Players.musicSurfaceColor, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.65) : root.elementOpacity)
-                        border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
-                        border.width: root.blurActive ? 1 : 0
+                        border.width: 0
                         Behavior on color { ColorAnimation { duration: Tokens.anim.durations.normal } }
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: musicPill.expanded ? 28 : 24
+                            radius: pillSurface.radius
                             color: Qt.alpha(Colours.palette.m3surfaceTint, 0.08 * root.elementOpacity)
                         }
                     }
