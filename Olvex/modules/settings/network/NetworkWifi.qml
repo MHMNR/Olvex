@@ -557,6 +557,10 @@ Item {
                                         selectedTextColor: Colours.palette.m3onPrimary
                                         clip: true
 
+                                        HoverHandler {
+                                            cursorShape: Qt.IBeamCursor
+                                        }
+
                                         cursorDelegate: Item {
                                             visible: network.showPasswordText && inlinePassInput.cursorVisible
                                             width: visible ? 2 : 0
@@ -1001,6 +1005,10 @@ Item {
                                 selectedTextColor: Colours.palette.m3onPrimary
                                 clip: true
 
+                                HoverHandler {
+                                    cursorShape: Qt.IBeamCursor
+                                }
+
                                 StyledText {
                                     anchors.left: parent.left
                                     anchors.verticalCenter: parent.verticalCenter
@@ -1047,6 +1055,10 @@ Item {
                                     clip: true
                                     Keys.onReturnPressed: root.submitAddNetwork()
                                     Keys.onEnterPressed: root.submitAddNetwork()
+
+                                    HoverHandler {
+                                        cursorShape: Qt.IBeamCursor
+                                    }
 
                                     StyledText {
                                         anchors.left: parent.left

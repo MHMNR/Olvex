@@ -209,7 +209,12 @@ StyledRect {
                         font.family: Tokens.font.family.regular
                         echoMode: TextInput.Normal
                         focus: true
+                        selectByMouse: true
                         clip: true
+
+                        HoverHandler {
+                            cursorShape: Qt.IBeamCursor
+                        }
 
                         cursorDelegate: Item {
                             visible: root.showPasswordText && hiddenInput.cursorVisible

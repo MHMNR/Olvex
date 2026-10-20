@@ -652,6 +652,10 @@ Item {
                                         selectedTextColor: Colours.palette.m3onPrimary
                                         clip: true
 
+                                        HoverHandler {
+                                            cursorShape: Qt.IBeamCursor
+                                        }
+
                                         cursorDelegate: Item {
                                             visible: menu.showPasswordText && configPassField.cursorVisible
                                             width: visible ? 2 : 0
