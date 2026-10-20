@@ -131,14 +131,20 @@ Item {
                     }
                 }
 
-                HoverHandler { id: searchHover }
+                HoverHandler {
+                    id: searchHover
+                    cursorShape: Qt.IBeamCursor
+                }
             }
 
             // Refresh live binds button
             IconButton {
                 icon: "refresh"
                 type: IconButton.Tonal
-                onClicked: Keybinds.reload()
+                onClicked: {
+                    listView.prepareDelete(listView.indexAt(10, listView.contentY + 10));
+                    Keybinds.reload();
+                }
             }
 
             // Add Shortcut button
@@ -437,6 +443,88 @@ Item {
                 model: Keybinds.filteredBinds
                 visible: Keybinds.filteredBinds.length > 0
 
+                property real savedContentY: 0
+                property int savedIndex: -1
+                property string matchKey: ""
+                property string matchDispatcher: ""
+                property string matchArg: ""
+                property bool shouldRestore: false
+
+                function prepareSave(key, dispatcher, arg) {
+                    savedContentY = contentY;
+                    savedIndex = indexAt(10, contentY + 10);
+                    matchKey = key ? key.toLowerCase() : "";
+                    matchDispatcher = dispatcher || "";
+                    matchArg = arg || "";
+                    shouldRestore = true;
+                }
+
+                function prepareDelete(idx) {
+                    savedContentY = contentY;
+                    savedIndex = idx;
+                    matchKey = "";
+                    matchDispatcher = "";
+                    matchArg = "";
+                    shouldRestore = true;
+                }
+
+                function restorePosition() {
+                    if (!shouldRestore) return;
+                    shouldRestore = false;
+
+                    const list = Keybinds.filteredBinds || [];
+                    if (list.length === 0) return;
+
+                    // 1. Target keybind (added or edited)
+                    if (matchKey !== "") {
+                        const targetK = matchKey;
+                        const targetD = matchDispatcher;
+                        const targetA = matchArg;
+                        matchKey = "";
+                        matchDispatcher = "";
+                        matchArg = "";
+
+                        const idx = list.findIndex(b => {
+                            const k = (b.key || "").toLowerCase();
+                            const dk = (b.displayKey || "").toLowerCase();
+                            const keyMatches = (k === targetK || dk === targetK);
+                            const dispMatches = !targetD || (b.dispatcher === targetD);
+                            const argMatches = !targetA || (b.arg === targetA);
+                            return keyMatches && dispMatches && argMatches;
+                        });
+
+                        if (idx >= 0) {
+                            positionViewAtIndex(idx, ListView.Center);
+                            return;
+                        }
+                    }
+
+                    // 2. Fallback to saved index or contentY
+                    if (savedIndex >= 0 && savedIndex < list.length) {
+                        positionViewAtIndex(savedIndex, ListView.Beginning);
+                    } else if (savedContentY >= 0) {
+                        contentY = Math.min(savedContentY, Math.max(0, contentHeight - height));
+                    }
+                    savedIndex = -1;
+                    savedContentY = 0;
+                }
+
+                Connections {
+                    target: Keybinds
+                    function onFilteredBindsChanged() {
+                        if (listView.shouldRestore) {
+                            scrollRestoreTimer.restart();
+                        }
+                    }
+                }
+
+                Timer {
+                    id: scrollRestoreTimer
+                    interval: 20
+                    repeat: false
+                    onTriggered: listView.restorePosition()
+                }
+
                 delegate: StyledRect {
                     id: bindCard
                     width: listView.width
@@ -595,7 +683,10 @@ Item {
                             IconButton {
                                 icon: "delete"
                                 type: IconButton.Text
-                                onClicked: Keybinds.deleteKeybind(bindCard.modelData)
+                                onClicked: {
+                                    listView.prepareDelete(bindCard.index);
+                                    Keybinds.deleteKeybind(bindCard.modelData);
+                                }
                             }
                         }
                     }
@@ -986,59 +1077,100 @@ Item {
                     }
 
                     // ── Mode 1: Interactive Key Recorder Box ──
-                    StyledRect {
-                        id: keyRecorderBox
+                    FocusScope {
+                        id: keyRecorderScope
                         Layout.fillWidth: true
                         implicitHeight: 56
-                        radius: Tokens.rounding.large
                         visible: dialogComponent.inputMode === "record"
                         opacity: dialogComponent.inputMode === "record" ? 1.0 : 0.0
-                        color: dialogComponent.isRecording 
-                            ? Qt.alpha(Colours.palette.m3primary, 0.18) 
-                            : (recHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : Qt.alpha(Colours.palette.m3onSurface, 0.08))
-                        border.width: dialogComponent.isRecording ? 1.5 : 0
-                        border.color: Colours.palette.m3primary
                         focus: dialogComponent.isRecording
 
+                        property var heldModifiers: []
+
                         Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                        Behavior on color { CAnim {} }
 
-                        RowLayout {
-                            anchors.centerIn: parent
-                            spacing: Tokens.spacing.small
+                        StyledRect {
+                            id: keyRecorderBox
+                            anchors.fill: parent
+                            radius: Tokens.rounding.large
+                            clip: true
+                            readonly property bool hasConflict: !dialogComponent.isRecording && dialogComponent.conflictWarning.length > 0
+                            color: dialogComponent.isRecording 
+                                ? Qt.alpha(Colours.palette.m3primary, 0.18) 
+                                : (hasConflict
+                                    ? Qt.alpha(Colours.palette.m3error || "#ba1a1a", 0.16)
+                                    : (recHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : Qt.alpha(Colours.palette.m3onSurface, 0.08)))
+                            border.width: (dialogComponent.isRecording || hasConflict) ? 1.5 : 0
+                            border.color: dialogComponent.isRecording ? Colours.palette.m3primary : (Colours.palette.m3error || "#ba1a1a")
 
-                            MaterialIcon {
-                                visible: dialogComponent.isRecording
-                                text: "fiber_manual_record"
-                                color: Colours.palette.m3primary
-                                iconPointSize: 16
+                            Behavior on color { CAnim {} }
 
-                                SequentialAnimation on opacity {
-                                    running: dialogComponent.isRecording
-                                    loops: Animation.Infinite
-                                    NumberAnimation { to: 0.3; duration: 550; easing.type: Easing.InOutQuad }
-                                    NumberAnimation { to: 1.0; duration: 550; easing.type: Easing.InOutQuad }
+                            RowLayout {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: Tokens.padding.normal
+                                anchors.rightMargin: Tokens.padding.normal
+                                spacing: Tokens.spacing.small
+
+                                MaterialIcon {
+                                    visible: dialogComponent.isRecording || keyRecorderBox.hasConflict
+                                    text: dialogComponent.isRecording ? "fiber_manual_record" : "error_outline"
+                                    color: dialogComponent.isRecording ? Colours.palette.m3primary : (Colours.palette.m3error || "#ba1a1a")
+                                    iconPointSize: 16
+
+                                    SequentialAnimation on opacity {
+                                        running: dialogComponent.isRecording
+                                        loops: Animation.Infinite
+                                        NumberAnimation { to: 0.3; duration: 550; easing.type: Easing.InOutQuad }
+                                        NumberAnimation { to: 1.0; duration: 550; easing.type: Easing.InOutQuad }
+                                    }
+                                }
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    horizontalAlignment: (dialogComponent.isRecording || keyRecorderBox.hasConflict) ? Text.AlignLeft : Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    text: dialogComponent.isRecording 
+                                        ? qsTr("Listening for key combination... (Esc to cancel)") 
+                                        : (keyRecorderBox.hasConflict
+                                            ? (dialogComponent.conflictShortLabel || qsTr("Shortcut already bound"))
+                                            : (dialogComponent.recordedShortcut || qsTr("Click to record shortcut")))
+                                    color: dialogComponent.isRecording 
+                                        ? Colours.palette.m3primary 
+                                        : (keyRecorderBox.hasConflict ? (Colours.palette.m3error || "#ba1a1a") : Colours.palette.m3onSurface)
+                                    font.weight: Font.Bold
+                                    textPointSize: Tokens.font.size.normal
+                                }
+
+                                StyledRect {
+                                    visible: keyRecorderBox.hasConflict && dialogComponent.recordedShortcut.length > 0
+                                    implicitHeight: 28
+                                    implicitWidth: conflictKeyBadge.implicitWidth + 16
+                                    radius: Tokens.rounding.full
+                                    color: Qt.alpha(Colours.palette.m3error || "#ba1a1a", 0.22)
+
+                                    StyledText {
+                                        id: conflictKeyBadge
+                                        anchors.centerIn: parent
+                                        text: dialogComponent.recordedShortcut
+                                        color: Colours.palette.m3error || "#ba1a1a"
+                                        font.weight: Font.Bold
+                                        textPointSize: Tokens.font.size.smaller
+                                    }
                                 }
                             }
 
-                            StyledText {
-                                text: dialogComponent.isRecording 
-                                    ? qsTr("Listening for key combination... (Esc to cancel)") 
-                                    : (dialogComponent.recordedShortcut || qsTr("Click to record shortcut"))
-                                color: dialogComponent.isRecording ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                                font.weight: Font.Bold
-                                textPointSize: Tokens.font.size.normal
-                            }
-                        }
-
-                        MouseArea {
-                            id: recHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                dialogComponent.isRecording = true;
-                                keyRecorderBox.forceActiveFocus();
+                            MouseArea {
+                                id: recHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    dialogComponent.isRecording = true;
+                                    keyRecorderScope.forceActiveFocus();
+                                }
                             }
                         }
 
@@ -1056,14 +1188,35 @@ Item {
                                 return;
                             }
 
-                            // Capture modifiers
-                            const mods = [];
-                            if (event.modifiers & Qt.MetaModifier) mods.push("SUPER");
-                            if (event.modifiers & Qt.ControlModifier) mods.push("CTRL");
-                            if (event.modifiers & Qt.AltModifier) mods.push("ALT");
-                            if (event.modifiers & Qt.ShiftModifier) mods.push("SHIFT");
+                            // 1. Detect if modifier key was pressed standalone
+                            if (event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R || event.key === Qt.Key_Meta) {
+                                if (!heldModifiers.includes("SUPER")) heldModifiers.push("SUPER");
+                                event.accepted = true;
+                                return;
+                            }
+                            if (event.key === Qt.Key_Control) {
+                                if (!heldModifiers.includes("CTRL")) heldModifiers.push("CTRL");
+                                event.accepted = true;
+                                return;
+                            }
+                            if (event.key === Qt.Key_Alt || event.key === Qt.Key_AltGr) {
+                                if (!heldModifiers.includes("ALT")) heldModifiers.push("ALT");
+                                event.accepted = true;
+                                return;
+                            }
+                            if (event.key === Qt.Key_Shift) {
+                                if (!heldModifiers.includes("SHIFT")) heldModifiers.push("SHIFT");
+                                event.accepted = true;
+                                return;
+                            }
 
-                            // Ignore standalone modifier presses until a key is hit
+                            // 2. Combine event.modifiers with heldModifiers
+                            const mods = heldModifiers.slice();
+                            if ((event.modifiers & Qt.MetaModifier) && !mods.includes("SUPER")) mods.push("SUPER");
+                            if ((event.modifiers & Qt.ControlModifier) && !mods.includes("CTRL")) mods.push("CTRL");
+                            if ((event.modifiers & Qt.AltModifier) && !mods.includes("ALT")) mods.push("ALT");
+                            if ((event.modifiers & Qt.ShiftModifier) && !mods.includes("SHIFT")) mods.push("SHIFT");
+
                             const keyName = dialogComponent.keyToString(event.key);
                             if (!keyName || ["SUPER", "CTRL", "ALT", "SHIFT"].includes(keyName)) {
                                 event.accepted = true;
@@ -1075,6 +1228,19 @@ Item {
                             dialogComponent.syncShortcutDisplay();
                             dialogComponent.isRecording = false;
                             event.accepted = true;
+                        }
+
+                        Keys.onReleased: event => {
+                            if (!dialogComponent.isRecording) return;
+                            if (event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R || event.key === Qt.Key_Meta) {
+                                heldModifiers = heldModifiers.filter(m => m !== "SUPER");
+                            } else if (event.key === Qt.Key_Control) {
+                                heldModifiers = heldModifiers.filter(m => m !== "CTRL");
+                            } else if (event.key === Qt.Key_Alt || event.key === Qt.Key_AltGr) {
+                                heldModifiers = heldModifiers.filter(m => m !== "ALT");
+                            } else if (event.key === Qt.Key_Shift) {
+                                heldModifiers = heldModifiers.filter(m => m !== "SHIFT");
+                            }
                         }
                     }
 
@@ -1464,6 +1630,10 @@ Item {
 
                         onClicked: {
                             if (!saveBtn.canSave) return;
+                            const targetKey = (dialogComponent.selectedKey || "").trim();
+                            const targetDispatcher = (dialogComponent.selectedDispatcher || "").trim();
+                            const targetArg = (dialogComponent.selectedArg || "").trim();
+                            listView.prepareSave(targetKey, targetDispatcher, targetArg);
                             Keybinds.saveKeybind(
                                 root.editingBind,
                                 dialogComponent.selectedMods,
@@ -1505,8 +1675,11 @@ Item {
         property bool isRecording: false
         onIsRecordingChanged: {
             if (isRecording) {
+                keyRecorderScope.heldModifiers = [];
                 Keybinds.startKeyRecording();
+                Qt.callLater(() => keyRecorderScope.forceActiveFocus());
             } else {
+                keyRecorderScope.heldModifiers = [];
                 Keybinds.stopKeyRecording();
             }
         }
@@ -1541,8 +1714,8 @@ Item {
             }
         }
 
-        readonly property string conflictWarning: {
-            if (!selectedKey || selectedKey.trim().length === 0) return "";
+        readonly property var conflictBind: {
+            if (!selectedKey || selectedKey.trim().length === 0) return null;
             
             const currentMods = (selectedMods || []).map(m => m.toUpperCase().trim()).sort();
             const currentModStr = currentMods.join("+");
@@ -1562,11 +1735,24 @@ Item {
                 const keyMatch = (bKeyLow === currentKeyLow || bDisplayKeyLow === currentKeyLow);
                 
                 if (modMatch && keyMatch) {
-                    const bindName = b.description || b.dispatcher || (b.mods.join("+") + " + " + b.displayKey);
-                    return qsTr("Already bound to \"%1\" (%2 %3)").arg(bindName).arg(b.dispatcher).arg(b.arg || "");
+                    return b;
                 }
             }
-            return "";
+            return null;
+        }
+
+        readonly property string conflictWarning: {
+            if (!conflictBind) return "";
+            const b = conflictBind;
+            const bindName = b.description || b.dispatcher || (b.mods.join("+") + " + " + b.displayKey);
+            return qsTr("Already bound to \"%1\" (%2 %3)").arg(bindName).arg(b.dispatcher).arg(b.arg || "").trim();
+        }
+
+        readonly property string conflictShortLabel: {
+            if (!conflictBind) return "";
+            const b = conflictBind;
+            const name = b.description || b.dispatcher || (b.mods.join("+") + " + " + b.displayKey);
+            return qsTr("Already bound to \"%1\"").arg(name);
         }
 
         function initNew() {

@@ -80,6 +80,8 @@ Singleton {
             const targetWs = sub[0].trim();
             const targetWin = sub.length > 1 ? sub[1].trim() : "";
             luaExpr = targetWin ? `hl.dsp.window.move({ workspace = '${targetWs}', window = '${targetWin}' })` : `hl.dsp.window.move({ workspace = '${targetWs}' })`;
+        } else if (cmd === "submap") {
+            luaExpr = `hl.dsp.submap('${arg}')`;
         } else {
             Quickshell.execDetached(["hyprctl", "dispatch"].concat(parts));
             return;

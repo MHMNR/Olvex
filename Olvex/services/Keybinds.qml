@@ -557,11 +557,11 @@ Singleton {
     }
 
     function startKeyRecording() {
-        Quickshell.execDetached(["hyprctl", "--batch", "keyword submap olvex_record ; keyword submap reset ; dispatch submap olvex_record"]);
+        Hypr.dispatch("submap olvex_record");
     }
 
     function stopKeyRecording() {
-        Quickshell.execDetached(["hyprctl", "dispatch", "submap", "reset"]);
+        Hypr.dispatch("submap reset");
     }
 
     function saveKeybind(oldBind, newMods, newKey, newDispatcher, newArg, newFlag, newDesc) {
