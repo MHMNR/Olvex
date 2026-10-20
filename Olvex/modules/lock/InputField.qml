@@ -18,6 +18,10 @@ Item {
 
     clip: true
 
+    HoverHandler {
+        cursorShape: Qt.IBeamCursor
+    }
+
     Connections {
         function onBufferChanged() {
             if ((root.pam?.buffer?.length ?? 0) === 0) {

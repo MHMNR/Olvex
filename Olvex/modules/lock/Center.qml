@@ -420,6 +420,7 @@ ColumnLayout {
 
                 HoverHandler {
                     id: passInputHover
+                    cursorShape: Qt.IBeamCursor
                 }
 
                 TapHandler {
