@@ -359,12 +359,43 @@ Window {
         focus: true
 
         Keys.onPressed: function(event) {
-            if (event.text && event.text.length > 0 && event.key !== Qt.Key_Escape && event.key !== Qt.Key_Tab && event.key !== Qt.Key_Backtab) {
-                if (!searchPill.searchActive) {
-                    searchPill.searchExpanded = true
-                    searchInput.forceActiveFocus()
-                }
+            if (event.key === Qt.Key_Escape) {
+                win.handleKey(event)
+                return
             }
+
+            if (event.text && event.text.length > 0
+                && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))
+                && event.text.charCodeAt(0) >= 32
+                && event.key !== Qt.Key_Tab
+                && event.key !== Qt.Key_Backtab
+                && event.key !== Qt.Key_Delete
+                && event.key !== Qt.Key_Backspace) {
+
+                if (!searchPill.searchActive) {
+                    if (event.text.trim().length > 0) {
+                        searchPill.searchExpanded = true
+                        searchInput.forceActiveFocus()
+                        searchInput.text = event.text
+                        searchInput.cursorPosition = searchInput.text.length
+                        event.accepted = true
+                        return
+                    }
+                } else if (!searchInput.activeFocus) {
+                    searchInput.forceActiveFocus()
+                    searchInput.insert(searchInput.cursorPosition, event.text)
+                    event.accepted = true
+                    return
+                }
+            } else if (event.key === Qt.Key_Backspace && searchPill.searchActive && !searchInput.activeFocus) {
+                searchInput.forceActiveFocus()
+                if (searchInput.cursorPosition > 0) {
+                    searchInput.remove(searchInput.cursorPosition - 1, searchInput.cursorPosition)
+                }
+                event.accepted = true
+                return
+            }
+
             win.handleKey(event)
         }
 
@@ -518,7 +549,7 @@ Window {
                                 anchors.bottom: parent.bottom
                                 clip: true
                                 opacity: searchPill.searchActive ? 1.0 : 0.0
-                                visible: opacity > 0.01
+                                visible: searchPill.searchActive || opacity > 0.01
 
                                 Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
