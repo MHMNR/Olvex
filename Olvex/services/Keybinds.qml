@@ -581,4 +581,8 @@ Singleton {
         nativeManager.deleteKeybind(modStr, bind.key, bind.flag || "bind");
         root.reload();
     }
+
+    Component.onDestruction: {
+        stopKeyRecording();
+    }
 }

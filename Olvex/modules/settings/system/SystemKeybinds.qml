@@ -4,6 +4,7 @@ import "../components"
 import "../../../components"
 import "../../../components/controls"
 import "../../../components/containers"
+import "../../../components/effects"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
@@ -724,25 +725,19 @@ Item {
 
         readonly property bool morphAnimating: expandTransition.running || collapseTransition.running
 
-        property real targetW: Math.min(560, Math.max(320, root.width - 32))
-        property real targetH: dialogContent.implicitHeight + 48
-        property real targetX: 0
-        property real targetY: 0
+        readonly property real maxDialogW: Math.min(560, Math.max(320, (modalLayer.width > 0 ? modalLayer.width : 600) - 32))
+        readonly property real maxDialogH: Math.max(300, (modalLayer.height > 0 ? modalLayer.height : 800) - 48)
 
-        function updateTargetGeometry() {
-            targetW = Math.min(560, Math.max(320, root.width - 32));
-            targetH = dialogContent.implicitHeight + 48;
-            const pt = root.mapToItem(modalLayer, (root.width - targetW) / 2, (root.height - targetH) / 2);
-            targetX = pt.x;
-            targetY = pt.y;
-        }
+        readonly property real targetW: maxDialogW
+        readonly property real targetH: Math.min(maxDialogH, dialogContent.implicitHeight + 48)
+        readonly property real targetX: Math.round((modalLayer.width - targetW) / 2)
+        readonly property real targetY: Math.max(24, Math.round((modalLayer.height - targetH) / 2))
 
         readonly property int expandDur: Tokens.anim.durations.expressiveDefaultSpatial || 400
         readonly property int collapseDur: Tokens.anim.durations.expressiveFastSpatial || 260
 
         function openModal() {
             if (root.showEditDialog) return;
-            updateTargetGeometry();
             dialogBox.state = "docked";
             root.showEditDialog = true;
             modalLayer.forceActiveFocus();
@@ -752,6 +747,9 @@ Item {
         function closeModal() {
             if (!root.showEditDialog || collapseTransition.running) return;
             dialogComponent.isRecording = false;
+            if (dialogContentContainer.contentY !== 0) {
+                dialogContentContainer.contentY = 0;
+            }
             dialogBox.state = "docked";
             hideTimer.start();
         }
@@ -762,7 +760,6 @@ Item {
             repeat: false
             onTriggered: {
                 if (root.showEditDialog) {
-                    modalLayer.updateTargetGeometry();
                     dialogBox.state = "expanded";
                     modalLayer.forceActiveFocus();
                 }
@@ -782,7 +779,7 @@ Item {
         StyledRect {
             id: scrimRect
             anchors.fill: parent
-            color: Qt.alpha(Colours.palette.m3scrim || "#000000", 0.60)
+            color: Qt.alpha(Colours.palette.m3scrim || "#000000", 0.74)
             opacity: 0.0
 
             MouseArea {
@@ -794,6 +791,21 @@ Item {
             }
         }
 
+        // M3 Elevation Shadow for Dialog Card (separates layers without borders)
+        Elevation {
+            x: dialogBox.x
+            y: dialogBox.y
+            width: dialogBox.width
+            height: dialogBox.height
+            radius: dialogBox.radius
+            level: 4
+            visible: dialogBox.state === "expanded" || dialogBox.opacity > 0.01
+            opacity: (dialogBox.state === "expanded" && !modalLayer.morphAnimating) ? 1.0 : (dialogBox.opacity * 0.4)
+            z: 1
+
+            Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+        }
+
         // M3 Container Transform Morphing Container
         StyledRect {
             id: dialogBox
@@ -802,9 +814,25 @@ Item {
             width: root.originW
             height: root.originH
             radius: root.originRadius
-            color: Colours.palette.m3surfaceContainerHigh
+            color: Qt.tint(Colours.palette.m3surfaceContainerHighest, Qt.alpha(Colours.palette.m3surfaceTint || Colours.palette.m3primary, 0.08))
             border.width: 0
-            clip: state !== "expanded" || expandTransition.running || collapseTransition.running
+            clip: true
+            z: 2
+
+            Behavior on y {
+                enabled: dialogBox.state === "expanded" && !modalLayer.morphAnimating
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on height {
+                enabled: dialogBox.state === "expanded" && !modalLayer.morphAnimating
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             state: "docked"
 
@@ -1011,17 +1039,21 @@ Item {
                 onClicked: modalLayer.closeModal()
             }
 
-            // Decoupled Form Container (Prevents child layout thrashing / text reflow during shrinking)
-            Item {
+            // Decoupled Form Container with smooth scrolling when height exceeds window
+            StyledFlickable {
                 id: dialogContentContainer
                 anchors.fill: parent
                 anchors.margins: 24
+                contentWidth: width
+                contentHeight: dialogContent.implicitHeight
+                boundsBehavior: (contentHeight > height) ? Flickable.DragAndOvershootBounds : Flickable.StopAtBounds
                 opacity: 0.0
                 z: 2
+                clip: true
 
                 ColumnLayout {
                     id: dialogContent
-                    anchors.fill: parent
+                    width: dialogContentContainer.width
                     spacing: Tokens.spacing.large
 
                 // ── Dialog Clean Header (No Unnecessary Icon Badges) ──
@@ -1134,9 +1166,7 @@ Item {
                                     elide: Text.ElideRight
                                     text: dialogComponent.isRecording 
                                         ? qsTr("Listening for key combination... (Esc to cancel)") 
-                                        : (keyRecorderBox.hasConflict
-                                            ? (dialogComponent.conflictShortLabel || qsTr("Shortcut already bound"))
-                                            : (dialogComponent.recordedShortcut || qsTr("Click to record shortcut")))
+                                        : (dialogComponent.recordedShortcut || qsTr("Click to record shortcut"))
                                     color: dialogComponent.isRecording 
                                         ? Colours.palette.m3primary 
                                         : (keyRecorderBox.hasConflict ? (Colours.palette.m3error || "#ba1a1a") : Colours.palette.m3onSurface)
@@ -1147,14 +1177,14 @@ Item {
                                 StyledRect {
                                     visible: keyRecorderBox.hasConflict && dialogComponent.recordedShortcut.length > 0
                                     implicitHeight: 28
-                                    implicitWidth: conflictKeyBadge.implicitWidth + 16
+                                    implicitWidth: conflictKeyBadge.implicitWidth + 20
                                     radius: Tokens.rounding.full
                                     color: Qt.alpha(Colours.palette.m3error || "#ba1a1a", 0.22)
 
                                     StyledText {
                                         id: conflictKeyBadge
                                         anchors.centerIn: parent
-                                        text: dialogComponent.recordedShortcut
+                                        text: qsTr("Conflict")
                                         color: Colours.palette.m3error || "#ba1a1a"
                                         font.weight: Font.Bold
                                         textPointSize: Tokens.font.size.smaller
@@ -1714,26 +1744,57 @@ Item {
             }
         }
 
-        readonly property var conflictBind: {
-            if (!selectedKey || selectedKey.trim().length === 0) return null;
-            
-            const currentMods = (selectedMods || []).map(m => m.toUpperCase().trim()).sort();
-            const currentModStr = currentMods.join("+");
-            const currentKeyLow = selectedKey.trim().toLowerCase();
+        function normalizeKeyForComparison(k) {
+            if (!k) return "";
+            const s = k.trim().toLowerCase();
+            const map = {
+                "enter": "return",
+                "esc": "escape",
+                "backspace": "backspace",
+                "del": "delete",
+                "ins": "insert",
+                "space": "space",
+                "pgup": "page_up",
+                "pgdn": "page_down",
+                "←": "left",
+                "→": "right",
+                "↑": "up",
+                "↓": "down",
+                "`": "grave",
+                "-": "minus",
+                "=": "equal",
+                "[": "bracketleft",
+                "]": "bracketright",
+                "\\": "backslash",
+                ";": "semicolon",
+                "'": "apostrophe",
+                ",": "comma",
+                ".": "period",
+                "/": "slash"
+            };
+            return map[s] || s;
+        }
+
+        function findConflict(modsArr, keyStr) {
+            if (!keyStr || keyStr.trim().length === 0) return null;
+
+            const targetMods = (modsArr || []).map(m => m.toUpperCase().trim()).sort();
+            const targetModStr = targetMods.join("+");
+            const targetKeyNorm = normalizeKeyForComparison(keyStr);
 
             for (let i = 0; i < Keybinds.binds.length; i++) {
                 const b = Keybinds.binds[i];
                 if (root.editingBind && b.id === root.editingBind.id) continue;
-                
+
                 const bMods = (b.mods || []).map(m => m.toUpperCase().trim()).sort();
                 const bModStr = bMods.join("+");
-                
-                const bKeyLow = (b.key || "").trim().toLowerCase();
-                const bDisplayKeyLow = (b.displayKey || "").trim().toLowerCase();
-                
-                const modMatch = (bModStr === currentModStr);
-                const keyMatch = (bKeyLow === currentKeyLow || bDisplayKeyLow === currentKeyLow);
-                
+
+                const bKeyNorm = normalizeKeyForComparison(b.key || "");
+                const bDisplayKeyNorm = normalizeKeyForComparison(b.displayKey || "");
+
+                const modMatch = (bModStr === targetModStr);
+                const keyMatch = (bKeyNorm === targetKeyNorm || bDisplayKeyNorm === targetKeyNorm);
+
                 if (modMatch && keyMatch) {
                     return b;
                 }
@@ -1741,18 +1802,25 @@ Item {
             return null;
         }
 
+        readonly property var conflictBind: findConflict(selectedMods, selectedKey)
+
+        readonly property string conflictActionName: {
+            if (!conflictBind) return "";
+            const b = conflictBind;
+            return b.description || [b.dispatcher, b.arg].filter(Boolean).join(" ") || b.shortcutDisplay || "";
+        }
+
         readonly property string conflictWarning: {
             if (!conflictBind) return "";
             const b = conflictBind;
-            const bindName = b.description || b.dispatcher || (b.mods.join("+") + " + " + b.displayKey);
-            return qsTr("Already bound to \"%1\" (%2 %3)").arg(bindName).arg(b.dispatcher).arg(b.arg || "").trim();
+            const action = conflictActionName;
+            const details = (b.dispatcher && b.arg) ? ` (${b.dispatcher} ${b.arg})` : (b.dispatcher ? ` (${b.dispatcher})` : "");
+            return qsTr("Already bound to \"%1\"%2. Please use another combination.").arg(action).arg(details);
         }
 
         readonly property string conflictShortLabel: {
             if (!conflictBind) return "";
-            const b = conflictBind;
-            const name = b.description || b.dispatcher || (b.mods.join("+") + " + " + b.displayKey);
-            return qsTr("Already bound to \"%1\"").arg(name);
+            return qsTr("Already bound to \"%1\" — use another combo").arg(conflictActionName);
         }
 
         function initNew() {
