@@ -274,16 +274,27 @@ Item {
             cacheBuffer: 500
             interactive: !tonePopup.visible
 
+            property bool isProgrammaticScroll: false
+
             NumberAnimation {
                 id: mainSmoothScrollAnim
                 target: mainList
                 property: "contentY"
                 duration: 280
                 easing.type: Easing.OutCubic
+                onStopped: {
+                    mainList.isProgrammaticScroll = false;
+                }
             }
 
-            onMovementStarted: mainSmoothScrollAnim.stop()
-            onFlickStarted: mainSmoothScrollAnim.stop()
+            onMovementStarted: {
+                isProgrammaticScroll = false;
+                mainSmoothScrollAnim.stop();
+            }
+            onFlickStarted: {
+                isProgrammaticScroll = false;
+                mainSmoothScrollAnim.stop();
+            }
 
             function clampScrollY(y) {
                 let maxScroll = Math.max(0, root.exactContentHeight - mainList.height);
@@ -304,6 +315,7 @@ Item {
 
             function scrollToY(targetY, animMs) {
                 let clamped = clampScrollY(targetY);
+                isProgrammaticScroll = true;
                 mainSmoothScrollAnim.stop();
                 mainSmoothScrollAnim.duration = animMs || 320;
                 mainSmoothScrollAnim.from = mainList.contentY;
@@ -314,6 +326,7 @@ Item {
             WheelHandler {
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 onWheel: (event) => {
+                    mainList.isProgrammaticScroll = false;
                     let isTouchPad = event.device && event.device.type === PointerDevice.TouchPad;
                     if (isTouchPad && event.pixelDelta.y !== 0) {
                         mainList.applyScrollDelta(-event.pixelDelta.y, 120);
@@ -336,9 +349,11 @@ Item {
                 } else if (contentY < -0.5) {
                     contentY = 0;
                 }
-                let idx = indexAt(10, contentY + 10);
-                if (idx >= 0 && idx < root.rowModel.length) {
-                    bottomBar.activeCategory = root.rowModel[idx].catIdx;
+                if (!isProgrammaticScroll) {
+                    let idx = indexAt(10, contentY + 10);
+                    if (idx >= 0 && idx < root.rowModel.length) {
+                        bottomBar.activeCategory = root.rowModel[idx].catIdx;
+                    }
                 }
             }
 
@@ -437,9 +452,17 @@ Item {
             spacing: 0
 
             property int activeCategory: 0
+            property int hoveredCategory: -1
 
             onActiveCategoryChanged: {
                 catTabs.scrollTabIntoView(activeCategory);
+            }
+
+            Timer {
+                id: catHoverClearTimer
+                interval: 40
+                repeat: false
+                onTriggered: bottomBar.hoveredCategory = -1
             }
 
             OskKey {
@@ -541,50 +564,128 @@ Item {
                     }
                 }
 
+                // ── Sliding Spring Hover Indicator ───────
+                Rectangle {
+                    id: oskCatHoverIndicator
+                    parent: catTabs.contentItem
+                    z: 0
+                    y: 4
+                    width: root.baseWidth - 12
+                    height: 42
+                    radius: 10
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+                    opacity: (bottomBar.hoveredCategory >= 0 && bottomBar.hoveredCategory !== bottomBar.activeCategory) ? 1 : 0
+                    visible: opacity > 0.01
+
+                    property real targetX: bottomBar.hoveredCategory >= 0 ? (bottomBar.hoveredCategory * (root.baseWidth - 2) + 4) : markerX
+                    property real markerX: targetX
+                    property bool springEnabled: false
+
+                    x: markerX
+
+                    onTargetXChanged: {
+                        if (bottomBar.hoveredCategory >= 0)
+                            markerX = targetX;
+                    }
+
+                    Behavior on markerX {
+                        enabled: oskCatHoverIndicator.springEnabled
+                        SpringAnimation {
+                            spring: 4.8
+                            damping: 0.72
+                            mass: 1.0
+                            epsilon: 0.005
+                        }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                    }
+                }
+
+                // ── Sliding Spring Active Indicator ──────
+                Rectangle {
+                    id: oskCatIndicator
+                    parent: catTabs.contentItem
+                    z: 0
+                    y: 4
+                    width: root.baseWidth - 12
+                    height: 42
+                    radius: 10
+                    color: Colours.palette.m3primary
+
+                    readonly property real targetX: bottomBar.activeCategory * (root.baseWidth - 2) + 4
+                    property real markerX: targetX
+                    property bool springEnabled: false
+
+                    x: markerX
+
+                    onTargetXChanged: {
+                        markerX = targetX;
+                    }
+
+                    Component.onCompleted: {
+                        markerX = targetX;
+                        Qt.callLater(() => {
+                            springEnabled = true;
+                        });
+                    }
+
+                    Behavior on markerX {
+                        enabled: oskCatIndicator.springEnabled
+                        SpringAnimation {
+                            spring: 4.8
+                            damping: 0.72
+                            mass: 1.0
+                            epsilon: 0.005
+                        }
+                    }
+                }
+
                 delegate: Item {
+                    id: oskTabDelegate
                     required property var modelData
                     required property int index
 
                     width: root.baseWidth - 4
                     height: 50
+                    z: 1
 
                     readonly property bool isActive: bottomBar.activeCategory === index
 
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        radius: 10
-                        color: parent.isActive ? Qt.alpha(Colours.palette.m3primary, 0.15) : "transparent"
-
-                        Behavior on color { ColorAnimation { duration: 120 } }
-
-                        StyledText {
-                            anchors.centerIn: parent
-                            anchors.verticalCenterOffset: -3
-                            text: (modelData && modelData.icon) ? modelData.icon : ""
-                            font.family: "Material Symbols Rounded"
-                            font.pixelSize: 20
-                            color: parent.parent.isActive
-                                ? Colours.palette.m3primary
-                                : Qt.alpha(Colours.palette.m3onSurface, 0.55)
-                            Behavior on color { ColorAnimation { duration: 120 } }
-                        }
-
-                        // Active underline indicator (Gboard style)
-                        Rectangle {
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 3
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: parent.parent.isActive ? 16 : 0
-                            height: 2
-                            radius: 1
-                            color: Colours.palette.m3primary
-                            Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                        }
+                    StyledText {
+                        anchors.centerIn: parent
+                        anchors.verticalCenterOffset: -3
+                        text: (modelData && modelData.icon) ? modelData.icon : ""
+                        font.family: "Material Symbols Rounded"
+                        font.pixelSize: 20
+                        color: oskTabDelegate.isActive
+                            ? Colours.palette.m3onPrimary
+                            : (bottomBar.hoveredCategory === index ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.55))
+                        Behavior on color { ColorAnimation { duration: 150 } }
                     }
 
                     MouseArea {
                         anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+
+                        onEntered: {
+                            catHoverClearTimer.stop();
+                            if (oskCatHoverIndicator.opacity <= 0.05) {
+                                oskCatHoverIndicator.springEnabled = false;
+                                oskCatHoverIndicator.markerX = index * (root.baseWidth - 2) + 4;
+                            }
+                            bottomBar.hoveredCategory = index;
+                            Qt.callLater(() => {
+                                oskCatHoverIndicator.springEnabled = true;
+                            });
+                        }
+
+                        onExited: {
+                            catHoverClearTimer.restart();
+                        }
+
                         onClicked: {
                             bottomBar.activeCategory = index;
                             root.searchText = "";

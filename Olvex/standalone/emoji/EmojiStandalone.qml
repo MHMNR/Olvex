@@ -153,6 +153,9 @@ Window {
     property int selectedRowIndex: 1
     property int selectedColIndex: 0
     property bool keyboardNavActive: false
+    property int hoveredRowIndex: -1
+    property int hoveredColIndex: -1
+    property bool mouseHoverActive: false
 
     onRowModelChanged: {
         if (!win.searchText) {
@@ -881,13 +884,35 @@ Window {
 
                         readonly property real exactContentHeight: win.exactContentHeight
 
+                    property bool isProgrammaticScroll: false
+
+                    function clampScrollY(y) {
+                        let maxScroll = Math.max(0, win.exactContentHeight - mainList.height)
+                        return Math.max(0, Math.min(maxScroll, y))
+                    }
+
+                    function scrollToY(targetY, animMs) {
+                        let clamped = clampScrollY(targetY)
+                        isProgrammaticScroll = true
+                        mainSmoothScrollAnim.stop()
+                        bounceBackSpring.stop()
+                        touchpadReleaseTimer.stop()
+                        mainSmoothScrollAnim.duration = animMs || 300
+                        mainSmoothScrollAnim.from = mainList.contentY
+                        mainSmoothScrollAnim.to = clamped
+                        mainSmoothScrollAnim.start()
+                    }
+
                     NumberAnimation {
                         id: mainSmoothScrollAnim
                         target: mainList
                         property: "contentY"
                         duration: 260
                         easing.type: Easing.OutCubic
-                        onStopped: mainList.checkOverscrollBounds()
+                        onStopped: {
+                            mainList.isProgrammaticScroll = false
+                            mainList.checkOverscrollBounds()
+                        }
                     }
 
                     SpringAnimation {
@@ -924,11 +949,13 @@ Window {
                     }
 
                     onMovementStarted: {
+                        isProgrammaticScroll = false
                         if (searchPill.searchActive) searchPill.closeSearch()
                         mainSmoothScrollAnim.stop()
                         bounceBackSpring.stop()
                     }
                     onFlickStarted: {
+                        isProgrammaticScroll = false
                         if (searchPill.searchActive) searchPill.closeSearch()
                         mainSmoothScrollAnim.stop()
                         bounceBackSpring.stop()
@@ -937,6 +964,7 @@ Window {
                     WheelHandler {
                         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         onWheel: function(event) {
+                            mainList.isProgrammaticScroll = false
                             let delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
                             if (!delta) return
 
@@ -984,9 +1012,11 @@ Window {
                     }
 
                     onContentYChanged: {
-                        let idx = indexAt(10, Math.max(0, contentY) + 12)
-                        if (idx >= 0 && idx < win.rowModel.length) {
-                            bottomBar.activeCategory = win.rowModel[idx].catIdx
+                        if (!isProgrammaticScroll) {
+                            let idx = indexAt(10, Math.max(0, contentY) + 12)
+                            if (idx >= 0 && idx < win.rowModel.length) {
+                                bottomBar.activeCategory = win.rowModel[idx].catIdx
+                            }
                         }
                     }
 
@@ -1211,6 +1241,116 @@ Window {
                         NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
                     }
                 }
+
+                Timer {
+                    id: emojiHoverClearTimer
+                    interval: 40
+                    repeat: false
+                    onTriggered: {
+                        win.hoveredRowIndex = -1
+                        win.hoveredColIndex = -1
+                        win.mouseHoverActive = false
+                    }
+                }
+
+                // ── Sliding Spring Hover Highlight Marker for Emojis ─────
+                Rectangle {
+                    id: emojiHoverMarker
+                    z: 9
+                    width: win.baseWidth - 6
+                    height: win.baseHeight - 6
+                    radius: 8
+                    color: Qt.alpha(tok.palette.fgSurface, 0.08)
+                    border.width: 0
+
+                    property bool springEnabled: false
+
+                    readonly property var activeList: win.searchText ? searchList : mainList
+                    readonly property real startX: (listArea.width - 10 * win.baseWidth) / 2 + 3
+
+                    readonly property real calcTargetY: {
+                        let y = 0
+                        let m = activeList.model || []
+                        let targetIdx = win.hoveredRowIndex
+                        if (targetIdx < 0) return 0
+                        if (targetIdx >= m.length) targetIdx = m.length - 1
+
+                        for (let i = 0; i < targetIdx && i < m.length; i++) {
+                            y += (m[i].type === "header" ? 28 : win.baseHeight)
+                        }
+                        return y - activeList.contentY + 3
+                    }
+                    readonly property real calcTargetX: startX + win.hoveredColIndex * win.baseWidth
+
+                    property real markerX: calcTargetX
+                    property real markerY: calcTargetY
+
+                    x: markerX
+                    y: markerY
+                    opacity: win.mouseHoverActive && !win.keyboardNavActive && win.hoveredRowIndex >= 0 ? 1 : 0
+                    visible: opacity > 0.01
+
+                    function retarget(animate) {
+                        springEnabled = animate && opacity > 0.05
+                        markerX = calcTargetX
+                        markerY = calcTargetY
+                        if (win.mouseHoverActive) {
+                            Qt.callLater(() => {
+                                emojiHoverMarker.springEnabled = true
+                            })
+                        }
+                    }
+
+                    onCalcTargetXChanged: retarget(opacity > 0.05)
+                    onCalcTargetYChanged: retarget(opacity > 0.05)
+
+                    Connections {
+                        target: win
+                        function onMouseHoverActiveChanged() {
+                            if (win.mouseHoverActive && win.hoveredRowIndex >= 0) {
+                                if (emojiHoverMarker.opacity <= 0.05) {
+                                    emojiHoverMarker.springEnabled = false
+                                    emojiHoverMarker.markerX = emojiHoverMarker.calcTargetX
+                                    emojiHoverMarker.markerY = emojiHoverMarker.calcTargetY
+                                }
+                                Qt.callLater(() => {
+                                    emojiHoverMarker.springEnabled = true
+                                })
+                            }
+                        }
+                    }
+
+                    Connections {
+                        target: emojiHoverMarker.activeList
+                        function onContentYChanged() {
+                            if (win.mouseHoverActive) {
+                                emojiHoverMarker.retarget(true)
+                            }
+                        }
+                    }
+
+                    Behavior on markerX {
+                        enabled: emojiHoverMarker.springEnabled
+                        SpringAnimation {
+                            spring: 4.8
+                            damping: 0.72
+                            mass: 1.0
+                            epsilon: 0.005
+                        }
+                    }
+                    Behavior on markerY {
+                        enabled: emojiHoverMarker.springEnabled
+                        SpringAnimation {
+                            spring: 4.8
+                            damping: 0.72
+                            mass: 1.0
+                            epsilon: 0.005
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                    }
+                }
             }
 
 
@@ -1241,8 +1381,17 @@ Window {
                         spacing: 2
 
                         property int activeCategory: 0
+                        property int hoveredCategory: -1
+
                         onActiveCategoryChanged: {
                             catTabs.scrollTabIntoView(activeCategory)
+                        }
+
+                        Timer {
+                            id: catHoverClearTimer
+                            interval: 40
+                            repeat: false
+                            onTriggered: bottomBar.hoveredCategory = -1
                         }
 
                         ListView {
@@ -1326,48 +1475,105 @@ Window {
                                 }
                             }
 
+                            // ── Sliding Spring Hover Indicator ───────
+                            Rectangle {
+                                id: catHoverIndicator
+                                parent: catTabs.contentItem
+                                z: 0
+                                y: 2
+                                width: win.baseWidth - 8
+                                height: 40
+                                radius: 10
+                                color: Qt.alpha(tok.palette.fgSurface, 0.08)
+                                opacity: (bottomBar.hoveredCategory >= 0 && bottomBar.hoveredCategory !== bottomBar.activeCategory) ? 1 : 0
+                                visible: opacity > 0.01
+
+                                property real targetX: bottomBar.hoveredCategory >= 0 ? (bottomBar.hoveredCategory * (win.baseWidth - 2) + 2) : markerX
+                                property real markerX: targetX
+                                property bool springEnabled: false
+
+                                x: markerX
+
+                                onTargetXChanged: {
+                                    if (bottomBar.hoveredCategory >= 0)
+                                        markerX = targetX
+                                }
+
+                                Behavior on markerX {
+                                    enabled: catHoverIndicator.springEnabled
+                                    SpringAnimation {
+                                        spring: 4.8
+                                        damping: 0.72
+                                        mass: 1.0
+                                        epsilon: 0.005
+                                    }
+                                }
+
+                                Behavior on opacity {
+                                    NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                                }
+                            }
+
+                            // ── Sliding Spring Active Indicator ──────
+                            Rectangle {
+                                id: catIndicator
+                                parent: catTabs.contentItem
+                                z: 0
+                                y: 2
+                                width: win.baseWidth - 8
+                                height: 40
+                                radius: 10
+                                color: tok.palette.primary
+
+                                readonly property real targetX: bottomBar.activeCategory * (win.baseWidth - 2) + 2
+                                property real markerX: targetX
+                                property bool springEnabled: false
+
+                                x: markerX
+
+                                onTargetXChanged: {
+                                    markerX = targetX
+                                }
+
+                                Component.onCompleted: {
+                                    markerX = targetX
+                                    Qt.callLater(() => {
+                                        springEnabled = true
+                                    })
+                                }
+
+                                Behavior on markerX {
+                                    enabled: catIndicator.springEnabled
+                                    SpringAnimation {
+                                        spring: 4.8
+                                        damping: 0.72
+                                        mass: 1.0
+                                        epsilon: 0.005
+                                    }
+                                }
+                            }
+
                             delegate: Item {
+                                id: tabDelegate
                                 required property var modelData
                                 required property int index
 
                                 width: win.baseWidth - 4
                                 height: 44
+                                z: 1
 
                                 readonly property bool isActive: bottomBar.activeCategory === index
 
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.margins: 2
-                                    radius: 10
-                                    color: parent.isActive
-                                        ? Qt.alpha(tok.palette.primary, 0.16)
-                                        : (tabMouseArea.containsMouse ? Qt.alpha(tok.palette.fgSurface, 0.08) : "transparent")
-
-                                    Behavior on color { ColorAnimation { duration: 120 } }
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        anchors.verticalCenterOffset: -1
-                                        text: (modelData && modelData.icon) ? modelData.icon : ""
-                                        font.family: "Material Symbols Rounded"
-                                        font.pixelSize: 20
-                                        color: parent.parent.isActive
-                                            ? tok.palette.primary
-                                            : Qt.alpha(tok.palette.fgSurface, 0.55)
-                                        Behavior on color { ColorAnimation { duration: 120 } }
-                                    }
-
-                                    // Active underline
-                                    Rectangle {
-                                        anchors.bottom: parent.bottom
-                                        anchors.bottomMargin: 2
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        width: parent.parent.isActive ? 16 : 0
-                                        height: 2
-                                        radius: 1
-                                        color: tok.palette.primary
-                                        Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                                    }
+                                Text {
+                                    anchors.centerIn: parent
+                                    anchors.verticalCenterOffset: -1
+                                    text: (modelData && modelData.icon) ? modelData.icon : ""
+                                    font.family: "Material Symbols Rounded"
+                                    font.pixelSize: 20
+                                    color: tabDelegate.isActive
+                                        ? tok.palette.fgPrimary
+                                        : (bottomBar.hoveredCategory === index ? tok.palette.fgSurface : Qt.alpha(tok.palette.fgSurface, 0.55))
+                                    Behavior on color { ColorAnimation { duration: 150 } }
                                 }
 
                                 MouseArea {
@@ -1375,6 +1581,23 @@ Window {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
+
+                                    onEntered: {
+                                        catHoverClearTimer.stop()
+                                        if (catHoverIndicator.opacity <= 0.05) {
+                                            catHoverIndicator.springEnabled = false
+                                            catHoverIndicator.markerX = index * (win.baseWidth - 2) + 2
+                                        }
+                                        bottomBar.hoveredCategory = index
+                                        Qt.callLater(() => {
+                                            catHoverIndicator.springEnabled = true
+                                        })
+                                    }
+
+                                    onExited: {
+                                        catHoverClearTimer.restart()
+                                    }
+
                                     onClicked: {
                                         if (searchPill.searchActive)
                                             searchPill.closeSearch()
@@ -1769,8 +1992,7 @@ Window {
                                 anchors.fill: parent
                                 anchors.margins: 3
                                 radius: 8
-                                color: emojiArea.pressed ? Qt.alpha(tok.palette.fgSurface, 0.18)
-                                     : emojiArea.containsMouse ? Qt.alpha(tok.palette.fgSurface, 0.08) : "transparent"
+                                color: emojiArea.pressed ? Qt.alpha(tok.palette.fgSurface, 0.18) : "transparent"
 
                                 Behavior on color { ColorAnimation { duration: 120 } }
                             }
@@ -1788,6 +2010,21 @@ Window {
                                 cursorShape: Qt.PointingHandCursor
                                 pressAndHoldInterval: 320
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+                                onEntered: {
+                                    emojiHoverClearTimer.stop()
+                                    if (!win.keyboardNavActive) {
+                                        win.hoveredRowIndex = rowItem.index
+                                        win.hoveredColIndex = emojiCell.index
+                                        win.mouseHoverActive = true
+                                    }
+                                }
+
+                                onExited: {
+                                    if (win.hoveredRowIndex === rowItem.index && win.hoveredColIndex === emojiCell.index) {
+                                        emojiHoverClearTimer.restart()
+                                    }
+                                }
 
                                 onClicked: function(mouse) {
                                     let targetDisplayed = emojiCell.emojiDisplayed
