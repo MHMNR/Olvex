@@ -729,7 +729,20 @@ bool KeybindManager::matchesLuaBindLine(const QString& line, const QString& oldM
     for (const auto& call : calls) {
         const auto& keyExpr = std::get<0>(call);
         QStringList resolvedKeys;
-        if (keyExpr.contains(QStringLiteral(".."))) {
+        if (keyExpr.startsWith(QLatin1Char('{')) && keyExpr.endsWith(QLatin1Char('}'))) {
+            const QString inner = keyExpr.mid(1, keyExpr.length() - 2);
+            const auto rawItems = inner.split(QLatin1Char(','));
+            for (auto item : rawItems) {
+                item = item.trimmed();
+                if (item.startsWith(QStringLiteral("vars."))) {
+                    const auto val = varsMap.value(item.mid(5), item);
+                    resolvedKeys << val.split(QLatin1Char(','));
+                } else {
+                    item.remove(QRegularExpression(QStringLiteral("^[\"']|[\"']$")));
+                    resolvedKeys << item.trimmed();
+                }
+            }
+        } else if (keyExpr.contains(QStringLiteral(".."))) {
             const auto parts = keyExpr.split(QStringLiteral(".."));
             QString fullKey;
             for (auto p : parts) {
@@ -869,17 +882,41 @@ bool KeybindManager::saveKeybind(const QString& action,
         bool found = false;
         QStringList newLines;
 
-        for (const auto& line : lines) {
-            if (matchesLuaBindLine(line, oldMods, oldKey, varsMap)) {
-                found = true;
-                if (action == QStringLiteral("delete")) {
-                    continue;
-                } else if (action == QStringLiteral("update")) {
-                    newLines << newLine;
-                    continue;
+        QStringList statementLines;
+        int parenDepth = 0;
+
+        for (int i = 0; i < lines.size(); ++i) {
+            const auto& line = lines.at(i);
+            const QString stripped = line.trimmed();
+
+            bool isBindStart = (parenDepth == 0) && (stripped.contains(QStringLiteral("create_bind(")) || stripped.contains(QStringLiteral("hl.bind(")));
+
+            if (isBindStart || parenDepth > 0) {
+                statementLines << line;
+                for (const QChar& c : line) {
+                    if (c == QLatin1Char('(')) parenDepth++;
+                    else if (c == QLatin1Char(')')) parenDepth--;
                 }
+
+                if (parenDepth <= 0) {
+                    parenDepth = 0;
+                    const QString fullStmt = statementLines.join(QLatin1Char('\n'));
+                    if (matchesLuaBindLine(fullStmt, oldMods, oldKey, varsMap)) {
+                        found = true;
+                        if (action == QStringLiteral("update")) {
+                            newLines << newLine;
+                        }
+                    } else {
+                        newLines << statementLines;
+                    }
+                    statementLines.clear();
+                }
+            } else {
+                newLines << line;
             }
-            newLines << line;
+        }
+        if (!statementLines.isEmpty()) {
+            newLines << statementLines;
         }
 
         if ((action == QStringLiteral("add") || (action == QStringLiteral("update") && !found)) && !newLine.isEmpty()) {
@@ -892,6 +929,12 @@ bool KeybindManager::saveKeybind(const QString& action,
             for (const auto& l : newLines) {
                 outStream << l << QLatin1Char('\n');
             }
+        }
+
+        // Live unbind
+        if ((action == QStringLiteral("delete") || action == QStringLiteral("update")) && !oldKey.isEmpty()) {
+            const QString combo = oldMods.isEmpty() ? oldKey : QStringLiteral("%1 + %2").arg(oldMods, oldKey);
+            hyprRequest(QStringLiteral("eval hl.unbind(\"%1\")").arg(combo));
         }
 
         // Trigger live reload

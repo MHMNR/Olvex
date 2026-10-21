@@ -462,7 +462,7 @@ Item {
 
                 function prepareDelete(idx) {
                     savedContentY = contentY;
-                    savedIndex = idx;
+                    savedIndex = (typeof idx === "number" && !isNaN(idx)) ? idx : 0;
                     matchKey = "";
                     matchDispatcher = "";
                     matchArg = "";
@@ -534,6 +534,7 @@ Item {
                     color: itemHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : Qt.alpha(Colours.palette.m3onSurface, 0.04)
 
                     required property var modelData
+                    required property int index
 
                     RowLayout {
                         anchors.fill: parent
