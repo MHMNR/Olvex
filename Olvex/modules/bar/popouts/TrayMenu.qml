@@ -2,8 +2,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Widgets
+import Olvex
 import Olvex.Config
 import qs.components
 import qs.services
@@ -126,10 +128,38 @@ StackView {
                             active: item.modelData.icon !== ""
 
                             sourceComponent: IconImage {
+                                id: iconImg
+
                                 asynchronous: true
+                                width: label.implicitHeight
+                                height: label.implicitHeight
                                 implicitSize: label.implicitHeight
+                                opacity: item.modelData.enabled ? 1.0 : (Colours.light ? 0.6 : 0.38)
+                                mipmap: true
 
                                 source: item.modelData.icon
+
+                                Component.onCompleted: {
+                                    if (iconImg.backer) {
+                                        iconImg.backer.smooth = true;
+                                        iconImg.backer.mipmap = true;
+                                    }
+                                }
+
+                                readonly property real dpr: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
+                                readonly property bool isAppHeader: item.index === 0
+
+                                layer.enabled: Colours.light && !isAppHeader
+                                layer.smooth: true
+                                layer.mipmap: true
+                                layer.textureSize: Qt.size(
+                                    Math.round(iconImg.width * dpr * 2),
+                                    Math.round(iconImg.height * dpr * 2)
+                                )
+                                layer.effect: MultiEffect {
+                                    brightness: -0.38
+                                    contrast: 0.30
+                                }
                             }
                         }
 
@@ -141,7 +171,9 @@ StackView {
                             anchors.verticalCenter: parent.verticalCenter
 
                             text: labelMetrics.elidedText
-                            color: item.modelData.enabled ? Colours.palette.m3onSurface : Colours.palette.m3outline
+                            color: item.modelData.enabled
+                                ? Colours.palette.m3onSurface
+                                : (Colours.light ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurface, 0.38))
                         }
 
                         TextMetrics {
@@ -167,7 +199,9 @@ StackView {
 
                             sourceComponent: MaterialIcon {
                                 text: "chevron_right"
-                                color: item.modelData.enabled ? Colours.palette.m3onSurface : Colours.palette.m3outline
+                                color: item.modelData.enabled
+                                    ? Colours.palette.m3onSurface
+                                    : (Colours.light ? Colours.palette.m3onSurfaceVariant : Qt.alpha(Colours.palette.m3onSurface, 0.38))
                             }
                         }
                     }
