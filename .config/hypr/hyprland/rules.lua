@@ -68,7 +68,10 @@ hl.window_rule({
 })
 
 -- Olvex Standalone Apps
-tagged_rule(float_tag, { { class = "olvex-clipboard" } })
+tagged_rule(float_tag, {
+    { class = "olvex-clipboard" },
+    { class = "olvex-emoji" },
+})
 
 ----------------------
 ---- Tagged rules ----
