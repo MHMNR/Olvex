@@ -372,6 +372,16 @@ Item {
         }
     }
 
+    Connections {
+        target: Colours
+        function onLightChanged() {
+            Players.handleThemeChange();
+        }
+        function onThemePaletteUpdated() {
+            Players.handleThemeChange();
+        }
+    }
+
     Component.onDestruction: {
         Players.unregisterMediaMorph(root.screen.name, root);
         VisualizerState.release(root.visualizerOwnerId);
@@ -458,9 +468,9 @@ Item {
             smooth: true
             color: Players.musicSurfaceColor
             Behavior on color {
-                ColorAnimation {
-                    duration: 400
-                    easing.type: Easing.OutCubic
+                CAnim {
+                    duration: Tokens.anim.durations.expressiveDefaultSpatial
+                    easing: Tokens.anim.expressiveDefaultSpatial
                 }
             }
 

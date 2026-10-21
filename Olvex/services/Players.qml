@@ -472,34 +472,15 @@ Singleton {
     property color liveSurfaceColor: Colours.palette.m3surfaceContainerHigh
     property color liveOnSurfaceColor: Colours.palette.m3onSurface
 
-    property color displayVisualizerAccent: liveVisualizerAccent
-    property color displayPlayButtonBg: livePlayButtonBg
-    property color displayPlayIconColor: livePlayIconColor
-    property color displaySurfaceColor: liveSurfaceColor
-    property color displayOnSurfaceColor: liveOnSurfaceColor
-    property color _accentAnimFromVisualizer: liveVisualizerAccent
-    property color _accentAnimFromPlayBg: livePlayButtonBg
-    property color _accentAnimFromPlayIcon: livePlayIconColor
-    property color _accentAnimFromSurface: liveSurfaceColor
-    property color _accentAnimFromOnSurface: liveOnSurfaceColor
-    property color _accentAnimToVisualizer: liveVisualizerAccent
-    property color _accentAnimToPlayBg: livePlayButtonBg
-    property color _accentAnimToPlayIcon: livePlayIconColor
-    property color _accentAnimToSurface: liveSurfaceColor
-    property color _accentAnimToOnSurface: liveOnSurfaceColor
-    property real accentBlendProgress: 1
-
-    readonly property color musicVisualizerAccent: root.displayVisualizerAccent
-    readonly property color musicPlayButtonBg: root.displayPlayButtonBg
-    readonly property color musicPlayIconColor: root.displayPlayIconColor
-    readonly property color musicSurfaceColor: root.displaySurfaceColor
-    readonly property color musicOnSurfaceColor: root.displayOnSurfaceColor
+    property color musicVisualizerAccent: liveVisualizerAccent
+    property color musicPlayButtonBg: livePlayButtonBg
+    property color musicPlayIconColor: livePlayIconColor
+    property color musicSurfaceColor: liveSurfaceColor
+    property color musicOnSurfaceColor: liveOnSurfaceColor
     property bool _suppressAccentFileIngest: false
 
     readonly property bool musicAccentReady: liveAccentReady || bootAccentLoaded
     property color musicOnAccent: "#E9DDFF"
-
-    onAccentBlendProgressChanged: root._applyAccentBlend()
 
     ImageAnalyser {
         id: accentAnalyser
@@ -515,84 +496,13 @@ Singleton {
         return Colours.getLuminance(playButtonBg) > 0.48 ? Qt.rgba(0, 0, 0, 0.92) : Qt.rgba(1, 1, 1, 0.94);
     }
 
-    function _blendHue(fromHue: real, toHue: real, t: real): real {
-        let delta = toHue - fromHue;
-        if (delta > 0.5)
-            delta -= 1.0;
-        else if (delta < -0.5)
-            delta += 1.0;
-        let hue = fromHue + delta * t;
-        if (hue < 0)
-            hue += 1.0;
-        if (hue > 1)
-            hue -= 1.0;
-        return hue;
-    }
-
-    function _blendColor(from: color, to: color, t: real): color {
-        if (!from || from.a <= 0)
-            return to;
-        if (!to || to.a <= 0)
-            return from;
-        return Qt.hsla(root._blendHue(from.hslHue, to.hslHue, t), from.hslSaturation + (to.hslSaturation - from.hslSaturation) * t, from.hslLightness + (to.hslLightness - from.hslLightness) * t, from.a + (to.a - from.a) * t);
-    }
-
-    function _applyAccentBlend(): void {
-        const t = Math.max(0, Math.min(1, root.accentBlendProgress));
-        root.displayVisualizerAccent = root._blendColor(root._accentAnimFromVisualizer, root._accentAnimToVisualizer, t);
-        root.displayPlayButtonBg = root._blendColor(root._accentAnimFromPlayBg, root._accentAnimToPlayBg, t);
-        root.displayPlayIconColor = root._blendColor(root._accentAnimFromPlayIcon, root._accentAnimToPlayIcon, t);
-        root.displaySurfaceColor = root._blendColor(root._accentAnimFromSurface, root._accentAnimToSurface, t);
-        root.displayOnSurfaceColor = root._blendColor(root._accentAnimFromOnSurface, root._accentAnimToOnSurface, t);
-        root.musicOnAccent = Colours.on(root.displayVisualizerAccent);
-    }
-
     function _animateAccentTo(visualizer: color, playButtonBg: color, playIconColor: color, surfaceColor: color, onSurfaceColor: color, immediate = false): void {
-        accentBlendAnimation.stop();
-        if (immediate) {
-            root._accentAnimFromVisualizer = visualizer;
-            root._accentAnimFromPlayBg = playButtonBg;
-            root._accentAnimFromPlayIcon = playIconColor;
-            root._accentAnimFromSurface = surfaceColor;
-            root._accentAnimFromOnSurface = onSurfaceColor;
-            root._accentAnimToVisualizer = visualizer;
-            root._accentAnimToPlayBg = playButtonBg;
-            root._accentAnimToPlayIcon = playIconColor;
-            root._accentAnimToSurface = surfaceColor;
-            root._accentAnimToOnSurface = onSurfaceColor;
-            root.accentBlendProgress = 1;
-            root.displayVisualizerAccent = visualizer;
-            root.displayPlayButtonBg = playButtonBg;
-            root.displayPlayIconColor = playIconColor;
-            root.displaySurfaceColor = surfaceColor;
-            root.displayOnSurfaceColor = onSurfaceColor;
-            root.musicOnAccent = Colours.on(visualizer);
-            return;
-        }
-        root._accentAnimFromVisualizer = root.displayVisualizerAccent;
-        root._accentAnimFromPlayBg = root.displayPlayButtonBg;
-        root._accentAnimFromPlayIcon = root.displayPlayIconColor;
-        root._accentAnimFromSurface = root.displaySurfaceColor;
-        root._accentAnimFromOnSurface = root.displayOnSurfaceColor;
-        root._accentAnimToVisualizer = visualizer;
-        root._accentAnimToPlayBg = playButtonBg;
-        root._accentAnimToPlayIcon = playIconColor;
-        root._accentAnimToSurface = surfaceColor;
-        root._accentAnimToOnSurface = onSurfaceColor;
-        root.accentBlendProgress = 0;
-        root._applyAccentBlend();
-        accentBlendAnimation.restart();
-    }
-
-
-    NumberAnimation {
-        id: accentBlendAnimation
-        target: root
-        property: "accentBlendProgress"
-        from: 0
-        to: 1
-        duration: Tokens.anim.durations.expressiveSlowEffects
-        easing: Tokens.anim.emphasizedDecel
+        root.musicVisualizerAccent = visualizer;
+        root.musicPlayButtonBg = playButtonBg;
+        root.musicPlayIconColor = playIconColor;
+        root.musicSurfaceColor = surfaceColor;
+        root.musicOnSurfaceColor = onSurfaceColor;
+        root.musicOnAccent = Colours.on(visualizer);
     }
 
     function _updateMusicOnAccent(): void {
@@ -673,9 +583,9 @@ Singleton {
 
     Timer {
         id: themeChangeDebounceTimer
-        interval: 16
+        interval: 140
         repeat: false
-        onTriggered: root.recomputeThemeAccents(undefined, true)
+        onTriggered: root.recomputeThemeAccents(undefined, false)
     }
 
     function recomputeThemeAccents(overrideLight, immediate = false): void {
@@ -705,10 +615,9 @@ Singleton {
         }
 
         let vis, fill, icon, surf, onSurf;
-        const mode = GlobalConfig.appearance.themeMode;
         const isLight = (overrideLight !== undefined)
             ? Boolean(overrideLight)
-            : (mode === "light" ? true : (mode === "dark" ? false : Colours.light));
+            : Boolean(Colours.light);
 
         if (hasArt && seed) {
             vis = accentAnalyser.vibrantAccent(seed) || seed;
@@ -730,21 +639,36 @@ Singleton {
         if (!surf || surf.a <= 0) surf = isLight ? Colours.opaqueLightContainer(3) : Colours.palette.m3surfaceContainerHigh;
         if (!onSurf || onSurf.a <= 0) onSurf = isLight ? Qt.rgba(0, 0, 0, 0.90) : Colours.palette.m3onSurface;
 
-        // Theme contrast guards: ensure surface and button fill match current mode lightness
+        // Theme polarity & contrast guards: strictly clamp surface and controls to match shell mode
         if (isLight) {
-            if (surf.hslLightness < 0.70)
+            // Light Mode: Surface MUST be light (>= 0.82 lightness)
+            if (surf.hslLightness < 0.82)
                 surf = Colours.opaqueLightContainer(3);
-            if (fill.hslLightness > 0.55)
+            // Play button fill must contrast against light surface (dark/medium tone <= 0.45 lightness)
+            if (fill.hslLightness > 0.45) {
                 fill = accentAnalyser.playButtonFill(seed || Colours.palette.m3primary, true);
+                if (fill.hslLightness > 0.45)
+                    fill = Colours.palette.m3primary;
+            }
+            // Text must be high-contrast dark
+            if (onSurf.hslLightness > 0.30)
+                onSurf = Qt.rgba(0, 0, 0, 0.90);
+            icon = accentAnalyser.playIconOnFill(true, fill);
         } else {
-            if (surf.hslLightness > 0.35)
+            // Dark Mode: Surface MUST be dark (<= 0.22 lightness)
+            if (surf.hslLightness > 0.22)
                 surf = Colours.palette.m3surfaceContainerHigh;
-            if (fill.hslLightness < 0.65)
+            // Play button fill must contrast against dark surface (bright accent >= 0.65 lightness)
+            if (fill.hslLightness < 0.65) {
                 fill = accentAnalyser.playButtonFill(seed || Colours.palette.m3primary, false);
+                if (fill.hslLightness < 0.65)
+                    fill = Colours.palette.m3primary;
+            }
+            // Text must be high-contrast light
+            if (onSurf.hslLightness < 0.70)
+                onSurf = Qt.rgba(1, 1, 1, 0.90);
+            icon = accentAnalyser.playIconOnFill(false, fill);
         }
-        icon = accentAnalyser.playIconOnFill(isLight, fill);
-        if (!onSurf || onSurf.a <= 0 || (isLight && onSurf.hslLightness > 0.5) || (!isLight && onSurf.hslLightness < 0.5))
-            onSurf = isLight ? Qt.rgba(0, 0, 0, 0.90) : Qt.rgba(1, 1, 1, 0.90);
 
         root.liveVisualizerAccent = vis;
         root.livePlayButtonBg = fill;
@@ -769,6 +693,7 @@ Singleton {
     function handleThemeChange(overrideLight): void {
         themeChangeDebounceTimer.stop();
         root.recomputeThemeAccents(overrideLight, true);
+        themeChangeDebounceTimer.restart();
     }
 
     property var _mediaAccentSession: ({})
