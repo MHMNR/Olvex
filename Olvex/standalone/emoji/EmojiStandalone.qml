@@ -413,18 +413,7 @@ Window {
                 NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
             }
 
-            // ── Dismiss search when clicking anywhere outside searchPill ──
-            TapHandler {
-                enabled: searchPill.searchActive
-                gesturePolicy: TapHandler.ReleaseWithinBounds
-                onTapped: function(eventPoint) {
-                    let scenePt = eventPoint.scenePosition
-                    let localPt = searchPill.mapFromItem(null, scenePt.x, scenePt.y)
-                    if (localPt.x < 0 || localPt.y < 0 || localPt.x > searchPill.width || localPt.y > searchPill.height) {
-                        searchPill.closeSearch()
-                    }
-                }
-            }
+
 
             // ── Main Layout Column ───────────────────────────────────────────
             ColumnLayout {
@@ -865,11 +854,11 @@ Window {
                     Layout.fillHeight: true
                     clip: true
 
-                    // Dismiss search when clicking anywhere in list area
+                    // Dismiss search when clicking empty space in list area
                     MouseArea {
                         id: listAreaSearchDismiss
                         anchors.fill: parent
-                        z: 99
+                        z: -1
                         enabled: searchPill.searchActive
                         cursorShape: Qt.ArrowCursor
                         onPressed: function(mouse) {
@@ -1801,11 +1790,11 @@ Window {
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                                 onClicked: function(mouse) {
-                                    if (searchPill.searchActive)
-                                        searchPill.closeSearch()
-
                                     let targetDisplayed = emojiCell.emojiDisplayed
                                     let targetBase = emojiCell.emojiStr
+
+                                    if (!targetDisplayed || targetDisplayed.length === 0)
+                                        return
 
                                     if (mouse.button === Qt.RightButton && win.isToneable(targetBase)) {
                                         showTonePopup(emojiCell)
