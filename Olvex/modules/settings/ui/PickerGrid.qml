@@ -25,6 +25,12 @@ Item {
     property string searchQuery: ""
     property string activeCategory: "all"
 
+    onActiveCategoryChanged: if (typeof grid !== "undefined" && grid) grid.hoveredCell = null
+    onSearchQueryChanged: if (typeof grid !== "undefined" && grid) grid.hoveredCell = null
+    onExpandedChanged: {
+        if (!expanded && typeof grid !== "undefined" && grid) grid.hoveredCell = null;
+    }
+
     signal selected(int index)
 
     readonly property int count: model ? model.length : 0
@@ -60,6 +66,34 @@ Item {
         return "distros";
     }
 
+    function computeGlyph(v) {
+        if (!v || v === "auto") {
+            return (typeof SysInfo !== "undefined" && SysInfo.detectedOsGlyph) 
+                ? SysInfo.detectedOsGlyph 
+                : (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function" 
+                    ? CUtils.distroGlyph(SysInfo.osId, SysInfo.osIdLike, SysInfo.osName) 
+                    : "\uf31a");
+        }
+        if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
+            return CUtils.distroGlyph(v, [], v);
+        }
+        return "\uf31a";
+    }
+
+    function computeHOffset(glyph) {
+        if (typeof CUtils !== "undefined" && typeof CUtils.glyphHOffset === "function" && Tokens && Tokens.font && Tokens.font.family) {
+            return CUtils.glyphHOffset(glyph, 22, Tokens.font.family.mono);
+        }
+        return 0.0;
+    }
+
+    function computeVOffset(glyph) {
+        if (typeof CUtils !== "undefined" && typeof CUtils.glyphVOffset === "function" && Tokens && Tokens.font && Tokens.font.family) {
+            return CUtils.glyphVOffset(glyph, 22, Tokens.font.family.mono);
+        }
+        return 0.0;
+    }
+
     readonly property var filteredModel: {
         if (!root.model) return [];
         const q = (root.searchQuery || "").trim().toLowerCase();
@@ -80,7 +114,20 @@ Item {
                 if (!matchLabel && !matchVal) continue;
             }
 
-            res.push({ val: raw, orig: i, label: label, value: val, category: itemCat });
+            const glyphStr = (val === "olvex") ? "" : root.computeGlyph(val);
+            const hOff = glyphStr ? root.computeHOffset(glyphStr) : 0.0;
+            const vOff = glyphStr ? root.computeVOffset(glyphStr) : 0.0;
+
+            res.push({
+                val: raw,
+                orig: i,
+                label: label,
+                value: val,
+                category: itemCat,
+                glyph: glyphStr,
+                hOffset: hOff,
+                vOffset: vOff
+            });
         }
         return res;
     }
@@ -105,6 +152,7 @@ Item {
 
     function pick(i) {
         if (i < 0 || i >= root.count) return;
+        if (typeof grid !== "undefined" && grid) grid.hoveredCell = null;
         if (root.currentIndex !== i) root.currentIndex = i;
         root.selected(i);
         root.expanded = false;
@@ -157,7 +205,7 @@ Item {
         radius: height / 2
         color: Colours.palette.m3primary
         opacity: (root.expanded || closeGrace.running) ? 0 : 1
-        visible: true
+        visible: opacity > 0
 
         StateLayer {
             radius: parent.radius
@@ -358,13 +406,22 @@ Item {
             }
         }
 
-        // ── Incoming Landscape Grid Content (Fades in smoothly when opening) ──
+        // ── Incoming Landscape Grid Content (Fixed dimensions + revealed via container clip) ──
         Item {
-            anchors.fill: parent
+            id: contentContainer
+            anchors.top: parent.top
+            anchors.left: parent.left
             anchors.margins: Tokens.padding.normal
+            width: root.targetW - Tokens.padding.normal * 2
+            height: root.targetH - Tokens.padding.normal * 2
             opacity: root.morphState === "open" ? 1 : 0
             visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.morphState === "open" ? 220 : 100
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -481,13 +538,63 @@ Item {
 
                 // Grid Area
                 Item {
+                    id: gridContainer
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    clip: true
+
+                    // Sliding hover highlight marker
+                    StyledRect {
+                        id: hoverHighlight
+
+                        readonly property Item target: grid.hoveredCell
+                        readonly property real _scroll: grid.contentY
+
+                        z: 0
+                        visible: opacity > 0.001
+                        opacity: (target !== null && !target.isSelected && root.expanded && root.morphState === "open") ? 0.08 : 0
+                        color: Colours.palette.m3onSurface
+                        radius: Tokens.rounding.normal
+
+                        x: {
+                            const _ = _scroll;
+                            return (target && target.parent) ? target.mapToItem(gridContainer, 0, 0).x + 3 : x;
+                        }
+                        y: {
+                            const _ = _scroll;
+                            return (target && target.parent) ? target.mapToItem(gridContainer, 0, 0).y + 3 : y;
+                        }
+                        width: (target && target.parent) ? target.width - 6 : width
+                        height: (target && target.parent) ? target.height - 6 : height
+
+                        Behavior on x {
+                            enabled: hoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on y {
+                            enabled: hoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on width {
+                            enabled: hoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on height {
+                            enabled: hoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150 }
+                        }
+                    }
 
                     GridView {
                         id: grid
+                        property Item hoveredCell: null
                         anchors.fill: parent
                         clip: true
+                        reuseItems: true
+                        onMovementStarted: hoveredCell = null
 
                         readonly property int minColWidth: 110
                         readonly property int numCols: Math.max(3, Math.floor(width / minColWidth))
@@ -540,7 +647,7 @@ Item {
                             readonly property string itemVal: (modelData && modelData.value !== undefined) ? modelData.value : ""
                             readonly property string itemLabel: (modelData && modelData.label !== undefined) ? modelData.label : ""
                             readonly property bool isSelected: origIndex === root.currentIndex
-                            property bool hovered: cellMouse.containsMouse
+                            property bool hovered: grid.hoveredCell === cell
 
                             Rectangle {
                                 anchors.fill: parent
@@ -548,19 +655,19 @@ Item {
                                 radius: Tokens.rounding.normal
                                 color: cell.isSelected 
                                     ? Colours.layer(Colours.palette.m3primaryContainer, 0.85) 
-                                    : (cell.hovered ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 0.75) : "transparent")
+                                    : "transparent"
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
 
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 6
+                                Column {
+                                    anchors.centerIn: parent
+                                    width: parent.width - 12
                                     spacing: 4
 
                                     Item {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        Layout.preferredWidth: 32
-                                        Layout.preferredHeight: 30
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: 32
+                                        height: 30
                                         scale: cell.hovered ? 1.08 : 1.0
                                         Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
@@ -577,26 +684,9 @@ Item {
                                             id: cellGlyphText
                                             visible: cell.itemVal !== "olvex"
                                             anchors.centerIn: parent
-                                            anchors.horizontalCenterOffset: (typeof CUtils !== "undefined" && typeof CUtils.glyphHOffset === "function")
-                                                ? CUtils.glyphHOffset(text, font.pixelSize, font.family)
-                                                : 0.0
-                                            anchors.verticalCenterOffset: (typeof CUtils !== "undefined" && typeof CUtils.glyphVOffset === "function")
-                                                ? CUtils.glyphVOffset(text, font.pixelSize, font.family)
-                                                : 0.0
-                                            text: {
-                                                const v = cell.itemVal;
-                                                if (!v || v === "auto") {
-                                                    return (typeof SysInfo !== "undefined" && SysInfo.detectedOsGlyph) 
-                                                        ? SysInfo.detectedOsGlyph 
-                                                        : (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function" 
-                                                            ? CUtils.distroGlyph(SysInfo.osId, SysInfo.osIdLike, SysInfo.osName) 
-                                                            : "\uf31a");
-                                                }
-                                                if (typeof CUtils !== "undefined" && typeof CUtils.distroGlyph === "function") {
-                                                    return CUtils.distroGlyph(v, [], v);
-                                                }
-                                                return "\uf31a";
-                                            }
+                                            anchors.horizontalCenterOffset: cell.modelData ? (cell.modelData.hOffset || 0.0) : 0.0
+                                            anchors.verticalCenterOffset: cell.modelData ? (cell.modelData.vOffset || 0.0) : 0.0
+                                            text: cell.modelData ? (cell.modelData.glyph || "") : ""
                                             color: cell.isSelected ? Colours.palette.m3onPrimaryContainer : (cell.hovered ? Colours.palette.m3primary : Colours.palette.m3onSurface)
                                             font.family: Tokens.font.family.mono
                                             font.pixelSize: 22
@@ -607,7 +697,7 @@ Item {
                                     }
 
                                     StyledText {
-                                        Layout.fillWidth: true
+                                        width: parent.width
                                         horizontalAlignment: Text.AlignHCenter
                                         text: cell.itemLabel
                                         elide: Text.ElideRight
@@ -623,6 +713,12 @@ Item {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
+                                    onEntered: grid.hoveredCell = cell
+                                    onExited: {
+                                        if (grid.hoveredCell === cell) {
+                                            grid.hoveredCell = null;
+                                        }
+                                    }
                                     onClicked: root.pick(cell.origIndex)
                                 }
                             }
