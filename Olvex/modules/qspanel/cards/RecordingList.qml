@@ -60,7 +60,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: {
             if (list.count === 0)
-                return 88;
+                return 132;
             const row = 52;
             const gap = Tokens.spacing.small;
             const n = Math.min(list.count, 4);
@@ -262,16 +262,17 @@ ColumnLayout {
         Loader {
             asynchronous: true
             anchors.centerIn: parent
+            anchors.verticalCenterOffset: -6
             opacity: list.count === 0 ? 1 : 0
             active: opacity > 0
 
             sourceComponent: ColumnLayout {
-                spacing: Tokens.spacing.small
+                spacing: 6
 
                 StyledRect {
                     Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 44
-                    implicitHeight: 44
+                    implicitWidth: 42
+                    implicitHeight: 42
                     radius: Tokens.rounding.normal
                     color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.5)
 
@@ -295,7 +296,7 @@ ColumnLayout {
                     Layout.alignment: Qt.AlignHCenter
                     text: qsTr("Captures land here after you stop")
                     color: Colours.palette.m3outline
-                    textPointSize: Tokens.font.size.small
+                    textPointSize: Tokens.font.size.small - 1
                     opacity: 0.85
                 }
             }
@@ -306,5 +307,11 @@ ColumnLayout {
                 }
             }
         }
+    }
+
+    // Spacer to guarantee clearance from bottom expand chevron pill
+    Item {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 12
     }
 }
