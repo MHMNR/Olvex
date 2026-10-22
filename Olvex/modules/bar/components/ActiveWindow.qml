@@ -717,7 +717,7 @@ Item {
                             MaterialIcon {
                                 anchors.centerIn: parent
                                 text: "music_note"
-                                color: root.hasMusicArt ? (Colours.light ? Players.musicOnSurfaceColor : Qt.alpha(Players.musicOnSurfaceColor, 0.4)) : (Colours.light ? Colours.palette.m3onPrimary : root.musicOnAccent)
+                                color: root.hasMusicArt ? (Colours.light ? Players.musicOnSurfaceColor : Qt.alpha(Players.musicOnSurfaceColor, 0.4)) : root.musicOnAccent
                                 iconPointSize: Tokens.font.size.normal
                                 fill: 1
                                 visible: !root.hasMusicArt || barArtImage.status !== Image.Ready
