@@ -698,6 +698,8 @@ StyledWindow {
         group: root.safeBorder.floating ? drawerGroup : blobGroup
         x: panel.x + panels.x
         y: panel.y + panels.y
+        width: implicitWidth
+        height: implicitHeight
         implicitWidth: active ? panel.width : 0
         implicitHeight: active ? panel.height : 0
         radius: root.drawerRounding

@@ -15,6 +15,8 @@ Item {
     implicitWidth: 980
     implicitHeight: 460
 
+    property var visibilities: null
+
     readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
     readonly property color glassFill: Colours.tileSurface
     readonly property color glassStroke: Colours.tileStroke
@@ -692,12 +694,12 @@ Item {
                                     Anim { type: Anim.Emphasized }
                                 }
 
-                                cursorVisible: !root.isFinalized
+                                cursorVisible: !root.isFinalized && (root.visibilities ? root.visibilities.dashboard : false)
                                 cursorDelegate: Rectangle {
                                     width: 3
                                     radius: 1
                                     color: Colours.palette.m3primary
-                                    visible: exprText.cursorVisible
+                                    visible: exprText.cursorVisible && (root.visibilities ? root.visibilities.dashboard : false)
                                 }
 
                                 selectionColor: Colours.palette.m3primaryContainer

@@ -215,13 +215,13 @@ void main() {
     vec2 grad = vec2(dFdx(mergedSdf), dFdy(mergedSdf));
     float fw = max(length(grad), 0.001);
     float distInPixels = mergedSdf / fw;
-    float alpha = clamp(0.5 - distInPixels, 0.0, 1.0);
+    float alpha = (mergedSdf > 2.0) ? 0.0 : clamp(0.5 - distInPixels, 0.0, 1.0);
 
     // Each renderer only outputs pixels it owns, but allow rendering
     // blend zones to prevent gaps (mergedSdf < smoothFactor means in blend)
     // myIndex == -1: inverted rect renders border-owned pixels
     // myIndex >= 0: individual rect renders its owned pixels
-    if (owner != myIndex && mergedSdf > smoothFactor)
+    if (mergedSdf > 2.0 || (owner != myIndex && mergedSdf > smoothFactor))
         discard;
 
     if (alpha <= 0.0)

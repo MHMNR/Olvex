@@ -65,6 +65,7 @@ Item {
 
         radius: Tokens.rounding.normal
         color: "transparent"
+        clip: true
 
         Flickable {
             id: view
@@ -76,38 +77,57 @@ Item {
             }
 
             anchors.fill: parent
+            clip: true
 
             flickableDirection: Flickable.HorizontalFlick
 
-            implicitWidth: (currentItem?.item?.implicitWidth ?? currentItem?.implicitWidth) > 0 ? (currentItem?.item?.implicitWidth ?? currentItem?.implicitWidth) : 860
-            implicitHeight: (currentItem?.item?.implicitHeight ?? currentItem?.implicitHeight) > 0 ? (currentItem?.item?.implicitHeight ?? currentItem?.implicitHeight) : 540
+            implicitWidth: (currentItem?.implicitWidth ?? (currentItem?.item?.implicitWidth ?? 0)) > 0
+                ? (currentItem?.implicitWidth ?? currentItem?.item?.implicitWidth)
+                : (root.dashState.currentTab === 1 ? 980 : 860)
+            implicitHeight: (currentItem?.implicitHeight ?? (currentItem?.item?.implicitHeight ?? 0)) > 0
+                ? (currentItem?.implicitHeight ?? currentItem?.item?.implicitHeight)
+                : (root.dashState.currentTab === 1 ? 460 : 540)
 
             contentX: currentItem?.x ?? 0
             contentWidth: row.implicitWidth
             contentHeight: row.implicitHeight
 
+            Connections {
+                target: root.dashState
+                function onCurrentTabChanged() {
+                    const item = repeater.itemAt(root.dashState.currentTab);
+                    if (item)
+                        view.contentX = item.x;
+                }
+            }
+
             onContentXChanged: {
-                if (!moving || !currentItem)
+                if (!moving)
                     return;
 
-                const x = contentX - currentItem.x;
-                if (x > currentItem.implicitWidth / 2)
+                const cur = repeater.itemAt(currentIndex);
+                if (!cur)
+                    return;
+
+                const x = contentX - cur.x;
+                if (x > cur.implicitWidth / 2)
                     root.dashState.currentTab = Math.min(root.dashState.currentTab + 1, tabs.count - 1);
-                else if (x < -currentItem.implicitWidth / 2)
+                else if (x < -cur.implicitWidth / 2)
                     root.dashState.currentTab = Math.max(root.dashState.currentTab - 1, 0);
             }
 
             onDragEnded: {
-                if (!currentItem)
+                const cur = repeater.itemAt(currentIndex);
+                if (!cur)
                     return;
 
-                const x = contentX - currentItem.x;
-                if (x > currentItem.implicitWidth / 10)
+                const x = contentX - cur.x;
+                if (x > cur.implicitWidth / 10)
                     root.dashState.currentTab = Math.min(root.dashState.currentTab + 1, tabs.count - 1);
-                else if (x < -currentItem.implicitWidth / 10)
+                else if (x < -cur.implicitWidth / 10)
                     root.dashState.currentTab = Math.max(root.dashState.currentTab - 1, 0);
                 else
-                    contentX = Qt.binding(() => currentItem?.x ?? 0);
+                    contentX = cur.x;
             }
 
             RowLayout {
@@ -129,9 +149,21 @@ Item {
                         Layout.alignment: Qt.AlignTop
                         Layout.preferredWidth: (item?.implicitWidth ?? 0) > 0 ? item.implicitWidth : (modelData.component === dashComponent ? 860 : 980)
                         Layout.preferredHeight: (item?.implicitHeight ?? 0) > 0 ? item.implicitHeight : (modelData.component === dashComponent ? 540 : 460)
+                        width: Layout.preferredWidth
+                        height: Layout.preferredHeight
 
                         sourceComponent: modelData.component
                         active: true
+
+                        onXChanged: {
+                            if (index === view.currentIndex)
+                                view.contentX = x;
+                        }
+
+                        Component.onCompleted: {
+                            if (index === view.currentIndex)
+                                Qt.callLater(() => { view.contentX = x; });
+                        }
                     }
                 }
             }
@@ -149,7 +181,9 @@ Item {
 
             Component {
                 id: calcComponent
-                Calculator {}
+                Calculator {
+                    visibilities: root.visibilities
+                }
             }
 
             Behavior on contentX {

@@ -68,6 +68,7 @@ Item {
         interval: Math.max(Tokens.anim.durations.large, Tokens.anim.durations.expressiveDefaultSpatial) + 120
     }
 
+    clip: true
     visible: offsetScale < 1 || (peekOffset > 0 && Config.dashboard.enabled)
     layer.enabled: (peekOffset > 0 && !shouldBeActive) || (offsetScale > 0 && offsetScale < 1)
     layer.smooth: true
