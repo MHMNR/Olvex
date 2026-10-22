@@ -174,7 +174,19 @@ Singleton {
         syncGaps();
     }
 
-    Component.onCompleted: reloadDynamicConfs()
+    Component.onCompleted: {
+        reloadDynamicConfs();
+        Hyprland.refreshToplevels();
+        Hyprland.refreshWorkspaces();
+        Hyprland.refreshMonitors();
+    }
+
+    Connections {
+        target: Hyprland.toplevels
+        function onValuesChanged(): void {
+            root.toplevelUpdateCounter++;
+        }
+    }
 
     Connections {
         target: GlobalConfig.border

@@ -162,7 +162,7 @@ Item {
         const windows = [];
         for (let i = 0; i < toplevels.length; i++) {
             const ipc = toplevels[i].lastIpcObject;
-            if (ipc && ipc.class === appId) {
+            if (ipc && root.matchesApp(appId, ipc)) {
                 windows.push({
                     title: ipc.title || "Untitled",
                     address: normalizeAddress(ipc.address),
@@ -207,6 +207,134 @@ Item {
             return "";
         const str = String(addr);
         return str.startsWith("0x") ? str : "0x" + str;
+    }
+
+    readonly property var _entryLookupCache: ({})
+    function getCachedEntry(appId) {
+        if (!appId)
+            return undefined;
+        if (_entryLookupCache[appId] !== undefined)
+            return _entryLookupCache[appId];
+
+        let found = undefined;
+        const apps = DesktopEntries.applications.values;
+        for (let i = 0; i < apps.length; i++) {
+            if (apps[i].id === appId || apps[i].id.replace(/\.desktop$/i, "") === appId) {
+                found = apps[i];
+                break;
+            }
+        }
+        if (!found) {
+            found = DesktopEntries.byId(appId) || DesktopEntries.byId(appId.replace(/\.desktop$/i, "") + ".desktop") || DesktopEntries.heuristicLookup(appId);
+        }
+        if (found) {
+            _entryLookupCache[appId] = found;
+        }
+        return found;
+    }
+
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() {
+            for (let k in root._entryLookupCache) delete root._entryLookupCache[k];
+        }
+    }
+
+    function matchesApp(appId, ipc) {
+        if (!appId || !ipc)
+            return false;
+        const wClass = ipc.class || "";
+        const wInitClass = ipc.initialClass || "";
+        if (!wClass && !wInitClass)
+            return false;
+
+        const cleanApp = appId.replace(/\.desktop$/i, "").toLowerCase();
+        const cleanClass = wClass.replace(/\.desktop$/i, "").toLowerCase();
+        const cleanInit = wInitClass.replace(/\.desktop$/i, "").toLowerCase();
+
+        // 1. Direct or stripped class match
+        if (cleanClass && (cleanApp === cleanClass || cleanClass === appId.toLowerCase()))
+            return true;
+        if (cleanInit && (cleanApp === cleanInit || cleanInit === appId.toLowerCase()))
+            return true;
+
+        // 2. DesktopEntries exact ID / lookup match via cache
+        const entryApp = getCachedEntry(appId);
+        if (entryApp) {
+            const entryAppId = entryApp.id ? entryApp.id.replace(/\.desktop$/i, "").toLowerCase() : "";
+            if (entryAppId && (entryAppId === cleanClass || entryAppId === cleanInit))
+                return true;
+
+            const entryClass = wClass ? getCachedEntry(wClass) : null;
+            if (entryClass && (entryApp === entryClass || (entryApp.id && entryClass.id && entryApp.id === entryClass.id)))
+                return true;
+
+            const entryInit = wInitClass ? getCachedEntry(wInitClass) : null;
+            if (entryInit && (entryApp === entryInit || (entryApp.id && entryInit.id && entryApp.id === entryInit.id)))
+                return true;
+        }
+
+        // 3. Reverse-DNS matching ONLY (must contain dot '.', e.g. org.localsend.localsend_app vs localsend)
+        // Never split on '-' or '_' to prevent false matches between distinct apps (e.g. antigravity vs antigravity-ide)
+        if (cleanClass.includes(".")) {
+            const dotSegments = cleanClass.split(".");
+            for (let i = 0; i < dotSegments.length; i++) {
+                const seg = dotSegments[i];
+                if (seg === cleanApp) return true;
+                if (seg.endsWith("_app") && seg.slice(0, -4) === cleanApp) return true;
+            }
+        }
+        if (cleanInit.includes(".")) {
+            const dotSegments = cleanInit.split(".");
+            for (let i = 0; i < dotSegments.length; i++) {
+                const seg = dotSegments[i];
+                if (seg === cleanApp) return true;
+                if (seg.endsWith("_app") && seg.slice(0, -4) === cleanApp) return true;
+            }
+        }
+
+        return false;
+    }
+
+    function getRunningCount(targetAppId) {
+        if (!targetAppId)
+            return 0;
+        const toplevels = Hypr.toplevels?.values ?? [];
+        let count = 0;
+        for (let i = 0; i < toplevels.length; i++) {
+            const ipc = toplevels[i].lastIpcObject;
+            if (ipc && matchesApp(targetAppId, ipc))
+                count++;
+        }
+        return count;
+    }
+
+    function isAppPinned(appIdOrClass, ipc) {
+        const pinned = root.visibilities.pinnedApps || [];
+        if (!pinned || pinned.length === 0)
+            return false;
+
+        for (let i = 0; i < pinned.length; i++) {
+            const pId = pinned[i];
+            if (ipc && matchesApp(pId, ipc))
+                return true;
+            if (appIdOrClass) {
+                const cleanPId = pId.replace(/\.desktop$/i, "").toLowerCase();
+                const cleanCheck = String(appIdOrClass).replace(/\.desktop$/i, "").toLowerCase();
+                if (cleanPId === cleanCheck)
+                    return true;
+
+                // Reverse-DNS only (must contain dot '.')
+                if (cleanCheck.includes(".") && cleanCheck.split(".").indexOf(cleanPId) !== -1)
+                    return true;
+
+                const entryP = getCachedEntry(pId);
+                const entryCheck = getCachedEntry(appIdOrClass);
+                if (entryP && entryCheck && (entryP === entryCheck || (entryP.id && entryCheck.id && entryP.id === entryCheck.id)))
+                    return true;
+            }
+        }
+        return false;
     }
 
     // Resolve entry from appId at action time — never store the live object
@@ -547,20 +675,47 @@ Item {
                 height: Math.round(layout.itemSize + 18)
                 width: layout.width + 20
                 radius: Math.round(height * (20 / 70))
-                visible: (pinnedModel.count > 0 || unpinnedModel.count > 0)
-                antialiasing: true
-                smooth: true
+                visible: (pinnedModel.count > 0 || unpinnedModel.count > 0) && layout.width > 20
+                opacity: visible ? 1 : 0
+                Behavior on opacity {
+                    enabled: dockContainer.dockReady
+                    NumberAnimation { duration: 120 }
+                }
+
+                property bool dockReady: false
+                function checkReady() {
+                    if (!dockReady && (pinnedModel.count > 0 || unpinnedModel.count > 0) && layout.dockMetrics.totalWidth > 0) {
+                        Qt.callLater(() => {
+                            dockReady = true;
+                        });
+                    }
+                }
 
                 readonly property bool showBg: root.bottomPanelDockBg
                 color: showBg ? Colours.tileGlassStrong : "transparent"
                 border.color: showBg ? Colours.tileShine : "transparent"
                 border.width: showBg ? 1 : 0
 
-                Behavior on color { CAnim {} }
-                Behavior on border.color { CAnim {} }
-                Behavior on width { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
-                Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-                Behavior on radius { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                Behavior on color {
+                    enabled: dockContainer.dockReady
+                    CAnim {}
+                }
+                Behavior on border.color {
+                    enabled: dockContainer.dockReady
+                    CAnim {}
+                }
+                Behavior on width {
+                    enabled: dockContainer.dockReady
+                    SpringAnimation { spring: 7.5; damping: 0.75; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on height {
+                    enabled: dockContainer.dockReady
+                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                }
+                Behavior on radius {
+                    enabled: dockContainer.dockReady
+                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                }
 
                 Rectangle {
                     anchors.fill: parent
@@ -572,7 +727,10 @@ Item {
                     visible: dockContainer.showBg
                     antialiasing: true
                     smooth: true
-                    Behavior on border.color { CAnim {} }
+                    Behavior on border.color {
+                        enabled: dockContainer.dockReady
+                        CAnim {}
+                    }
                 }
 
                 // Manual positioning container for drag-and-drop with Auto-Shrink & Overflow
@@ -710,11 +868,23 @@ Item {
                     width: dockMetrics.totalWidth
                     height: layout.itemSize
 
-                    Behavior on width { SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 } }
-                    Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                    Behavior on width {
+                        enabled: dockContainer.dockReady
+                        SpringAnimation { spring: 6.5; damping: 0.75; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on height {
+                        enabled: dockContainer.dockReady
+                        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+                    }
 
-                    ListModel { id: pinnedModel }
-                    ListModel { id: unpinnedModel }
+                    ListModel {
+                        id: pinnedModel
+                        onCountChanged: dockContainer.checkReady()
+                    }
+                    ListModel {
+                        id: unpinnedModel
+                        onCountChanged: dockContainer.checkReady()
+                    }
 
                     Connections {
                         target: root.visibilities
@@ -729,6 +899,29 @@ Item {
                         target: Hypr
                         function onToplevelUpdateCounterChanged() {
                             unpinnedState.syncUnpinned();
+                        }
+                    }
+
+                    Connections {
+                        target: Hypr.toplevels
+                        function onValuesChanged() {
+                            unpinnedState.syncUnpinned();
+                        }
+                    }
+
+                    Timer {
+                        id: startupSyncTimer
+                        interval: 150
+                        repeat: true
+                        running: true
+                        property int attempts: 0
+                        onTriggered: {
+                            attempts++;
+                            unpinnedState.syncUnpinned();
+                            Hypr.toplevelUpdateCounter++;
+                            if ((Hypr.toplevels?.values?.length ?? 0) > 0 || attempts >= 8) {
+                                running = false;
+                            }
                         }
                     }
 
@@ -804,6 +997,16 @@ Item {
                                 if (pinnedModel.get(i).appId === appId) {
                                     idx = i;
                                     break;
+                                }
+                            }
+                            if (idx === -1) {
+                                for (let i = 0; i < pinnedModel.count; i++) {
+                                    const pId = pinnedModel.get(i).appId;
+                                    if (root.isAppPinned(pId, { class: appId })) {
+                                        idx = i;
+                                        appId = pId;
+                                        break;
+                                    }
                                 }
                             }
                             if (idx === -1) return;
@@ -931,15 +1134,8 @@ Item {
                     QtObject {
                         id: unpinnedState
 
-                        function isPinned(appClass) {
-                            const pinned = root.visibilities.pinnedApps || [];
-                            if (pinned.indexOf(appClass) !== -1) return true;
-                            for (let i = 0; i < pinned.length; i++) {
-                                const pId = pinned[i];
-                                if (pId === appClass) return true;
-                                if (pId.replace(/\.desktop$/i, "") === appClass) return true;
-                            }
-                            return false;
+                        function isPinned(appClass, ipc) {
+                            return root.isAppPinned(appClass, ipc);
                         }
 
                         function syncUnpinned() {
@@ -955,12 +1151,12 @@ Item {
                                 const appClass = ipc.class;
                                 if (appClass.startsWith("olvex") || appClass.startsWith("quickshell")) continue;
 
+                                if (root.isAppPinned(appClass, ipc)) continue;
+
                                 if (seen.has(appClass)) continue;
                                 seen.add(appClass);
 
-                                if (!isPinned(appClass)) {
-                                    unpinnedList.push(appClass);
-                                }
+                                unpinnedList.push(appClass);
                             }
 
                             for (let i = unpinnedModel.count - 1; i >= 0; i--) {
@@ -1015,8 +1211,8 @@ Item {
                         visible: pinnedState.hoveredAppIcon !== null && !(pinnedState.isRemoving && pinnedState.hoveredAppIcon && pinnedState.hoveredAppIcon.appId === pinnedState.removingAppId)
                         opacity: visible ? 1 : 0
                         color: Colours.layer(Colours.palette.m3surfaceVariant, 0.8)
-                        border.color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-                        border.width: 1
+                        border.color: "transparent"
+                        border.width: 0
                         width: layout.itemSize
                         height: layout.itemSize
                         radius: Math.round(layout.itemSize * (12 / 52))
@@ -1061,16 +1257,21 @@ Item {
                             property string cachedIcon: ""
                             property var entry: {
                                 const apps = DesktopEntries.applications.values;
-                                for (let i = 0; i < apps.length; i++) {
-                                    if (apps[i].id === appId)
-                                        return apps[i];
-                                }
-                                return undefined;
+                                return root.getCachedEntry(appId);
                             }
 
-                            onEntryChanged: {
-                                cachedIcon = Icons.resolveIcon(entry?.icon || "", "image-missing");
+                            function updateCachedIcon() {
+                                if (entry && entry.icon) {
+                                    cachedIcon = Icons.resolveIcon(entry.icon, "application-x-executable");
+                                } else if (appId) {
+                                    cachedIcon = Icons.getAppIcon(appId, "application-x-executable");
+                                } else {
+                                    cachedIcon = "application-x-executable";
+                                }
                             }
+
+                            onEntryChanged: updateCachedIcon()
+                            onAppIdChanged: updateCachedIcon()
 
                             visible: (index < layout.visibleCount) || isBeingRemoved
                             width: layout.itemSize
@@ -1084,7 +1285,7 @@ Item {
                                 }
                             }
 
-                            property int runningInstances: 0
+                            property int runningInstances: root.getRunningCount(appId)
 
                             function normalizeAddress(addr) {
                                 if (!addr) return "";
@@ -1093,14 +1294,7 @@ Item {
                             }
 
                             function updateRunningCount() {
-                                if (!appId) { runningInstances = 0; return; }
-                                const toplevels = Hypr.toplevels?.values ?? [];
-                                let count = 0;
-                                for (let i = 0; i < toplevels.length; i++) {
-                                    const ipc = toplevels[i].lastIpcObject;
-                                    if (ipc && ipc.class === appId) count++;
-                                }
-                                runningInstances = count;
+                                runningInstances = root.getRunningCount(appId);
                             }
 
                             Connections {
@@ -1109,7 +1303,7 @@ Item {
                             }
 
                             Component.onCompleted: {
-                                cachedIcon = Icons.resolveIcon(entry?.icon || "", "image-missing");
+                                updateCachedIcon();
                                 updateRunningCount();
                             }
 
@@ -1208,7 +1402,10 @@ Item {
                                     height: appWrapper.runningInstances > 0 ? 3 : 0
                                     visible: appWrapper.runningInstances > 0
 
-                                    Behavior on height { Anim { type: Anim.DefaultSpatial } }
+                                    Behavior on height {
+                                        enabled: dockContainer.dockReady
+                                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                                    }
 
                                     Row {
                                         anchors.fill: parent
@@ -1271,7 +1468,7 @@ Item {
                                                 const matches = [];
                                                 for (let i = 0; i < toplevels.length; i++) {
                                                     const ipc = toplevels[i].lastIpcObject;
-                                                    if (ipc && ipc.class === appId) matches.push(toplevels[i]);
+                                                    if (ipc && root.matchesApp(appId, ipc)) matches.push(toplevels[i]);
                                                 }
                                                 if (matches.length === 0) {
                                                     LauncherServices.Apps.launch(appWrapper.entry);
@@ -1343,13 +1540,8 @@ Item {
                             readonly property string appId: model.appId
                             property string cachedIcon: ""
                             property var entry: {
-                                if (!appId) return undefined;
                                 const apps = DesktopEntries.applications.values;
-                                for (let i = 0; i < apps.length; i++) {
-                                    if (apps[i].id === appId || apps[i].id.replace(/\.desktop$/i, "") === appId)
-                                        return apps[i];
-                                }
-                                return DesktopEntries.heuristicLookup(appId);
+                                return root.getCachedEntry(appId);
                             }
 
                             function updateCachedIcon() {
@@ -1368,7 +1560,7 @@ Item {
                             width: layout.itemSize
                             height: layout.itemSize
 
-                            property int runningInstances: 0
+                            property int runningInstances: root.getRunningCount(appId)
 
                             function normalizeAddress(addr) {
                                 if (!addr) return "";
@@ -1377,14 +1569,7 @@ Item {
                             }
 
                             function updateRunningCount() {
-                                if (!appId) { runningInstances = 0; return; }
-                                const toplevels = Hypr.toplevels?.values ?? [];
-                                let count = 0;
-                                for (let i = 0; i < toplevels.length; i++) {
-                                    const ipc = toplevels[i].lastIpcObject;
-                                    if (ipc && ipc.class === appId) count++;
-                                }
-                                runningInstances = count;
+                                runningInstances = root.getRunningCount(appId);
                             }
 
                             Connections {
@@ -1394,7 +1579,6 @@ Item {
 
                             Component.onCompleted: {
                                 updateCachedIcon();
-                                updateRunningCount();
                             }
 
                             x: {
@@ -1460,7 +1644,10 @@ Item {
                                     height: unpinnedAppWrapper.runningInstances > 0 ? 3 : 0
                                     visible: unpinnedAppWrapper.runningInstances > 0
 
-                                    Behavior on height { Anim { type: Anim.DefaultSpatial } }
+                                    Behavior on height {
+                                        enabled: dockContainer.dockReady
+                                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                                    }
 
                                     Row {
                                         anchors.fill: parent
@@ -1512,7 +1699,7 @@ Item {
                                         const matches = [];
                                         for (let i = 0; i < toplevels.length; i++) {
                                             const ipc = toplevels[i].lastIpcObject;
-                                            if (ipc && ipc.class === appId) matches.push(toplevels[i]);
+                                            if (ipc && root.matchesApp(appId, ipc)) matches.push(toplevels[i]);
                                         }
                                         if (matches.length === 0) {
                                             if (unpinnedAppWrapper.entry)
@@ -2022,9 +2209,9 @@ Item {
                                             if (!appId) return undefined;
                                             const apps = DesktopEntries.applications.values;
                                             for (let i = 0; i < apps.length; i++) {
-                                                if (apps[i].id === appId) return apps[i];
+                                                if (apps[i].id === appId || apps[i].id.replace(/\.desktop$/i, "") === appId) return apps[i];
                                             }
-                                            return undefined;
+                                            return DesktopEntries.heuristicLookup(appId);
                                         }
                                         readonly property string cachedIcon: Icons.resolveIcon(entry?.icon || "", "image-missing")
 
@@ -2036,7 +2223,7 @@ Item {
                                             let count = 0;
                                             for (let i = 0; i < toplevels.length; i++) {
                                                 const ipc = toplevels[i].lastIpcObject;
-                                                if (ipc && ipc.class === appId) count++;
+                                                if (ipc && root.matchesApp(appId, ipc)) count++;
                                             }
                                             runningInstances = count;
                                         }
@@ -2618,7 +2805,7 @@ Item {
                     // "Remove from Panel" / "Pin to Panel"
                     StyledRect {
                         id: removeItem
-                        readonly property bool isPinned: (root.visibilities.pinnedApps || []).indexOf(root.contextMenuAppId) !== -1
+                        readonly property bool isPinned: root.isAppPinned(root.contextMenuAppId, null)
                         readonly property bool active: removeState.containsMouse || removeState.pressed
 
                         Layout.fillWidth: true
