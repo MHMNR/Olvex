@@ -1542,6 +1542,8 @@ Window {
                                     })
                                 }
 
+                                Behavior on color { ColorAnimation { duration: 150 } }
+
                                 Behavior on markerX {
                                     enabled: catIndicator.springEnabled
                                     SpringAnimation {

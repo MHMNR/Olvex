@@ -240,7 +240,10 @@ private:
         auto hex = [](const QColor &c) { return c.isValid() ? c.name(QColor::HexRgb) : QString(); };
 
         const QColor primary = schemeColour(colours, "primary", fb("primary"));
-        const QColor onPrimary = schemeColour(colours, "onPrimary", fb("fgPrimary"));
+        QColor onPrimary = schemeColour(colours, "onPrimary", fb("fgPrimary"));
+        if (!onPrimary.isValid() || (primary.lightnessF() > 0.5 && onPrimary.lightnessF() > 0.5) || (primary.lightnessF() <= 0.5 && onPrimary.lightnessF() <= 0.5)) {
+            onPrimary = (primary.lightnessF() > 0.5) ? QColor(QStringLiteral("#111111")) : QColor(QStringLiteral("#FFFFFF"));
+        }
         const QColor primaryContainer = schemeColour(colours, "primaryContainer", fb("primaryContainer"));
         const QColor onPrimaryContainer = schemeColour(colours, "onPrimaryContainer", fb("fgPrimaryContainer"));
         const QColor secondaryContainer = schemeColour(colours, "secondaryContainer", fb("secondaryContainer"));
@@ -283,29 +286,55 @@ private:
     }
 
     bool loadHyprPrimaryTriplet(QVariantMap *palette) {
-        const QString hyprScheme = QDir::homePath() + QStringLiteral("/.config/hypr/scheme/current.conf");
-        QFile file(hyprScheme);
-        if (!file.open(QIODevice::ReadOnly))
+        QString content;
+        const QString hyprSchemeConf = QDir::homePath() + QStringLiteral("/.config/hypr/scheme/current.conf");
+        const QString hyprSchemeLua = QDir::homePath() + QStringLiteral("/.config/hypr/scheme/current.lua");
+
+        QFile fileLua(hyprSchemeLua);
+        QFile fileConf(hyprSchemeConf);
+
+        if (fileLua.exists() && (!fileConf.exists() || QFileInfo(fileLua).lastModified() >= QFileInfo(fileConf).lastModified())) {
+            if (fileLua.open(QIODevice::ReadOnly))
+                content = QString::fromUtf8(fileLua.readAll());
+        }
+        if (content.isEmpty() && fileConf.open(QIODevice::ReadOnly)) {
+            content = QString::fromUtf8(fileConf.readAll());
+        }
+        if (content.isEmpty())
             return false;
 
-        const QString content = QString::fromUtf8(file.readAll());
-        static const QRegularExpression primaryRe(QStringLiteral(R"(\$primary\s*=\s*([0-9a-fA-F]{6}))"));
-        static const QRegularExpression containerRe(QStringLiteral(R"(\$primary_container\s*=\s*([0-9a-fA-F]{6}))"));
+        static const QRegularExpression primaryRe(QStringLiteral(R"((?:\$primary|primary)\s*=\s*"?([0-9a-fA-F]{6}))"));
+        static const QRegularExpression onPrimaryRe(QStringLiteral(R"((?:\$onPrimary|onPrimary)\s*=\s*"?([0-9a-fA-F]{6}))"));
+        static const QRegularExpression containerRe(QStringLiteral(R"((?:\$primary_container|primaryContainer)\s*=\s*"?([0-9a-fA-F]{6}))"));
+        static const QRegularExpression onContainerRe(QStringLiteral(R"((?:\$on_primary_container|onPrimaryContainer)\s*=\s*"?([0-9a-fA-F]{6}))"));
 
         const auto mPrim = primaryRe.match(content);
-        const auto mCont = containerRe.match(content);
         if (!mPrim.hasMatch())
             return false;
 
         const QString primHex = QStringLiteral("#") + mPrim.captured(1).toLower();
-        const QString contHex = mCont.hasMatch()
-            ? (QStringLiteral("#") + mCont.captured(1).toLower())
-            : primHex;
-
+        const QColor primCol(primHex);
         palette->insert(QStringLiteral("primary"), primHex);
-        palette->insert(QStringLiteral("primaryContainer"), contHex);
         palette->insert(QStringLiteral("tertiary"), primHex);
-        palette->insert(QStringLiteral("tertiaryContainer"), contHex);
+
+        const auto mOnPrim = onPrimaryRe.match(content);
+        if (mOnPrim.hasMatch()) {
+            palette->insert(QStringLiteral("fgPrimary"), QStringLiteral("#") + mOnPrim.captured(1).toLower());
+        } else if (primCol.isValid()) {
+            palette->insert(QStringLiteral("fgPrimary"), primCol.lightnessF() > 0.5 ? QStringLiteral("#111111") : QStringLiteral("#ffffff"));
+        }
+
+        const auto mCont = containerRe.match(content);
+        if (mCont.hasMatch()) {
+            const QString contHex = QStringLiteral("#") + mCont.captured(1).toLower();
+            palette->insert(QStringLiteral("primaryContainer"), contHex);
+            palette->insert(QStringLiteral("tertiaryContainer"), contHex);
+        }
+
+        const auto mOnCont = onContainerRe.match(content);
+        if (mOnCont.hasMatch())
+            palette->insert(QStringLiteral("fgPrimaryContainer"), QStringLiteral("#") + mOnCont.captured(1).toLower());
+
         return true;
     }
 
@@ -315,6 +344,7 @@ private:
 
         const QVariantMap fallback = paletteFallback();
         QVariantMap resolved = fallback;
+        bool loadedFromScheme = false;
 
         QFile schemeFile(m_activeSchemePath);
         if (schemeFile.open(QIODevice::ReadOnly)) {
@@ -324,12 +354,16 @@ private:
                 m_schemeName = root.value(QStringLiteral("scheme")).toString(QStringLiteral("scheme-tonal-spot"));
                 m_schemeMode = root.value(QStringLiteral("mode")).toString(QStringLiteral("dark"));
                 const QJsonObject colours = root.value(QStringLiteral("colours")).toObject();
-                if (!colours.isEmpty())
+                if (!colours.isEmpty()) {
                     resolved = paletteFromScheme(colours, fallback);
+                    loadedFromScheme = true;
+                }
             }
         }
 
-        loadHyprPrimaryTriplet(&resolved);
+        if (!loadedFromScheme) {
+            loadHyprPrimaryTriplet(&resolved);
+        }
 
         bool changed = false;
         for (int i = 0; i < kRoleCount; ++i) {
@@ -819,6 +853,7 @@ int main(int argc, char **argv) {
         QDir::home().filePath(QStringLiteral("Projects/QS-Config/Github/Olvex/standalone/emoji/") + qmlName),
         QDir::home().filePath(QStringLiteral("Projects/QS-Config/Olvex/standalone/emoji/") + qmlName),
         QDir::home().filePath(QStringLiteral(".config/olvex/standalone/emoji/") + qmlName),
+        QDir::home().filePath(QStringLiteral(".config/quickshell/olvex/standalone/emoji/") + qmlName),
         QDir(appDir).filePath(QStringLiteral("../../../standalone/emoji/") + qmlName),
         QDir(appDir).filePath(QStringLiteral("emoji/") + qmlName),
         QDir::current().filePath(qmlName),
