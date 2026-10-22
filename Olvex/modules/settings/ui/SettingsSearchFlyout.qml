@@ -249,7 +249,7 @@ StyledRect {
                     // Clean Chevron Trailing Indicator
                     MaterialIcon {
                         text: "chevron_right"
-                        color: itemCard.isSelected ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outline, 0.35)
+                        color: itemCard.isSelected ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
                         iconPointSize: 18
                         Layout.alignment: Qt.AlignVCenter
                     }

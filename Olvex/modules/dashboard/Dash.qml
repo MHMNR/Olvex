@@ -250,15 +250,7 @@ RowLayout {
             anchors.fill: parent
             radius: cardRoot.radius
 
-            color: {
-                const base = cardRoot.tonal ? Colours.tileFillTonal : Colours.tileSurface;
-                if (!Colours.light)
-                    return base;
-                const tintColor = (Colours.palette.m3surfaceTint && Colours.palette.m3surfaceTint != "" && Colours.palette.m3surfaceTint != "#000000")
-                    ? Colours.palette.m3surfaceTint
-                    : Colours.palette.m3primary;
-                return Qt.tint(base, Qt.alpha(tintColor, 0.08));
-            }
+            color: cardRoot.tonal ? Colours.tileFillTonal : Colours.tileSurface
 
             border.width: cardRoot.borderless ? 0 : 1
             border.color: cardRoot.subtleBorder || cardRoot.tonal ? Colours.tileStrokeSubtle : Colours.tileStroke

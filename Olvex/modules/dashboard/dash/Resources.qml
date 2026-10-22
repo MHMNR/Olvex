@@ -117,12 +117,12 @@ Item {
 
         var track = Colours.light ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : Qt.alpha(Colours.palette.m3onSurface, 0.14);
         var fill = Colours.palette.m3primary;
-        var onFill = Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onPrimary;
+        var onFill = Colours.palette.m3onPrimary;
         var fillOp = 0.48;
 
         if (plugged) {
             fill = batIosGreen;
-            onFill = Colours.light ? Colours.palette.m3onSurface : "#ffffff";
+            onFill = Colours.getLuminance(fill) > 0.48 ? Colours.palette.m3onSurface : "#ffffff";
             fillOp = 0.62;
         } else if (lowPower) {
             fill = batIosYellow;
@@ -130,7 +130,7 @@ Item {
         } else if (low) {
             track = Qt.alpha(Colours.palette.m3error, 0.16);
             fill = Colours.palette.m3error;
-            onFill = Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onError;
+            onFill = Colours.palette.m3onError;
         }
 
         batOnFillColor = onFill;
@@ -378,7 +378,7 @@ Item {
                     anchors.centerIn: parent
                     text: "bolt"
                     iconPointSize: 12
-                    color: Colours.light ? Colours.palette.m3onSurface : "#ffffff"
+                    color: batOnFillColor
                     fill: 1
                     opacity: 0.95
                     z: 1

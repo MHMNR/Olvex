@@ -89,8 +89,8 @@ Item {
         property real iTime: waveTimer.elapsed
         property real iFillProgress: waveTimer.fillProgress
         property color iPrimary: Colours.palette.m3primary
-        property color iPrimaryContainer: Colours.palette.m3primary
-        property color iOnPrimaryContainer: Colours.light ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onPrimary
+        property color iPrimaryContainer: Colours.palette.m3primaryContainer
+        property color iOnPrimaryContainer: Colours.palette.m3onPrimaryContainer
         property real iWidth: Math.max(width, 1)
         property real iHeight: Math.max(height, 1)
 

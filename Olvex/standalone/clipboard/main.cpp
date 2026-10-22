@@ -57,6 +57,7 @@ class SystemAccent : public QObject {
     Q_PROPERTY(QColor stageContent READ stageContent NOTIFY paletteChanged)
     Q_PROPERTY(QColor outline READ outline NOTIFY paletteChanged)
     Q_PROPERTY(QColor outlineVariant READ outlineVariant NOTIFY paletteChanged)
+    Q_PROPERTY(QColor surfaceTint READ surfaceTint NOTIFY paletteChanged)
     Q_PROPERTY(QColor error READ error NOTIFY paletteChanged)
     Q_PROPERTY(QColor errorContainer READ errorContainer NOTIFY paletteChanged)
     Q_PROPERTY(QColor fgErrorContainer READ fgErrorContainer NOTIFY paletteChanged)
@@ -117,6 +118,7 @@ public:
     QColor stageContent() const { return m_stageContent; }
     QColor outline() const { return m_outline; }
     QColor outlineVariant() const { return m_outlineVariant; }
+    QColor surfaceTint() const { return m_surfaceTint.isValid() ? m_surfaceTint : m_primary; }
     QColor error() const { return m_error; }
     QColor errorContainer() const { return m_errorContainer; }
     QColor fgErrorContainer() const { return m_fgErrorContainer; }
@@ -151,7 +153,7 @@ private:
     };
 
     static const PaletteRole kRoles[];
-    static constexpr int kRoleCount = 21;
+    static constexpr int kRoleCount = 22;
 
     static QColor parseHex(const QString &hex) {
         QString h = hex.trimmed();
@@ -198,6 +200,7 @@ private:
         case 18: return m_error;
         case 19: return m_errorContainer;
         case 20: return m_fgErrorContainer;
+        case 21: return m_surfaceTint;
         default: return QColor();
         }
     }
@@ -225,6 +228,7 @@ private:
         case 18: m_error = colour; break;
         case 19: m_errorContainer = colour; break;
         case 20: m_fgErrorContainer = colour; break;
+        case 21: m_surfaceTint = colour; break;
         default: break;
         }
     }
@@ -391,6 +395,7 @@ private:
 
         const QColor surfaceContainerLowest = schemeColour(colours, "surfaceContainerLowest",
             lightMode ? QColor(QStringLiteral("#FFFFFF")) : QColor(QStringLiteral("#0F0D13")));
+        Q_UNUSED(surfaceContainerLowest);
         const QColor surfaceContainerLow = schemeColour(colours, "surfaceContainerLow",
             lightMode ? QColor(QStringLiteral("#EEF5F3")) : QColor(QStringLiteral("#1D1B20")));
         const QColor surfaceContainer = schemeColour(colours, "surfaceContainer", fb("stage"));
@@ -425,16 +430,19 @@ private:
         // stageHigh = surfaceContainer (Tone 94 #E7F0EE, rail and stage pane containers)
         // stageContent = surfaceContainerHigh (Tone 92 #E1EAE8, inner controls / chips)
         //
+        // In light mode:
+        // rail/stage = surfaceContainerHighest (Tone 90, M3 filled card container)
+        // stageHigh = surfaceContainerHigh (Tone 92)
+        // stageContent = surfaceContainer (Tone 94)
+        //
         // In dark mode:
-        // rail = surface (Tone 6 #141218)
-        // stage = surfaceContainer (Tone 12 #211F26, main canvas)
-        // stageHigh = surfaceContainerHigh (Tone 17 #2B2930, panels)
-        // stageContent = surfaceContainerHighest (Tone 22 #36343B, elevated cards)
+        // rail/stage/stageHigh = surfaceContainerHigh (Tone 17 #2B2930 / #291D1A)
+        // stageContent = surfaceContainerHighest (Tone 22 #36343B / #30231F)
         if (lightMode) {
-            palette.insert(QStringLiteral("rail"), hex(surfaceContainerLowest.isValid() ? surfaceContainerLowest : QColor(QStringLiteral("#FFFFFF"))));
-            palette.insert(QStringLiteral("stage"), hex(surfaceContainerLow.isValid() ? surfaceContainerLow : surfaceContainer));
-            palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainer.isValid() ? surfaceContainer : surfaceContainerLow));
-            palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHigh.isValid() ? surfaceContainerHigh : surfaceContainerHighest));
+            palette.insert(QStringLiteral("rail"), hex(surfaceContainer.isValid() ? surfaceContainer : surfaceContainerLow));
+            palette.insert(QStringLiteral("stage"), hex(surfaceContainer.isValid() ? surfaceContainer : surfaceContainerLow));
+            palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainerHigh.isValid() ? surfaceContainerHigh : surfaceContainer));
+            palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHighest.isValid() ? surfaceContainerHighest : surfaceContainerHigh));
 
             // Fix light mode error tokens if the loaded errorContainer from scheme is dark or neon coral
             if (!errorContainer.isValid() || errorContainer.lightness() < 160) {
@@ -447,14 +455,17 @@ private:
                 palette.insert(QStringLiteral("fgErrorContainer"), hex(onErrorContainer));
             }
         } else {
-            palette.insert(QStringLiteral("rail"), hex(surface));
-            palette.insert(QStringLiteral("stage"), hex(surfaceContainer));
-            palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainerHigh));
-            palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHighest));
+            palette.insert(QStringLiteral("rail"), hex(surfaceContainer.isValid() ? surfaceContainer : surfaceContainerLow));
+            palette.insert(QStringLiteral("stage"), hex(surfaceContainer.isValid() ? surfaceContainer : surfaceContainerLow));
+            palette.insert(QStringLiteral("stageHigh"), hex(surfaceContainerHigh.isValid() ? surfaceContainerHigh : surfaceContainer));
+            palette.insert(QStringLiteral("stageContent"), hex(surfaceContainerHighest.isValid() ? surfaceContainerHighest : surfaceContainerHigh));
             palette.insert(QStringLiteral("error"), hex(error));
             palette.insert(QStringLiteral("errorContainer"), hex(errorContainer));
             palette.insert(QStringLiteral("fgErrorContainer"), hex(onErrorContainer));
         }
+
+        const QColor surfaceTint = schemeColour(colours, "surfaceTint", primary);
+        palette.insert(QStringLiteral("surfaceTint"), hex(surfaceTint.isValid() ? surfaceTint : primary));
 
         palette.insert(QStringLiteral("outline"), hex(outline));
         palette.insert(QStringLiteral("outlineVariant"), hex(outlineVariant));
@@ -597,6 +608,7 @@ private:
     QColor m_error;
     QColor m_errorContainer;
     QColor m_fgErrorContainer;
+    QColor m_surfaceTint;
 };
 
 const SystemAccent::PaletteRole SystemAccent::kRoles[] = {
@@ -612,15 +624,16 @@ const SystemAccent::PaletteRole SystemAccent::kRoles[] = {
     {"surface", "surface", "#141218", "#F6FAF9"},
     {"fgSurface", "onSurface", "#E6E1E5", "#191C1B"},
     {"fgMuted", "onSurfaceVariant", "#CAC4D0", "#3F4947"},
-    {"rail", "surfaceContainerLowest", "#0F0D13", "#FFFFFF"},
-    {"stage", "surfaceContainer", "#211F26", "#F0F5F3"},
-    {"stageHigh", "surfaceContainerHigh", "#2B2930", "#E8F0EE"},
-    {"stageContent", "surfaceContainerHighest", "#36343B", "#E2EAE8"},
+    {"rail", "surfaceContainer", "#221714", "#FFDBCC"},
+    {"stage", "surfaceContainer", "#221714", "#FFDBCC"},
+    {"stageHigh", "surfaceContainerHigh", "#291D1A", "#FFE2D7"},
+    {"stageContent", "surfaceContainerHighest", "#30231F", "#FFEAE1"},
     {"outline", "outline", "#938F99", "#6F7977"},
     {"outlineVariant", "outlineVariant", "#49454F", "#BFC9C6"},
     {"error", "error", "#F2B8B5", "#BA1A1A"},
     {"errorContainer", "errorContainer", "#8C1D18", "#FFDAD6"},
     {"fgErrorContainer", "onErrorContainer", "#F9DEDC", "#410002"},
+    {"surfaceTint", "surfaceTint", "#CFBCFF", "#1C6A65"},
 };
 
 static QString defaultCliphistDbPath() {

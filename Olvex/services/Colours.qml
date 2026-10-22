@@ -106,7 +106,7 @@ Singleton {
     }
 
     function tintContainer(base, amount) {
-        const tint = bootPalette.m3outlineVariant;
+        const tint = bootPalette.m3surfaceTint;
         return Qt.rgba(
             Math.max(0, Math.min(1, base.r * (1 - amount) + tint.r * amount)),
             Math.max(0, Math.min(1, base.g * (1 - amount) + tint.g * amount)),
@@ -127,7 +127,7 @@ Singleton {
         }
 
         const ref = againstColor ?? bootPalette.m3surface;
-        const target = againstColor ? 1.10 : 1.06;
+        const target = againstColor ? 1.10 : 1.12;
         const refLum = getLuminance(ref);
 
         function needsStep(c) {
@@ -238,42 +238,42 @@ Singleton {
 
     function opaqueDarkTile(role) {
         if (role === "surface")
-            return palette.m3surfaceContainer;
+            return palette.m3surfaceContainerHigh;
         if (role === "fill")
-            return palette.m3surfaceVariant;
+            return palette.m3surfaceContainerHighest;
         if (role === "hover")
-            return Qt.tint(palette.m3surfaceVariant, Qt.alpha(palette.m3primary, 0.12));
+            return Qt.tint(palette.m3surfaceContainerHighest, Qt.alpha(palette.m3onSurface, 0.08));
         if (role === "tonal" || role === "elevated")
-            return Qt.tint(palette.m3surfaceVariant, Qt.alpha(palette.m3primary, 0.08));
-        return palette.m3surfaceContainerLow;
+            return palette.m3surfaceContainerHighest;
+        return palette.m3surfaceContainer;
     }
 
     // ── Tile colours (M3 elevation stack) ───────────
-    readonly property color _tileSurfaceRgb: opaqueLightContainer(2)
-    readonly property color _tileFillRgb: opaqueLightContainer(4, _tileSurfaceRgb)
-    readonly property color _tileFillHoverRgb: opaqueLightContainer(4, _tileFillRgb)
+    readonly property color _tileSurfaceRgb: opaqueLightContainer(4)
+    readonly property color _tileFillRgb: opaqueLightContainer(2, _tileSurfaceRgb)
+    readonly property color _tileFillHoverRgb: opaqueLightContainer(2, _tileFillRgb)
     readonly property color _tileFillSubtleRgb: opaqueLightContainer(1)
-    readonly property color _tileFillTonalRgb: opaqueLightContainer(4, _tileSurfaceRgb)
-    readonly property color _tileFillElevatedRgb: opaqueLightContainer(4, _tileFillRgb)
+    readonly property color _tileFillTonalRgb: opaqueLightContainer(2, _tileSurfaceRgb)
+    readonly property color _tileFillElevatedRgb: opaqueLightContainer(3, _tileFillRgb)
 
     readonly property color tileSurface: light
-        ? applyTileAlpha(_tileSurfaceRgb, 2)
+        ? (transparencyEnabled ? applyTileAlpha(_tileSurfaceRgb, 4) : containerAtLevel(3))
         : (transparencyEnabled ? applyLayer(palette.m3surfaceContainer, 2) : opaqueDarkTile("surface"))
     readonly property color tileFill: light
-        ? applyTileAlpha(_tileFillRgb, 4)
-        : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerHighest, 4) : opaqueDarkTile("fill"))
+        ? (transparencyEnabled ? applyTileAlpha(tintContainer(containerAtLevel(2), 0.16), 2) : containerAtLevel(1))
+        : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerHigh, 3) : opaqueDarkTile("fill"))
     readonly property color tileFillHover: light
         ? applyTileAlpha(_tileFillHoverRgb, 4)
-        : (transparencyEnabled ? Qt.tint(applyLayer(palette.m3surfaceVariant, 4), Qt.alpha(palette.m3primary, 0.15)) : opaqueDarkTile("hover"))
+        : (transparencyEnabled ? Qt.tint(applyLayer(palette.m3surfaceContainerHigh, 3), Qt.alpha(palette.m3onSurface, 0.08)) : opaqueDarkTile("hover"))
     readonly property color tileFillSubtle: light
         ? applyTileAlpha(_tileFillSubtleRgb, 1)
         : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerLow, 1) : palette.m3surfaceContainerLow)
     readonly property color tileFillTonal: light
         ? applyTileAlpha(_tileFillTonalRgb, 4)
-        : (transparencyEnabled ? Qt.tint(applyLayer(palette.m3surfaceVariant, 4), Qt.alpha(palette.m3primary, 0.12)) : opaqueDarkTile("tonal"))
+        : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerHighest, 4) : opaqueDarkTile("tonal"))
     readonly property color tileFillElevated: light
         ? applyTileAlpha(_tileFillElevatedRgb, 4)
-        : (transparencyEnabled ? Qt.tint(applyLayer(palette.m3surfaceVariant, 4), Qt.alpha(palette.m3primary, 0.12)) : opaqueDarkTile("elevated"))
+        : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerHighest, 4) : opaqueDarkTile("elevated"))
     readonly property color tileStroke: "transparent"
     readonly property color tileStrokeSubtle: "transparent"
     readonly property color tileInnerLine: "transparent"

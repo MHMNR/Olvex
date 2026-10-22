@@ -81,12 +81,15 @@ Window {
             readonly property color error: SystemAccent.error
             readonly property color errorContainer: SystemAccent.errorContainer
             readonly property color fgErrorContainer: SystemAccent.fgErrorContainer
+            readonly property color surfaceTint: (SystemAccent && SystemAccent.surfaceTint && SystemAccent.surfaceTint.isValid)
+                ? SystemAccent.surfaceTint : primary
 
             function tint(baseColor, alpha) {
-                const a = (alpha !== undefined) ? alpha : (isLight ? 0.045 : 0.06)
-                if (!baseColor || !primary || (primary.r === undefined))
+                const a = (alpha !== undefined) ? alpha : (isLight ? 0.05 : 0.04)
+                const t = (surfaceTint && surfaceTint.r !== undefined) ? surfaceTint : primary
+                if (!baseColor || !t || (t.r === undefined))
                     return baseColor || surface
-                return Qt.tint(baseColor, Qt.rgba(primary.r, primary.g, primary.b, a))
+                return Qt.tint(baseColor, Qt.rgba(t.r, t.g, t.b, a))
             }
         }
         readonly property QtObject shape: QtObject {
@@ -246,10 +249,7 @@ Window {
         Rectangle {
             anchors.fill: parent
             radius: tok.shape.full
-            color: tok.palette.tint(tok.palette.isLight
-                ? (tok.palette.stageContent.isValid ? tok.palette.stageContent : "#DFE4E3")
-                : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.alpha(tok.palette.fgSurface, 0.13)),
-                tok.palette.isLight ? 0.04 : 0.05)
+            color: tok.palette.stageContent
             border.width: 0
             border.color: "transparent"
         }
@@ -318,21 +318,6 @@ Window {
                     RowLayout {
                         anchors.centerIn: parent
                         spacing: 6
-
-                        MIcon {
-                            visible: (fbgSeg.modelData.icon || "").length > 0
-                            Layout.alignment: Qt.AlignVCenter
-                            name: fbgSeg.modelData.icon || ""
-                            size: 16
-                            iconColor: fbgSeg.active
-                                ? tok.palette.fgPrimary
-                                : (tok.palette.isLight ? tok.palette.fgSurface : tok.palette.fgMuted)
-
-                            Behavior on iconColor {
-                                enabled: !win.reducedMotion
-                                ColorAnimation { duration: tok.motion.effectsExpressive.fast }
-                            }
-                        }
 
                         Text {
                             id: segLabel
@@ -959,7 +944,9 @@ Window {
                     if (row.isCurrent)
                         return "transparent"
                     if (rowHover.hovered)
-                        return Qt.alpha(tok.palette.fgSurface, tok.palette.isLight ? 0.07 : 0.09)
+                        return tok.palette.isLight
+                            ? Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.primary, 0.08))
+                            : Qt.tint(tok.palette.stageHigh, Qt.alpha(tok.palette.primary, 0.12))
                     return "transparent"
                 }
                 border.width: 0
@@ -968,7 +955,9 @@ Window {
                 Behavior on color {
                     enabled: !win.reducedMotion
                     ColorAnimation {
-                        duration: tok.motion.effectsExpressive.fast
+                        duration: tok.motion.emphasizedMedium
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: tok.motion.emphasized
                     }
                 }
             }
@@ -989,7 +978,18 @@ Window {
                     radius: tok.shape.md
                     color: row.isCurrent
                         ? tok.palette.primaryContainer
-                        : (tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.04) : Qt.rgba(255, 255, 255, 0.06))
+                        : (rowHover.hovered
+                            ? (tok.palette.isLight ? Qt.alpha(tok.palette.primary, 0.12) : Qt.alpha(tok.palette.primary, 0.18))
+                            : (tok.palette.isLight ? Qt.rgba(0, 0, 0, 0.04) : Qt.rgba(255, 255, 255, 0.06)))
+
+                    Behavior on color {
+                        enabled: !win.reducedMotion
+                        ColorAnimation {
+                            duration: tok.motion.emphasizedMedium
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: tok.motion.emphasized
+                        }
+                    }
 
                     MIcon {
                         anchors.centerIn: parent
@@ -997,7 +997,18 @@ Window {
                         size: 18
                         iconColor: row.isCurrent
                             ? tok.palette.fgPrimaryContainer
-                            : tok.palette.fgMuted
+                            : (rowHover.hovered
+                                ? tok.palette.primary
+                                : (tok.palette.isLight ? tok.palette.fgSurface : tok.palette.fgMuted))
+
+                        Behavior on iconColor {
+                            enabled: !win.reducedMotion
+                            ColorAnimation {
+                                duration: tok.motion.emphasizedMedium
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: tok.motion.emphasized
+                            }
+                        }
                     }
                 }
 
@@ -2116,10 +2127,7 @@ Window {
                 id: mainCard
                 anchors.fill: parent
                 radius: 0
-                color: tok.palette.tint(tok.palette.isLight
-                    ? (tok.palette.stageContent.isValid ? tok.palette.stageContent : "#D6E0DE")
-                    : (tok.palette.surface.isValid ? tok.palette.surface : Qt.rgba(0.06, 0.06, 0.08, 0.96)),
-                    tok.palette.isLight ? 0.03 : 0.04)
+                color: tok.palette.surface
                 border.width: 0
                 border.color: "transparent"
                 clip: true
@@ -2135,10 +2143,7 @@ Window {
                         Layout.preferredWidth: 380
                         Layout.fillHeight: true
                         radius: tok.shape.lg
-                        color: tok.palette.tint(tok.palette.isLight
-                            ? tok.palette.rail
-                            : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.rgba(0.12, 0.12, 0.16, 0.96)),
-                            tok.palette.isLight ? 0.045 : 0.06)
+                        color: tok.palette.rail
                         clip: true
                         border.width: 0
 
@@ -2246,12 +2251,10 @@ Window {
                             Layout.preferredHeight: boxHeight
                             radius: tok.shape.full
                             color: {
-                                const base = tok.palette.isLight
-                                    ? (tok.palette.stageContent.isValid ? tok.palette.stageContent : "#EDF3F1")
-                                    : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.alpha(tok.palette.fgSurface, 0.08))
+                                const base = tok.palette.stageContent
                                 if (searchField.activeFocus)
-                                    return tok.palette.tint(base, tok.palette.isLight ? 0.08 : 0.09)
-                                return tok.palette.tint(base, tok.palette.isLight ? 0.04 : 0.05)
+                                    return tok.palette.tint(base, tok.palette.isLight ? 0.08 : 0.10)
+                                return base
                             }
                             border.width: 0
                             border.color: "transparent"
@@ -2363,9 +2366,9 @@ Window {
                                 anchors.fill: parent
                                 current: win.filterIndexForMode(filterMode)
                                 options: [
-                                    { label: qsTr("All"), value: "all", icon: "view_list" },
-                                    { label: qsTr("Text"), value: "text", icon: "notes" },
-                                    { label: qsTr("Images"), value: "image", icon: "image" }
+                                    { label: qsTr("All"), value: "all" },
+                                    { label: qsTr("Text"), value: "text" },
+                                    { label: qsTr("Images"), value: "image" }
                                 ]
                                 onPicked: function(index, value) { win.setFilter(value) }
                             }
@@ -2849,10 +2852,7 @@ Window {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         radius: tok.shape.lg
-                        color: tok.palette.tint(tok.palette.isLight
-                            ? tok.palette.rail
-                            : (tok.palette.stageHigh.isValid ? tok.palette.stageHigh : Qt.rgba(0.12, 0.12, 0.16, 0.96)),
-                            tok.palette.isLight ? 0.045 : 0.06)
+                        color: tok.palette.stage
                         clip: true
                         border.width: 0
 
@@ -3074,10 +3074,7 @@ Window {
                                                     Layout.fillHeight: true
                                                     Layout.minimumHeight: 140
                                                     radius: tok.shape.md
-                                                    color: tok.palette.tint(tok.palette.isLight
-                                                        ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
-                                                        : (tok.palette.stage.isValid ? tok.palette.stage : Qt.alpha(tok.palette.fgSurface, 0.055)),
-                                                        tok.palette.isLight ? 0.04 : 0.055)
+                                                    color: tok.palette.stageContent
                                                     border.width: 0
                                                     border.color: "transparent"
                                                     clip: true
@@ -3319,10 +3316,7 @@ Window {
                                                         width: Math.min(parent.width, parent.height * 1.4)
                                                         height: Math.min(parent.height, width * 0.72)
                                                         radius: tok.shape.md
-                                                        color: tok.palette.tint(tok.palette.isLight
-                                                            ? (tok.palette.stage.isValid ? tok.palette.stage : "#E7F0EE")
-                                                            : (tok.palette.stage.isValid ? tok.palette.stage : Qt.alpha(tok.palette.fgSurface, 0.055)),
-                                                            tok.palette.isLight ? 0.04 : 0.055)
+                                                        color: tok.palette.stageContent
                                                         border.width: 0
                                                         border.color: "transparent"
                                                         clip: true

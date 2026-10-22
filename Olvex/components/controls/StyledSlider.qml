@@ -32,7 +32,9 @@ T.Slider {
     property real gap: 5
     property real stopIndicatorSize: 4
     property color activeTrackColor: root.enabled ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.38)
-    property color inactiveTrackColor: root.enabled ? Colours.palette.m3surfaceContainerHighest : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+    property color inactiveTrackColor: root.enabled
+        ? (Colours.light ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : Qt.alpha(Colours.palette.m3onSurface, 0.16))
+        : Qt.alpha(Colours.palette.m3onSurface, 0.08)
     property color thumbColor: root.enabled ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.38)
     property color popupBgColor: Colours.palette.m3inverseSurface
     property color popupTextColor: Colours.palette.m3inverseOnSurface
