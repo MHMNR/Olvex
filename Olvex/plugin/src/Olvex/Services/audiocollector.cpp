@@ -2,12 +2,14 @@
 
 #include "service.hpp"
 #include <algorithm>
+#include <chrono>
 #include <pipewire/pipewire.h>
 #include <qloggingcategory.h>
 #include <qmutex.h>
 #include <spa/param/audio/format-utils.h>
 #include <spa/param/latency-utils.h>
 #include <stop_token>
+#include <thread>
 #include <vector>
 
 Q_LOGGING_CATEGORY(lcAc, "olvex.services.ac", QtInfoMsg)
@@ -22,87 +24,97 @@ PipeWireWorker::PipeWireWorker(std::stop_token token, AudioCollector* collector)
     , m_idle(true)
     , m_token(token)
     , m_collector(collector) {
-    m_loop = pw_main_loop_new(nullptr);
-    if (!m_loop) {
-        qCWarning(lcAcWorker) << "init: failed to create PipeWire main loop";
-        return;
-    }
-
-    std::stop_callback stopCb(m_token, [this]() {
-        if (m_loop) {
-            pw_main_loop_quit(m_loop);
+    while (!m_token.stop_requested()) {
+        m_loop = pw_main_loop_new(nullptr);
+        if (!m_loop) {
+            qCWarning(lcAcWorker) << "init: failed to create PipeWire main loop";
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            continue;
         }
-    });
 
-    timespec timeout = { 0, 10 * SPA_NSEC_PER_MSEC };
-    m_timer = pw_loop_add_timer(pw_main_loop_get_loop(m_loop), handleTimeout, this);
-    if (!m_timer) {
-        qCWarning(lcAcWorker) << "init: failed to create timer";
-        pw_main_loop_destroy(m_loop);
-        m_loop = nullptr;
-        return;
-    }
-    pw_loop_update_timer(pw_main_loop_get_loop(m_loop), m_timer, &timeout, &timeout, false);
+        std::stop_callback stopCb(m_token, [this]() {
+            if (m_loop) {
+                pw_main_loop_quit(m_loop);
+            }
+        });
 
-    auto props = pw_properties_new(
-        PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Capture", PW_KEY_MEDIA_ROLE, "Music", nullptr);
-    pw_properties_set(props, PW_KEY_STREAM_CAPTURE_SINK, "true");
-    pw_properties_setf(
-        props, PW_KEY_NODE_LATENCY, "%u/%u", nextPowerOf2(512 * ac::SAMPLE_RATE / 48000), ac::SAMPLE_RATE);
-    pw_properties_set(props, PW_KEY_NODE_VIRTUAL, "true");
-    pw_properties_set(props, PW_KEY_STREAM_DONT_REMIX, "false");
-    pw_properties_set(props, "channelmix.upmix", "true");
+        timespec timeout = { 0, 10 * SPA_NSEC_PER_MSEC };
+        m_timer = pw_loop_add_timer(pw_main_loop_get_loop(m_loop), handleTimeout, this);
+        if (!m_timer) {
+            qCWarning(lcAcWorker) << "init: failed to create timer";
+            pw_main_loop_destroy(m_loop);
+            m_loop = nullptr;
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            continue;
+        }
+        pw_loop_update_timer(pw_main_loop_get_loop(m_loop), m_timer, &timeout, &timeout, false);
 
-    std::vector<uint8_t> buffer(ac::CHUNK_SIZE);
-    spa_pod_builder b;
-    spa_pod_builder_init(&b, buffer.data(), static_cast<quint32>(buffer.size()));
+        auto props = pw_properties_new(
+            PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Capture", PW_KEY_MEDIA_ROLE, "Music", nullptr);
+        pw_properties_set(props, PW_KEY_STREAM_CAPTURE_SINK, "true");
+        pw_properties_setf(
+            props, PW_KEY_NODE_LATENCY, "%u/%u", nextPowerOf2(512 * ac::SAMPLE_RATE / 48000), ac::SAMPLE_RATE);
+        pw_properties_set(props, PW_KEY_NODE_VIRTUAL, "true");
+        pw_properties_set(props, PW_KEY_STREAM_DONT_REMIX, "false");
+        pw_properties_set(props, "channelmix.upmix", "true");
 
-    spa_audio_info_raw info{};
-    info.format = SPA_AUDIO_FORMAT_S16;
-    info.rate = ac::SAMPLE_RATE;
-    info.channels = 1;
+        std::vector<uint8_t> buffer(ac::CHUNK_SIZE);
+        spa_pod_builder b;
+        spa_pod_builder_init(&b, buffer.data(), static_cast<quint32>(buffer.size()));
 
-    const spa_pod* params[1];
-    params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &info);
+        spa_audio_info_raw info{};
+        info.format = SPA_AUDIO_FORMAT_S16;
+        info.rate = ac::SAMPLE_RATE;
+        info.channels = 1;
 
-    pw_stream_events events{};
-    events.version = PW_VERSION_STREAM_EVENTS;
-    events.state_changed = [](void* data, pw_stream_state, pw_stream_state state, const char*) {
-        auto* self = static_cast<PipeWireWorker*>(data);
-        self->streamStateChanged(state);
-    };
-    events.process = [](void* data) {
-        auto* self = static_cast<PipeWireWorker*>(data);
-        self->processStream();
-    };
+        const spa_pod* params[1];
+        params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &info);
 
-    m_stream = pw_stream_new_simple(pw_main_loop_get_loop(m_loop), "quickshell", props, &events, this);
-    if (!m_stream) {
-        qCWarning(lcAcWorker) << "init: failed to create stream";
-        pw_main_loop_destroy(m_loop);
-        m_loop = nullptr;
-        return;
-    }
+        pw_stream_events events{};
+        events.version = PW_VERSION_STREAM_EVENTS;
+        events.state_changed = [](void* data, pw_stream_state, pw_stream_state state, const char*) {
+            auto* self = static_cast<PipeWireWorker*>(data);
+            self->streamStateChanged(state);
+        };
+        events.process = [](void* data) {
+            auto* self = static_cast<PipeWireWorker*>(data);
+            self->processStream();
+        };
 
-    const int success = pw_stream_connect(m_stream, PW_DIRECTION_INPUT, PW_ID_ANY,
-        static_cast<pw_stream_flags>(
-            PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS),
-        params, 1);
-    if (success < 0) {
-        qCWarning(lcAcWorker) << "init: failed to connect stream";
+        m_stream = pw_stream_new_simple(pw_main_loop_get_loop(m_loop), "quickshell", props, &events, this);
+        if (!m_stream) {
+            qCWarning(lcAcWorker) << "init: failed to create stream";
+            pw_main_loop_destroy(m_loop);
+            m_loop = nullptr;
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            continue;
+        }
+
+        const int success = pw_stream_connect(m_stream, PW_DIRECTION_INPUT, PW_ID_ANY,
+            static_cast<pw_stream_flags>(
+                PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS),
+            params, 1);
+        if (success < 0) {
+            qCWarning(lcAcWorker) << "init: failed to connect stream";
+            pw_stream_destroy(m_stream);
+            pw_main_loop_destroy(m_loop);
+            m_stream = nullptr;
+            m_loop = nullptr;
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            continue;
+        }
+
+        pw_main_loop_run(m_loop);
+
         pw_stream_destroy(m_stream);
         pw_main_loop_destroy(m_loop);
         m_stream = nullptr;
         m_loop = nullptr;
-        return;
+
+        if (!m_token.stop_requested()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        }
     }
-
-    pw_main_loop_run(m_loop);
-
-    pw_stream_destroy(m_stream);
-    pw_main_loop_destroy(m_loop);
-    m_stream = nullptr;
-    m_loop = nullptr;
 }
 
 void PipeWireWorker::handleTimeout(void* data, uint64_t expirations) {
@@ -135,8 +147,11 @@ void PipeWireWorker::streamStateChanged(pw_stream_state state) {
     case PW_STREAM_STATE_STREAMING:
         pw_loop_update_timer(pw_main_loop_get_loop(m_loop), m_timer, nullptr, nullptr, false);
         break;
+    case PW_STREAM_STATE_UNCONNECTED:
     case PW_STREAM_STATE_ERROR:
-        pw_main_loop_quit(m_loop);
+        if (m_loop) {
+            pw_main_loop_quit(m_loop);
+        }
         break;
     default:
         break;

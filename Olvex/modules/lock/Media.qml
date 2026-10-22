@@ -29,7 +29,7 @@ Item {
         return p < 0.004 ? 0 : p;
     }
     readonly property real displayPosition: root.seekPreview >= 0 && Players.interpolatedLength > 0 ? root.seekPreview * Players.interpolatedLength : Players.interpolatedPosition
-    readonly property bool canSeek: Players.active !== null && (Players.active.canSeek ?? false) && (Players.active.positionSupported ?? false)
+    readonly property bool canSeek: Players.active !== null && ((Players.active.canSeek ?? false) || (Players.interpolatedLength > 0))
 
     // ── Music-accent tokens ──────────────────────────────────────────────────
     readonly property color onSurfaceColor: Players.musicOnSurfaceColor

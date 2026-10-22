@@ -100,7 +100,7 @@ Item {
     }
     readonly property bool hasProgressFill: root.displayProgress > 0
     readonly property real displayPosition: seekPreview >= 0 && playerLength > 0 ? seekPreview * playerLength : playerPosition
-    readonly property bool canSeek: Players.active !== null && (Players.active.canSeek ?? false) && (Players.active.positionSupported ?? false)
+    readonly property bool canSeek: Players.active !== null && ((Players.active.canSeek ?? false) || (Players.interpolatedLength > 0))
 
     // ── Art source helpers ─────────────────────────────────────────────────────
     function updateArtDisplaySource() {

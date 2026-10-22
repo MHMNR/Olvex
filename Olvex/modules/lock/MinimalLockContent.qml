@@ -292,7 +292,7 @@ Item {
                     return p < 0.004 ? 0 : p;
                 }
                 readonly property real displayPosition: musicPill.seekPreview >= 0 && Players.interpolatedLength > 0 ? musicPill.seekPreview * Players.interpolatedLength : Players.interpolatedPosition
-                readonly property bool canSeek: Players.active !== null && (Players.active.canSeek ?? false) && (Players.active.positionSupported ?? false)
+                readonly property bool canSeek: Players.active !== null && ((Players.active.canSeek ?? false) || (Players.interpolatedLength > 0))
 
                 function lengthStr(length) {
                     if (length < 0)

@@ -89,6 +89,13 @@ Singleton {
 
     function _pickActivePlayer(): MprisPlayer {
         const players = root.list;
+
+        // 1. If any player is actively playing, ALWAYS prioritize it
+        const playing = players.find(p => root._isPlaying(p));
+        if (playing)
+            return playing;
+
+        // 2. If user manually pinned a player
         if (props.manualActive) {
             const manualMatch = players.find(p => p === props.manualActive || root._isSameMediaSource(p, props.manualActive));
             if (manualMatch)
@@ -96,17 +103,19 @@ Singleton {
             props.manualActive = null;
         }
 
-        if (root.active && players.some(p => root._isSameMediaSource(p, root.active))) {
-            const playing = players.find(p => root._isPlaying(p));
-            if (playing && !root._isSameMediaSource(playing, root.active)) {
-                return playing;
+        // 3. If current active player is alive, not stopped, and has a track
+        if (root.active && players.some(p => p === root.active)) {
+            const activeStatus = (root.active.playbackStatus || "").toLowerCase();
+            const hasTrack = (root.active.trackTitle || "").trim().length > 0;
+            if (activeStatus !== "stopped" && hasTrack) {
+                return root.active;
             }
-            return root.active;
         }
 
-        const playing = players.find(p => root._isPlaying(p));
-        if (playing)
-            return playing;
+        // 4. Prefer any player that has a valid track loaded
+        const withTrack = players.find(p => (p.trackTitle || "").trim().length > 0);
+        if (withTrack)
+            return withTrack;
 
         return players.find(p => root.getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? players[0] ?? null;
     }
@@ -370,17 +379,28 @@ Singleton {
         onExited: running = false
     }
 
+    Process {
+        id: seekProcess
+        onExited: running = false
+    }
+
     function nudge(method: string) {
         const p = root.active;
         if (!p)
             return;
 
-        // Prefer dbusName for exact targeting (handles Plasma Integration,
-        // players registered with instance suffixes, etc.)
+        // In-process fallback attempt
+        try {
+            if (method === "PlayPause" && p.playPause) p.playPause();
+            else if (method === "Next" && p.next) p.next();
+            else if (method === "Previous" && p.previous) p.previous();
+        } catch(e) {}
+
+        const pctlMethod = method === "PlayPause" ? "play-pause" : method.toLowerCase();
         const busName = p.dbusName ? String(p.dbusName) : "";
         let cmd;
         if (busName && busName.startsWith("org.mpris.MediaPlayer2.")) {
-            cmd = `busctl --user call '${busName}' /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method} 2>/dev/null || true`;
+            cmd = `busctl --user call '${busName}' /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method} 2>/dev/null || (command -v playerctl >/dev/null && playerctl -p '${busName}' ${pctlMethod} 2>/dev/null) || true`;
         } else {
             // Fallback: match by player identity hint
             let hint = (p.desktopEntry || p.identity || "").toLowerCase().trim().split(/\s+/)[0];
@@ -393,9 +413,11 @@ Singleton {
             else if (hint.includes("plasma") || hint.includes("browser-integration"))
                 hint = "plasma-browser-integration";
 
-            cmd = `for bus in $(busctl --user list | awk '{print $1}' | grep "org.mpris.MediaPlayer2.${hint}"); do busctl --user call "$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method} 2>/dev/null; done`;
+            cmd = `(command -v playerctl >/dev/null && playerctl ${pctlMethod} 2>/dev/null) || for bus in $(busctl --user list | awk '{print $1}' | grep "org.mpris.MediaPlayer2.${hint}"); do busctl --user call "$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player ${method} 2>/dev/null; done`;
         }
 
+        if (nudgeProcess.running)
+            nudgeProcess.running = false;
         nudgeProcess.command = ["bash", "-c", cmd];
         nudgeProcess.running = true;
     }
@@ -1116,7 +1138,7 @@ Singleton {
     // Called by UI seek bars.
     function seekTo(fraction: real): void {
         const p = root.active;
-        if (!p || !p.canSeek || !p.positionSupported)
+        if (!p)
             return;
 
         const liveLen = p.length ?? 0;
@@ -1128,9 +1150,25 @@ Singleton {
             return;
 
         const targetPos = Math.max(0, Math.min(fraction * len, len));
+        const targetMicrosec = Math.round(targetPos * 1000000);
 
-        // Issue D-Bus command
-        p.position = targetPos;
+        // Issue D-Bus SetPosition command
+        const busName = p.dbusName ? String(p.dbusName) : "";
+        let seekCmd;
+        if (busName && busName.startsWith("org.mpris.MediaPlayer2.")) {
+            seekCmd = `bus='${busName}'; tid=$(busctl --user get-property "$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player Metadata 2>/dev/null | grep -o '\"mpris:trackid\" o \"[^\"]*\"' | cut -d'\"' -f4); [ -z "$tid" ] && tid="/"; busctl --user call "$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player SetPosition ox "$tid" ${targetMicrosec} 2>/dev/null || (command -v playerctl >/dev/null && playerctl -p "$bus" position ${targetPos.toFixed(2)})`;
+        } else {
+            seekCmd = `for bus in $(busctl --user list | awk '{print $1}' | grep "org.mpris.MediaPlayer2"); do tid=$(busctl --user get-property "$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player Metadata 2>/dev/null | grep -o '\"mpris:trackid\" o \"[^\"]*\"' | cut -d'\"' -f4); [ -z "$tid" ] && tid="/"; busctl --user call "$bus" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player SetPosition ox "$tid" ${targetMicrosec} 2>/dev/null; done || (command -v playerctl >/dev/null && playerctl position ${targetPos.toFixed(2)})`;
+        }
+
+        try {
+            p.position = targetPos;
+        } catch(e) {}
+
+        if (seekProcess.running)
+            seekProcess.running = false;
+        seekProcess.command = ["bash", "-c", seekCmd];
+        seekProcess.running = true;
 
         // Immediately re-anchor local interpolation so the UI jumps instantly and the
         // 250ms tick continues advancing from the new position WHILE playing. The
