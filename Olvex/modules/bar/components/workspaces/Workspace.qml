@@ -89,16 +89,12 @@ Item {
             PropertyChanges {
                 target: collapsedDot
                 opacity: 0
-                scale: 0.6
+                scale: 1.8
             }
             PropertyChanges {
                 target: detailCol
                 opacity: 1
                 scale: 1.0
-            }
-            PropertyChanges {
-                target: detailTrans
-                y: 0
             }
         },
         State {
@@ -111,11 +107,7 @@ Item {
             PropertyChanges {
                 target: detailCol
                 opacity: 0
-                scale: 0.85
-            }
-            PropertyChanges {
-                target: detailTrans
-                y: 6
+                scale: 0.45
             }
         }
     ]
@@ -126,74 +118,68 @@ Item {
             ParallelAnimation {
                 NumberAnimation {
                     target: collapsedDot
-                    properties: "opacity,scale"
-                    duration: 90
+                    property: "scale"
+                    to: 1.8
+                    duration: Tokens.anim.durations.expressiveFastSpatial
+                    easing: Tokens.anim.expressiveFastSpatial
+                }
+                NumberAnimation {
+                    target: collapsedDot
+                    property: "opacity"
+                    to: 0
+                    duration: Math.round(Tokens.anim.durations.expressiveFastSpatial * 0.45)
                     easing.type: Easing.OutCubic
                 }
-                SequentialAnimation {
-                    PauseAnimation { duration: 60 }
-                    ParallelAnimation {
-                        NumberAnimation {
-                            target: detailCol
-                            property: "opacity"
-                            duration: Math.max(120, Tokens.anim.durations.expressiveFastSpatial - 50)
-                            easing.type: Easing.OutCubic
-                        }
-                        NumberAnimation {
-                            target: detailCol
-                            property: "scale"
-                            duration: Math.max(120, Tokens.anim.durations.expressiveFastSpatial - 50)
-                            easing: Tokens.anim.emphasizedDecel
-                        }
-                        NumberAnimation {
-                            target: detailTrans
-                            property: "y"
-                            duration: Math.max(120, Tokens.anim.durations.expressiveFastSpatial - 50)
-                            easing: Tokens.anim.emphasizedDecel
-                        }
-                    }
+                NumberAnimation {
+                    target: detailCol
+                    property: "scale"
+                    from: 0.45
+                    to: 1.0
+                    duration: Tokens.anim.durations.expressiveFastSpatial
+                    easing: Tokens.anim.expressiveFastSpatial
+                }
+                NumberAnimation {
+                    target: detailCol
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: Math.round(Tokens.anim.durations.expressiveFastSpatial * 0.7)
+                    easing: Tokens.anim.emphasizedDecel
                 }
             }
         },
         Transition {
             from: "expanded"; to: "collapsed"
             ParallelAnimation {
-                ParallelAnimation {
-                    NumberAnimation {
-                        target: detailCol
-                        property: "opacity"
-                        duration: 90
-                        easing.type: Easing.InQuad
-                    }
-                    NumberAnimation {
-                        target: detailCol
-                        property: "scale"
-                        duration: 90
-                        easing.type: Easing.InQuad
-                    }
-                    NumberAnimation {
-                        target: detailTrans
-                        property: "y"
-                        duration: 90
-                        easing.type: Easing.InQuad
-                    }
+                NumberAnimation {
+                    target: detailCol
+                    property: "scale"
+                    to: 0.45
+                    duration: Tokens.anim.durations.expressiveFastSpatial
+                    easing: Tokens.anim.expressiveFastSpatial
                 }
-                SequentialAnimation {
-                    PauseAnimation { duration: 60 }
-                    ParallelAnimation {
-                        NumberAnimation {
-                            target: collapsedDot
-                            property: "opacity"
-                            duration: Math.max(120, Tokens.anim.durations.expressiveDefaultSpatial - 60)
-                            easing.type: Easing.OutCubic
-                        }
-                        NumberAnimation {
-                            target: collapsedDot
-                            property: "scale"
-                            duration: Math.max(120, Tokens.anim.durations.expressiveDefaultSpatial - 60)
-                            easing: Tokens.anim.emphasizedDecel
-                        }
-                    }
+                NumberAnimation {
+                    target: detailCol
+                    property: "opacity"
+                    to: 0
+                    duration: Math.round(Tokens.anim.durations.expressiveFastSpatial * 0.45)
+                    easing.type: Easing.InCubic
+                }
+                NumberAnimation {
+                    target: collapsedDot
+                    property: "scale"
+                    from: 1.8
+                    to: 1.0
+                    duration: Tokens.anim.durations.expressiveFastSpatial
+                    easing: Tokens.anim.expressiveFastSpatial
+                }
+                NumberAnimation {
+                    target: collapsedDot
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: Math.round(Tokens.anim.durations.expressiveFastSpatial * 0.7)
+                    easing.type: Easing.OutCubic
                 }
             }
         }
@@ -212,7 +198,7 @@ Item {
         border.color: Colours.light ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurfaceVariant
 
         opacity: isExpandedState ? 0 : 1
-        scale: isExpandedState ? 0.6 : 1.0
+        scale: isExpandedState ? 1.8 : 1.0
         visible: opacity > 0.005
 
         Behavior on color {
@@ -303,13 +289,8 @@ Item {
         spacing: 0
 
         opacity: isExpandedState ? 1 : 0
-        scale: isExpandedState ? 1.0 : 0.85
+        scale: isExpandedState ? 1.0 : 0.45
         visible: opacity > 0.005
-
-        transform: Translate {
-            id: detailTrans
-            y: isExpandedState ? 0 : 6
-        }
 
         Item {
             id: labelContainer
