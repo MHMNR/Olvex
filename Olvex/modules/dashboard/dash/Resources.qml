@@ -143,8 +143,13 @@ Item {
         }
         if (batCap) {
             batCap.visible = true;
-            batCap.color = fill;
-            batCap.opacity = fillOp;
+            batCap.color = track;
+            batCap.border.width = 0;
+            batCap.border.color = "transparent";
+        }
+        if (batCapFill) {
+            batCapFill.color = fill;
+            batCapFill.opacity = fillOp;
         }
         if (batTrack)
             batTrack.color = track;
@@ -287,9 +292,12 @@ Item {
             Layout.preferredHeight: batteryBarH
 
             readonly property real capW: 4
+            readonly property real bodyFraction: 0.98
+            readonly property real capFraction: 0.02
             readonly property real inset: 0
             readonly property int bodyRadius: 7
-            Rectangle {
+
+            StyledClippingRect {
                 id: batCap
 
                 anchors.right: parent.right
@@ -297,8 +305,27 @@ Item {
                 width: batBar.capW
                 height: Math.round(parent.height * 0.36)
                 radius: 2
-                color: Colours.palette.m3primary
-                opacity: 0.62
+                color: batTrack ? batTrack.color : "transparent"
+                border.width: 0
+                border.color: "transparent"
+                clip: true
+
+                StyledRect {
+                    id: batCapFill
+
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    width: Math.max(0, Math.min(parent.width, parent.width * ((root.batteryMeterAnim - batBar.bodyFraction) / Math.max(0.001, batBar.capFraction))))
+                    color: batFill ? batFill.color : Colours.palette.m3primary
+                    opacity: batFill ? batFill.opacity : 0.62
+
+                    Behavior on width {
+                        Anim {
+                            type: Anim.StandardLarge
+                        }
+                    }
+                }
             }
 
             StyledClippingRect {
@@ -316,7 +343,7 @@ Item {
                 clip: true
 
                 readonly property real innerW: width
-                readonly property real fillW: innerW * root.batteryMeterAnim
+                readonly property real fillW: innerW * Math.min(1.0, root.batteryMeterAnim / Math.max(0.001, batBar.bodyFraction))
 
                 StyledRect {
                     id: batTrack
