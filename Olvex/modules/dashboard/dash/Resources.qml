@@ -115,38 +115,37 @@ Item {
         var low = batteryLevel <= 0.20 && !plugged;
         var charging = [UPowerDeviceState.Charging, UPowerDeviceState.PendingCharge].includes(batDeviceState);
 
-        var shell = Colours.light ? Colours.tileFillSubtle : Qt.alpha(Colours.palette.m3onSurface, 0.06);
-        var track = Colours.light ? Colours.tileFill : Qt.alpha(Colours.palette.m3onSurface, 0.14);
-        var outline = Qt.alpha(Colours.palette.m3outline, 0.50);
+        var track = Colours.light ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : Qt.alpha(Colours.palette.m3onSurface, 0.14);
         var fill = Colours.palette.m3primary;
-        var onFill = Colours.palette.m3onPrimary;
+        var onFill = Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onPrimary;
         var fillOp = 0.48;
 
         if (plugged) {
-            outline = Qt.alpha(batIosGreen, 0.55);
             fill = batIosGreen;
-            onFill = "#ffffff";
+            onFill = Colours.light ? Colours.palette.m3onSurface : "#ffffff";
             fillOp = 0.62;
         } else if (lowPower) {
             fill = batIosYellow;
             onFill = "#1c1c1e";
         } else if (low) {
-            shell = Qt.alpha(Colours.palette.m3error, 0.10);
             track = Qt.alpha(Colours.palette.m3error, 0.16);
-            outline = Qt.alpha(Colours.palette.m3error, 0.55);
             fill = Colours.palette.m3error;
-            onFill = Colours.palette.m3onError;
+            onFill = Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3onError;
         }
 
         batOnFillColor = onFill;
         batShowChargingBolt = charging;
 
         if (batBody) {
-            batBody.color = shell;
-            batBody.border.color = outline;
+            batBody.color = "transparent";
+            batBody.border.width = 0;
+            batBody.border.color = "transparent";
         }
-        if (batCap)
-            batCap.color = outline;
+        if (batCap) {
+            batCap.visible = true;
+            batCap.color = fill;
+            batCap.opacity = fillOp;
+        }
         if (batTrack)
             batTrack.color = track;
         if (batFill) {
@@ -222,6 +221,16 @@ Item {
     }
 
     Connections {
+        target: Colours
+        function onLightChanged(): void {
+            Qt.callLater(root.applyBatteryVisuals);
+        }
+        function onPaletteChanged(): void {
+            Qt.callLater(root.applyBatteryVisuals);
+        }
+    }
+
+    Connections {
         function onDisksChanged() {
             if (diskIdx >= SystemUsage.disks.length)
                 diskIdx = Math.max(0, SystemUsage.disks.length - 1);
@@ -278,7 +287,7 @@ Item {
             Layout.preferredHeight: batteryBarH
 
             readonly property real capW: 4
-            readonly property real inset: 2
+            readonly property real inset: 0
             readonly property int bodyRadius: 7
             Rectangle {
                 id: batCap
@@ -286,9 +295,10 @@ Item {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 width: batBar.capW
-                height: parent.height * 0.34
+                height: Math.round(parent.height * 0.36)
                 radius: 2
-                color: Qt.alpha(Colours.palette.m3outline, 0.50)
+                color: Colours.palette.m3primary
+                opacity: 0.62
             }
 
             StyledClippingRect {
@@ -298,22 +308,22 @@ Item {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 anchors.right: batCap.left
+                anchors.rightMargin: 0
                 radius: batBar.bodyRadius
-                color: Colours.light ? Colours.tileFillSubtle : Qt.alpha(Colours.palette.m3onSurface, 0.06)
-                border.width: 1
-                border.color: Colours.light ? Colours.tileStrokeSubtle : Qt.alpha(Colours.palette.m3outline, 0.50)
+                color: "transparent"
+                border.width: 0
+                border.color: "transparent"
                 clip: true
 
-                readonly property real innerW: Math.max(0, width - batBar.inset * 2)
+                readonly property real innerW: width
                 readonly property real fillW: innerW * root.batteryMeterAnim
 
                 StyledRect {
                     id: batTrack
 
                     anchors.fill: parent
-                    anchors.margins: batBar.inset
-                    radius: Math.max(2, batBar.bodyRadius - batBar.inset)
-                    color: Colours.light ? Colours.tileFill : Qt.alpha(Colours.palette.m3onSurface, 0.14)
+                    radius: batBar.bodyRadius
+                    color: Colours.light ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : Qt.alpha(Colours.palette.m3onSurface, 0.14)
                     z: 0
                 }
 
@@ -323,11 +333,8 @@ Item {
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
-                    anchors.topMargin: batBar.inset
-                    anchors.bottomMargin: batBar.inset
-                    anchors.leftMargin: batBar.inset
                     width: root.batteryMeterAnim > 0 ? Math.max(6, batBody.fillW) : 0
-                    radius: Math.max(2, batBar.bodyRadius - batBar.inset)
+                    radius: batBar.bodyRadius
                     color: Colours.palette.m3primary
                     opacity: 0.48
                     z: 1
@@ -344,7 +351,7 @@ Item {
                     anchors.centerIn: parent
                     text: "bolt"
                     iconPointSize: 12
-                    color: "#ffffff"
+                    color: Colours.light ? Colours.palette.m3onSurface : "#ffffff"
                     fill: 1
                     opacity: 0.95
                     z: 1
@@ -367,7 +374,7 @@ Item {
                         text: batRemainingText()
                         textPointSize: Tokens.font.size.smaller
                         font.family: Tokens.font.family.mono
-                        font.weight: Font.Medium
+                        font.weight: Font.DemiBold
                         color: batBar.inset + batFill.width > (10 + implicitWidth) ? batOnFillColor : Colours.palette.m3onSurface
                     }
 
