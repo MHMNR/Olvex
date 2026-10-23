@@ -33,6 +33,8 @@ if(NOT DEFINED GIT_REVISION)
 endif()
 
 string(REGEX REPLACE "^v" "" VERSION "${VERSION}")
+# CMake project()/QML module VERSION must be numeric (x.y.z); drop suffixes such as "-hotfix".
+string(REGEX REPLACE "[-+].*$" "" VERSION "${VERSION}")
 
 project(olvex-shell VERSION ${VERSION} LANGUAGES CXX)
 
