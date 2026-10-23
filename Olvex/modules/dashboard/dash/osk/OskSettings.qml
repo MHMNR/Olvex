@@ -37,7 +37,7 @@ Item {
             spacing: 12
 
             MaterialIcon {
-                text: "\ue8b8" // settings
+                text: "settings"
                 color: Colours.palette.m3primary
                 font.pixelSize: 24
             }
@@ -52,7 +52,7 @@ Item {
             }
 
             OskControlButton {
-                icon: "\ue5cd" // close
+                icon: "close"
                 onClicked: root.close()
             }
 
@@ -76,9 +76,9 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: Math.round(layoutCol.implicitHeight + 28)
                     radius: 16
-                    color: Colours.tPalette.m3surfaceContainer
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.15)
+                    color: Colours.light ? Colours.tileFill : Colours.tPalette.m3surfaceContainer
+                    border.width: Colours.light ? 0 : 1
+                    border.color: Colours.light ? "transparent" : Qt.alpha(Colours.palette.m3primary, 0.15)
 
                     ColumnLayout {
                         id: layoutCol
@@ -181,9 +181,9 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: Math.round(toggleRow.implicitHeight + 28)
                     radius: 16
-                    color: Colours.tPalette.m3surfaceContainer
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.15)
+                    color: Colours.light ? Colours.tileFill : Colours.tPalette.m3surfaceContainer
+                    border.width: Colours.light ? 0 : 1
+                    border.color: Colours.light ? "transparent" : Qt.alpha(Colours.palette.m3primary, 0.15)
 
                     RowLayout {
                         id: toggleRow
@@ -234,9 +234,9 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: Math.round(autoCapRow.implicitHeight + 28)
                     radius: 16
-                    color: Colours.tPalette.m3surfaceContainer
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.15)
+                    color: Colours.light ? Colours.tileFill : Colours.tPalette.m3surfaceContainer
+                    border.width: Colours.light ? 0 : 1
+                    border.color: Colours.light ? "transparent" : Qt.alpha(Colours.palette.m3primary, 0.15)
 
                     RowLayout {
                         id: autoCapRow
@@ -285,9 +285,9 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: Math.round(exclusiveZoneRow.implicitHeight + 28)
                     radius: 16
-                    color: Colours.tPalette.m3surfaceContainer
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.15)
+                    color: Colours.light ? Colours.tileFill : Colours.tPalette.m3surfaceContainer
+                    border.width: Colours.light ? 0 : 1
+                    border.color: Colours.light ? "transparent" : Qt.alpha(Colours.palette.m3primary, 0.15)
 
                     RowLayout {
                         id: exclusiveZoneRow
@@ -336,9 +336,9 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: Math.round(scaleRow.implicitHeight + 28)
                     radius: 16
-                    color: Colours.tPalette.m3surfaceContainer
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3primary, 0.15)
+                    color: Colours.light ? Colours.tileFill : Colours.tPalette.m3surfaceContainer
+                    border.width: Colours.light ? 0 : 1
+                    border.color: Colours.light ? "transparent" : Qt.alpha(Colours.palette.m3primary, 0.15)
 
                     ColumnLayout {
                         id: scaleRow

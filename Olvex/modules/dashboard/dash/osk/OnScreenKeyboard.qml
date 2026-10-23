@@ -275,12 +275,14 @@ Item {
                     Layout.alignment: Qt.AlignRight
                     
                     OskControlButton {
-                        icon: root.isDocked ? "\ue5ce" : "\ue5cf" // expand_less / expand_more
+                        // When docked: click to detach/float ("picture_in_picture_alt")
+                        // When floating: click to dock to screen bottom ("dock_to_bottom")
+                        icon: root.isDocked ? "picture_in_picture_alt" : "dock_to_bottom"
                         onClicked: visibilities.isOskDocked = !visibilities.isOskDocked
                     }
 
                     OskControlButton {
-                        icon: "\ue5cd" // close
+                        icon: "close"
                         onClicked: root.hideRequested()
                     }
                 }
@@ -364,7 +366,7 @@ Item {
         
         width: root.showingSettings ? 340 : 32
         height: Math.round(root.showingSettings ? Math.min(settingsPanel.maxImplicitHeight, oskLayoutContainer.height - (headerLeftRow.y + settingsBtn.y)) : 32)
-        radius: root.showingSettings ? 24 : 8
+        radius: root.showingSettings ? 24 : 16
         clip: true
         
         Behavior on x { NumberAnimation { duration: Tokens.anim.durations.expressiveDefaultSpatial; easing: Tokens.anim.expressiveDefaultSpatial } }
@@ -373,14 +375,16 @@ Item {
         Behavior on height { NumberAnimation { duration: Tokens.anim.durations.expressiveDefaultSpatial; easing: Tokens.anim.expressiveDefaultSpatial } }
         Behavior on radius { NumberAnimation { duration: Tokens.anim.durations.expressiveDefaultSpatial; easing: Tokens.anim.expressiveDefaultSpatial } }
 
-        // Background Layer (solid color)
+        // Background Layer (solid opaque M3 surface)
         Rectangle {
             id: settingsCardBg
             anchors.fill: parent
             radius: settingsCard.radius
-            color: root.showingSettings ? Colours.palette.m3surfaceVariant : Colours.tPalette.m3surfaceVariant
-            border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3primary, 0.2)
+            color: root.showingSettings
+                ? (Colours.light ? Colours.palette.m3surfaceContainerHigh : Colours.palette.m3surfaceContainerHigh)
+                : (Colours.light ? Colours.tileFill : Colours.palette.m3surfaceContainerHigh)
+            border.width: Colours.light ? 0 : 1
+            border.color: Colours.light ? "transparent" : Qt.alpha(Colours.palette.m3primary, 0.2)
         }
         
       
@@ -394,11 +398,11 @@ Item {
             
             MaterialIcon {
                 anchors.centerIn: parent
-                text: "\ue8b8" // settings
-                color: "#ffffff"
+                text: "settings"
+                color: Colours.palette.m3onSurface
                 font.pixelSize: 18
                 // Ensure icon is ONLY visible when card is in its small button state
-                opacity: (root.showingSettings || settingsCard.width > 40) ? 0 : (settingsInteraction.containsMouse ? 1 : 0.6)
+                opacity: (root.showingSettings || settingsCard.width > 40) ? 0 : (settingsInteraction.containsMouse ? 1 : (Colours.light ? 0.85 : 0.6))
                 Behavior on opacity { NumberAnimation { duration: 150 } }
             }
         }

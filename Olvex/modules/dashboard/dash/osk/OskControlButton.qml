@@ -23,10 +23,12 @@ Item {
         anchors.fill: parent
         anchors.leftMargin: -root.widthExpansion / 2
         anchors.rightMargin: -root.widthExpansion / 2
-        radius: 8
-        color: Colours.tPalette.m3surfaceVariant
-        border.width: 1
-        border.color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
+        radius: 16
+        color: Colours.light
+            ? (interaction.containsMouse ? Colours.tileFillHover : Colours.tileFill)
+            : (interaction.containsMouse ? Colours.palette.m3surfaceContainerHighest : Colours.palette.m3surfaceContainerHigh)
+        border.width: Colours.light ? 0 : 1
+        border.color: Colours.light ? "transparent" : Qt.alpha(Colours.palette.m3onSurface, 0.08)
         visible: !root.hideBackground
     }
     
@@ -39,9 +41,9 @@ Item {
         MaterialIcon {
             anchors.centerIn: parent
             text: root.icon
-            color: "#ffffff"
+            color: Colours.palette.m3onSurface
             font.pixelSize: 18
-            opacity: interaction.containsMouse ? 1 : 0.6
+            opacity: interaction.containsMouse ? 1 : (Colours.light ? 0.85 : 0.6)
             
             Behavior on opacity { NumberAnimation { duration: 200 } }
         }
