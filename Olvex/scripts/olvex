@@ -83,15 +83,42 @@ _olvex_kill_running() {
         IFS= read -r -d '' path
     } < <(_olvex_qs_prefix)
     qs "$mode" "$path" kill >/dev/null 2>&1 || true
-    # Also try the other common target so restarts don't leave orphans
+    # Also try common targets so restarts don't leave orphans
     qs -p "${OLVEX_SHELL_DEFAULT}" kill >/dev/null 2>&1 || true
     qs -c "${OLVEX_QS_INSTANCE:-olvex}" kill >/dev/null 2>&1 || true
-    sleep 0.15
+
+    # Forcefully terminate any remaining qs or quickshell instances
+    pkill -x qs >/dev/null 2>&1 || true
+    pkill -x quickshell >/dev/null 2>&1 || true
+
+    # Wait briefly for sockets and compositor layers to cleanly release
+    local i=0
+    while pgrep -x qs >/dev/null 2>&1 || pgrep -x quickshell >/dev/null 2>&1; do
+        sleep 0.05
+        i=$((i + 1))
+        if [ "$i" -ge 10 ]; then
+            pkill -9 -x qs >/dev/null 2>&1 || true
+            pkill -9 -x quickshell >/dev/null 2>&1 || true
+            break
+        fi
+    done
+    sleep 0.1
 }
 
 if [ "${1:-}" = "" ]; then
     _olvex_backend --help
     exit 0
+fi
+
+if [ "$1" = "restart" ]; then
+    shift
+    _olvex_kill_running
+    {
+        IFS= read -r -d '' mode
+        IFS= read -r -d '' path
+    } < <(_olvex_qs_prefix)
+    cd "${HOME}" || true
+    exec qs -v "$mode" "$path" -d
 fi
 
 if [ "$1" = "shell" ]; then

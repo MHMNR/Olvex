@@ -31,12 +31,14 @@ Item {
             onStreamFinished: {
                 root.updateChecking = false;
                 if (!text) return;
-                const match = text.match(/Update available:\s*([a-f0-9]+)\s*->\s*([a-f0-9]+)/i);
+                // Strip ANSI escape codes (e.g. \u001b[1;33m) output by the CLI
+                const clean = text.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, "").trim();
+                const match = clean.match(/Update available:\s*([a-f0-9]+)\s*->\s*([a-f0-9]+)/i);
                 if (match) {
                     root.updateAvailable = true;
                     root.updateOldHash = match[1];
                     root.updateNewHash = match[2];
-                } else if (text.includes("already up to date")) {
+                } else if (clean.includes("already up to date")) {
                     root.updateAvailable = false;
                 }
             }
