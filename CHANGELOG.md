@@ -48,8 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed cursor shape resetting to standard arrow by enforcing `IBeam` cursor states on lockscreen and network password input fields.
 - **Notification Toast Audio**:
   - Added debouncing logic to prevent duplicate notification toast sound playback during rapid alert triggers.
-- **Dock Matching & Launch Transitions**:
-  - Fixed application class matching logic and added smooth entrance animations for pinned dock entries.
+- **Standalone Emoji Picker Build Compatibility**:
+  - Fixed Qt 6 `moc` (Meta-Object Compiler) preprocessor failure (`missing ')' in macro usage`) caused by unescaped character quotes inside raw string literals in `main.cpp`.
 
 ---
 
