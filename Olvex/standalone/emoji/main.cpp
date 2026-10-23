@@ -303,10 +303,10 @@ private:
         if (content.isEmpty())
             return false;
 
-        static const QRegularExpression primaryRe(QStringLiteral(R"((?:\$primary|primary)\s*=\s*"?([0-9a-fA-F]{6}))"));
-        static const QRegularExpression onPrimaryRe(QStringLiteral(R"((?:\$onPrimary|onPrimary)\s*=\s*"?([0-9a-fA-F]{6}))"));
-        static const QRegularExpression containerRe(QStringLiteral(R"((?:\$primary_container|primaryContainer)\s*=\s*"?([0-9a-fA-F]{6}))"));
-        static const QRegularExpression onContainerRe(QStringLiteral(R"((?:\$on_primary_container|onPrimaryContainer)\s*=\s*"?([0-9a-fA-F]{6}))"));
+        static const QRegularExpression primaryRe(QStringLiteral("(?:\\$primary|primary)\\s*=\\s*['\"]?([0-9a-fA-F]{6})"));
+        static const QRegularExpression onPrimaryRe(QStringLiteral("(?:\\$onPrimary|onPrimary)\\s*=\\s*['\"]?([0-9a-fA-F]{6})"));
+        static const QRegularExpression containerRe(QStringLiteral("(?:\\$primary_container|primaryContainer)\\s*=\\s*['\"]?([0-9a-fA-F]{6})"));
+        static const QRegularExpression onContainerRe(QStringLiteral("(?:\\$on_primary_container|onPrimaryContainer)\\s*=\\s*['\"]?([0-9a-fA-F]{6})"));
 
         const auto mPrim = primaryRe.match(content);
         if (!mPrim.hasMatch())
