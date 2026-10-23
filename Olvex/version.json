@@ -5,6 +5,6 @@
   "minor": 4,
   "patch": 2,
   "channel": "Rolling",
-  "releaseType": "",
+  "releaseType": "hotfix",
   "buildId": "2026.10.23"
 }

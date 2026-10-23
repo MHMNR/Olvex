@@ -14,7 +14,7 @@ Singleton {
     property int minor: 4
     property int patch: 2
     property string channel: "Rolling"
-    property string releaseType: ""
+    property string releaseType: "hotfix"
     property string buildId: "2026.10.23"
 
     property string commit: ""

@@ -37,7 +37,7 @@ def get_version_info() -> Dict[str, Any]:
         "minor": 4,
         "patch": 2,
         "channel": "Rolling",
-        "releaseType": "",
+        "releaseType": "hotfix",
         "buildId": "2026.10.23",
         "commit": None,
         "branch": None,
