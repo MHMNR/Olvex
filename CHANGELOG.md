@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] - 2026-10-23
+
+### Added
+- **Power Menu Spotlight Shader & Visual Polish**:
+  - Implemented dynamic cursor spotlight glow shader (`powermenu_glow.frag`) with reactive cursor tracking.
+  - Added Material 3 borderless keycap buttons, polished surface elevation colors, and high-FPS icon transitions.
+  - Added dedicated global shortcut integration for toggling the power menu.
+- **Enhanced Application Launcher Quick Toggles & Search**:
+  - Added `QuickToggles` service and expandable search results component (`SearchResultItem.qml`).
+  - Added unified grid focus handling and keyboard navigation across app listings and action delegates.
+- **Emoji Picker Experience & Metrics**:
+  - Added glyph metrics calculation and sliding hover highlights to `PickerGrid`.
+  - Added smooth programmatic scrolling and key-navigation focus management in `EmojiStandalone`.
+  - Added window rule definitions for `olvex-emoji` to ensure proper floating behavior.
+
+### Improved & Refactored
+- **Light Theme Color Contrast & Surface Hierarchy**:
+  - Re-calibrated Light Mode palette tokens, tile surfaces, and container contrast across panels and drawers.
+  - Refined `tileSurface` and `tileFill` contrast to eliminate washed-out borders and blending against parent backgrounds in opaque mode.
+  - Updated battery status cap rendering, resource card empty states, and system tray icon contrast shaders.
+- **On-Screen Keyboard (OSK) UX & Theming**:
+  - Completely restyled OSK settings cards for light and dark modes with borderless surfaces and solid opaque background containers.
+  - Replaced ambiguous dock/undock control icons with dedicated `dock_to_bottom` and `picture_in_picture_alt` Material symbols.
+  - Updated control button geometry to uniform circular pill shapes with refined click response.
+- **Keybindings Management & Submap Execution**:
+  - Enhanced native C++ `KeybindManager` to support multiline keybinding statements and brace expression parsing.
+  - Streamlined submap command execution for key recording and conflict detection in `SystemKeybinds`.
+- **Media Player Engine & Audio Stability**:
+  - Refined active player prioritization and seeking condition checks in `Players` service.
+  - Improved `AudioCollector` reconnection loop and PipeWire buffer handling to prevent thread starvation.
+  - Synchronized player pill surface colors during theme transitions.
+- **Workspace Navigation & Animation**:
+  - Implemented smoother state transitions and fluid indicator movement for active and special workspaces.
+
+### Fixed
+- **Wayland Session Lock Stability**:
+  - Resolved session lock crash by maintaining layer-shell window visibility and mapping lifecycle during compositor lock.
+- **Cursor State Consistency**:
+  - Fixed cursor shape resetting to standard arrow by enforcing `IBeam` cursor states on lockscreen and network password input fields.
+- **Notification Toast Audio**:
+  - Added debouncing logic to prevent duplicate notification toast sound playback during rapid alert triggers.
+- **Dock Matching & Launch Transitions**:
+  - Fixed application class matching logic and added smooth entrance animations for pinned dock entries.
+
+---
+
 ## [1.4.1] - 2026-10-11
 
 ### Added
