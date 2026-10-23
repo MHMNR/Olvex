@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2-hotfix] - 2026-10-23
+
+### Fixed
+- **Update Tracker on the About Page**:
+  - Fixed the update checker so it correctly detects when a newer version is available, instead of always reporting that Olvex is up to date.
+- **Shell Restart After Update**:
+  - `olvex restart` now fully terminates any running shell instance before launching a fresh one, so the shell starts cleanly.
+  - A normal restart after an update now loads the new changes reliably, rather than continuing to run the previous version.
+
+---
+
 ## [1.4.2] - 2026-10-23
 
 ### Added
