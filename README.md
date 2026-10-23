@@ -270,7 +270,7 @@ Keybindings are configured within `~/.config/hypr/hyprland/keybinds.conf`:
 | `Super + D` | Toggle Dashboard |
 | `Super + C` | Open Control Center |
 | `Super + V` | Toggle Clipboard Manager |
-| `Super + Period` | Open Emoji Picker |
+| `Super + .(Period)` | Open Emoji Picker |
 | `Super + L` | Trigger Lock Screen |
 | `Print` | Capture Fullscreen to Clipboard |
 | `Super + Shift + S` | Capture Region (Interactive) |
