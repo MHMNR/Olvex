@@ -276,6 +276,7 @@ Keybindings are configured within `~/.config/hypr/hyprland/keybinds.conf`:
 | `Super + Shift + S` | Capture Region (Interactive) |
 | `Super + Alt + R` | Record Screen (Audio Enabled) |
 | `Ctrl + Alt + R` | Record Screen |
+| `Ctrl + Alt + Delete` | Toggle Power Menu |
 | `Ctrl + Super + Shift + R` | Terminate Shell Process |
 | `Ctrl + Super + Alt + R` | Restart Shell Daemon |
 
