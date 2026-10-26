@@ -16,6 +16,7 @@ import qs.components.images
 import qs.components.misc
 import qs.services
 import qs.utils
+import "cat"
 
 Item {
     id: root
@@ -235,6 +236,12 @@ Item {
                 property real pillScale: 1.0
                 property bool visualizerLoaded: musicPill.isPlaying
                 readonly property bool isPlaying: Players.active !== null && Players.activeIsPlaying
+                // With no player the pill turns into a little window with a cat in it.
+                readonly property bool hasMedia: Players.active !== null
+                onHasMediaChanged: {
+                    if (!musicPill.hasMedia)
+                        musicPill.expanded = false;
+                }
 
                 // True for the duration of the expand/collapse morph. The visualizer
                 // Canvas is Timer-driven independently of this animation, but it still
@@ -498,6 +505,20 @@ Item {
                         }
                     }
 
+                    // ── Idle cat: only instantiated while nothing is playing. Lives
+                    // inside the rounded clip so the cat/paw never leave the pill.
+                    Loader {
+                        anchors.fill: parent
+                        active: !musicPill.hasMedia
+                        sourceComponent: Component {
+                            CatScene {
+                                lock: root.lock
+                                layout: "peek"
+                                running: !root.lock || (root.lock.contentReady && !root.lock.unlocking)
+                            }
+                        }
+                    }
+
                     // ── Tap-to-expand. artFrame/trackInfo/buttons paint on top of
                     // this (later siblings of musicPill), so they still get click
                     // priority over this background toggle.
@@ -505,6 +526,8 @@ Item {
                         anchors.fill: parent
                         onClicked: mouse => {
                             mouse.accepted = true;
+                            if (!musicPill.hasMedia)
+                                return;
                             musicPill.expanded = !musicPill.expanded;
                             pillPressSpring.start();
                         }
@@ -519,6 +542,7 @@ Item {
                 // whenever a track was playing.
                 Item {
                     id: artFrame
+                    visible: musicPill.hasMedia
                     // x/y/width/height animated via musicPill's states/transitions
                     // above (grouped NumberAnimation, matching the taskbar's
                     // musicIcon technique) — these are just the initial/compact
@@ -612,6 +636,7 @@ Item {
                     y: musicPill.expanded ? 44 : 9
                     Behavior on x { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
                     Behavior on y { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    visible: musicPill.hasMedia
                     iconName: "skip_previous"
                     balancedSkipIcon: true
                     skipIconScale: 0.86
@@ -625,6 +650,7 @@ Item {
                     Behavior on x { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
                     Behavior on y { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
                     emphasized: true
+                    visible: musicPill.hasMedia
                     iconName: musicPill.isPlaying ? "pause" : "play_arrow"
                     iconSize: Tokens.font.size.larger
                     onClicked: Players.togglePlaying()
@@ -635,6 +661,7 @@ Item {
                     y: musicPill.expanded ? 44 : 9
                     Behavior on x { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
                     Behavior on y { NumberAnimation { duration: musicPill.boundsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: musicPill.spatialEasing } }
+                    visible: musicPill.hasMedia
                     iconName: "skip_next"
                     balancedSkipIcon: true
                     skipIconScale: 0.86

@@ -19,6 +19,9 @@ WlSessionLockSurface {
     property string effectiveStyle: configuredStyle
     // Triggers directional slides in Content.qml and Center.qml
     property bool contentReady: false
+    // Pointer position in surface coordinates + presence (fed by cursorTracker).
+    property point cursorPos: Qt.point(-1, -1)
+    property bool cursorInside: false
 
     // screen can briefly be null right at lock-surface creation, before the
     // compositor assigns it — guard instead of dereferencing .name directly.
@@ -178,6 +181,13 @@ WlSessionLockSurface {
         width: root.width
         height: root.height
         opacity: 0  // set to 1 in onCompleted
+
+        // Passive pointer tracker (does not consume events). Used by the idle cat.
+        HoverHandler {
+            id: cursorTracker
+            onPointChanged: root.cursorPos = point.position
+            onHoveredChanged: root.cursorInside = hovered
+        }
 
         Loader {
             id: content

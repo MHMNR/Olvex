@@ -12,6 +12,7 @@ import qs.components.effects
 import qs.components.images
 import qs.services
 import qs.utils
+import "cat"
 
 Item {
     id: root
@@ -159,6 +160,9 @@ Item {
     ColumnLayout {
         id: layout
         anchors.fill: parent
+        visible: opacity > 0.01
+        opacity: root.hasActiveMedia ? 1 : 0
+        Behavior on opacity { Anim { type: Anim.DefaultEffects } }
         anchors.leftMargin: 14
         anchors.rightMargin: 14
         anchors.topMargin: 12
@@ -490,6 +494,24 @@ Item {
                         root.seekPreview = -1;
                     }
                 }
+            }
+        }
+    }
+
+    // ── Idle state: a cat replaces the empty player ─────────────────────────
+    // Only instantiated while nothing is playing, so there is zero cost during
+    // normal playback.
+    Loader {
+        id: catLoader
+        anchors.fill: parent
+        active: !root.hasActiveMedia
+        opacity: active ? 1 : 0
+        Behavior on opacity { Anim { type: Anim.DefaultEffects } }
+        sourceComponent: Component {
+            CatScene {
+                lock: root.lock
+                layout: "full"
+                running: !root.lock || (root.lock.contentReady && !root.lock.unlocking)
             }
         }
     }
