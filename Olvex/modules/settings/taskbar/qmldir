@@ -1,7 +1,7 @@
 module qs.modules.settings.taskbar
 
 TaskbarBehavior 1.0 TaskbarBehavior.qml
-TaskbarBottomPanel 1.0 TaskbarBottomPanel.qml
+TaskbarSecondaryPanel 1.0 TaskbarSecondaryPanel.qml
 TaskbarDetails 1.0 TaskbarDetails.qml
 TaskbarList 1.0 TaskbarList.qml
 TaskbarPage 1.0 TaskbarPage.qml

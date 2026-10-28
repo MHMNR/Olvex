@@ -83,9 +83,9 @@ Region {
     }
 
     R {
-        panel: root.panels.bottomPanel
+        panel: root.panels.secondaryPanel
         y: root.win.height - height
-        customHeight: root.panels.bottomPanelVisible ? panel.height : 0
+        customHeight: root.panels.secondaryPanelVisible ? panel.height : 0
     }
 
     R {

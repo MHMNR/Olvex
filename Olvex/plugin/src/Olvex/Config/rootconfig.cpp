@@ -67,7 +67,7 @@ const char* defaultShellJson() {
             "compact": true,
             "inverted": false
         },
-        "bottomPanel": {
+        "secondaryPanel": {
             "dockBackground": true,
             "enabled": true,
             "visibilityMode": "smarthide"

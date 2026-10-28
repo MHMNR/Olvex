@@ -12,7 +12,7 @@ QtObject {
     property bool dashboard: false
     property bool qspanel: false
     property bool notificationcenter: false
-    property bool bottomPanel: false
+    property bool secondaryPanel: false
     property bool osk: false
 
     // Persistent properties (saved to disk)

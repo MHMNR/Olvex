@@ -39,14 +39,14 @@ Item {
 
         SettingRow {
             Layout.fillWidth: true
-            title: qsTr("Bottom Panel")
+            title: qsTr("Secondary Panel")
             description: qsTr("Quick settings panel below the taskbar")
             divider: true
             
             StyledSwitch {
-                checked: Config.bar.bottomPanel.enabled ?? true
+                checked: Config.bar.secondaryPanel.enabled ?? true
                 onToggled: {
-                    GlobalConfig.bar.bottomPanel.enabled = checked;
+                    GlobalConfig.bar.secondaryPanel.enabled = checked;
                     GlobalConfig.save();
                 }
             }
@@ -57,17 +57,17 @@ Item {
             title: qsTr("Dock Background")
             description: qsTr("Show a container background behind pinned apps")
             divider: true
-            enabled: Config.bar.bottomPanel.enabled ?? true
+            enabled: Config.bar.secondaryPanel.enabled ?? true
             opacity: enabled ? 1.0 : 0.38
             Behavior on opacity { Anim { type: Anim.FastEffects } }
             
             StyledSwitch {
-                enabled: Config.bar.bottomPanel.enabled ?? true
-                checked: Visibilities.bottomPanelDockBackground
+                enabled: Config.bar.secondaryPanel.enabled ?? true
+                checked: Visibilities.secondaryPanelDockBackground
                 onToggled: {
-                    Visibilities.setBottomPanelDockBackground(checked);
-                    if (GlobalConfig.bar && GlobalConfig.bar.bottomPanel) {
-                        GlobalConfig.bar.bottomPanel.dockBackground = checked;
+                    Visibilities.setSecondaryPanelDockBackground(checked);
+                    if (GlobalConfig.bar && GlobalConfig.bar.secondaryPanel) {
+                        GlobalConfig.bar.secondaryPanel.dockBackground = checked;
                     }
                     GlobalConfig.save();
                 }
@@ -77,25 +77,25 @@ Item {
         SettingRow {
             Layout.fillWidth: true
             title: qsTr("Visibility Mode")
-            description: qsTr("When the bottom panel should be shown")
+            description: qsTr("When the secondary panel should be shown")
             divider: false
-            enabled: Config.bar.bottomPanel.enabled ?? true
+            enabled: Config.bar.secondaryPanel.enabled ?? true
             opacity: enabled ? 1.0 : 0.38
             Behavior on opacity { Anim { type: Anim.FastEffects } }
             
             Segmented {
-                enabled: Config.bar.bottomPanel.enabled ?? true
+                enabled: Config.bar.secondaryPanel.enabled ?? true
                 model: [qsTr("Always Show"), qsTr("Auto Hide"), qsTr("Smart Hide")]
                 currentIndex: {
-                    const act = Config.bar.bottomPanel.visibilityMode || "always";
+                    const act = Config.bar.secondaryPanel.visibilityMode || "always";
                     if (act === "autohide") return 1;
                     if (act === "smarthide") return 2;
                     return 0;
                 }
                 onSelected: i => {
-                    if (i === 0) GlobalConfig.bar.bottomPanel.visibilityMode = "always";
-                    else if (i === 1) GlobalConfig.bar.bottomPanel.visibilityMode = "autohide";
-                    else if (i === 2) GlobalConfig.bar.bottomPanel.visibilityMode = "smarthide";
+                    if (i === 0) GlobalConfig.bar.secondaryPanel.visibilityMode = "always";
+                    else if (i === 1) GlobalConfig.bar.secondaryPanel.visibilityMode = "autohide";
+                    else if (i === 2) GlobalConfig.bar.secondaryPanel.visibilityMode = "smarthide";
                     GlobalConfig.save();
                 }
             }

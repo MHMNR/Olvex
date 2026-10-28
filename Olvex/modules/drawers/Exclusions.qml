@@ -48,8 +48,8 @@ Scope {
         // Cross-window bindings to ContentWindow properties are unreliable because
         // ExclusionZone is a separate Wayland PanelWindow.
         exclusiveZone: {
-            const enabled = contentItem.Config.bar.bottomPanel?.enabled ?? true;
-            const mode    = contentItem.Config.bar.bottomPanel?.visibilityMode ?? "always";
+            const enabled = contentItem.Config.bar.secondaryPanel?.enabled ?? true;
+            const mode    = contentItem.Config.bar.secondaryPanel?.visibilityMode ?? "always";
             if (enabled && mode === "always")
                 return 80;
             return contentItem?.Config?.border?.thickness ?? 0;

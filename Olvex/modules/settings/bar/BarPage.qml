@@ -89,17 +89,17 @@ Item {
         }
 
         Section {
-            title: qsTr("Bottom panel")
-            description: qsTr("Pinned apps strip along the bottom edge")
+            title: qsTr("Secondary panel")
+            description: qsTr("Pinned apps strip along the secondary edge")
             icon: "dock_to_bottom"
 
             SettingRow {
                 title: qsTr("Enabled")
-                description: qsTr("Show the bottom panel with pinned apps")
+                description: qsTr("Show the secondary panel with pinned apps")
                 StyledSwitch {
-                    checked: Config.bar.bottomPanel?.enabled ?? true
+                    checked: Config.bar.secondaryPanel?.enabled ?? true
                     onToggled: {
-                        GlobalConfig.bar.bottomPanel.enabled = checked;
+                        GlobalConfig.bar.secondaryPanel.enabled = checked;
                         GlobalConfig.save();
                     }
                 }
@@ -107,16 +107,16 @@ Item {
             SettingRow {
                 title: qsTr("Dock background")
                 description: qsTr("Show background container behind pinned apps")
-                enabled: Config.bar.bottomPanel?.enabled ?? true
+                enabled: Config.bar.secondaryPanel?.enabled ?? true
                 opacity: enabled ? 1.0 : 0.38
                 Behavior on opacity { Anim { type: Anim.FastEffects } }
                 StyledSwitch {
-                    enabled: Config.bar.bottomPanel?.enabled ?? true
-                    checked: Visibilities.bottomPanelDockBackground
+                    enabled: Config.bar.secondaryPanel?.enabled ?? true
+                    checked: Visibilities.secondaryPanelDockBackground
                     onToggled: {
-                        Visibilities.setBottomPanelDockBackground(checked);
-                        if (GlobalConfig.bar && GlobalConfig.bar.bottomPanel) {
-                            GlobalConfig.bar.bottomPanel.dockBackground = checked;
+                        Visibilities.setSecondaryPanelDockBackground(checked);
+                        if (GlobalConfig.bar && GlobalConfig.bar.secondaryPanel) {
+                            GlobalConfig.bar.secondaryPanel.dockBackground = checked;
                         }
                         GlobalConfig.save();
                     }
@@ -126,11 +126,11 @@ Item {
                 title: qsTr("Visibility")
                 description: qsTr("Always show, hide until hover, or hide when windows overlap")
                 divider: false
-                enabled: Config.bar.bottomPanel?.enabled ?? true
+                enabled: Config.bar.secondaryPanel?.enabled ?? true
                 opacity: enabled ? 1.0 : 0.38
                 Behavior on opacity { Anim { type: Anim.FastEffects } }
                 Segmented {
-                    enabled: Config.bar.bottomPanel?.enabled ?? true
+                    enabled: Config.bar.secondaryPanel?.enabled ?? true
                     model: [{
                             label: qsTr("Always")
                         }, {
@@ -139,7 +139,7 @@ Item {
                             label: qsTr("Smart hide")
                         }]
                     currentIndex: {
-                        const m = Config.bar.bottomPanel?.visibilityMode || "always";
+                        const m = Config.bar.secondaryPanel?.visibilityMode || "always";
                         if (m === "autohide")
                             return 1;
                         if (m === "smarthide")
@@ -147,7 +147,7 @@ Item {
                         return 0;
                     }
                     onSelected: i => {
-                        GlobalConfig.bar.bottomPanel.visibilityMode = ["always", "autohide", "smarthide"][i];
+                        GlobalConfig.bar.secondaryPanel.visibilityMode = ["always", "autohide", "smarthide"][i];
                         GlobalConfig.save();
                     }
                 }

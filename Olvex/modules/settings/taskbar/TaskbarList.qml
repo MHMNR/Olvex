@@ -13,6 +13,6 @@ SettingsMasterList {
         { id: "quickorb", label: qsTr("Quick Orb"), icon: "adjust" },
         { id: "workspaces", label: qsTr("Workspaces"), icon: "grid_view" },
         { id: "widgets", label: qsTr("Widgets & Tray"), icon: "widgets" },
-        { id: "bottomPanel", label: qsTr("Bottom Panel"), icon: "bottom_panel_open" }
+        { id: "secondaryPanel", label: qsTr("Secondary Panel"), icon: "bottom_panel_open" }
     ]
 }

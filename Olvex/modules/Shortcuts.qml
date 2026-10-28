@@ -163,14 +163,14 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
-        name: "bottomPanel"
-        description: "Toggle bottom panel"
+        name: "secondaryPanel"
+        description: "Toggle secondary panel"
         onPressed: {
-            if (!root.shouldTrigger("bottomPanel")) return;
+            if (!root.shouldTrigger("secondaryPanel") && !root.shouldTrigger("bottomPanel")) return;
             if (root.hasFullscreen)
                 return;
             const visibilities = Visibilities.getForActive();
-            visibilities.bottomPanel = !visibilities.bottomPanel;
+            visibilities.secondaryPanel = !visibilities.secondaryPanel;
             Visibilities.launcherInterrupted = true;
         }
     }

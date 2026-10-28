@@ -139,7 +139,7 @@ public:
         : ConfigObject(parent) {}
 };
 
-class BarBottomPanel : public ConfigObject {
+class BarSecondaryPanel : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
@@ -148,7 +148,7 @@ class BarBottomPanel : public ConfigObject {
     CONFIG_PROPERTY(bool, dockBackground, true)
 
 public:
-    explicit BarBottomPanel(QObject* parent = nullptr)
+    explicit BarSecondaryPanel(QObject* parent = nullptr)
         : ConfigObject(parent) {}
 };
 
@@ -189,7 +189,7 @@ class BarConfig : public ConfigObject {
     CONFIG_SUBOBJECT(BarStatus, status)
     CONFIG_SUBOBJECT(BarClock, clock)
     CONFIG_SUBOBJECT(BarNetSpeed, netSpeed)
-    CONFIG_SUBOBJECT(BarBottomPanel, bottomPanel)
+    CONFIG_SUBOBJECT(BarSecondaryPanel, secondaryPanel)
     CONFIG_SUBOBJECT(BarQuickOrb, quickOrb)
     CONFIG_PROPERTY(QVariantList, entries,
         {
@@ -214,7 +214,7 @@ public:
         , m_status(new BarStatus(this))
         , m_clock(new BarClock(this))
         , m_netSpeed(new BarNetSpeed(this))
-        , m_bottomPanel(new BarBottomPanel(this))
+        , m_secondaryPanel(new BarSecondaryPanel(this))
         , m_quickOrb(new BarQuickOrb(this)) {}
 };
 

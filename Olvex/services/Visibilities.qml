@@ -19,15 +19,15 @@ Singleton {
         chargingRippleTriggered();
     }
 
-    property alias bottomPanelDockBackground: bpSettings.dockBackground
+    property alias secondaryPanelDockBackground: bpSettings.dockBackground
 
     PersistentProperties {
         id: bpSettings
-        reloadableId: "bottomPanelSettings"
+        reloadableId: "secondaryPanelSettings"
         property bool dockBackground: true
     }
 
-    function setBottomPanelDockBackground(val) {
+    function setSecondaryPanelDockBackground(val) {
         bpSettings.dockBackground = val;
     }
 

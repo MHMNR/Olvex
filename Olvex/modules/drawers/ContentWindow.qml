@@ -65,7 +65,7 @@ StyledWindow {
         if (hasFullscreen)
             return 0;
         // Expand blob border to 80px whenever panel is visible (any mode)
-        if (panels.bottomPanelVisible)
+        if (panels.secondaryPanelVisible)
             return 80;
         return root.borderThickness;
     }
@@ -583,9 +583,9 @@ StyledWindow {
                 const launcher = panels.launcher;
                 const mapped = launcher.mapToItem(revealContainer, 0, 0);
                 const inLauncher = mouse.x >= mapped.x && mouse.x <= mapped.x + launcher.width && mouse.y >= mapped.y && mouse.y <= mapped.y + launcher.height;
-                const bp = panels.bottomPanel;
+                const bp = panels.secondaryPanel;
                 const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+                const inSecondaryPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
 
                 let inOsIcon = false;
                 if (bar.osIcon) {
@@ -593,7 +593,7 @@ StyledWindow {
                     inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
                 }
 
-                if (!inLauncher && !inBottomPanel && !inOsIcon && !Visibilities.areaPickerActive) {
+                if (!inLauncher && !inSecondaryPanel && !inOsIcon && !Visibilities.areaPickerActive) {
                     visibilities.launcher = false;
                 }
                 // Always propagate — Interactions already handled the accept/reject decision
@@ -615,9 +615,9 @@ StyledWindow {
                 const ws = panels.wallpaperSelector;
                 const mapped = ws.mapToItem(revealContainer, 0, 0);
                 const inWS = mouse.x >= mapped.x && mouse.x <= mapped.x + ws.width && mouse.y >= mapped.y && mouse.y <= mapped.y + ws.height;
-                const bp = panels.bottomPanel;
+                const bp = panels.secondaryPanel;
                 const bpMapped = bp.mapToItem(revealContainer, 0, 0);
-                const inBottomPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
+                const inSecondaryPanel = mouse.x >= bpMapped.x && mouse.x <= bpMapped.x + bp.width && mouse.y >= bpMapped.y && mouse.y <= bpMapped.y + bp.height;
 
                 let inOsIcon = false;
                 if (bar.osIcon) {
@@ -625,7 +625,7 @@ StyledWindow {
                     inOsIcon = mouse.x >= osMapped.x && mouse.x <= osMapped.x + bar.osIcon.width && mouse.y >= osMapped.y && mouse.y <= osMapped.y + bar.osIcon.height;
                 }
 
-                if (!inWS && !inBottomPanel && !inOsIcon && !Visibilities.areaPickerActive) {
+                if (!inWS && !inSecondaryPanel && !inOsIcon && !Visibilities.areaPickerActive) {
                     visibilities.wallpaperLauncher = false;
                 }
                 // Always propagate
@@ -684,7 +684,7 @@ StyledWindow {
             id: appLaunchMorphId
 
             visibilities: visibilities
-            bottomPanel: panels.bottomPanel
+            secondaryPanel: panels.secondaryPanel
             pinnedLayout: panels.pinnedLayout
         }
 

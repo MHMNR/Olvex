@@ -44,7 +44,8 @@ Item {
                     case "quickorb": return "TaskbarQuickOrb.qml";
                     case "workspaces": return "TaskbarWorkspaces.qml";
                     case "widgets": return "TaskbarWidgets.qml";
-                    case "bottomPanel": return "TaskbarBottomPanel.qml";
+                    case "secondaryPanel": return "TaskbarSecondaryPanel.qml";
+                    case "bottomPanel": return "TaskbarSecondaryPanel.qml";
                     default: return "TaskbarBehavior.qml";
                 }
             }

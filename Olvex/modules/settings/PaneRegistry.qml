@@ -1050,30 +1050,30 @@ QtObject {
             keywords: "widgets tray system tray status icons clock format date battery weather network audio"
         },
 
-        // ── Bottom Panel ──
+        // ── Secondary Panel ──
         {
-            id: "taskbar_bottompanel_shelf",
+            id: "taskbar_secondarypanel_shelf",
             pageId: "taskbar",
-            sectionId: "bottomPanel",
-            rowTitle: "Bottom Panel",
-            title: "Bottom Shelf & Pinned Apps",
-            sub: "Bottom quick shelf, pinned applications, and quick actions",
-            breadcrumb: "Settings › Taskbar › Bottom Panel",
+            sectionId: "secondaryPanel",
+            rowTitle: "Secondary Panel",
+            title: "Secondary Shelf & Pinned Apps",
+            sub: "Secondary quick shelf, pinned applications, and quick actions",
+            breadcrumb: "Settings › Taskbar › Secondary Panel",
             icon: "bottom_panel_open",
             accentRole: "m3primary",
-            keywords: "bottom panel shelf dock drawer actions shortcuts pinned quick apps shelf",
+            keywords: "secondary panel shelf dock drawer actions shortcuts pinned quick apps shelf bottom",
             isOption: true
         },
         {
-            id: "taskbar_bottomPanel",
+            id: "taskbar_secondaryPanel",
             pageId: "taskbar",
-            sectionId: "bottomPanel",
-            title: "Bottom Panel",
-            sub: "Bottom quick shelf, pinned apps, and quick actions",
-            breadcrumb: "Settings › Taskbar › Bottom Panel",
+            sectionId: "secondaryPanel",
+            title: "Secondary Panel",
+            sub: "Secondary quick shelf, pinned apps, and quick actions",
+            breadcrumb: "Settings › Taskbar › Secondary Panel",
             icon: "bottom_panel_open",
             accentRole: "m3primary",
-            keywords: "bottom panel shelf dock drawer actions shortcuts pinned quick apps"
+            keywords: "secondary panel shelf dock drawer actions shortcuts pinned quick apps bottom"
         },
 
         // ═════════════════════════════════════════════════════════════════════

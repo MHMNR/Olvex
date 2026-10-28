@@ -12,8 +12,8 @@ Item {
 
     // References wired by ContentWindow
     property DrawerVisibilities visibilities
-    property Item bottomPanel       // panels.bottomPanel
-    property Item pinnedLayout      // panels.bottomPanel > layout (the pinned apps container)
+    property Item secondaryPanel       // panels.secondaryPanel
+    property Item pinnedLayout         // panels.secondaryPanel > layout (the pinned apps container)
 
     readonly property string pinnedAppsSource: root.visibilities.pinnedApps || []
 
@@ -34,8 +34,8 @@ Item {
         const slotIndex = findPinnedSlotIndex(appId);
         if (slotIndex < 0) return false;
 
-        // The bottom panel must be visible to compute destination
-        if (!root.bottomPanel.visible && !root.visibilities.bottomPanel) return false;
+        // The secondary panel must be visible to compute destination
+        if (!root.secondaryPanel.visible && !root.visibilities.secondaryPanel) return false;
 
         // Find the pinned slot delegate — each is a Repeater child of layout
         const layoutChildren = root.pinnedLayout.children;

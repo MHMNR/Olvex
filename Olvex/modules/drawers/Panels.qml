@@ -43,7 +43,8 @@ Item {
     readonly property alias popoutsWrapper: popoutsWrapper
     readonly property alias qspanel: qspanel
     readonly property alias toasts: toasts
-    readonly property alias bottomPanel: bottomPanel
+    readonly property alias secondaryPanel: secondaryPanel
+    readonly property alias bottomPanel: secondaryPanel
     readonly property alias contextMenuContainer: menuContainer
     readonly property alias overflowFlyoutContainer: overflowFlyout
 
@@ -111,15 +112,20 @@ Item {
     // sets exclusiveZone=80 to push windows.
     property real bottomMargin: {
         const baseMargin = borderThickness + (safeBorder.floating ? safeBorder.gap : 0);
-        if (bottomPanelVisible)
+        if (secondaryPanelVisible)
             return 80 + (safeBorder.floating ? safeBorder.gap : 0);
         return baseMargin;
     }
 
-    // Bottom panel config
-    readonly property bool bottomPanelEnabled: Config.bar.bottomPanel && Config.bar.bottomPanel.enabled !== undefined ? Config.bar.bottomPanel.enabled : true
-    readonly property string bottomPanelMode: Config.bar.bottomPanel && Config.bar.bottomPanel.visibilityMode ? Config.bar.bottomPanel.visibilityMode : "always"
-    readonly property bool bottomPanelDockBg: Visibilities.bottomPanelDockBackground && (Config.bar?.bottomPanel?.dockBackground !== false)
+    // Secondary panel config
+    readonly property bool secondaryPanelEnabled: Config.bar.secondaryPanel && Config.bar.secondaryPanel.enabled !== undefined ? Config.bar.secondaryPanel.enabled : true
+    readonly property string secondaryPanelMode: Config.bar.secondaryPanel && Config.bar.secondaryPanel.visibilityMode ? Config.bar.secondaryPanel.visibilityMode : "always"
+    readonly property bool secondaryPanelDockBg: Visibilities.secondaryPanelDockBackground && (Config.bar && Config.bar.secondaryPanel ? (Config.bar.secondaryPanel.dockBackground !== false) : true)
+
+    // Backward-compatibility aliases
+    readonly property alias bottomPanelEnabled: root.secondaryPanelEnabled
+    readonly property alias bottomPanelMode: root.secondaryPanelMode
+    readonly property alias bottomPanelDockBg: root.secondaryPanelDockBg
 
     property bool hasWindowsOverlappingPanel: false
     property bool _lastOverlapState: false
@@ -172,12 +178,12 @@ Item {
         }
 
         // Position menu centered horizontally on the icon, above the panel
-        const pos = sourceItem.mapToItem(bottomPanel, 0, 0);
+        const pos = sourceItem.mapToItem(secondaryPanel, 0, 0);
         const menuW = root.contextMenuWidth;
         let mx = pos.x + sourceItem.width / 2 - menuW / 2;
 
         // Horizontal bounds checking
-        const panelWidth = bottomPanel.width;
+        const panelWidth = secondaryPanel.width;
         const minMargin = 8;
         if (mx < minMargin) {
             mx = minMargin;
@@ -390,7 +396,7 @@ Item {
         id: geometrySyncLoop
         interval: 350
         property int ticksLeft: 0
-        running: ticksLeft > 0 && bottomPanelMode === "smarthide" && root.bottomPanelEnabled && !LockState.locked
+        running: ticksLeft > 0 && secondaryPanelMode === "smarthide" && root.secondaryPanelEnabled && !LockState.locked
         repeat: true
         onTriggered: {
             ticksLeft--;
@@ -415,17 +421,17 @@ Item {
     Connections {
         target: Hypr
         function onToplevelUpdateCounterChanged(): void {
-            if (root.bottomPanelMode !== "smarthide")
+            if (root.secondaryPanelMode !== "smarthide")
                 return;
             geometrySyncLoop.kick(3);
         }
         function onActiveWsIdChanged(): void {
-            if (root.bottomPanelMode !== "smarthide")
+            if (root.secondaryPanelMode !== "smarthide")
                 return;
             geometrySyncLoop.kick(3);
         }
         function onFocusedWorkspaceChanged(): void {
-            if (root.bottomPanelMode !== "smarthide")
+            if (root.secondaryPanelMode !== "smarthide")
                 return;
             geometrySyncLoop.kick(3);
         }
@@ -434,7 +440,7 @@ Item {
     Connections {
         target: Hyprland.workspaces
         function onValuesChanged(): void {
-            if (root.bottomPanelMode === "smarthide")
+            if (root.secondaryPanelMode === "smarthide")
                 geometrySyncLoop.kick(3);
         }
     }
@@ -442,7 +448,7 @@ Item {
     Connections {
         target: Hyprland.toplevels
         function onValuesChanged(): void {
-            if (root.bottomPanelMode === "smarthide")
+            if (root.secondaryPanelMode === "smarthide")
                 geometrySyncLoop.kick(3);
         }
     }
@@ -468,8 +474,8 @@ Item {
     }
 
     // Whether the panel should be visible based on mode
-    readonly property bool bottomPanelVisible: {
-        if (!bottomPanelEnabled)
+    readonly property bool secondaryPanelVisible: {
+        if (!secondaryPanelEnabled)
             return false;
         if (visibilities.powermenu)
             return false;
@@ -477,20 +483,23 @@ Item {
         if (contextMenuVisible || overflowFlyoutVisible || (overflowFlyoutContainer && overflowFlyoutContainer.isMorphAnimating))
             return true;
         if (visibilities.osk && visibilities.isOskDocked) {
-            return visibilities.bottomPanel;
+            return visibilities.secondaryPanel;
         }
-        if (bottomPanelMode === "smarthide") {
-            // If a window overlaps the bottom panel area, react like autohide (hover to show)
+        if (secondaryPanelMode === "smarthide") {
+            // If a window overlaps the secondary panel area, react like autohide (hover to show)
             // If no window overlaps, always show
-            return hasWindowsOverlappingPanel ? visibilities.bottomPanel : true;
+            return hasWindowsOverlappingPanel ? visibilities.secondaryPanel : true;
         }
-        if (bottomPanelMode === "autohide") {
-            // Use Interactions.qml hover-controlled visibilities.bottomPanel
-            return visibilities.bottomPanel;
+        if (secondaryPanelMode === "autohide") {
+            // Use Interactions.qml hover-controlled visibilities.secondaryPanel
+            return visibilities.secondaryPanel;
         }
-        // "always": always visible
+        // "always" mode
         return true;
     }
+
+    readonly property alias bottomPanelVisible: root.secondaryPanelVisible
+
     Component.onCompleted: {
         geometrySyncLoop.kick(10);
     }
@@ -597,15 +606,15 @@ Item {
     Toasts.Toasts {
         id: toasts
 
-        // Float above bottom panel / screen bottom in bottom-center
+        // Float above secondary panel / screen bottom in bottom-center
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: (root.bottomPanelEnabled && root.bottomPanelVisible) ? bottomPanel.top : parent.bottom
-        anchors.bottomMargin: Tokens.padding.large + ((root.bottomPanelEnabled && root.bottomPanelVisible) ? 12 : 24)
+        anchors.bottom: (root.secondaryPanelEnabled && root.secondaryPanelVisible) ? secondaryPanel.top : parent.bottom
+        anchors.bottomMargin: Tokens.padding.large + ((root.secondaryPanelEnabled && root.secondaryPanelVisible) ? 12 : 24)
         z: 35
     }
 
     Item {
-        id: bottomPanel
+        id: secondaryPanel
 
         readonly property real safeParentHeight: parent ? (parent.height > 100 ? parent.height : (root.screen?.height ?? 1080)) : 1080
 
@@ -616,13 +625,13 @@ Item {
         anchors.rightMargin: -(root.borderThickness + (safeBorder.floating ? safeBorder.gap : 0))
 
         height: 80
-        visible: root.bottomPanelEnabled
+        visible: root.secondaryPanelEnabled
         // Float above content in overlay modes; behind nothing in always mode
-        z: root.bottomPanelMode === "always" ? 0 : 10
+        z: root.secondaryPanelMode === "always" ? 0 : 10
 
         // Slide-up behavior relative to parent (which has bottomMargin)
-        opacity: root.bottomPanelVisible ? 1 : 0
-        y: root.bottomPanelVisible ? safeParentHeight + root.bottomMargin - height : safeParentHeight + root.bottomMargin
+        opacity: root.secondaryPanelVisible ? 1 : 0
+        y: root.secondaryPanelVisible ? safeParentHeight + root.bottomMargin - height : safeParentHeight + root.bottomMargin
 
         Behavior on opacity {
             NumberAnimation {
@@ -691,7 +700,7 @@ Item {
                     }
                 }
 
-                readonly property bool showBg: root.bottomPanelDockBg
+                readonly property bool showBg: root.secondaryPanelDockBg
                 color: showBg ? Colours.tileGlassStrong : "transparent"
                 border.color: showBg ? Colours.tileShine : "transparent"
                 border.width: showBg ? 1 : 0
@@ -1495,7 +1504,7 @@ Item {
                                                     Hypr.dispatch(`workspace ${targetWsId}`);
                                                     Hypr.dispatch(`focuswindow address:${targetAddr}`);
                                                 }
-                                                root.visibilities.bottomPanel = false;
+                                                root.visibilities.secondaryPanel = false;
                                             }
                                             pinnedState.endDrag();
                                         }
@@ -1727,7 +1736,7 @@ Item {
                                             Hypr.dispatch(`workspace ${targetWsId}`);
                                             Hypr.dispatch(`focuswindow address:${targetAddr}`);
                                         }
-                                        root.visibilities.bottomPanel = false;
+                                        root.visibilities.secondaryPanel = false;
                                     }
                                 }
                             }
@@ -1843,7 +1852,7 @@ Item {
 
         readonly property point currentBtnPoint: {
             if (!layout.hasOverflow || !overflowBtn) return Qt.point(0, 0);
-            const _ = bottomPanel.x + bottomPanel.y + dockContainer.x + dockContainer.y + layout.x + layout.y + overflowBtn.x + overflowBtn.y;
+            const _ = secondaryPanel.x + secondaryPanel.y + dockContainer.x + dockContainer.y + layout.x + layout.y + overflowBtn.x + overflowBtn.y;
             const pt = overflowBtn.mapToItem(root, 0, 0);
             return Qt.point(Math.round(pt.x), Math.round(pt.y));
         }
@@ -1863,7 +1872,7 @@ Item {
             let mx = btnX + savedStartSize.width / 2 - endW / 2;
             return Math.max(minMargin, Math.min(mx, maxMargin));
         }
-        readonly property real endY: bottomPanel.y - endH - 10
+        readonly property real endY: secondaryPanel.y - endH - 10
         readonly property real endR: Tokens.rounding.large
 
         readonly property bool isMorphAnimating: expandTransition.running || collapseTransition.running
@@ -2290,7 +2299,7 @@ Item {
                                                             if (overflowRow.entry) {
                                                                 LauncherServices.Apps.launch(overflowRow.entry);
                                                                 root.overflowFlyoutVisible = false;
-                                                                root.visibilities.bottomPanel = false;
+                                                                root.visibilities.secondaryPanel = false;
                                                             }
                                                         }
                                                     }
@@ -2399,7 +2408,7 @@ Item {
     Elevation {
         id: menuContainer
         x: root.contextMenuX
-        y: bottomPanel.y - implicitHeight - 8
+        y: secondaryPanel.y - implicitHeight - 8
         radius: Tokens.rounding.normal
         level: 2
         z: 10000
@@ -2585,7 +2594,7 @@ Item {
                                         Hypr.dispatch(`workspace ${win.workspaceId}`);
                                         Hypr.dispatch(`focuswindow address:${win.address}`);
                                         root.hideContextMenu();
-                                        root.visibilities.bottomPanel = false;
+                                        root.visibilities.secondaryPanel = false;
                                     }
                                 }
                             }

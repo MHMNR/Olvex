@@ -24,7 +24,7 @@ CustomMouseArea {
     property point dragStart
     property bool dashboardShortcutActive
     property bool qspanelShortcutActive: false
-    property bool bottomPanelShortcutActive: false
+    property bool secondaryPanelShortcutActive: false
     property bool wallpaperShortcutActive: false
     property bool launcherHoverDisabled: false
 
@@ -37,10 +37,10 @@ CustomMouseArea {
             return x <= bar.implicitWidth + 12;
         return x <= Math.max(8, safeBorder.thickness + floatingGap);
     }
-    function inBottomPanelArea(x: real, y: real): bool {
+    function inSecondaryPanelArea(x: real, y: real): bool {
         if (x < bar.implicitWidth)
             return false;
-        if (visibilities.bottomPanel) {
+        if (visibilities.secondaryPanel) {
             return y >= height - 80;
         }
         return y >= height - 4;
@@ -230,7 +230,7 @@ CustomMouseArea {
 
         // ── Determine which panels/surfaces contain the click ──────────────
         const inBar = inLeftBarArea(event.x, event.y);
-        const inBp = panels.bottomPanel.visible && event.y >= (height - panels.bottomPanel.height - root.borderThickness - floatingGap);
+        const inBp = panels.secondaryPanel.visible && event.y >= (height - panels.secondaryPanel.height - root.borderThickness - floatingGap);
 
         let inPopoutContent = false;
         if (popouts.hasCurrent) {
@@ -375,8 +375,8 @@ CustomMouseArea {
                 visibilities.qspanel = false;
             root.panels.qspanel.hovered = false;
 
-            if (!bottomPanelShortcutActive)
-                visibilities.bottomPanel = false;
+            if (!secondaryPanelShortcutActive)
+                visibilities.secondaryPanel = false;
 
             if (!popouts.currentName.startsWith("traymenu")) {
                 popouts.hasCurrent = false;
@@ -485,23 +485,23 @@ CustomMouseArea {
                 visibilities.dashboard = false;
         }
 
-        // Show/hide qspanel hover peek from the right edge when bottom panel is off
-        const _bottomPanelOff = !(Config.bar.bottomPanel && Config.bar.bottomPanel.enabled !== undefined ? Config.bar.bottomPanel.enabled : true);
-        if (_bottomPanelOff && !visibilities.qspanel && !qspanelShortcutActive) {
+        // Show/hide qspanel hover peek from the right edge when secondary panel is off
+        const _secondaryPanelOff = !(Config.bar.secondaryPanel && Config.bar.secondaryPanel.enabled !== undefined ? Config.bar.secondaryPanel.enabled : true);
+        if (_secondaryPanelOff && !visibilities.qspanel && !qspanelShortcutActive) {
             panels.qspanel.hovered = inRightPanel(panels.qspanel, x, y);
-        } else if (!_bottomPanelOff) {
+        } else if (!_secondaryPanelOff) {
             panels.qspanel.hovered = false;
         }
 
-        // Show bottomPanel on hover (suppressed while powermenu/power menu is open)
-        const showBottomPanel = !visibilities.powermenu && root.inBottomPanelArea(x, y);
+        // Show secondaryPanel on hover (suppressed while powermenu/power menu is open)
+        const showSecondaryPanel = !visibilities.powermenu && root.inSecondaryPanelArea(x, y);
 
         // Always update visibility based on hover if not in shortcut mode
-        if (!bottomPanelShortcutActive) {
-            visibilities.bottomPanel = showBottomPanel;
-        } else if (showBottomPanel) {
-            // If hovering over bottomPanel area while in shortcut mode, transition to hover control
-            bottomPanelShortcutActive = false;
+        if (!secondaryPanelShortcutActive) {
+            visibilities.secondaryPanel = showSecondaryPanel;
+        } else if (showSecondaryPanel) {
+            // If hovering over secondaryPanel area while in shortcut mode, transition to hover control
+            secondaryPanelShortcutActive = false;
         }
 
         // Show popouts on hover
@@ -570,21 +570,21 @@ CustomMouseArea {
             }
         }
 
-        function onBottomPanelChanged() {
-            if (root.visibilities.bottomPanel) {
-                const inPanel = root.inBottomPanelArea(root.mouseX, root.mouseY);
+        function onSecondaryPanelChanged() {
+            if (root.visibilities.secondaryPanel) {
+                const inPanel = root.inSecondaryPanelArea(root.mouseX, root.mouseY);
                 if (!inPanel) {
-                    root.bottomPanelShortcutActive = true;
+                    root.secondaryPanelShortcutActive = true;
                 }
             } else {
-                root.bottomPanelShortcutActive = false;
+                root.secondaryPanelShortcutActive = false;
             }
         }
 
         function onPowermenuChanged() {
             if (root.visibilities.powermenu) {
-                root.visibilities.bottomPanel = false;
-                root.bottomPanelShortcutActive = false;
+                root.visibilities.secondaryPanel = false;
+                root.secondaryPanelShortcutActive = false;
             }
         }
 

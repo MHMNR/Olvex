@@ -55,10 +55,10 @@ Item {
 
     readonly property bool contentActive: root.shouldBeActive || closeGrace.running || root.visible || root.warmedUp
 
-    // Peek: when hovered while closed and bottom panel is off, slide a strip in from the right
+    // Peek: when hovered while closed and secondary panel is off, slide a strip in from the right
     property bool hovered: false
-    readonly property bool bottomPanelOff: !(Config.bar.bottomPanel?.enabled ?? true)
-    property real peekOffset: (hovered && !shouldBeActive && bottomPanelOff) ? 17 : 0
+    readonly property bool secondaryPanelOff: !(Config.bar.secondaryPanel?.enabled ?? true)
+    property real peekOffset: (hovered && !shouldBeActive && secondaryPanelOff) ? 17 : 0
 
     Behavior on peekOffset {
         Anim {
