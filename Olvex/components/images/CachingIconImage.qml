@@ -16,19 +16,30 @@ Item {
     implicitWidth: implicitSize
     implicitHeight: implicitSize
 
+    readonly property string effectiveSource: {
+        const _ = Icons.iconEpoch;
+        const s = root.source ? root.source.toString() : "";
+        if (!s) return "";
+        if (s.startsWith("image://icon/")) {
+            const iconName = s.slice("image://icon/".length).split("?")[0];
+            return Icons.resolveIcon(iconName, "");
+        }
+        return s;
+    }
+
     Loader {
         id: loader
 
         asynchronous: false
         anchors.fill: parent
-        sourceComponent: root.source ? root.source.toString().startsWith("image://icon/") ? iconImage : cachingImage : null
+        sourceComponent: root.effectiveSource ? (root.effectiveSource.startsWith("image://icon/") ? iconImage : cachingImage) : null
     }
 
     Component {
         id: cachingImage
 
         CachingImage {
-            path: Paths.toLocalFile(root.source)
+            path: Paths.toLocalFile(root.effectiveSource)
             fillMode: Image.PreserveAspectCrop
             smooth: true
             mipmap: true

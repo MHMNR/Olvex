@@ -14,18 +14,43 @@ Item {
     property Session session
     property string activeSection: "theme"
 
-    onActiveSectionChanged: flick.contentY = 0
+    readonly property bool selfScrolled: activeSection === "icons"
 
+    onActiveSectionChanged: {
+        if (flick) flick.contentY = 0;
+    }
+
+    // Direct loader for pages with pinned headers and internal scrolling (AppearanceIcons)
+    Loader {
+        id: directLoader
+        anchors.fill: parent
+        anchors.topMargin: Tokens.padding.normal
+        anchors.bottomMargin: Tokens.padding.normal
+        active: root.selfScrolled
+        visible: active
+        source: root.selfScrolled ? "AppearanceIcons.qml" : ""
+
+        Binding {
+            target: directLoader.item
+            property: "session"
+            value: root.session
+            restoreMode: Binding.RestoreBindingOrValue
+        }
+    }
+
+    // Outer flickable for standard linear settings pages (Theme, Fonts, Transparency, etc.)
     StyledFlickable {
         id: flick
         anchors.fill: parent
+        visible: !root.selfScrolled
         contentWidth: width
         flickableDirection: Flickable.VerticalFlick
         contentHeight: detailsLoader.height + (Tokens.padding.large * 2)
-        clip: true
+        clip: false
 
         Loader {
             id: detailsLoader
+            active: !root.selfScrolled
             height: item ? (item.implicitHeight > 0 ? item.implicitHeight : item.height) : 0
             onLoaded: {
                 if (item) {
@@ -33,12 +58,13 @@ Item {
                     height = Qt.binding(() => item ? (item["implicitHeight"] || item["height"] || 0) : 0);
                 }
             }
-                        anchors.top: parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.topMargin: Tokens.padding.large
             
             source: {
+                if (root.selfScrolled) return "";
                 switch(root.activeSection) {
                     case "theme": return "AppearanceTheme.qml";
                     case "transparency": return "AppearanceTransparency.qml";

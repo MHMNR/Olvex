@@ -205,7 +205,7 @@ Item {
         anchors.left: leftPane.right
         anchors.right: parent.right
 
-        Rectangle {
+        StyledClippingRect {
             id: rightCard
             anchors.fill: parent
             anchors.margins: Tokens.padding.normal
@@ -219,7 +219,10 @@ Item {
             Loader {
                 id: rightLoader
                 anchors.fill: parent
-                anchors.margins: Tokens.padding.normal
+                anchors.leftMargin: Tokens.padding.normal
+                anchors.rightMargin: Tokens.padding.normal
+                anchors.topMargin: 0
+                anchors.bottomMargin: 0
                 asynchronous: true
                 sourceComponent: root.rightContent
 

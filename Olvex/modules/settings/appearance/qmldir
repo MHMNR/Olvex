@@ -2,6 +2,7 @@ module qs.modules.settings.appearance
 
 AppearanceDetails 1.0 AppearanceDetails.qml
 AppearanceFonts 1.0 AppearanceFonts.qml
+AppearanceIcons 1.0 AppearanceIcons.qml
 AppearanceList 1.0 AppearanceList.qml
 AppearanceLockscreen 1.0 AppearanceLockscreen.qml
 AppearanceMotion 1.0 AppearanceMotion.qml

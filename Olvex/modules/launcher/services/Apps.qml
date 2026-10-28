@@ -1,5 +1,6 @@
 pragma Singleton
 
+import QtQuick
 import Quickshell
 import Olvex
 import Olvex.Config
@@ -20,6 +21,13 @@ Searcher {
     function invalidateCatalog() {
         _allAppsCache = [];
         warmCatalog();
+    }
+
+    Connections {
+        target: Icons
+        function onIconThemeChanged() {
+            root.invalidateCatalog();
+        }
     }
 
     function launch(entry) {

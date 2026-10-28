@@ -6,6 +6,7 @@ import Olvex.Internal
 import Olvex.Config
 import qs.components.misc
 import qs.services
+import qs.utils
 import qs.modules.settings
 
 Scope {
@@ -262,6 +263,16 @@ Scope {
         target: "charging"
         function ripple() {
             Visibilities.triggerChargingRipple();
+        }
+    }
+
+    IpcHandler {
+        target: "icons"
+        function reload(theme: string) {
+            Icons.reloadIcons(theme);
+        }
+        function get(): string {
+            return Icons.currentTheme;
         }
     }
 

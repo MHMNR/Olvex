@@ -7,6 +7,7 @@ import qs.components
 import qs.components.containers
 import qs.components.controls
 import qs.services
+import qs.utils
 import qs.modules.settings
 import qs.modules.launcher.items
 import qs.modules.launcher.services
@@ -153,6 +154,7 @@ Item {
 
     // Reactive model — auto-updates on search text change and sorting
     readonly property var rawModelValues: {
+        const _ = Icons.iconEpoch;
         if (state === "calc") return [0];
         if (state === "command") return getCommandActionItems(getTerminalCommand(search.text));
         if (state === "scheme") return Schemes.query(search.text);
@@ -252,6 +254,13 @@ Item {
     Connections {
         target: DesktopEntries.applications
         function onValuesChanged() {
+            Apps.invalidateCatalog();
+        }
+    }
+
+    Connections {
+        target: Icons
+        function onIconThemeChanged() {
             Apps.invalidateCatalog();
         }
     }

@@ -22,7 +22,7 @@ Item {
         contentWidth: width
         flickableDirection: Flickable.VerticalFlick
         contentHeight: detailsLoader.height + (Tokens.padding.large * 2)
-        clip: true
+        clip: false
         smoothWheel: true
 
         Loader {

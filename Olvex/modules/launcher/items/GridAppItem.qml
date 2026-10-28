@@ -183,7 +183,10 @@ Item {
                 asynchronous: true
                 smooth: true
                 mipmap: true
-                source: root.modelData ? Icons.resolveApp(root.modelData) : ""
+                source: {
+                    const _ = Icons.iconEpoch;
+                    return root.modelData ? Icons.resolveApp(root.modelData) : "";
+                }
                 anchors.fill: parent
                 anchors.margins: 7
             }

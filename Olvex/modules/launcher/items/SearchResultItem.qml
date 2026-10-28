@@ -133,6 +133,7 @@ Item {
                 smooth: true
                 mipmap: true
                 source: {
+                    const _ = Icons.iconEpoch;
                     if (!visible || !root.modelData) return "";
                     if (root.modelData.entry)
                         return Icons.resolveApp(root.modelData.entry);

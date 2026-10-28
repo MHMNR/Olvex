@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Notifications
 import Olvex.Config
 import Olvex
@@ -83,6 +84,105 @@ Singleton {
 
     property var _iconResolveCache: ({})
     property var _iconSearchDirs: []
+    property string currentTheme: getSystemThemeName()
+    property int iconEpoch: 0
+    signal iconThemeChanged()
+
+    function getSystemThemeName(): string {
+        // 1. Check ~/.config/olvex/theme.json
+        const themeJsonPath = Paths.home + "/.config/olvex/theme.json";
+        if (typeof CUtils !== "undefined" && typeof CUtils.fileExists === "function" && CUtils.fileExists(themeJsonPath)) {
+            try {
+                const cfg = JSON.parse(CUtils.readTextFile(themeJsonPath));
+                if (cfg && cfg.theme && cfg.theme.iconTheme) {
+                    return cfg.theme.iconTheme;
+                }
+            } catch (e) {}
+        }
+        // 2. Check ~/.config/olvex/cli.json
+        const cliJsonPath = Paths.home + "/.config/olvex/cli.json";
+        if (typeof CUtils !== "undefined" && typeof CUtils.fileExists === "function" && CUtils.fileExists(cliJsonPath)) {
+            try {
+                const ccfg = JSON.parse(CUtils.readTextFile(cliJsonPath));
+                if (ccfg && ccfg.theme && ccfg.theme.iconTheme) {
+                    return ccfg.theme.iconTheme;
+                }
+            } catch (e) {}
+        }
+        // 3. Fallback to ~/.config/gtk-3.0/settings.ini
+        const iniPath = Paths.home + "/.config/gtk-3.0/settings.ini";
+        if (typeof CUtils !== "undefined" && typeof CUtils.fileExists === "function" && CUtils.fileExists(iniPath)) {
+            const content = CUtils.readTextFile(iniPath);
+            const lines = content.split("\n");
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith("gtk-icon-theme-name=")) {
+                    return line.substring("gtk-icon-theme-name=".length).trim();
+                }
+            }
+        }
+        // 4. Fallback to ~/.config/gtk-4.0/settings.ini
+        const ini4Path = Paths.home + "/.config/gtk-4.0/settings.ini";
+        if (typeof CUtils !== "undefined" && typeof CUtils.fileExists === "function" && CUtils.fileExists(ini4Path)) {
+            const content = CUtils.readTextFile(ini4Path);
+            const lines = content.split("\n");
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith("gtk-icon-theme-name=")) {
+                    return line.substring("gtk-icon-theme-name=".length).trim();
+                }
+            }
+        }
+        return "Adwaita";
+    }
+
+    function reloadIcons(newTheme) {
+        syncCooldown.restart();
+        if (newTheme && typeof newTheme === "string" && newTheme.trim() !== "") {
+            currentTheme = newTheme.trim();
+            try {
+                const themeJsonPath = Paths.home + "/.config/olvex/theme.json";
+                let cfg = {};
+                if (typeof CUtils !== "undefined" && CUtils.fileExists(themeJsonPath)) {
+                    try {
+                        cfg = JSON.parse(CUtils.readTextFile(themeJsonPath)) || {};
+                    } catch (e) {}
+                }
+                if (!cfg.theme || typeof cfg.theme !== "object") cfg.theme = {};
+                cfg.theme.iconTheme = currentTheme;
+                if (typeof CUtils !== "undefined" && typeof CUtils.writeTextFile === "function") {
+                    CUtils.writeTextFile(themeJsonPath, JSON.stringify(cfg, null, 2));
+                }
+            } catch (e) {}
+        } else {
+            currentTheme = getSystemThemeName();
+        }
+        _iconResolveCache = ({});
+        _iconSearchDirs = [];
+        iconEpoch++;
+        iconThemeChanged();
+    }
+
+    Timer {
+        id: syncCooldown
+        interval: 3500
+        repeat: false
+    }
+
+    Timer {
+        id: themeSyncTimer
+        interval: 1500
+        repeat: true
+        running: true
+        onTriggered: {
+            if (syncCooldown.running)
+                return;
+            const detected = root.getSystemThemeName();
+            if (detected && detected !== root.currentTheme) {
+                root.reloadIcons(detected);
+            }
+        }
+    }
 
     readonly property var iconRoots: [
         Paths.home + "/.local/share/icons",
@@ -132,6 +232,7 @@ Singleton {
     }
 
     function resolveApp(entry, fallback) {
+        const _ = root.iconEpoch;
         const fb = (typeof fallback === "string" && fallback.length > 0) ? fallback : "application-x-executable";
         if (!entry)
             return resolveIcon(fb, "application-x-executable");
@@ -252,27 +353,92 @@ Singleton {
         dirs.push(dir);
     }
 
+    function _getEffectiveThemes() {
+        const themeList = [];
+        const seen = ({});
+
+        function addTheme(name) {
+            if (!name) return;
+            name = String(name).trim();
+            if (!name || seen[name]) return;
+            seen[name] = true;
+            themeList.push(name);
+
+            // Read index.theme to resolve Inherits
+            for (let r = 0; r < iconRoots.length; r++) {
+                const indexPath = _withTrailingSlash(iconRoots[r]) + name + "/index.theme";
+                if (CUtils.fileExists(indexPath)) {
+                    const text = CUtils.readTextFile(indexPath);
+                    const lines = text.split("\n");
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line.toLowerCase().startsWith("inherits=")) {
+                            const raw = line.substring("inherits=".length);
+                            const parts = raw.split(",");
+                            for (let p = 0; p < parts.length; p++) {
+                                addTheme(parts[p].trim());
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 1. Current active user theme
+        if (currentTheme) {
+            addTheme(currentTheme);
+        }
+
+        // 2. Built-in fallback themes
+        const fallbacks = ["breeze", "breeze-dark", "Papirus", "Papirus-Dark", "Papirus-Light", "Adwaita", "AdwaitaLegacy", "hicolor"];
+        for (let i = 0; i < fallbacks.length; i++) {
+            addTheme(fallbacks[i]);
+        }
+
+        return themeList;
+    }
+
     function _getIconSearchDirs() {
         if (_iconSearchDirs.length > 0)
             return _iconSearchDirs;
 
         const dirs = [];
         const seen = ({});
+        const themes = _getEffectiveThemes();
 
-        for (let i = 0; i < iconPixmapDirs.length; i++)
-            _addIconSearchDir(dirs, seen, iconPixmapDirs[i]);
-
-        for (let r = 0; r < iconRoots.length; r++) {
-            const rootDir = _withTrailingSlash(iconRoots[r]);
-            _addIconSearchDir(dirs, seen, rootDir);
-
-            for (let t = 0; t < iconThemes.length; t++) {
-                const themeRoot = rootDir + iconThemes[t] + "/";
+        // 1. High priority: Theme directories in exact priority order
+        for (let t = 0; t < themes.length; t++) {
+            const themeName = themes[t];
+            for (let r = 0; r < iconRoots.length; r++) {
+                const themeRoot = _withTrailingSlash(iconRoots[r]) + themeName + "/";
                 if (!CUtils.fileExists(themeRoot))
                     continue;
 
                 _addIconSearchDir(dirs, seen, themeRoot);
 
+                // Check index.theme Directories key
+                const indexPath = themeRoot + "index.theme";
+                if (CUtils.fileExists(indexPath)) {
+                    const text = CUtils.readTextFile(indexPath);
+                    const lines = text.split("\n");
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line.startsWith("Directories=")) {
+                            const rawDirs = line.substring("Directories=".length).split(",");
+                            for (let d = 0; d < rawDirs.length; d++) {
+                                const sub = rawDirs[d].trim();
+                                if (sub.length > 0) {
+                                    _addIconSearchDir(dirs, seen, themeRoot + sub + "/");
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Standard size and category folders fallback
                 for (let s = 0; s < iconSizeDirs.length; s++) {
                     const sizeRoot = themeRoot + iconSizeDirs[s] + "/";
                     _addIconSearchDir(dirs, seen, sizeRoot);
@@ -295,6 +461,14 @@ Singleton {
                     }
                 }
             }
+        }
+
+        // 2. Low priority fallbacks: root dirs and pixmaps
+        for (let r = 0; r < iconRoots.length; r++) {
+            _addIconSearchDir(dirs, seen, _withTrailingSlash(iconRoots[r]));
+        }
+        for (let i = 0; i < iconPixmapDirs.length; i++) {
+            _addIconSearchDir(dirs, seen, iconPixmapDirs[i]);
         }
 
         _iconSearchDirs = dirs;
@@ -458,6 +632,7 @@ Singleton {
     }
 
     function resolveIcon(icon: string, fallback: string): string {
+        const _ = root.iconEpoch;
         const key = (icon || "") + "\u001f" + (fallback || "");
         if (_iconResolveCache.hasOwnProperty(key))
             return _iconResolveCache[key];

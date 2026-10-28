@@ -246,6 +246,13 @@ Item {
         }
     }
 
+    Connections {
+        target: Icons
+        function onIconThemeChanged() {
+            for (let k in root._entryLookupCache) delete root._entryLookupCache[k];
+        }
+    }
+
     function matchesApp(appId, ipc) {
         if (!appId || !ipc)
             return false;
@@ -1270,17 +1277,27 @@ Item {
                             }
 
                             function updateCachedIcon() {
+                                let newIcon = "";
                                 if (entry && entry.icon) {
-                                    cachedIcon = Icons.resolveIcon(entry.icon, "application-x-executable");
+                                    newIcon = Icons.resolveIcon(entry.icon, "application-x-executable");
                                 } else if (appId) {
-                                    cachedIcon = Icons.getAppIcon(appId, "application-x-executable");
+                                    newIcon = Icons.getAppIcon(appId, "application-x-executable");
                                 } else {
-                                    cachedIcon = "application-x-executable";
+                                    newIcon = "application-x-executable";
                                 }
+                                cachedIcon = "";
+                                Qt.callLater(() => {
+                                    cachedIcon = newIcon;
+                                });
                             }
 
                             onEntryChanged: updateCachedIcon()
                             onAppIdChanged: updateCachedIcon()
+
+                            Connections {
+                                target: Icons
+                                function onIconThemeChanged() { appWrapper.updateCachedIcon(); }
+                            }
 
                             visible: (index < layout.visibleCount) || isBeingRemoved
                             width: layout.itemSize
@@ -1554,17 +1571,27 @@ Item {
                             }
 
                             function updateCachedIcon() {
+                                let newIcon = "";
                                 if (entry && entry.icon) {
-                                    cachedIcon = Icons.resolveIcon(entry.icon, "application-x-executable");
+                                    newIcon = Icons.resolveIcon(entry.icon, "application-x-executable");
                                 } else if (appId) {
-                                    cachedIcon = Icons.getAppIcon(appId, "application-x-executable");
+                                    newIcon = Icons.getAppIcon(appId, "application-x-executable");
                                 } else {
-                                    cachedIcon = "application-x-executable";
+                                    newIcon = "application-x-executable";
                                 }
+                                cachedIcon = "";
+                                Qt.callLater(() => {
+                                    cachedIcon = newIcon;
+                                });
                             }
 
                             onEntryChanged: updateCachedIcon()
                             onAppIdChanged: updateCachedIcon()
+
+                            Connections {
+                                target: Icons
+                                function onIconThemeChanged() { unpinnedAppWrapper.updateCachedIcon(); }
+                            }
 
                             width: layout.itemSize
                             height: layout.itemSize
@@ -2222,7 +2249,17 @@ Item {
                                             }
                                             return DesktopEntries.heuristicLookup(appId);
                                         }
-                                        readonly property string cachedIcon: Icons.resolveIcon(entry?.icon || "", "image-missing")
+                                        property string cachedIcon: Icons.resolveIcon(entry?.icon || "", "image-missing")
+
+                                        Connections {
+                                            target: Icons
+                                            function onIconThemeChanged() {
+                                                overflowRow.cachedIcon = "";
+                                                Qt.callLater(() => {
+                                                    overflowRow.cachedIcon = Icons.resolveIcon(overflowRow.entry?.icon || "", "image-missing");
+                                                });
+                                            }
+                                        }
 
                                         property int runningInstances: 0
 

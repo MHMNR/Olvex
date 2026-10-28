@@ -249,6 +249,19 @@ QtObject {
             keywords: "night light blue light eye strain warm display tint filter reading nightlight sleep sunset",
             isOption: true
         },
+
+        // ── Icons ──
+        {
+            id: "appearance_icons",
+            pageId: "appearance",
+            sectionId: "icons",
+            title: "Icon Theme",
+            sub: "Application and desktop icon theme packs",
+            breadcrumb: "Settings › Appearance › Icons",
+            icon: "category",
+            accentRole: "m3primary",
+            keywords: "icon icons theme pack papirus adwaita hicolor kde symbols desktop"
+        },
         {
             id: "appearance_theme_schedule",
             pageId: "appearance",

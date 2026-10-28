@@ -325,8 +325,29 @@ def apply_gtk(colours: dict[str, str], mode: str, icon_theme: str | None = None)
     subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", gtk_theme])
 
     # 3. Write ~/.config/gtk-3.0/settings.ini & ~/.config/gtk-4.0/settings.ini
-    gtk_icon_theme = icon_theme if icon_theme is not None else f"Papirus-{mode.capitalize()}"
+    if not icon_theme:
+        try:
+            theme_json = config_dir / "theme.json"
+            if theme_json.is_file():
+                cfg_t = json.loads(theme_json.read_text())
+                icon_theme = cfg_t.get("theme", {}).get("iconTheme")
+        except Exception:
+            icon_theme = None
+    if not icon_theme:
+        try:
+            cfg_theme = get_config().get("theme", {})
+            icon_theme = cfg_theme.get("iconTheme") or cfg_theme.get(f"iconTheme{mode.capitalize()}")
+        except Exception:
+            icon_theme = None
+    if not icon_theme:
+        try:
+            from olvex.utils.icon_themes import get_current_theme
+            icon_theme = get_current_theme()
+        except Exception:
+            icon_theme = None
+    gtk_icon_theme = icon_theme if icon_theme else "Adwaita"
     subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/icon-theme", f"'{gtk_icon_theme}'"])
+    subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", gtk_icon_theme])
 
     settings_content = f"""[Settings]
 gtk-theme-name={gtk_theme}
