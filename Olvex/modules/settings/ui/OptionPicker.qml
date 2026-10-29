@@ -397,9 +397,8 @@ Item {
         Behavior on height { Anim { type: Anim.DefaultSpatial } }
         Behavior on radius { Anim { type: Anim.DefaultSpatial } }
 
-        // Background Crossfade
+        // Background Crossfade (StyledClippingRect has built-in Behavior on color with CAnim)
         color: root.morphState === "open" ? Colours.palette.m3surfaceContainer : Colours.palette.m3primary
-        Behavior on color { ColorAnimation { duration: root.morphDuration; easing: root.morphEasing } }
         
         border.color: root.morphState === "open" ? Qt.alpha(Colours.palette.m3outlineVariant, 0.40) : "transparent"
         border.width: 1
