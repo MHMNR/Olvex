@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 import sys
+import shutil
 
 def get_current_theme():
     # 1. First check ~/.config/olvex/theme.json
@@ -234,17 +235,76 @@ def scan_themes():
                 "comment": comment,
                 "path": theme_dir,
                 "previews": preview_list,
-                "isCurrent": (name == current_theme)
+                "isCurrent": (name == current_theme),
+                "isDeletable": not (theme_dir.startswith("/usr") or name in ("hicolor", "Adwaita", "default"))
             })
 
     # Sort: current first, then alphabetical by name
     results.sort(key=lambda t: (not t["isCurrent"], t["name"].lower()))
     return results
 
+def delete_theme(theme_id):
+    if not theme_id:
+        return {"success": False, "error": "No theme specified"}
+
+    user_dirs = [
+        os.path.expanduser("~/.local/share/icons"),
+        os.path.expanduser("~/.icons")
+    ]
+
+    deleted_paths = []
+    current = get_current_theme()
+    fallback_used = False
+
+    # 1. Exact directory match
+    for base in user_dirs:
+        target = os.path.join(base, theme_id)
+        if os.path.isdir(target):
+            try:
+                shutil.rmtree(target, ignore_errors=True)
+                deleted_paths.append(target)
+            except Exception:
+                pass
+
+    # 2. If not matched, try matching theme name loosely inside index.theme
+    if not deleted_paths:
+        name_clean = theme_id.lower().replace(" ", "").replace("-", "").replace("_", "")
+        for base in user_dirs:
+            if not os.path.isdir(base):
+                continue
+            for entry in os.listdir(base):
+                entry_clean = entry.lower().replace(" ", "").replace("-", "").replace("_", "")
+                if entry_clean in name_clean or name_clean in entry_clean:
+                    target = os.path.join(base, entry)
+                    if os.path.isdir(target):
+                        try:
+                            shutil.rmtree(target, ignore_errors=True)
+                            deleted_paths.append(target)
+                        except Exception:
+                            pass
+
+    if not deleted_paths:
+        return {"success": False, "error": f"Theme '{theme_id}' not found in user directories"}
+
+    # If active theme was deleted, fallback to Adwaita
+    if any(os.path.basename(p) == current for p in deleted_paths) or current == theme_id:
+        set_theme("Adwaita")
+        fallback_used = True
+
+    return {
+        "success": True,
+        "deleted": deleted_paths,
+        "themeId": theme_id,
+        "fallbackUsed": fallback_used
+    }
+
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "set":
         set_theme(sys.argv[2])
         print(f"ok:{sys.argv[2]}")
+    elif len(sys.argv) > 2 and sys.argv[1] == "delete":
+        res = delete_theme(sys.argv[2])
+        print(json.dumps(res))
     else:
         themes = scan_themes()
         print(json.dumps(themes))

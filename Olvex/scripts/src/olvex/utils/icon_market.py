@@ -242,10 +242,12 @@ def fetch_market_icons(sort="downloads", page=0, pagesize=24, search="", order="
             # Check if name loosely matches an installed theme
             name_clean = name.lower().replace(" ", "").replace("-", "").replace("_", "")
             is_installed = False
+            installed_id = ""
             for inst in installed:
                 inst_clean = inst.replace(" ", "").replace("-", "").replace("_", "")
                 if inst_clean in name_clean or name_clean in inst_clean:
                     is_installed = True
+                    installed_id = inst
                     break
 
             try:
@@ -269,7 +271,8 @@ def fetch_market_icons(sort="downloads", page=0, pagesize=24, search="", order="
                 "summary": summary,
                 "downloadUrl": dl_url,
                 "downloadName": dl_name,
-                "isInstalled": is_installed
+                "isInstalled": is_installed,
+                "installedThemeId": installed_id
             })
 
     except Exception as e:
@@ -294,6 +297,33 @@ def fetch_market_icons(sort="downloads", page=0, pagesize=24, search="", order="
         items.reverse()
 
     return {"error": None, "items": items}
+
+def extract_theme_name_from_index(index_path, fallback=""):
+    try:
+        with open(index_path, "r", encoding="utf-8", errors="ignore") as f:
+            in_section = False
+            for line in f:
+                line = line.strip()
+                if line == "[Icon Theme]":
+                    in_section = True
+                    continue
+                elif line.startswith("[") and in_section:
+                    break
+                if in_section and line.startswith("Name="):
+                    name_val = line.split("=", 1)[1].strip()
+                    cleaned = "".join(c for c in name_val if c.isalnum() or c in ("-", "_", ".", " ")).strip()
+                    if cleaned:
+                        return cleaned
+    except Exception:
+        pass
+    if fallback:
+        clean_fallback = fallback
+        for ext in (".tar.xz", ".tar.gz", ".tar.bz2", ".tar.zst", ".tar", ".zip", ".7z"):
+            if clean_fallback.lower().endswith(ext):
+                clean_fallback = clean_fallback[:-len(ext)]
+                break
+        return clean_fallback.strip()
+    return "Custom-Theme"
 
 def install_archive(download_url, download_name=""):
     if not download_url:
@@ -370,12 +400,23 @@ def install_archive(download_url, download_name=""):
         for root, dirs, files in os.walk(extract_dir):
             if "index.theme" in files:
                 theme_folder_name = os.path.basename(root)
+                if not theme_folder_name or root == extract_dir or theme_folder_name in ("extracted", "tmp", "dist"):
+                    theme_folder_name = extract_theme_name_from_index(os.path.join(root, "index.theme"), download_name)
+
                 dest = os.path.join(target_dir, theme_folder_name)
                 # If already exists, overwrite
                 if os.path.exists(dest):
                     shutil.rmtree(dest, ignore_errors=True)
-                shutil.copytree(root, dest)
+
+                try:
+                    shutil.copytree(root, dest, symlinks=True, ignore_dangling_symlinks=True, dirs_exist_ok=True)
+                except Exception:
+                    # Fallback to system cp -a if copytree encounters unsupported filesystem traits
+                    os.makedirs(dest, exist_ok=True)
+                    subprocess.run(["cp", "-a", root + "/.", dest], check=False)
+
                 installed_themes.append(theme_folder_name)
+                dirs.clear()  # Do not recurse into nested directories of an installed theme
 
         if not installed_themes:
             # If no index.theme found directly, maybe archive root is the theme
