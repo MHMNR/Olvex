@@ -341,11 +341,11 @@ Item {
                             anchors.fill: parent
                             verticalAlignment: Text.AlignVCenter
                             text: qsTr("Search settings…")
-                            color: Colours.palette.m3outline
+                            color: Colours.palette.m3onSurfaceVariant
                             font.family: Tokens.font.family.sans
                             font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
                             visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
-                            opacity: searchInput.text.length === 0 ? 0.75 : 0
+                            opacity: searchInput.text.length === 0 ? 1.0 : 0
                             Behavior on opacity { Anim { type: Anim.FastEffects } }
                         }
                     }

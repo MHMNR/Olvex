@@ -8,11 +8,23 @@ import os
 import sys
 import json
 import shutil
+import re
+import html
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
 import subprocess
 import tempfile
+
+def clean_description(raw_text):
+    if not raw_text:
+        return ""
+    text = html.unescape(raw_text)
+    text = re.sub(r'<br\s*/?>', '\n', text, flags=re.I)
+    text = re.sub(r'</p>', '\n\n', text, flags=re.I)
+    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
 
 OCS_BASE_URL = "https://api.kde-look.org/ocs/v1/content/data"
 DEFAULT_CATEGORY = "132"  # Full Icon Themes
@@ -21,30 +33,33 @@ USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) OlvexShell/1.0"
 THUMB_CACHE_DIR = os.path.expanduser("~/.cache/olvex/market_thumbs")
 os.makedirs(THUMB_CACHE_DIR, exist_ok=True)
 
-def get_cached_thumb(cid):
+def get_cached_thumb(cid, idx=0):
     if not cid:
         return ""
+    suffix = f"_{idx}" if idx > 0 else ""
     for ext in [".png", ".jpg", ".jpeg", ".webp"]:
-        p = os.path.join(THUMB_CACHE_DIR, f"{cid}{ext}")
+        p = os.path.join(THUMB_CACHE_DIR, f"{cid}{suffix}{ext}")
         if os.path.exists(p) and os.path.getsize(p) > 200:
             return p
     return ""
 
-def get_target_thumb_path(cid, url):
+def get_target_thumb_path(cid, url, idx=0):
     if not cid or not url:
         return ""
+    suffix = f"_{idx}" if idx > 0 else ""
     ext = ".png"
     if ".jpg" in url.lower() or ".jpeg" in url.lower():
         ext = ".jpg"
-    return os.path.join(THUMB_CACHE_DIR, f"{cid}{ext}")
+    return os.path.join(THUMB_CACHE_DIR, f"{cid}{suffix}{ext}")
 
-def download_thumb_worker(cid, url):
+def download_thumb_worker(cid, url, idx=0):
     if not url or not cid or url.startswith("/"):
         return
+    suffix = f"_{idx}" if idx > 0 else ""
     ext = ".png"
     if ".jpg" in url.lower() or ".jpeg" in url.lower():
         ext = ".jpg"
-    dest = os.path.join(THUMB_CACHE_DIR, f"{cid}{ext}")
+    dest = os.path.join(THUMB_CACHE_DIR, f"{cid}{suffix}{ext}")
     if os.path.exists(dest) and os.path.getsize(dest) > 200:
         return
     try:
@@ -144,10 +159,12 @@ def get_featured_fallback(sort="downloads", search="", installed=None, order="de
     for item in featured:
         name_clean = item["name"].lower().replace(" ", "").replace("-", "").replace("_", "")
         item["isInstalled"] = any(inst.replace(" ", "").replace("-", "").replace("_", "") in name_clean or name_clean in inst.replace(" ", "").replace("-", "").replace("_", "") for inst in installed)
+        item["description"] = clean_description(item.get("description") or item.get("summary") or "")
         cid = item["id"]
         cached = get_cached_thumb(cid)
         item["remotePreview"] = item["preview"].replace("cache/770x540-4/", "cache/350x250-0/")
         item["preview"] = cached if cached else get_target_thumb_path(cid, item["remotePreview"])
+        item["previews"] = [item["preview"]]
 
     if search and search.strip():
         q = search.strip().lower()
@@ -205,7 +222,7 @@ def fetch_market_icons(sort="downloads", page=0, pagesize=24, search="", order="
             if not name:
                 continue
 
-            author = item_node.findtext("author", "")
+            author = item_node.findtext("personid", "") or item_node.findtext("author", "")
             rating_raw = item_node.findtext("score", "0")
             dl_raw = item_node.findtext("downloads", "0")
             preview = (
@@ -221,7 +238,36 @@ def fetch_market_icons(sort="downloads", page=0, pagesize=24, search="", order="
             cached_thumb = get_cached_thumb(cid)
             local_thumb = cached_thumb if cached_thumb else get_target_thumb_path(cid, preview)
 
-            summary = item_node.findtext("summary", "") or item_node.findtext("description", "")
+            # Collect all gallery previews (previewpic1..previewpic9, smallpreviewpic1..9)
+            raw_previews = []
+            for p_idx in range(1, 10):
+                pic = item_node.findtext(f"previewpic{p_idx}", "")
+                if not pic:
+                    pic = item_node.findtext(f"smallpreviewpic{p_idx}", "")
+                if pic and pic.startswith("http"):
+                    if "cache/770x540-4/" in pic:
+                        pic = pic.replace("cache/770x540-4/", "cache/350x250-0/")
+                    if pic not in raw_previews:
+                        raw_previews.append(pic)
+
+            if not raw_previews and preview:
+                raw_previews.append(preview)
+
+            resolved_previews = []
+            for idx, r_url in enumerate(raw_previews):
+                c_thumb = get_cached_thumb(cid, idx)
+                if c_thumb:
+                    resolved_previews.append(c_thumb)
+                else:
+                    target_p = get_target_thumb_path(cid, r_url, idx)
+                    resolved_previews.append(target_p if os.path.exists(target_p) else r_url)
+
+            if not resolved_previews and local_thumb:
+                resolved_previews = [local_thumb]
+
+            raw_desc = item_node.findtext("description", "") or item_node.findtext("summary", "") or ""
+            desc = clean_description(raw_desc)
+            summary = item_node.findtext("summary", "") or (desc[:157] + "..." if len(desc) > 160 else desc)
             if summary and len(summary) > 160:
                 summary = summary[:157] + "..."
 
@@ -267,8 +313,11 @@ def fetch_market_icons(sort="downloads", page=0, pagesize=24, search="", order="
                 "rating": rating,
                 "downloads": downloads,
                 "preview": local_thumb,
+                "previews": resolved_previews,
+                "rawPreviews": raw_previews,
                 "remotePreview": preview,
                 "summary": summary,
+                "description": desc or summary,
                 "downloadUrl": dl_url,
                 "downloadName": dl_name,
                 "isInstalled": is_installed,
@@ -279,7 +328,14 @@ def fetch_market_icons(sort="downloads", page=0, pagesize=24, search="", order="
         return {"error": f"Failed to parse XML: {e}", "items": []}
 
     # Asynchronously pre-cache uncached previews in background
-    uncached = [(it["id"], it["remotePreview"]) for it in items if it.get("remotePreview") and (not it["preview"] or not os.path.exists(it["preview"]))]
+    uncached = []
+    for it in items:
+        raw_list = it.get("rawPreviews", [])
+        for idx, r_url in enumerate(raw_list):
+            if r_url and r_url.startswith("http"):
+                c_p = get_cached_thumb(it["id"], idx)
+                if not c_p:
+                    uncached.append((it["id"], r_url, idx))
     if uncached:
         try:
             subprocess.Popen(
@@ -475,8 +531,13 @@ def main():
             from concurrent.futures import ThreadPoolExecutor
             batch = json.loads(sys.argv[2])
             with ThreadPoolExecutor(max_workers=8) as ex:
-                for cid, url in batch:
-                    ex.submit(download_thumb_worker, cid, url)
+                for entry in batch:
+                    if len(entry) == 3:
+                        cid, url, idx = entry
+                        ex.submit(download_thumb_worker, cid, url, idx)
+                    else:
+                        cid, url = entry
+                        ex.submit(download_thumb_worker, cid, url, 0)
         except Exception:
             pass
 

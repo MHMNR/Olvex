@@ -93,8 +93,8 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         anchors.rightMargin: Tokens.padding.small
-        implicitWidth: Math.max(0, childrenRect.width)
-        implicitHeight: Math.max(0, childrenRect.height)
+        implicitWidth: children.length > 0 ? (children[0].implicitWidth || children[0].width || Math.max(0, childrenRect.width)) : 0
+        implicitHeight: children.length > 0 ? (children[0].implicitHeight || children[0].height || Math.max(0, childrenRect.height)) : 0
         width: implicitWidth
         height: implicitHeight
         z: 3

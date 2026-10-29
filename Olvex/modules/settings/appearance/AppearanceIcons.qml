@@ -185,6 +185,9 @@ Item {
                 "delete"
             );
         }
+        if (root.detailTheme && (root.detailTheme.name === deletedName || root.detailTheme.id === deletedName)) {
+            root.closeThemeDetails();
+        }
         pendingDeleteTheme = null;
         root.refreshThemes();
         root.refreshMarket();
@@ -458,6 +461,7 @@ Item {
                 onSelected: i => {
                     root.currentTab = i;
                     contentFlickable.contentY = 0;
+                    if (searchPill) searchPill.searchExpanded = false;
                     if (i === 1 && root.marketList.length === 0) {
                         root.refreshMarket();
                     }
@@ -472,16 +476,44 @@ Item {
             Layout.fillWidth: true
             implicitHeight: root.currentTab === 0 ? installedSection.implicitHeight : marketToolbarRow.implicitHeight
 
-            Section {
+            // Tab 0: Section Title, Subtitle, and Installed Actions
+            RowLayout {
                 id: installedSection
                 anchors.fill: parent
+                spacing: Tokens.spacing.normal
                 visible: root.currentTab === 0
-            Layout.fillWidth: true
-            title: qsTr("System Icon Theme")
-            description: qsTr("Applications, launcher, and desktop icon set")
-            icon: "palette"
-            headerControl: RowLayout {
-                spacing: Tokens.spacing.small
+
+                StyledRect {
+                    Layout.preferredWidth: 38
+                    Layout.preferredHeight: 38
+                    radius: Tokens.rounding.normal
+                    color: Qt.alpha(Colours.palette.m3primary, 0.12)
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "palette"
+                        color: Colours.palette.m3primary
+                        iconPointSize: 20
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+
+                    StyledText {
+                        text: qsTr("System Icon Theme")
+                        font.weight: Font.DemiBold
+                        textPointSize: Tokens.font.size.large
+                        color: Colours.palette.m3onSurface
+                    }
+
+                    StyledText {
+                        text: qsTr("Applications, launcher, and desktop icon set")
+                        textPointSize: Tokens.font.size.small
+                        color: Colours.palette.m3onSurfaceVariant
+                    }
+                }
 
                 // Expanding "Open Folder" button
                 StyledRect {
@@ -555,43 +587,28 @@ Item {
                     Behavior on color { CAnim {} }
                     Behavior on border.color { CAnim {} }
 
-                    Item {
-                        id: scanIconHost
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        anchors.leftMargin: scanThemesBtn.hovered ? 12 : Math.round((38 - scanIconHost.implicitWidth) / 2)
-                        implicitWidth: scanIcon.implicitWidth
-                        implicitHeight: scanIcon.implicitHeight
-                        width: implicitWidth
-                        height: implicitHeight
-                        transformOrigin: Item.Center
-                        rotation: 0
+                    LoadingIndicator {
+                        anchors.centerIn: parent
+                        implicitSize: 20
+                        color: Colours.palette.m3primary
+                        animated: root.isScanning
+                        visible: opacity > 0
+                        opacity: root.isScanning ? 1.0 : 0.0
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                    }
 
-                        Behavior on anchors.leftMargin { Anim { type: Anim.DefaultSpatial } }
-
-                        MaterialIcon {
-                            id: scanIcon
-                            anchors.centerIn: parent
-                            text: "refresh"
-                            iconPointSize: 18
-                            renderType: Text.QtRendering
-                            antialiasing: true
-                            color: Colours.palette.m3onSurface
-                            Behavior on color { CAnim {} }
-                        }
-
-                        RotationAnimation on rotation {
-                            running: root.isScanning
-                            from: 0; to: 360; duration: 800; loops: Animation.Infinite
-                        }
-
-                        Connections {
-                            target: root
-                            function onIsScanningChanged() {
-                                if (!root.isScanning)
-                                    scanIconHost.rotation = 0;
-                            }
-                        }
+                    MaterialIcon {
+                        id: scanIcon
+                        anchors.centerIn: parent
+                        text: "refresh"
+                        iconPointSize: 18
+                        renderType: Text.QtRendering
+                        antialiasing: true
+                        color: Colours.palette.m3onSurface
+                        visible: opacity > 0
+                        opacity: root.isScanning ? 0.0 : 1.0
+                        Behavior on color { CAnim {} }
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
                     }
 
                     StyledText {
@@ -617,303 +634,239 @@ Item {
                     }
                 }
             }
-        }
 
-            // ── Toolbar: Sort Segmented + Expandable Search Pill (Icon => Bar) + Refresh ──
-        RowLayout {
+            // Tab 1: Store Toolbar Row
+            RowLayout {
                 id: marketToolbarRow
                 anchors.fill: parent
+                spacing: Tokens.spacing.normal
                 visible: root.currentTab === 1
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.small
 
-            // Sort by label
-            StyledText {
-                text: qsTr("Sort by:")
-                color: Colours.palette.m3onSurfaceVariant
-                font.weight: Font.Medium
-                textPointSize: Tokens.font.size.normal
-            }
-
-            // Sort Filter OptionPicker
-            OptionPicker {
-                id: sortPicker
-                Layout.alignment: Qt.AlignVCenter
-                model: [
-                    { label: qsTr("Downloads"), value: "downloads" },
-                    { label: qsTr("Rating"), value: "rating" },
-                    { label: qsTr("Newest"), value: "new" }
-                ]
-                currentIndex: root.marketSort === "rating" ? 1 : (root.marketSort === "new" ? 2 : 0)
-                onSelected: i => {
-                    root.marketSort = sortPicker.model[i].value;
-                    root.applySorting();
-                }
-            }
-
-            // Ascending / Descending Direction Toggle
-            IconButton {
-                icon: root.marketSortOrder === "asc" ? "arrow_upward" : "arrow_downward"
-                type: IconButton.Tonal
-                onClicked: {
-                    root.marketSortOrder = (root.marketSortOrder === "asc") ? "desc" : "asc";
-                    root.applySorting();
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            // ── Expandable Search Pill (Circle 40px → 290px input field, border.width: 0) ──
-            StyledRect {
-                id: searchPill
-
-                property bool searchExpanded: false
-                readonly property bool searchActive: searchExpanded || (marketSearchInput && (marketSearchInput.text.length > 0 || marketSearchInput.activeFocus))
-
-                implicitWidth: searchActive ? 290 : 40
-                implicitHeight: 40
-                radius: Tokens.rounding.full
-                clip: true
-
-                color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                border.width: 0
-                border.color: "transparent"
-
-                Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                Behavior on color { CAnim {} }
-
-                HoverHandler {
-                    id: searchHover
-                    cursorShape: searchPill.searchActive ? Qt.IBeamCursor : Qt.PointingHandCursor
+                // Store Sort Label
+                StyledText {
+                    text: qsTr("Sort by:")
+                    color: Colours.palette.m3onSurfaceVariant
+                    font.weight: Font.Medium
+                    textPointSize: Tokens.font.size.normal
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
-                // Collapsed Click-to-Expand Trigger
-                MouseArea {
-                    anchors.fill: parent
-                    visible: !searchPill.searchActive
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        searchPill.searchExpanded = true;
-                        Qt.callLater(() => marketSearchInput.forceActiveFocus());
+                // Store Sort Selector (clean text OptionPicker without icons)
+                OptionPicker {
+                    id: storeSortPicker
+                    Layout.alignment: Qt.AlignVCenter
+                    model: [
+                        { label: qsTr("Downloads"), val: "downloads" },
+                        { label: qsTr("Rating"), val: "rating" },
+                        { label: qsTr("Newest"), val: "new" }
+                    ]
+                    currentIndex: root.marketSort === "rating" ? 1 : (root.marketSort === "new" ? 2 : 0)
+                    onSelected: i => {
+                        const keys = ["downloads", "rating", "new"];
+                        root.marketSort = keys[i] || "downloads";
+                        root.applySorting();
                     }
                 }
 
-                // Single Persistent Search Icon
-                MaterialIcon {
-                    id: searchIcon
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.leftMargin: searchPill.searchActive ? 12 : Math.round((40 - searchIcon.implicitWidth) / 2)
-                    text: "search"
-                    fill: 1
-                    iconPointSize: Tokens.font.size.normal
-                    color: marketSearchInput.activeFocus ? Colours.palette.m3primary : (searchPill.searchActive ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface)
+                Item { Layout.fillWidth: true }
 
-                    Behavior on anchors.leftMargin { Anim { type: Anim.DefaultSpatial } }
-                    Behavior on color { CAnim {} }
-                }
-
-                // Text Input & Placeholder Holder
-                Item {
-                    id: inputHolder
-                    anchors.left: searchIcon.right
-                    anchors.leftMargin: 8
-                    anchors.right: clearBtn.left
-                    anchors.rightMargin: 4
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    clip: true
-                    opacity: searchPill.searchActive ? 1.0 : 0.0
-                    visible: opacity > 0.01
-
-                    Behavior on opacity { Anim { type: Anim.FastEffects } }
-
-                    TextInput {
-                        id: marketSearchInput
-                        anchors.fill: parent
-                        verticalAlignment: TextInput.AlignVCenter
-                        color: Colours.palette.m3onSurface
-                        selectionColor: Qt.alpha(Colours.palette.m3primary, 0.3)
-                        selectedTextColor: Colours.palette.m3onSurface
-                        font.family: Tokens.font.family.sans
-                        font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
-                        selectByMouse: true
-                        cursorVisible: activeFocus
-                        text: root.marketSearch
-
-                        onAccepted: {
-                            root.marketSearch = text.trim();
-                            root.refreshMarket();
-                        }
-
-                        Keys.onEscapePressed: event => {
-                            if (text.length > 0) {
-                                text = "";
-                                root.marketSearch = "";
-                                root.refreshMarket();
-                                event.accepted = true;
-                            } else {
-                                searchPill.searchExpanded = false;
-                                focus = false;
-                                event.accepted = true;
-                            }
-                        }
-
-                        cursorDelegate: Rectangle {
-                            width: 2
-                            height: marketSearchInput.font.pixelSize * 1.2
-                            radius: 1
-                            color: Colours.palette.m3primary
-                            SequentialAnimation on opacity {
-                                loops: Animation.Infinite
-                                running: marketSearchInput.activeFocus
-                                NumberAnimation { to: 1.0; duration: 80 }
-                                PauseAnimation   { duration: 520 }
-                                NumberAnimation { to: 0.0; duration: 80 }
-                                PauseAnimation   { duration: 380 }
-                            }
-                        }
-                    }
-
-                    StyledText {
-                        anchors.fill: parent
-                        verticalAlignment: Text.AlignVCenter
-                        text: qsTr("Search icon packs…")
-                        color: Colours.palette.m3outline
-                        font.family: Tokens.font.family.sans
-                        font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
-                        visible: marketSearchInput.text.length === 0 && !marketSearchInput.inputMethodComposing
-                        opacity: marketSearchInput.text.length === 0 ? 0.75 : 0
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                    }
-                }
-
-                // Clear / Close Button
+                // Expanding Search Pill (Store)
                 StyledRect {
-                    id: clearBtn
-                    anchors.right: parent.right
-                    anchors.rightMargin: 6
-                    anchors.verticalCenter: parent.verticalCenter
-                    implicitWidth: 26
-                    implicitHeight: 26
+                    id: searchPill
+                    property bool searchExpanded: false
+                    readonly property bool searchActive: searchExpanded
+
+                    implicitHeight: 38
+                    implicitWidth: searchActive ? 240 : 38
                     radius: Tokens.rounding.full
-                    color: clearBtnMa.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.12) :
-                           clearBtnMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
-                    opacity: searchPill.searchActive ? 1.0 : 0.0
-                    visible: opacity > 0.01
+                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                    border.width: 0
+                    border.color: "transparent"
+                    clip: true
 
+                    Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
                     Behavior on color { CAnim {} }
-                    Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                     MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "close"
-                        color: Colours.palette.m3onSurfaceVariant
-                        iconPointSize: 14
+                        id: searchPillIcon
+                        anchors.left: parent.left
+                        anchors.leftMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "search"
+                        color: searchPill.searchActive ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                        iconPointSize: 16
                         verticalAlignment: Text.AlignVCenter
-                    }
-
-                    MouseArea {
-                        id: clearBtnMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            marketSearchInput.text = "";
-                            if (root.marketSearch !== "") {
-                                root.marketSearch = "";
-                                root.refreshMarket();
-                            }
-                            searchPill.searchExpanded = false;
-                            marketSearchInput.focus = false;
-                        }
-                    }
-                }
-            }
-
-            // Expanding "Refresh" Button
-            StyledRect {
-                id: refreshMarketBtn
-                readonly property bool hovered: refreshMarketMa.containsMouse
-                implicitHeight: 38
-                implicitWidth: hovered ? (marketRotHost.implicitWidth + refreshText.implicitWidth + 28) : 38
-                radius: Tokens.rounding.full
-                color: refreshMarketMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                       Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                border.width: 1
-                border.color: hovered ? "transparent" : Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-                clip: true
-
-                Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                Behavior on color { CAnim {} }
-                Behavior on border.color { CAnim {} }
-
-                Item {
-                    id: marketRotHost
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.leftMargin: refreshMarketBtn.hovered ? 12 : Math.round((38 - marketRotHost.implicitWidth) / 2)
-                    implicitWidth: refreshIcon.implicitWidth
-                    implicitHeight: refreshIcon.implicitHeight
-                    width: implicitWidth
-                    height: implicitHeight
-                    transformOrigin: Item.Center
-                    rotation: 0
-
-                    Behavior on anchors.leftMargin { Anim { type: Anim.DefaultSpatial } }
-
-                    MaterialIcon {
-                        id: refreshIcon
-                        anchors.centerIn: parent
-                        text: "refresh"
-                        iconPointSize: 18
-                        renderType: Text.QtRendering
-                        antialiasing: true
-                        color: Colours.palette.m3onSurface
                         Behavior on color { CAnim {} }
                     }
 
-                    RotationAnimation on rotation {
-                        id: marketSpinAnim
-                        running: root.marketLoading
-                        from: 0; to: 360; duration: 800; loops: Animation.Infinite
+                    MouseArea {
+                        id: searchPillTrigger
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        width: 38
+                        enabled: !searchPill.searchActive
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            searchPill.searchExpanded = true;
+                            marketSearchInput.forceActiveFocus();
+                        }
                     }
 
-                    Connections {
-                        target: root
-                        function onMarketLoadingChanged() {
-                            if (!root.marketLoading)
-                                marketRotHost.rotation = 0;
+                    Item {
+                        id: inputWrapper
+                        anchors.left: searchPillIcon.right
+                        anchors.leftMargin: 8
+                        anchors.right: clearBtn.visible ? clearBtn.left : parent.right
+                        anchors.rightMargin: 8
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        opacity: searchPill.searchActive ? 1.0 : 0.0
+                        visible: opacity > 0.01
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                        TextInput {
+                            id: marketSearchInput
+                            anchors.fill: parent
+                            verticalAlignment: TextInput.AlignVCenter
+                            color: Colours.palette.m3onSurface
+                            selectionColor: Colours.palette.m3primary
+                            selectedTextColor: Colours.palette.m3surface
+                            font.family: Tokens.font.family.sans
+                            font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                            selectByMouse: true
+                            clip: true
+
+                            onAccepted: {
+                                root.marketSearch = text.trim();
+                                root.refreshMarket();
+                            }
+
+                            Keys.onEscapePressed: event => {
+                                if (text.length > 0) {
+                                    text = "";
+                                    root.marketSearch = "";
+                                    root.refreshMarket();
+                                    event.accepted = true;
+                                } else {
+                                    searchPill.searchExpanded = false;
+                                    focus = false;
+                                    event.accepted = true;
+                                }
+                            }
+                        }
+
+                        StyledText {
+                            anchors.fill: parent
+                            verticalAlignment: Text.AlignVCenter
+                            text: qsTr("Search icon packs…")
+                            color: Colours.palette.m3onSurfaceVariant
+                            font.family: Tokens.font.family.sans
+                            font.pixelSize: Math.max(12, Math.round(Tokens.font.size.normal * 96 / 72))
+                            visible: marketSearchInput.text.length === 0 && !marketSearchInput.inputMethodComposing
+                            opacity: marketSearchInput.text.length === 0 ? 1.0 : 0
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        }
+                    }
+
+                    StyledRect {
+                        id: clearBtn
+                        anchors.right: parent.right
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        implicitWidth: 26
+                        implicitHeight: 26
+                        radius: Tokens.rounding.full
+                        color: clearBtnMa.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.12) :
+                               clearBtnMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
+                        opacity: searchPill.searchActive ? 1.0 : 0.0
+                        visible: opacity > 0.01
+
+                        Behavior on color { CAnim {} }
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "close"
+                            color: Colours.palette.m3onSurfaceVariant
+                            iconPointSize: 14
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        MouseArea {
+                            id: clearBtnMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                marketSearchInput.text = "";
+                                if (root.marketSearch !== "") {
+                                    root.marketSearch = "";
+                                    root.refreshMarket();
+                                }
+                                searchPill.searchExpanded = false;
+                                marketSearchInput.focus = false;
+                            }
                         }
                     }
                 }
 
-                StyledText {
-                    id: refreshText
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: marketRotHost.right
-                    anchors.leftMargin: 6
-                    text: qsTr("Refresh")
-                    textPointSize: Tokens.font.size.smaller
-                    font.weight: Font.Medium
-                    color: Colours.palette.m3onSurface
-                    visible: opacity > 0.01
-                    opacity: refreshMarketBtn.hovered ? 1.0 : 0.0
-                    Behavior on opacity { Anim { type: Anim.FastEffects } }
-                }
+                // Refresh Button (Store)
+                StyledRect {
+                    id: refreshMarketBtn
+                    implicitHeight: 38
+                    implicitWidth: 38
+                    radius: Tokens.rounding.full
+                    color: refreshMarketMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
+                           Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                    border.width: 1
+                    border.color: refreshMarketMa.containsMouse ? "transparent" : Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
 
-                MouseArea {
-                    id: refreshMarketMa
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        marketSpinAnim.restart();
-                        root.refreshMarket();
+                    Behavior on color { CAnim {} }
+                    Behavior on border.color { CAnim {} }
+
+                    LoadingIndicator {
+                        anchors.centerIn: parent
+                        implicitSize: 20
+                        color: Colours.palette.m3primary
+                        animated: root.marketLoading
+                        visible: opacity > 0
+                        opacity: root.marketLoading ? 1.0 : 0.0
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                    }
+
+                    MaterialIcon {
+                        id: refreshMarketIcon
+                        anchors.centerIn: parent
+                        text: "refresh"
+                        iconPointSize: 18
+                        color: Colours.palette.m3onSurface
+                        visible: opacity > 0
+                        opacity: root.marketLoading ? 0.0 : 1.0
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                    }
+
+                    MouseArea {
+                        id: refreshMarketMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: root.marketLoading ? Qt.ArrowCursor : Qt.PointingHandCursor
+                        enabled: !root.marketLoading
+                        onClicked: root.refreshMarket()
                     }
                 }
             }
         }
+    }
+
+    // Click outside to collapse searchbar
+    MouseArea {
+        anchors.fill: parent
+        z: 9
+        visible: searchPill.searchActive
+        onClicked: {
+            searchPill.searchExpanded = false;
+            marketSearchInput.focus = false;
         }
     }
 
@@ -967,6 +920,8 @@ Item {
                         : (!modelData.path.startsWith("/usr") && modelData.id !== "default" && modelData.id !== "hicolor")
 
                     Layout.fillWidth: true
+                    Layout.preferredWidth: Math.max(100, Math.floor((installedGrid.width - installedGrid.columnSpacing * 2) / 3))
+                    Layout.maximumWidth: Layout.preferredWidth
                     Layout.preferredHeight: 154
                     implicitHeight: 154
 
@@ -1103,7 +1058,7 @@ Item {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: modelData.name || modelData.id
-                                    font.weight: cardDelegate.isSelected ? Font.SemiBold : Font.Medium
+                                    font.weight: cardDelegate.isSelected ? Font.DemiBold : Font.Medium
                                     textPointSize: Tokens.font.size.normal
                                     color: cardDelegate.isSelected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
                                     elide: Text.ElideRight
@@ -1202,7 +1157,9 @@ Item {
 
         // Market Cards Bento Grid
         GridLayout {
+            id: marketGrid
             visible: root.marketList.length > 0
+            width: parent.width
             Layout.fillWidth: true
             columns: 3
             columnSpacing: Tokens.spacing.normal
@@ -1218,19 +1175,30 @@ Item {
 
                     readonly property bool isThisInstalling: root.installingId === modelData.id
                     readonly property bool isHovered: marketCardMouse.containsMouse
+                    readonly property bool isSelectedForDetail: root.detailTheme && (root.detailTheme.id === modelData.id) && root.detailVisible
+
+                    opacity: isSelectedForDetail ? 0.0 : 1.0
 
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 244
-                    implicitHeight: 244
+                    Layout.preferredWidth: Math.max(100, Math.floor((marketGrid.width - marketGrid.columnSpacing * 2) / 3))
+                    Layout.maximumWidth: Layout.preferredWidth
+                    Layout.preferredHeight: 236
+                    implicitHeight: 236
 
                     StyledRect {
                         anchors.fill: parent
                         radius: Tokens.rounding.large
-                        color: Colours.palette.m3surfaceContainerLow
-                        border.color: marketCard.isHovered ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
-                        border.width: 1
+                        color: marketCard.isHovered
+                            ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+                            : root.normalCardBg
 
-                        Behavior on border.color { CAnim { duration: Tokens.anim.durations.small } }
+                        border.width: 1
+                        border.color: marketCard.isHovered
+                            ? Qt.alpha(Colours.palette.m3outline, 0.4)
+                            : Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
+
+                        Behavior on color { CAnim {} }
+                        Behavior on border.color { CAnim {} }
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -1258,12 +1226,13 @@ Item {
                                         return "";
                                     }
                                     fillMode: Image.PreserveAspectCrop
-                                    sourceSize.width: 320
-                                    sourceSize.height: 160
+                                    sourceSize.width: 480
+                                    sourceSize.height: 320
                                     cache: true
                                     asynchronous: true
                                     smooth: true
                                     antialiasing: true
+                                    mipmap: true
                                     visible: status === Image.Ready
                                 }
 
@@ -1346,7 +1315,6 @@ Item {
                             // Card Content
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                Layout.fillHeight: true
                                 spacing: 2
 
                                 StyledText {
@@ -1367,172 +1335,179 @@ Item {
                                     color: Colours.palette.m3onSurfaceVariant
                                     elide: Text.ElideRight
                                 }
+                            }
 
-                                Item { Layout.fillHeight: true }
+                            Item {
+                                Layout.fillHeight: true
+                            }
 
-                                // Action Row: Dual-mode Install Button & Uninstall Button
-                                RowLayout {
+                            // Action Row: Dual-mode Install Button & Uninstall Button
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 34
+                                spacing: 6
+                                z: 10
+
+                                StyledClippingRect {
+                                    id: actionBtn
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 34
-                                    spacing: 6
+                                    radius: height / 2
+                                    clip: true
 
-                                    StyledRect {
-                                        id: actionBtn
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 34
-                                        radius: Tokens.rounding.full
+                                    readonly property bool isInstalled: modelData.isInstalled
+                                    readonly property bool isInstalling: marketCard.isThisInstalling
+                                    readonly property bool isHovered: btnMa.containsMouse
+
+                                    color: isInstalling
+                                        ? Qt.alpha(Colours.palette.m3primary, 0.14)
+                                        : (isInstalled
+                                            ? (isHovered ? Colours.layer(Colours.palette.m3secondaryContainer, 2) : Colours.palette.m3secondaryContainer)
+                                            : (isHovered ? Colours.layer(Colours.palette.m3primary, 2) : Colours.palette.m3primary))
+
+                                    // 1. Base Layer (visible on unfilled track)
+                                    RowLayout {
+                                        id: baseContent
+                                        anchors.centerIn: parent
+                                        spacing: 6
+                                        z: 1
+
+                                        MaterialIcon {
+                                            iconPointSize: 15
+                                            color: actionBtn.isInstalling ? Colours.palette.m3primary : (actionBtn.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
+                                            text: {
+                                                if (actionBtn.isInstalling) return "downloading";
+                                                if (actionBtn.isInstalled) return "check";
+                                                return "download";
+                                            }
+                                            Behavior on color { CAnim {} }
+                                        }
+
+                                        StyledText {
+                                            font.weight: Font.DemiBold
+                                            textPointSize: Tokens.font.size.normal
+                                            color: actionBtn.isInstalling ? Colours.palette.m3primary : (actionBtn.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
+                                            text: {
+                                                if (actionBtn.isInstalling) {
+                                                    return qsTr("Installing... %1%").arg(root.installProgress);
+                                                }
+                                                if (actionBtn.isInstalled) return qsTr("Installed");
+                                                return qsTr("Install");
+                                            }
+                                            Behavior on color { CAnim {} }
+                                        }
+                                    }
+
+                                    // 2. Dynamic Progress Fill (clipped) with StandardLarge CPU meter behavior
+                                    Rectangle {
+                                        id: progressFill
+                                        visible: actionBtn.isInstalling
+                                        anchors.left: parent.left
+                                        anchors.top: parent.top
+                                        anchors.bottom: parent.bottom
+                                        width: Math.max(0, Math.min(actionBtn.width, Math.round(actionBtn.width * (root.installProgress / 100))))
+                                        radius: actionBtn.radius
+                                        color: Colours.palette.m3primary
+                                        z: 2
                                         clip: true
 
-                                        readonly property bool isInstalled: modelData.isInstalled
-                                        readonly property bool isInstalling: marketCard.isThisInstalling
-                                        readonly property bool isHovered: btnMa.containsMouse
+                                        Behavior on width {
+                                            Anim {
+                                                type: Anim.StandardLarge
+                                            }
+                                        }
 
-                                        color: isInstalling
-                                            ? Qt.alpha(Colours.palette.m3primary, 0.14)
-                                            : (isInstalled
-                                                ? (isHovered ? Colours.layer(Colours.palette.m3secondaryContainer, 2) : Colours.palette.m3secondaryContainer)
-                                                : (isHovered ? Colours.layer(Colours.palette.m3primary, 2) : Colours.palette.m3primary))
-
-                                        Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
-
-                                        // 1. Base Layer (visible on unfilled track)
+                                        // 3. Inverted content layer inside the fill (high contrast onPrimary)
                                         RowLayout {
-                                            id: baseContent
-                                            anchors.centerIn: parent
+                                            width: baseContent.width
+                                            height: baseContent.height
+                                            x: (actionBtn.width - width) / 2
+                                            y: (actionBtn.height - height) / 2
                                             spacing: 6
-                                            z: 1
 
                                             MaterialIcon {
                                                 iconPointSize: 15
-                                                color: actionBtn.isInstalling ? Colours.palette.m3primary : (actionBtn.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
-                                                text: {
-                                                    if (actionBtn.isInstalling) return "downloading";
-                                                    if (actionBtn.isInstalled) return "check";
-                                                    return "download";
-                                                }
-                                                Behavior on color { CAnim {} }
+                                                color: Colours.palette.m3onPrimary
+                                                text: "downloading"
                                             }
 
                                             StyledText {
-                                                font.weight: Font.SemiBold
+                                                font.weight: Font.DemiBold
                                                 textPointSize: Tokens.font.size.normal
-                                                color: actionBtn.isInstalling ? Colours.palette.m3primary : (actionBtn.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
-                                                text: {
-                                                    if (actionBtn.isInstalling) {
-                                                        return qsTr("Installing... %1%").arg(root.installProgress);
-                                                    }
-                                                    if (actionBtn.isInstalled) return qsTr("Installed");
-                                                    return qsTr("Install");
-                                                }
-                                                Behavior on color { CAnim {} }
-                                            }
-                                        }
-
-                                        // 2. Dynamic Progress Fill (clipped) with StandardLarge CPU meter behavior
-                                        StyledClippingRect {
-                                            id: progressFill
-                                            visible: actionBtn.isInstalling
-                                            anchors.left: parent.left
-                                            anchors.top: parent.top
-                                            anchors.bottom: parent.bottom
-                                            width: Math.max(0, Math.min(actionBtn.width, Math.round(actionBtn.width * (root.installProgress / 100))))
-                                            radius: Tokens.rounding.full
-                                            color: Colours.palette.m3primary
-                                            z: 2
-                                            clip: true
-
-                                            Behavior on width {
-                                                Anim {
-                                                    type: Anim.StandardLarge
-                                                }
-                                            }
-
-                                            // 3. Inverted content layer inside the fill (high contrast onPrimary)
-                                            RowLayout {
-                                                width: baseContent.width
-                                                height: baseContent.height
-                                                x: (actionBtn.width - width) / 2
-                                                y: (actionBtn.height - height) / 2
-                                                spacing: 6
-
-                                                MaterialIcon {
-                                                    iconPointSize: 15
-                                                    color: Colours.palette.m3onPrimary
-                                                    text: "downloading"
-                                                }
-
-                                                StyledText {
-                                                    font.weight: Font.SemiBold
-                                                    textPointSize: Tokens.font.size.normal
-                                                    color: Colours.palette.m3onPrimary
-                                                    text: qsTr("Installing... %1%").arg(root.installProgress)
-                                                }
-                                            }
-                                        }
-
-                                        MouseArea {
-                                            id: btnMa
-                                            anchors.fill: parent
-                                            hoverEnabled: !actionBtn.isInstalling
-                                            cursorShape: actionBtn.isInstalling ? Qt.ArrowCursor : Qt.PointingHandCursor
-                                            enabled: !actionBtn.isInstalling && (modelData.downloadUrl || modelData.isInstalled)
-                                            onClicked: {
-                                                if (actionBtn.isInstalled) {
-                                                    root.currentTab = 0;
-                                                } else {
-                                                    root.installMarketPack(modelData.downloadUrl, modelData.downloadName, modelData.id);
-                                                }
+                                                color: Colours.palette.m3onPrimary
+                                                text: qsTr("Installing... %1%").arg(root.installProgress)
                                             }
                                         }
                                     }
 
-                                    // Uninstall Button (visible when installed)
-                                    StyledRect {
-                                        id: marketUninstallBtn
-                                        visible: actionBtn.isInstalled && !actionBtn.isInstalling
-                                        Layout.preferredWidth: 34
-                                        Layout.preferredHeight: 34
-                                        radius: Tokens.rounding.full
-                                        color: marketUninstallMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
-                                               marketUninstallMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
-                                               Colours.palette.m3surfaceContainerHighest
-                                        border.width: 0
-                                        border.color: "transparent"
-
-                                        Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
-
-                                        MaterialIcon {
-                                            anchors.centerIn: parent
-                                            text: "delete"
-                                            iconPointSize: 16
-                                            color: marketUninstallMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                                            Behavior on color { CAnim {} }
-                                        }
-
-                                        MouseArea {
-                                            id: marketUninstallMa
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                const thId = modelData.installedThemeId || modelData.name;
-                                                root.promptDeleteTheme({
-                                                    id: thId,
-                                                    name: modelData.name,
-                                                    path: ""
-                                                });
+                                    MouseArea {
+                                        id: btnMa
+                                        anchors.fill: parent
+                                        hoverEnabled: !actionBtn.isInstalling
+                                        cursorShape: actionBtn.isInstalling ? Qt.ArrowCursor : Qt.PointingHandCursor
+                                        enabled: !actionBtn.isInstalling && (modelData.downloadUrl || modelData.isInstalled)
+                                        onPressed: (mouse) => { mouse.accepted = true; }
+                                        onClicked: (mouse) => {
+                                            mouse.accepted = true;
+                                            if (actionBtn.isInstalled) {
+                                                root.currentTab = 0;
+                                            } else {
+                                                root.installMarketPack(modelData.downloadUrl, modelData.downloadName, modelData.id);
                                             }
                                         }
                                     }
                                 }
+
+                                // Uninstall Button (visible when installed)
+                                StyledRect {
+                                    id: marketUninstallBtn
+                                    visible: actionBtn.isInstalled && !actionBtn.isInstalling
+                                    Layout.preferredWidth: 34
+                                    Layout.preferredHeight: 34
+                                    radius: Tokens.rounding.full
+                                    color: marketUninstallMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
+                                           marketUninstallMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
+                                           Colours.palette.m3surfaceContainerHighest
+                                    border.width: 0
+                                    border.color: "transparent"
+
+                                    Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
+
+                                    MaterialIcon {
+                                        anchors.centerIn: parent
+                                        text: "delete"
+                                        iconPointSize: 16
+                                        color: marketUninstallMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                                        Behavior on color { CAnim {} }
+                                    }
+
+                                    MouseArea {
+                                        id: marketUninstallMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onPressed: (mouse) => { mouse.accepted = true; }
+                                        onClicked: (mouse) => {
+                                            mouse.accepted = true;
+                                            const thId = modelData.installedThemeId || modelData.name;
+                                            root.promptDeleteTheme({
+                                                id: thId,
+                                                name: modelData.name,
+                                                path: ""
+                                            });
+                                        }
+                                    }
+                                }
                             }
-                        }
+                            }
 
                         MouseArea {
                             id: marketCardMouse
                             anchors.fill: parent
                             hoverEnabled: true
-                            acceptedButtons: Qt.NoButton
+                            cursorShape: Qt.PointingHandCursor
+                            z: 0
+                            onClicked: root.openThemeDetails(modelData, marketCard)
                         }
                     }
                 }
@@ -1583,6 +1558,747 @@ Item {
     }
     }
 
+
+    property var detailTheme: null
+    property rect detailSourceRect: Qt.rect(0, 0, 0, 0)
+    property bool detailVisible: false
+
+    readonly property color normalCardBg: {
+        const c = Colours.layer(Colours.palette.m3surfaceContainer, 1);
+        return Qt.rgba(c.r, c.g, c.b, 1.0);
+    }
+
+    property real morphProgress: 0.0
+    readonly property real clampedMorph: Math.max(0.0, Math.min(1.0, morphProgress))
+    readonly property real expandedHeroHeight: Math.min(250, Math.round(detailCard.targetHeight * 0.48))
+    property real expandedExtrasOpacity: 0.0
+    property int detailImgIndex: 0
+
+    function openThemeDetails(theme, cardItem) {
+        if (!theme || !cardItem) return;
+        collapseAnimation.stop();
+        expandAnimation.stop();
+
+        detailImgIndex = 0;
+
+        const pt = cardItem.mapToItem(root, 0, 0);
+        detailSourceRect = Qt.rect(pt.x, pt.y, cardItem.width, cardItem.height);
+
+        morphProgress = 0.0;
+        expandedExtrasOpacity = 0.0;
+        detailElevation.opacity = 0.0;
+
+        detailTheme = theme;
+        detailVisible = true;
+        expandAnimation.restart();
+    }
+
+    function closeThemeDetails() {
+        if (!root.detailVisible || collapseAnimation.running) return;
+        expandAnimation.stop();
+        detailImgIndex = 0;
+        detailElevation.opacity = 0.0;
+        collapseAnimation.restart();
+    }
+
+    // ── M3 Expressive Tokens (Smooth Bouncy Container Transform) ──
+    readonly property int expandDur: 420
+    readonly property int collapseDur: 360
+    readonly property var spatialEasing: Tokens.anim.legacyMorphSpatial
+    readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
+
+    ParallelAnimation {
+        id: expandAnimation
+        NumberAnimation {
+            target: root
+            property: "morphProgress"
+            to: 1.0
+            duration: root.expandDur
+            easing: root.spatialEasing
+        }
+        NumberAnimation {
+            target: root
+            property: "expandedExtrasOpacity"
+            to: 1.0
+            duration: root.expandDur
+            easing: root.spatialEasingDecel
+        }
+        NumberAnimation {
+            target: detailElevation
+            property: "opacity"
+            to: 1.0
+            duration: root.expandDur
+            easing: root.spatialEasingDecel
+        }
+        onFinished: {
+            root.morphProgress = 1.0;
+            root.expandedExtrasOpacity = 1.0;
+            detailElevation.opacity = 1.0;
+        }
+    }
+
+    ParallelAnimation {
+        id: collapseAnimation
+        NumberAnimation {
+            target: root
+            property: "morphProgress"
+            to: 0.0
+            duration: root.collapseDur
+            easing: root.spatialEasing
+        }
+        NumberAnimation {
+            target: root
+            property: "expandedExtrasOpacity"
+            to: 0.0
+            duration: Math.round(root.collapseDur * 0.72)
+            easing: Tokens.anim.standardDecel
+        }
+        NumberAnimation {
+            target: detailElevation
+            property: "opacity"
+            to: 0.0
+            duration: Math.round(root.collapseDur * 0.45)
+            easing: Tokens.anim.standardDecel
+        }
+        onFinished: {
+            root.morphProgress = 0.0;
+            root.expandedExtrasOpacity = 0.0;
+            root.detailVisible = false;
+            root.detailTheme = null;
+        }
+    }
+
+    Item {
+        id: detailOverlay
+        anchors.fill: parent
+        z: 9998
+        visible: root.detailVisible
+
+        Shortcut {
+            sequence: "Escape"
+            enabled: root.detailVisible && !deleteModal.visible
+            onActivated: root.closeThemeDetails()
+        }
+
+        // Scrim background covering the full details pane card without border gaps
+        Rectangle {
+            id: detailScrim
+            anchors.fill: parent
+            anchors.leftMargin: -Tokens.padding.normal
+            anchors.rightMargin: -Tokens.padding.normal
+            anchors.topMargin: -Tokens.padding.normal
+            anchors.bottomMargin: -Tokens.padding.normal
+            radius: Tokens.rounding.large
+            color: Colours.palette.m3scrim ? Qt.alpha(Colours.palette.m3scrim, 0.65) : Qt.alpha("#000000", 0.65)
+            opacity: root.expandedExtrasOpacity
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.closeThemeDetails()
+                onWheel: wheel => { wheel.accepted = true; }
+            }
+        }
+
+        // Elevation Shadow Level 4 (Resting only for 60 FPS flight)
+        Elevation {
+            id: detailElevation
+            x: detailCard.x
+            y: detailCard.y
+            width: detailCard.width
+            height: detailCard.height
+            radius: detailCard.radius
+            level: 4
+            opacity: 0.0
+            visible: !expandAnimation.running && !collapseAnimation.running && root.detailVisible && opacity > 0.01
+        }
+
+        // Morphing Transform Card
+        StyledRect {
+            id: detailCard
+
+            readonly property real targetWidth: Math.min(detailOverlay.width - 48, 540)
+            readonly property real targetHeight: Math.min(detailOverlay.height - 48, 510)
+            readonly property real targetX: Math.round((detailOverlay.width - targetWidth) / 2)
+            readonly property real targetY: Math.round((detailOverlay.height - targetHeight) / 2)
+
+            x: root.detailSourceRect.x + (targetX - root.detailSourceRect.x) * root.morphProgress
+            y: root.detailSourceRect.y + (targetY - root.detailSourceRect.y) * root.morphProgress
+            width: Math.max(100, root.detailSourceRect.width + (targetWidth - root.detailSourceRect.width) * root.morphProgress)
+            height: Math.max(100, root.detailSourceRect.height + (targetHeight - root.detailSourceRect.height) * root.morphProgress)
+
+            radius: Tokens.rounding.large
+            color: root.normalCardBg
+            border.width: 1
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25 + 0.05 * root.clampedMorph)
+            clip: true
+
+            // Prevent clicks/scrolls inside card from leaking to background grid
+            MouseArea {
+                anchors.fill: parent
+                onWheel: wheel => { wheel.accepted = true; }
+            }
+
+            Item {
+                id: detailContentArea
+                anchors.fill: parent
+                anchors.margins: Tokens.padding.normal
+
+                // Top: High-Res Preview Hero (Unified Zooming Thumbnail)
+                StyledClippingRect {
+                    id: detailHeroContainer
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: Math.max(60, 114 + (root.expandedHeroHeight - 114) * root.morphProgress)
+                    radius: Tokens.rounding.small + (Tokens.rounding.normal - Tokens.rounding.small) * root.clampedMorph
+
+                    readonly property color compactHeroColor: Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.5)
+                    readonly property color expandedHeroColor: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85)
+                    color: Qt.rgba(
+                        compactHeroColor.r + (expandedHeroColor.r - compactHeroColor.r) * root.clampedMorph,
+                        compactHeroColor.g + (expandedHeroColor.g - compactHeroColor.g) * root.clampedMorph,
+                        compactHeroColor.b + (expandedHeroColor.b - compactHeroColor.b) * root.clampedMorph,
+                        compactHeroColor.a + (expandedHeroColor.a - compactHeroColor.a) * root.clampedMorph
+                    )
+                    antialiasing: true
+                    clip: true
+
+                    // Unified Image: smoothly zooms from PreserveAspectCrop (t=0) to PreserveAspectFit (t=1)
+                    Image {
+                        id: detailHeroImg
+                        anchors.centerIn: parent
+
+                        readonly property real containerW: Math.max(1, detailHeroContainer.width)
+                        readonly property real containerH: Math.max(1, detailHeroContainer.height)
+                        readonly property real imgAspect: (implicitWidth > 0 && implicitHeight > 0)
+                            ? (implicitWidth / implicitHeight)
+                            : (350.0 / 250.0)
+
+                        readonly property real cropW: Math.max(containerW, containerH * imgAspect)
+                        readonly property real cropH: Math.max(containerH, containerW / imgAspect)
+
+                        readonly property real fitAvailW: Math.max(1, containerW - 8)
+                        readonly property real fitAvailH: Math.max(1, containerH - 8)
+                        readonly property real fitW: Math.min(fitAvailW, fitAvailH * imgAspect)
+                        readonly property real fitH: Math.min(fitAvailH, fitAvailW / imgAspect)
+
+                        width: cropW + (fitW - cropW) * root.clampedMorph
+                        height: cropH + (fitH - cropH) * root.clampedMorph
+
+                        source: {
+                            if (!root.detailTheme) return "";
+                            const plist = root.detailTheme.previews;
+                            if (plist && plist.length > 0) {
+                                const idx = Math.max(0, Math.min(plist.length - 1, root.detailImgIndex));
+                                const p = plist[idx] || "";
+                                if (p.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p)) {
+                                    return "file://" + p;
+                                }
+                                return p;
+                            }
+                            const p0 = root.detailTheme.preview || "";
+                            if (p0.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p0)) {
+                                return "file://" + p0;
+                            }
+                            return p0;
+                        }
+                        fillMode: Image.PreserveAspectCrop
+                        sourceSize.width: 480
+                        sourceSize.height: 320
+                        cache: true
+                        asynchronous: true
+                        smooth: true
+                        antialiasing: true
+                        mipmap: true
+                        visible: status === Image.Ready
+                    }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        visible: detailHeroImg.status !== Image.Ready
+                        text: "palette"
+                        iconPointSize: 32 + 16 * root.clampedMorph
+                        color: Colours.palette.m3onSurfaceVariant
+                    }
+
+                    // Left: Previous Image Button (if multiple images)
+                    StyledRect {
+                        id: prevImgBtn
+                        anchors.left: parent.left
+                        anchors.leftMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        implicitWidth: 32
+                        implicitHeight: 32
+                        radius: 16
+                        z: 10
+                        visible: root.detailTheme && root.detailTheme.previews && root.detailTheme.previews.length > 1 && (root.expandedExtrasOpacity > 0.01)
+                        opacity: root.expandedExtrasOpacity
+                        scale: 0.7 + 0.3 * root.clampedMorph
+                        color: prevImgMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
+                               prevImgMa.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) :
+                               Colours.palette.m3surfaceContainerHighest
+                        border.color: prevImgMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.45)
+                        border.width: 1
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "chevron_left"
+                            iconPointSize: 18
+                            color: Colours.palette.m3onSurface
+                        }
+
+                        MouseArea {
+                            id: prevImgMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                const len = root.detailTheme.previews.length;
+                                root.detailImgIndex = (root.detailImgIndex - 1 + len) % len;
+                            }
+                        }
+                    }
+
+                    // Right: Next Image Button (if multiple images)
+                    StyledRect {
+                        id: nextImgBtn
+                        anchors.right: parent.right
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        implicitWidth: 32
+                        implicitHeight: 32
+                        radius: 16
+                        z: 10
+                        visible: root.detailTheme && root.detailTheme.previews && root.detailTheme.previews.length > 1 && (root.expandedExtrasOpacity > 0.01)
+                        opacity: root.expandedExtrasOpacity
+                        scale: 0.7 + 0.3 * root.clampedMorph
+                        color: nextImgMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
+                               nextImgMa.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) :
+                               Colours.palette.m3surfaceContainerHighest
+                        border.color: nextImgMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.45)
+                        border.width: 1
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "chevron_right"
+                            iconPointSize: 18
+                            color: Colours.palette.m3onSurface
+                        }
+
+                        MouseArea {
+                            id: nextImgMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                const len = root.detailTheme.previews.length;
+                                root.detailImgIndex = (root.detailImgIndex + 1) % len;
+                            }
+                        }
+                    }
+
+                    // Bottom Center: Image Counter Pill (e.g. 1 / 4)
+                    StyledRect {
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 8
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        implicitHeight: 22
+                        implicitWidth: imgCounterText.implicitWidth + 14
+                        radius: Tokens.rounding.full
+                        z: 10
+                        visible: root.detailTheme && root.detailTheme.previews && root.detailTheme.previews.length > 1 && (root.expandedExtrasOpacity > 0.01)
+                        opacity: root.expandedExtrasOpacity
+                        scale: 0.7 + 0.3 * root.clampedMorph
+                        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.88)
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
+                        border.width: 1
+
+                        StyledText {
+                            id: imgCounterText
+                            anchors.centerIn: parent
+                            text: {
+                                if (!root.detailTheme || !root.detailTheme.previews) return "";
+                                return (root.detailImgIndex + 1) + " / " + root.detailTheme.previews.length;
+                            }
+                            textPointSize: Tokens.font.size.smaller
+                            font.weight: Font.DemiBold
+                            color: Colours.palette.m3onSurface
+                        }
+                    }
+
+                    // Top Left: Rating Badge (glides smoothly from grid card topMargin 6 to expanded topMargin 10)
+                    StyledRect {
+                        id: detailRatePill
+                        anchors.top: parent.top
+                        anchors.topMargin: 6 + 4 * root.clampedMorph
+                        anchors.left: parent.left
+                        anchors.leftMargin: 6 + 4 * root.clampedMorph
+                        visible: root.detailTheme && root.detailTheme.rating > 0
+                        implicitHeight: 22 + 4 * root.clampedMorph
+                        implicitWidth: detailRateRow.implicitWidth + 12 + 2 * root.clampedMorph
+                        radius: Tokens.rounding.full
+                        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85 + 0.03 * root.clampedMorph)
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2 + 0.05 * root.clampedMorph)
+                        border.width: 1
+
+                        RowLayout {
+                            id: detailRateRow
+                            anchors.centerIn: parent
+                            spacing: 3
+
+                            MaterialIcon {
+                                text: "star"
+                                iconPointSize: 11 + 2 * root.clampedMorph
+                                color: "#f5a623"
+                            }
+
+                            StyledText {
+                                text: (root.detailTheme ? root.detailTheme.rating : "") + "%"
+                                textPointSize: Tokens.font.size.smaller
+                                font.weight: Font.DemiBold
+                                color: Colours.palette.m3onSurface
+                            }
+                        }
+                    }
+
+                    // Top Right: Downloads Badge (starts at rightMargin 6 matching grid card, smoothly glides left 42px as close button blooms in)
+                    StyledRect {
+                        id: detailDlPill
+                        anchors.top: parent.top
+                        anchors.topMargin: 6 + 4 * root.clampedMorph
+                        anchors.right: parent.right
+                        anchors.rightMargin: 6 + 42 * root.clampedMorph
+                        visible: root.detailTheme !== null
+                        implicitHeight: 22 + 4 * root.clampedMorph
+                        implicitWidth: detailDlRow.implicitWidth + 12 + 2 * root.clampedMorph
+                        radius: Tokens.rounding.full
+                        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85 + 0.03 * root.clampedMorph)
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2 + 0.05 * root.clampedMorph)
+                        border.width: 1
+
+                        RowLayout {
+                            id: detailDlRow
+                            anchors.centerIn: parent
+                            spacing: 3
+
+                            MaterialIcon {
+                                text: "download"
+                                iconPointSize: 11 + 2 * root.clampedMorph
+                                color: Colours.palette.m3primary
+                            }
+
+                            StyledText {
+                                text: root.detailTheme ? root.formatNumber(root.detailTheme.downloads) : "0"
+                                textPointSize: Tokens.font.size.smaller
+                                font.weight: Font.DemiBold
+                                color: Colours.palette.m3onSurface
+                            }
+                        }
+                    }
+
+                    // Top Right: Close (X) Button (blooms in smoothly at top-right)
+                    StyledRect {
+                        id: detailTopCloseBtn
+                        anchors.top: parent.top
+                        anchors.topMargin: 8
+                        anchors.right: parent.right
+                        anchors.rightMargin: 8
+                        implicitWidth: 32
+                        implicitHeight: 32
+                        radius: 16
+                        z: 11
+                        opacity: root.expandedExtrasOpacity
+                        scale: 0.5 + 0.5 * root.clampedMorph
+                        visible: opacity > 0.01
+                        color: detailCloseMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
+                               detailCloseMa.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) :
+                               Colours.palette.m3surfaceContainerHighest
+                        border.color: detailCloseMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
+                        border.width: 1
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "close"
+                            iconPointSize: 16
+                            color: Colours.palette.m3onSurface
+                        }
+
+                        MouseArea {
+                            id: detailCloseMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.closeThemeDetails()
+                        }
+                    }
+                }
+
+                // Middle: Title, Author & Description
+                Item {
+                    id: detailMiddleArea
+                    anchors.top: detailHeroContainer.bottom
+                    anchors.topMargin: Tokens.spacing.small
+                    anchors.bottom: detailBottomRow.top
+                    anchors.bottomMargin: Tokens.spacing.small
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    clip: true
+
+                    Item {
+                        id: detailTitleCol
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: detailTitleLabel.height * detailTitleLabel.scale + 2 + detailAuthorLabel.height
+
+                        StyledText {
+                            id: detailTitleLabel
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            width: parent.width / scale
+                            text: root.detailTheme ? root.detailTheme.name : ""
+                            font.weight: Font.DemiBold
+                            textPointSize: Tokens.font.size.normal
+                            color: Colours.palette.m3onSurface
+                            elide: Text.ElideRight
+                            maximumLineCount: 1
+                            transformOrigin: Item.TopLeft
+                            scale: 1.0 + 0.14 * root.clampedMorph
+                        }
+
+                        StyledText {
+                            id: detailAuthorLabel
+                            anchors.top: parent.top
+                            anchors.topMargin: detailTitleLabel.height * detailTitleLabel.scale + 2
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            text: (root.detailTheme && root.detailTheme.author) ? (qsTr("by ") + root.detailTheme.author) : qsTr("Store")
+                            textPointSize: Tokens.font.size.small
+                            font.weight: Font.Normal
+                            color: Colours.palette.m3onSurfaceVariant
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    // Description (Scrollable)
+                    StyledFlickable {
+                        id: detailDescFlickable
+                        anchors.top: detailTitleCol.bottom
+                        anchors.topMargin: Tokens.spacing.small + (1.0 - root.clampedMorph) * 6
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        opacity: root.expandedExtrasOpacity
+                        visible: opacity > 0.01
+                        contentWidth: width
+                        contentHeight: detailDescText.implicitHeight
+                        clip: true
+
+                        StyledText {
+                            id: detailDescText
+                            width: parent.width
+                            text: {
+                                if (!root.detailTheme) return "";
+                                if (root.detailTheme.description && root.detailTheme.description.trim().length > 0)
+                                    return root.detailTheme.description;
+                                if (root.detailTheme.summary && root.detailTheme.summary.trim().length > 0)
+                                    return root.detailTheme.summary;
+                                return qsTr("Preview and download packages directly from the online community archive.");
+                            }
+                            textPointSize: Tokens.font.size.small
+                            color: Colours.palette.m3onSurfaceVariant
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+
+                // Bottom: Action Buttons (Direct spatial interpolation, zero RowLayout snapping)
+                Item {
+                    id: detailBottomRow
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 34 + 4 * root.clampedMorph
+
+                    readonly property bool hasDeleteBtn: root.detailTheme ? (Boolean(root.detailTheme.isInstalled) && !detailActionBtn.isInsting) : false
+                    readonly property real deleteSlotW: hasDeleteBtn ? (detailDeleteBtn.width + 6 + 2 * root.clampedMorph) : 0
+                    readonly property real compactActionW: Math.max(60, width - deleteSlotW)
+                    readonly property real expandedActionW: 140
+
+                    // Close Button (Smoothly expands width from 0 to 88 on left)
+                    StyledRect {
+                        id: detailCloseBtn
+                        x: 0
+                        y: 0
+                        width: 88 * root.clampedMorph
+                        height: parent.height
+                        radius: height / 2
+                        opacity: root.expandedExtrasOpacity
+                        visible: opacity > 0.01 && width > 1
+                        clip: true
+                        color: detailCancelMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
+                               detailCancelMa.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) :
+                               Colours.palette.m3surfaceContainerHighest
+                        border.width: 1
+                        border.color: detailCancelMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
+
+                        StyledText {
+                            anchors.centerIn: parent
+                            text: qsTr("Close")
+                            font.weight: Font.Medium
+                            textPointSize: Tokens.font.size.small
+                            color: Colours.palette.m3onSurface
+                        }
+
+                        MouseArea {
+                            id: detailCancelMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.closeThemeDetails()
+                        }
+                    }
+
+                    // Install / Installed Button (Morphs smoothly between compact full width at x=0 and 140px on right)
+                    StyledClippingRect {
+                        id: detailActionBtn
+                        width: detailBottomRow.compactActionW + (detailBottomRow.expandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
+                        height: parent.height
+                        x: detailBottomRow.width - detailBottomRow.deleteSlotW - width
+                        y: 0
+                        radius: height / 2
+                        clip: true
+
+                        readonly property bool isInst: root.detailTheme ? Boolean(root.detailTheme.isInstalled) : false
+                        readonly property bool isInsting: root.detailTheme ? (root.installingId === root.detailTheme.id) : false
+                        readonly property bool isHov: detailBtnMa.containsMouse
+
+                        color: isInsting
+                            ? Qt.alpha(Colours.palette.m3primary, 0.14)
+                            : (isInst
+                                ? (isHov ? Colours.layer(Colours.palette.m3secondaryContainer, 2) : Colours.palette.m3secondaryContainer)
+                                : (isHov ? Colours.layer(Colours.palette.m3primary, 2) : Colours.palette.m3primary))
+
+                        // Base Content
+                        RowLayout {
+                            id: detailActionBaseContent
+                            anchors.centerIn: parent
+                            spacing: 6
+
+                            MaterialIcon {
+                                iconPointSize: 15
+                                color: detailActionBtn.isInsting ? Colours.palette.m3primary : (detailActionBtn.isInst ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
+                                text: detailActionBtn.isInsting ? "downloading" : (detailActionBtn.isInst ? "check" : "download")
+                                Behavior on color { CAnim {} }
+                            }
+
+                            StyledText {
+                                font.weight: Font.DemiBold
+                                textPointSize: Tokens.font.size.normal
+                                color: detailActionBtn.isInsting ? Colours.palette.m3primary : (detailActionBtn.isInst ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
+                                text: {
+                                    if (detailActionBtn.isInsting) {
+                                        return qsTr("Installing... %1%").arg(root.installProgress);
+                                    }
+                                    if (detailActionBtn.isInst) return qsTr("Installed");
+                                    return qsTr("Install");
+                                }
+                                Behavior on color { CAnim {} }
+                            }
+                        }
+
+                        // Dynamic Progress Fill
+                        Rectangle {
+                            visible: detailActionBtn.isInsting
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            width: Math.max(0, Math.min(detailActionBtn.width, Math.round(detailActionBtn.width * (root.installProgress / 100))))
+                            radius: detailActionBtn.radius
+                            color: Colours.palette.m3primary
+                            z: 2
+                            clip: true
+
+                            Behavior on width { Anim { type: Anim.StandardLarge } }
+
+                            RowLayout {
+                                width: detailActionBaseContent.width
+                                height: detailActionBaseContent.height
+                                x: (detailActionBtn.width - width) / 2
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                MaterialIcon {
+                                    iconPointSize: 15
+                                    color: Colours.palette.m3onPrimary
+                                    text: "downloading"
+                                }
+
+                                StyledText {
+                                    font.weight: Font.DemiBold
+                                    textPointSize: Tokens.font.size.normal
+                                    color: Colours.palette.m3onPrimary
+                                    text: qsTr("Installing... %1%").arg(root.installProgress)
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            id: detailBtnMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            enabled: !detailActionBtn.isInst && !detailActionBtn.isInsting
+                            onClicked: {
+                                if (root.detailTheme && !detailActionBtn.isInst) {
+                                    root.installMarketPack(root.detailTheme.downloadUrl, root.detailTheme.downloadName, root.detailTheme.id);
+                                }
+                            }
+                        }
+                    }
+
+                    // Delete / Uninstall button if installed (Anchored at right edge, matches marketCard position!)
+                    StyledRect {
+                        id: detailDeleteBtn
+                        visible: detailBottomRow.hasDeleteBtn
+                        width: 34 + 4 * root.clampedMorph
+                        height: parent.height
+                        x: detailBottomRow.width - width
+                        y: 0
+                        radius: height / 2
+                        color: detailDelMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
+                               detailDelMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
+                               Colours.palette.m3surfaceContainerHighest
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "delete"
+                            iconPointSize: 16 + 2 * root.clampedMorph
+                            color: detailDelMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                        }
+
+                        MouseArea {
+                            id: detailDelMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (root.detailTheme) {
+                                    const thId = root.detailTheme.installedThemeId || root.detailTheme.name;
+                                    root.promptDeleteTheme({
+                                        id: thId,
+                                        name: root.detailTheme.name,
+                                        path: ""
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // ── M3 Confirmation Modal for Deleting Icon Pack ──
     Item {
         id: deleteModal
@@ -1620,147 +2336,93 @@ Item {
             }
         }
 
-        // M3 Elevation Shadow Level 4
-        Elevation {
-            x: dialogCard.x
-            y: dialogCard.y
-            width: dialogCard.width
-            height: dialogCard.height
-            radius: dialogCard.radius
-            level: 4
-            scale: dialogCard.scale
-            opacity: dialogCard.opacity
-            z: 1
-
-            Behavior on scale { Anim { type: Anim.DefaultSpatial } }
-            Behavior on opacity { Anim { type: Anim.FastEffects } }
-        }
-
-        // Dialog Card (100% opaque, zero alpha/transparency)
+        // Dialog Card
         StyledRect {
-            id: dialogCard
             anchors.centerIn: parent
-            implicitWidth: Math.min(parent.width - 48, 410)
-            implicitHeight: dialogCol.implicitHeight + (Tokens.padding.large * 2)
-            radius: (Tokens.rounding && Tokens.rounding.large) ? Tokens.rounding.large : 24
-            color: Qt.rgba(Colours.palette.m3surfaceContainerHigh.r, Colours.palette.m3surfaceContainerHigh.g, Colours.palette.m3surfaceContainerHigh.b, 1.0)
+            width: Math.min(parent.width - 32, 420)
+            implicitHeight: modalCol.implicitHeight + Tokens.padding.large * 2
+            radius: Tokens.rounding.large
+            color: root.normalCardBg
             border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
-            scale: deleteModal.visible ? 1.0 : 0.94
-            opacity: deleteModal.visible ? 1.0 : 0.0
-            z: 2
-            clip: true
-
-            Behavior on scale { Anim { type: Anim.DefaultSpatial } }
-            Behavior on opacity { Anim { type: Anim.FastEffects } }
-
-            // Prevent clicks inside card from closing modal
-            MouseArea {
-                anchors.fill: parent
-            }
+            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
 
             ColumnLayout {
-                id: dialogCol
+                id: modalCol
                 anchors.fill: parent
                 anchors.margins: Tokens.padding.large
                 spacing: Tokens.spacing.normal
 
-                // Top Icon: M3 Expressive Warning/Delete icon container
-                StyledRect {
-                    Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 52
-                    implicitHeight: 52
-                    radius: Tokens.rounding.full
-                    color: Qt.alpha(Colours.palette.m3error, 0.14)
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "delete"
-                        iconPointSize: 24
-                        color: Colours.palette.m3error
-                    }
-                }
-
-                // Title
-                StyledText {
+                RowLayout {
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("Delete Icon Pack?")
-                    font.weight: Font.SemiBold
-                    textPointSize: Tokens.font.size.large
-                    color: Colours.palette.m3onSurface
-                }
+                    spacing: Tokens.spacing.normal
 
-                // Theme Name Chip
-                StyledRect {
-                    visible: root.pendingDeleteTheme !== null
-                    Layout.alignment: Qt.AlignHCenter
-                    implicitHeight: 32
-                    implicitWidth: Math.min(dialogCard.width - 48, themeChipRow.implicitWidth + 24)
-                    radius: Tokens.rounding.full
-                    color: Qt.rgba(Colours.palette.m3surfaceContainerHighest.r, Colours.palette.m3surfaceContainerHighest.g, Colours.palette.m3surfaceContainerHighest.b, 1.0)
-
-                    RowLayout {
-                        id: themeChipRow
-                        anchors.centerIn: parent
-                        spacing: 6
+                    StyledRect {
+                        Layout.preferredWidth: 40
+                        Layout.preferredHeight: 40
+                        radius: 20
+                        color: Qt.alpha(Colours.palette.m3error, 0.15)
 
                         MaterialIcon {
-                            text: "palette"
-                            iconPointSize: 15
-                            color: Colours.palette.m3primary
+                            anchors.centerIn: parent
+                            text: "delete"
+                            color: Colours.palette.m3error
+                            iconPointSize: 20
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        StyledText {
+                            text: qsTr("Delete Icon Pack?")
+                            font.weight: Font.DemiBold
+                            textPointSize: Tokens.font.size.large
+                            color: Colours.palette.m3onSurface
                         }
 
                         StyledText {
                             text: root.pendingDeleteTheme ? (root.pendingDeleteTheme.name || root.pendingDeleteTheme.id) : ""
-                            font.weight: Font.DemiBold
                             textPointSize: Tokens.font.size.small
-                            color: Colours.palette.m3onSurface
+                            color: Colours.palette.m3onSurfaceVariant
                             elide: Text.ElideRight
                         }
                     }
                 }
 
-                // Subtitle / Confirmation Notice
                 StyledText {
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: qsTr("This icon pack will be permanently removed from your system.")
+                    text: qsTr("Are you sure you want to permanently delete this icon pack from your system? This action cannot be undone.")
                     textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
+                    wrapMode: Text.WordWrap
                 }
 
                 Item { Layout.preferredHeight: Tokens.spacing.small }
 
-                // Actions: Cancel & Delete Buttons
+                // Action Buttons
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Tokens.spacing.normal
 
+                    Item { Layout.fillWidth: true }
+
                     // Cancel Button
                     StyledRect {
-                        id: cancelBtn
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 40
-                        radius: Tokens.rounding.full
+                        implicitWidth: 88
+                        implicitHeight: 36
+                        radius: 18
                         color: cancelMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
                                cancelMa.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) :
-                               Qt.rgba(Colours.palette.m3surfaceContainerHighest.r, Colours.palette.m3surfaceContainerHighest.g, Colours.palette.m3surfaceContainerHighest.b, 1.0)
-                        border.width: 0
-
-                        Behavior on color { CAnim {} }
+                               "transparent"
+                        border.width: 1
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
 
                         StyledText {
                             anchors.centerIn: parent
                             text: qsTr("Cancel")
                             font.weight: Font.Medium
-                            textPointSize: Tokens.font.size.normal
-                            color: Colours.palette.m3onSurface
-                        }
-
-                        StateLayer {
-                            radius: parent.radius
+                            textPointSize: Tokens.font.size.small
                             color: Colours.palette.m3onSurface
                         }
 
@@ -1778,45 +2440,38 @@ Item {
 
                     // Confirm Delete Button
                     StyledRect {
-                        id: deleteConfirmBtn
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 40
-                        radius: Tokens.rounding.full
-                        color: deleteConfirmMa.pressed ? Colours.layer(Colours.palette.m3error, 2) :
-                               deleteConfirmMa.containsMouse ? Colours.layer(Colours.palette.m3error, 1) :
-                               Qt.rgba(Colours.palette.m3error.r, Colours.palette.m3error.g, Colours.palette.m3error.b, 1.0)
-                        border.width: 0
-
-                        Behavior on color { CAnim {} }
+                        implicitWidth: 96
+                        implicitHeight: 36
+                        radius: 18
+                        color: confirmDeleteMa.pressed ? Colours.layer(Colours.palette.m3error, 2) :
+                               confirmDeleteMa.containsMouse ? Colours.layer(Colours.palette.m3error, 1) :
+                               Colours.palette.m3error
 
                         RowLayout {
                             anchors.centerIn: parent
                             spacing: 6
 
-                            MaterialIcon {
-                                text: "delete"
-                                iconPointSize: 16
+                            LoadingIndicator {
+                                visible: root.isDeleting
+                                implicitSize: 16
                                 color: Colours.palette.m3onError
+                                animated: root.isDeleting
                             }
 
                             StyledText {
-                                text: qsTr("Delete")
-                                font.weight: Font.SemiBold
-                                textPointSize: Tokens.font.size.normal
+                                text: root.isDeleting ? qsTr("Deleting…") : qsTr("Delete")
+                                font.weight: Font.DemiBold
+                                textPointSize: Tokens.font.size.small
                                 color: Colours.palette.m3onError
                             }
                         }
 
-                        StateLayer {
-                            radius: parent.radius
-                            color: Colours.palette.m3onError
-                        }
-
                         MouseArea {
-                            id: deleteConfirmMa
+                            id: confirmDeleteMa
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
+                            enabled: !root.isDeleting
                             onClicked: root.confirmDeleteTheme()
                         }
                     }

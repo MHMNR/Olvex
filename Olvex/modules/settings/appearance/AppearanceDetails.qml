@@ -14,13 +14,13 @@ Item {
     property Session session
     property string activeSection: "theme"
 
-    readonly property bool selfScrolled: activeSection === "icons"
+    readonly property bool selfScrolled: activeSection === "icons" || activeSection === "cursor"
 
     onActiveSectionChanged: {
         if (flick) flick.contentY = 0;
     }
 
-    // Direct loader for pages with pinned headers and internal scrolling (AppearanceIcons)
+    // Direct loader for pages with pinned headers and internal scrolling (AppearanceIcons, AppearanceCursor)
     Loader {
         id: directLoader
         anchors.fill: parent
@@ -28,7 +28,11 @@ Item {
         anchors.bottomMargin: Tokens.padding.normal
         active: root.selfScrolled
         visible: active
-        source: root.selfScrolled ? "AppearanceIcons.qml" : ""
+        source: {
+            if (root.activeSection === "icons") return "AppearanceIcons.qml";
+            if (root.activeSection === "cursor") return "AppearanceCursor.qml";
+            return "";
+        }
 
         Binding {
             target: directLoader.item

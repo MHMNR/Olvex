@@ -262,6 +262,18 @@ QtObject {
             accentRole: "m3primary",
             keywords: "icon icons theme pack papirus adwaita hicolor kde symbols desktop"
         },
+        // ── Cursor ──
+        {
+            id: "appearance_cursor",
+            pageId: "appearance",
+            sectionId: "cursor",
+            title: "Cursor Theme",
+            sub: "Pointers, cursor sizes, and mouse appearance",
+            breadcrumb: "Settings › Appearance › Cursor",
+            icon: "mouse",
+            accentRole: "m3primary",
+            keywords: "cursor cursors pointer mouse size theme timeout warping speed scale"
+        },
         {
             id: "appearance_theme_schedule",
             pageId: "appearance",

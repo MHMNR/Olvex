@@ -1,5 +1,6 @@
 module qs.modules.settings.appearance
 
+AppearanceCursor 1.0 AppearanceCursor.qml
 AppearanceDetails 1.0 AppearanceDetails.qml
 AppearanceFonts 1.0 AppearanceFonts.qml
 AppearanceIcons 1.0 AppearanceIcons.qml
