@@ -8,6 +8,7 @@ import "../../../components/effects"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Widgets
 import Quickshell.Io
 import M3Shapes
 import Olvex
@@ -529,80 +530,151 @@ Item {
                     }
                 }
 
-                // Open Folder Action
-                StyledRect {
-                    implicitHeight: 38
-                    implicitWidth: 38
-                    radius: Tokens.rounding.full
-                    color: openFolderMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                           Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                    border.width: 1
-                    border.color: openFolderMa.containsMouse ? "transparent" : Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+                RowLayout {
+                    spacing: Tokens.spacing.small
+                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "folder"
-                        iconPointSize: 18
-                        color: Colours.palette.m3onSurface
-                    }
+                    // Expanding "Open Folder" button
+                    StyledRect {
+                        id: openFolderBtn
+                        readonly property bool hovered: openFolderMa.containsMouse
+                        readonly property real expandedWidth: Math.round(38 + folderText.implicitWidth + 18)
 
-                    MouseArea {
-                        id: openFolderMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            openDirProc.command = ["xdg-open", Paths.home + "/.cursor"];
-                            openDirProc.running = false;
-                            openDirProc.running = true;
-                        }
-                    }
+                        implicitHeight: 38
+                        implicitWidth: hovered ? expandedWidth : 38
+                        Layout.preferredHeight: 38
+                        Layout.preferredWidth: implicitWidth
+                        radius: Tokens.rounding.full
+                        clip: true
 
-                    Process { id: openDirProc }
-                }
+                        color: openFolderMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
+                               Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                        border.width: 1
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
 
-                // Refresh Installed Themes Action
-                StyledRect {
-                    implicitHeight: 38
-                    implicitWidth: 38
-                    radius: Tokens.rounding.full
-                    color: refreshThemesMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                           Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                    border.width: 1
-                    border.color: refreshThemesMa.containsMouse ? "transparent" : Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-
-                    LoadingIndicator {
-                        anchors.centerIn: parent
-                        implicitSize: 20
-                        color: Colours.palette.m3primary
-                        animated: root.isScanning
-                        visible: opacity > 0
-                        opacity: root.isScanning ? 1.0 : 0.0
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                    }
-
-                    MaterialIcon {
-                        id: refreshThemesIcon
-                        anchors.centerIn: parent
-                        text: "refresh"
-                        iconPointSize: 18
-                        renderType: Text.QtRendering
-                        antialiasing: true
-                        color: Colours.palette.m3onSurface
-                        visible: opacity > 0
-                        opacity: root.isScanning ? 0.0 : 1.0
+                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
                         Behavior on color { CAnim {} }
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                        Item {
+                            id: folderIconWrap
+                            width: 38
+                            height: 38
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "folder_open"
+                                iconPointSize: 18
+                                renderType: Text.QtRendering
+                                antialiasing: true
+                                color: Colours.palette.m3onSurface
+                            }
+                        }
+
+                        StyledText {
+                            id: folderText
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: folderIconWrap.right
+                            anchors.leftMargin: 2
+                            text: qsTr("Open Folder")
+                            textPointSize: Tokens.font.size.smaller
+                            font.weight: Font.Medium
+                            color: Colours.palette.m3onSurface
+                            opacity: openFolderBtn.hovered ? 1.0 : 0.0
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        }
+
+                        MouseArea {
+                            id: openFolderMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                openDirProc.command = ["xdg-open", Paths.home + "/.cursor"];
+                                openDirProc.running = false;
+                                openDirProc.running = true;
+                            }
+                        }
+
+                        Process { id: openDirProc }
                     }
 
-                    MouseArea {
-                        id: refreshThemesMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.refreshThemes();
-                            root.refreshSettings();
+                    // Expanding "Scan Themes" (rebuild) button
+                    StyledRect {
+                        id: scanThemesBtn
+                        readonly property bool hovered: scanThemesMa.containsMouse
+                        readonly property real expandedWidth: Math.round(38 + scanText.implicitWidth + 18)
+
+                        implicitHeight: 38
+                        implicitWidth: hovered ? expandedWidth : 38
+                        Layout.preferredHeight: 38
+                        Layout.preferredWidth: implicitWidth
+                        radius: Tokens.rounding.full
+                        clip: true
+
+                        color: scanThemesMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
+                               Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                        border.width: 1
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+
+                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
+                        Behavior on color { CAnim {} }
+
+                        Item {
+                            id: scanIconWrap
+                            width: 38
+                            height: 38
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            LoadingIndicator {
+                                anchors.centerIn: parent
+                                implicitSize: 18
+                                color: Colours.palette.m3primary
+                                animated: root.isScanning
+                                visible: opacity > 0
+                                opacity: root.isScanning ? 1.0 : 0.0
+                                Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            }
+
+                            MaterialIcon {
+                                id: scanIcon
+                                anchors.centerIn: parent
+                                text: "refresh"
+                                iconPointSize: 18
+                                renderType: Text.QtRendering
+                                antialiasing: true
+                                color: Colours.palette.m3onSurface
+                                visible: opacity > 0
+                                opacity: root.isScanning ? 0.0 : 1.0
+                                Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            }
+                        }
+
+                        StyledText {
+                            id: scanText
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: scanIconWrap.right
+                            anchors.leftMargin: 2
+                            text: qsTr("Scan Themes")
+                            textPointSize: Tokens.font.size.smaller
+                            font.weight: Font.Medium
+                            color: Colours.palette.m3onSurface
+                            opacity: scanThemesBtn.hovered ? 1.0 : 0.0
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        }
+
+                        MouseArea {
+                            id: scanThemesMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: root.isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor
+                            enabled: !root.isScanning
+                            onClicked: {
+                                root.refreshThemes();
+                                root.refreshSettings();
+                            }
                         }
                     }
                 }
@@ -697,6 +769,12 @@ Item {
                         opacity: searchPill.searchActive ? 1.0 : 0.0
                         visible: opacity > 0.01
                         Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.IBeamCursor
+                            acceptedButtons: Qt.NoButton
+                        }
 
                         TextInput {
                             id: marketSearchInput
@@ -875,13 +953,17 @@ Item {
                     visible: root.currentTab === 0
                     spacing: Tokens.spacing.large
 
-                    // 3-Column Grid of Installed Themes
+                    // 3-Column Grid of Installed Cursor Themes (Fixed 3-card sizing)
                     GridLayout {
                         id: installedGrid
                         width: parent.width
+                        Layout.fillWidth: true
                         columns: 3
                         columnSpacing: Tokens.spacing.normal
                         rowSpacing: Tokens.spacing.normal
+                        visible: root.themesList.length > 0
+
+                        readonly property real cardWidth: Math.max(140, Math.floor((scrollContent.width - columnSpacing * 2) / 3))
 
                         Repeater {
                             model: root.themesList
@@ -893,12 +975,17 @@ Item {
 
                                 readonly property bool isSelected: modelData.id === root.activeThemeId
                                 readonly property bool isHovered: installedCardMouse.containsMouse
+                                readonly property bool isDeletable: (modelData.isDeletable !== undefined)
+                                    ? modelData.isDeletable
+                                    : (!modelData.path.startsWith("/usr") && modelData.id !== "default" && modelData.id !== "hicolor")
 
-                                Layout.fillWidth: true
-                                Layout.preferredWidth: Math.max(100, Math.floor((installedGrid.width - installedGrid.columnSpacing * 2) / 3))
-                                Layout.maximumWidth: Layout.preferredWidth
-                                Layout.preferredHeight: 126
-                                implicitHeight: 126
+                                Layout.fillWidth: false
+                                Layout.preferredWidth: installedGrid.cardWidth
+                                Layout.maximumWidth: installedGrid.cardWidth
+                                Layout.minimumWidth: installedGrid.cardWidth
+                                width: installedGrid.cardWidth
+                                Layout.preferredHeight: 154
+                                implicitHeight: 154
 
                                 StyledRect {
                                     id: cardBg
@@ -906,77 +993,76 @@ Item {
                                     radius: Tokens.rounding.large
 
                                     color: cardDelegate.isSelected
-                                        ? Colours.palette.m3secondaryContainer
-                                        : cardDelegate.isHovered
-                                            ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
-                                            : Colours.layer(Colours.palette.m3surfaceContainer, 1)
+                                        ? Colours.layer(Colours.palette.m3secondaryContainer, 1)
+                                        : (cardDelegate.isHovered ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) : Colours.layer(Colours.palette.m3surfaceContainerHigh, 1))
 
-                                    border.width: cardDelegate.isSelected ? 1.5 : 1
+                                    border.width: cardDelegate.isSelected ? 2 : 1
                                     border.color: cardDelegate.isSelected
                                         ? Colours.palette.m3primary
-                                        : cardDelegate.isHovered
-                                            ? Qt.alpha(Colours.palette.m3outline, 0.4)
-                                            : Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
+                                        : (cardDelegate.isHovered ? Qt.alpha(Colours.palette.m3outlineVariant, 0.45) : Qt.alpha(Colours.palette.m3outlineVariant, 0.20))
 
-                                    Behavior on color { CAnim {} }
-                                    Behavior on border.color { CAnim {} }
+                                    Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
+                                    Behavior on border.color { CAnim { duration: Tokens.anim.durations.small } }
 
-                                    // Check badge for active cursor
-                                    StyledRect {
-                                        visible: cardDelegate.isSelected
+                                    // Top Right Control Row: Delete button (if deletable) + Active check badge
+                                    RowLayout {
                                         anchors.top: parent.top
-                                        anchors.topMargin: 8
                                         anchors.right: parent.right
-                                        anchors.rightMargin: 8
-                                        width: 22
-                                        height: 22
-                                        radius: 11
-                                        color: Colours.palette.m3primary
-                                        z: 2
-
-                                        MaterialIcon {
-                                            anchors.centerIn: parent
-                                            text: "check"
-                                            iconPointSize: 14
-                                            color: Colours.palette.m3surface
-                                        }
-                                    }
-
-                                    // Delete / Uninstall button (for user-installed themes)
-                                    StyledRect {
-                                        id: deleteInstalledBtn
-                                        visible: modelData.isDeletable && !cardDelegate.isSelected
-                                        anchors.top: parent.top
-                                        anchors.topMargin: 8
-                                        anchors.right: parent.right
-                                        anchors.rightMargin: 8
-                                        width: 28
-                                        height: 28
-                                        radius: 14
+                                        anchors.margins: 10
+                                        spacing: 6
                                         z: 10
-                                        color: deleteThemeMa.pressed ? Colours.layer(Colours.palette.m3error, 2) :
-                                               deleteThemeMa.containsMouse ? Colours.layer(Colours.palette.m3error, 1) :
-                                               Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.75)
-                                        border.width: 1
-                                        border.color: deleteThemeMa.containsMouse ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
 
-                                        Behavior on color { CAnim {} }
-                                        Behavior on border.color { CAnim {} }
+                                        // Delete Button (only for user-installed themes)
+                                        StyledRect {
+                                            id: deleteThemeBtn
+                                            visible: cardDelegate.isDeletable && !cardDelegate.isSelected
+                                            opacity: (cardDelegate.isHovered || deleteThemeMa.containsMouse) ? 1.0 : 0.0
+                                            Layout.preferredWidth: 26
+                                            Layout.preferredHeight: 26
+                                            radius: Tokens.rounding.full
+                                            color: deleteThemeMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
+                                                   deleteThemeMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
+                                                   Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6)
+                                            border.width: 0
 
-                                        MaterialIcon {
-                                            anchors.centerIn: parent
-                                            text: "delete"
-                                            iconPointSize: 14
-                                            color: deleteThemeMa.containsMouse ? Colours.palette.m3onError : Colours.palette.m3error
+                                            Behavior on opacity { Anim { type: Anim.FastEffects } }
                                             Behavior on color { CAnim {} }
+
+                                            MaterialIcon {
+                                                anchors.centerIn: parent
+                                                text: "delete"
+                                                iconPointSize: 14
+                                                color: deleteThemeMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                                                Behavior on color { CAnim {} }
+                                            }
+
+                                            MouseArea {
+                                                id: deleteThemeMa
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.promptDeleteTheme(modelData)
+                                            }
                                         }
 
-                                        MouseArea {
-                                            id: deleteThemeMa
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.promptDeleteTheme(modelData)
+                                        // Active M3 shape badge with M3 checkmark
+                                        Item {
+                                            visible: cardDelegate.isSelected
+                                            Layout.preferredWidth: 26
+                                            Layout.preferredHeight: 26
+
+                                            MaterialShape {
+                                                anchors.fill: parent
+                                                shape: MaterialShape.Cookie12Sided
+                                                color: Colours.palette.m3primary
+                                            }
+
+                                            MaterialIcon {
+                                                anchors.centerIn: parent
+                                                text: "check"
+                                                iconPointSize: 14
+                                                color: Colours.palette.m3onPrimary
+                                            }
                                         }
                                     }
 
@@ -985,16 +1071,19 @@ Item {
                                         anchors.margins: Tokens.padding.normal
                                         spacing: Tokens.spacing.small
 
-                                        // Cursor Previews Strip (Dark Card)
+                                        // Cursor Previews Strip (Dark Pedestal)
                                         StyledRect {
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: 52
-                                            radius: Tokens.rounding.normal
-                                            color: Qt.rgba(0, 0, 0, 0.35)
+                                            Layout.preferredHeight: 62
+                                            radius: Tokens.rounding.small
+                                            color: cardDelegate.isSelected
+                                                ? Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.55)
+                                                : Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.40)
+                                            border.width: 0
 
                                             RowLayout {
                                                 anchors.centerIn: parent
-                                                spacing: Tokens.spacing.medium
+                                                spacing: 6
 
                                                 Repeater {
                                                     model: (modelData.previews && modelData.previews.length > 0)
@@ -1258,7 +1347,13 @@ Item {
                                 readonly property bool isHovered: storeCardMouse.containsMouse
                                 readonly property bool isSelectedForDetail: root.detailTheme && (root.detailTheme.id === modelData.id) && root.detailVisible
 
-                                opacity: isSelectedForDetail ? 0.0 : 1.0
+                                opacity: {
+                                    if (!isSelectedForDetail) return 1.0;
+                                    if (collapseAnimation.running && root.clampedMorph < 0.12) {
+                                        return 1.0 - (root.clampedMorph / 0.12);
+                                    }
+                                    return 0.0;
+                                }
 
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: Math.max(100, Math.floor((marketGrid.width - marketGrid.columnSpacing * 2) / 3))
@@ -1581,6 +1676,27 @@ Item {
     property real expandedExtrasOpacity: 0.0
     property int detailImgIndex: 0
 
+    // Pre-calculated Hero Image bounds for zero-overhead per-frame rendering
+    property real imgCropW: 0
+    property real imgCropH: 0
+    property real imgFitW: 0
+    property real imgFitH: 0
+
+    function updateHeroImgBounds() {
+        const aspect = (detailHeroImg.implicitWidth > 0 && detailHeroImg.implicitHeight > 0)
+            ? (detailHeroImg.implicitWidth / detailHeroImg.implicitHeight)
+            : (350.0 / 250.0);
+        const startW = Math.max(1, detailSourceRect.width - 2 * Tokens.padding.normal);
+        const startH = 114;
+        imgCropW = Math.max(startW, startH * aspect);
+        imgCropH = Math.max(startH, startW / aspect);
+
+        const endW = Math.max(1, detailCard.targetWidth - 2 * Tokens.padding.normal - 8);
+        const endH = Math.max(1, root.expandedHeroHeight - 8);
+        imgFitW = Math.min(endW, endH * aspect);
+        imgFitH = Math.min(endH, endW / aspect);
+    }
+
     function openThemeDetails(theme, cardItem) {
         if (!theme || !cardItem) return;
         collapseAnimation.stop();
@@ -1597,6 +1713,7 @@ Item {
 
         detailTheme = theme;
         detailVisible = true;
+        updateHeroImgBounds();
         expandAnimation.restart();
     }
 
@@ -1609,10 +1726,11 @@ Item {
     }
 
     // ── M3 Expressive Tokens (Smooth Bouncy Container Transform) ──
-    readonly property int expandDur: 420
-    readonly property int collapseDur: 360
-    readonly property var spatialEasing: Tokens.anim.legacyMorphSpatial
+    readonly property int expandDur: 380
+    readonly property int collapseDur: 300
+    readonly property var spatialEasing: Tokens.anim.expressiveDefaultSpatial
     readonly property var spatialEasingDecel: Tokens.anim.emphasizedDecel
+    readonly property var collapseSpatialEasing: Tokens.anim.emphasized
 
     ParallelAnimation {
         id: expandAnimation
@@ -1627,7 +1745,7 @@ Item {
             target: root
             property: "expandedExtrasOpacity"
             to: 1.0
-            duration: root.expandDur
+            duration: Math.round(root.expandDur * 0.85)
             easing: root.spatialEasingDecel
         }
         NumberAnimation {
@@ -1651,20 +1769,20 @@ Item {
             property: "morphProgress"
             to: 0.0
             duration: root.collapseDur
-            easing: root.spatialEasing
+            easing: root.collapseSpatialEasing
         }
         NumberAnimation {
             target: root
             property: "expandedExtrasOpacity"
             to: 0.0
-            duration: Math.round(root.collapseDur * 0.72)
+            duration: Math.round(root.collapseDur * 0.55)
             easing: Tokens.anim.standardDecel
         }
         NumberAnimation {
             target: detailElevation
             property: "opacity"
             to: 0.0
-            duration: Math.round(root.collapseDur * 0.45)
+            duration: Math.round(root.collapseDur * 0.4)
             easing: Tokens.anim.standardDecel
         }
         onFinished: {
@@ -1706,38 +1824,54 @@ Item {
             }
         }
 
-        // Elevation Shadow Level 4 (Resting only for 60 FPS flight)
-        Elevation {
-            id: detailElevation
-            x: detailCard.x
-            y: detailCard.y
-            width: detailCard.width
-            height: detailCard.height
-            radius: detailCard.radius
-            level: 4
-            opacity: 0.0
-            visible: !expandAnimation.running && !collapseAnimation.running && root.detailVisible && opacity > 0.01
-        }
+        // Morphing Transform Viewport Clipping Boundary (Strictly pinned to scrollViewport ceiling)
+        ClippingRectangle {
+            id: detailClipBoundary
+            x: scrollViewport.x
+            y: scrollViewport.y
+            width: scrollViewport.width
+            height: scrollViewport.height
+            radius: Tokens.rounding.large
+            color: "transparent"
+            clip: true
 
-        // Morphing Transform Card
-        StyledRect {
-            id: detailCard
+            // Elevation Shadow Level 4 (Resting only for 60 FPS flight)
+            Elevation {
+                id: detailElevation
+                x: detailCard.x
+                y: detailCard.y
+                width: detailCard.width
+                height: detailCard.height
+                radius: detailCard.radius
+                level: 4
+                opacity: 0.0
+                visible: !expandAnimation.running && !collapseAnimation.running && root.detailVisible && opacity > 0.01
+            }
 
-            readonly property real targetWidth: Math.min(detailOverlay.width - 48, 540)
-            readonly property real targetHeight: Math.min(detailOverlay.height - 48, 510)
-            readonly property real targetX: Math.round((detailOverlay.width - targetWidth) / 2)
-            readonly property real targetY: Math.round((detailOverlay.height - targetHeight) / 2)
+            // Morphing Transform Card
+            Rectangle {
+                id: detailCard
 
-            x: root.detailSourceRect.x + (targetX - root.detailSourceRect.x) * root.morphProgress
-            y: root.detailSourceRect.y + (targetY - root.detailSourceRect.y) * root.morphProgress
-            width: Math.max(100, root.detailSourceRect.width + (targetWidth - root.detailSourceRect.width) * root.morphProgress)
-            height: Math.max(100, root.detailSourceRect.height + (targetHeight - root.detailSourceRect.height) * root.morphProgress)
+                readonly property real targetWidth: Math.min(scrollViewport.width - 48, 540)
+                readonly property real targetHeight: Math.min(scrollViewport.height - 32, 480)
+                readonly property real targetX: scrollViewport.x + Math.round((scrollViewport.width - targetWidth) / 2)
+                readonly property real targetY: scrollViewport.y + Math.round((scrollViewport.height - targetHeight) / 2)
+
+                readonly property real screenX: root.detailSourceRect.x + (targetX - root.detailSourceRect.x) * root.morphProgress
+                readonly property real screenY: root.detailSourceRect.y + (targetY - root.detailSourceRect.y) * root.morphProgress
+
+                x: screenX - detailClipBoundary.x
+                y: screenY - detailClipBoundary.y
+                width: Math.max(100, root.detailSourceRect.width + (targetWidth - root.detailSourceRect.width) * root.morphProgress)
+                height: Math.max(100, root.detailSourceRect.height + (targetHeight - root.detailSourceRect.height) * root.morphProgress)
 
             radius: Tokens.rounding.large
             color: root.normalCardBg
             border.width: 1
             border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25 + 0.05 * root.clampedMorph)
             clip: true
+            antialiasing: true
+            smooth: true
 
             // Prevent clicks/scrolls inside card from leaking to background grid
             MouseArea {
@@ -1751,7 +1885,7 @@ Item {
                 anchors.margins: Tokens.padding.normal
 
                 // Top: High-Res Preview Hero (Unified Zooming Thumbnail)
-                StyledClippingRect {
+                ClippingRectangle {
                     id: detailHeroContainer
                     anchors.top: parent.top
                     anchors.left: parent.left
@@ -1775,22 +1909,12 @@ Item {
                         id: detailHeroImg
                         anchors.centerIn: parent
 
-                        readonly property real containerW: Math.max(1, detailHeroContainer.width)
-                        readonly property real containerH: Math.max(1, detailHeroContainer.height)
-                        readonly property real imgAspect: (implicitWidth > 0 && implicitHeight > 0)
-                            ? (implicitWidth / implicitHeight)
-                            : (350.0 / 250.0)
+                        width: root.imgCropW + (root.imgFitW - root.imgCropW) * root.clampedMorph
+                        height: root.imgCropH + (root.imgFitH - root.imgCropH) * root.clampedMorph
 
-                        readonly property real cropW: Math.max(containerW, containerH * imgAspect)
-                        readonly property real cropH: Math.max(containerH, containerW / imgAspect)
-
-                        readonly property real fitAvailW: Math.max(1, containerW - 8)
-                        readonly property real fitAvailH: Math.max(1, containerH - 8)
-                        readonly property real fitW: Math.min(fitAvailW, fitAvailH * imgAspect)
-                        readonly property real fitH: Math.min(fitAvailH, fitAvailW / imgAspect)
-
-                        width: cropW + (fitW - cropW) * root.clampedMorph
-                        height: cropH + (fitH - cropH) * root.clampedMorph
+                        onStatusChanged: {
+                            if (status === Image.Ready) root.updateHeroImgBounds();
+                        }
 
                         source: {
                             if (!root.detailTheme) return "";
@@ -1829,7 +1953,7 @@ Item {
                     }
 
                     // Left: Previous Image Button (if multiple images)
-                    StyledRect {
+                    Rectangle {
                         id: prevImgBtn
                         anchors.left: parent.left
                         anchors.leftMargin: 8
@@ -1846,6 +1970,7 @@ Item {
                                Colours.palette.m3surfaceContainerHighest
                         border.color: prevImgMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.45)
                         border.width: 1
+                        antialiasing: true
 
                         MaterialIcon {
                             anchors.centerIn: parent
@@ -1867,7 +1992,7 @@ Item {
                     }
 
                     // Right: Next Image Button (if multiple images)
-                    StyledRect {
+                    Rectangle {
                         id: nextImgBtn
                         anchors.right: parent.right
                         anchors.rightMargin: 8
@@ -1884,6 +2009,7 @@ Item {
                                Colours.palette.m3surfaceContainerHighest
                         border.color: nextImgMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.45)
                         border.width: 1
+                        antialiasing: true
 
                         MaterialIcon {
                             anchors.centerIn: parent
@@ -1905,7 +2031,7 @@ Item {
                     }
 
                     // Bottom Center: Image Counter Pill (e.g. 1 / 4)
-                    StyledRect {
+                    Rectangle {
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 8
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -1919,6 +2045,7 @@ Item {
                         color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.88)
                         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
                         border.width: 1
+                        antialiasing: true
 
                         StyledText {
                             id: imgCounterText
@@ -1934,7 +2061,7 @@ Item {
                     }
 
                     // Top Left: Rating Badge (glides smoothly from grid card topMargin 6 to expanded topMargin 10)
-                    StyledRect {
+                    Rectangle {
                         id: detailRatePill
                         anchors.top: parent.top
                         anchors.topMargin: 6 + 4 * root.clampedMorph
@@ -1944,9 +2071,10 @@ Item {
                         implicitHeight: 22 + 4 * root.clampedMorph
                         implicitWidth: detailRateRow.implicitWidth + 12 + 2 * root.clampedMorph
                         radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85 + 0.03 * root.clampedMorph)
+                        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.88)
                         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
                         border.width: 1
+                        antialiasing: true
 
                         RowLayout {
                             id: detailRateRow
@@ -1969,7 +2097,7 @@ Item {
                     }
 
                     // Top Right: Downloads Badge (starts at rightMargin 6 matching grid card, smoothly glides left 42px as close button blooms in)
-                    StyledRect {
+                    Rectangle {
                         id: detailDlPill
                         anchors.top: parent.top
                         anchors.topMargin: 6 + 4 * root.clampedMorph
@@ -1979,9 +2107,10 @@ Item {
                         implicitHeight: 22 + 4 * root.clampedMorph
                         implicitWidth: detailDlRow.implicitWidth + 12 + 2 * root.clampedMorph
                         radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85 + 0.03 * root.clampedMorph)
+                        color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.88)
                         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
                         border.width: 1
+                        antialiasing: true
 
                         RowLayout {
                             id: detailDlRow
@@ -2004,7 +2133,7 @@ Item {
                     }
 
                     // Top Right: Close (X) Button (blooms in smoothly at top-right)
-                    StyledRect {
+                    Rectangle {
                         id: detailTopCloseBtn
                         anchors.top: parent.top
                         anchors.topMargin: 8
@@ -2022,6 +2151,7 @@ Item {
                                Colours.palette.m3surfaceContainerHighest
                         border.color: detailCloseMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
                         border.width: 1
+                        antialiasing: true
 
                         MaterialIcon {
                             anchors.centerIn: parent
@@ -2049,7 +2179,6 @@ Item {
                     anchors.bottomMargin: Tokens.spacing.small
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    clip: true
 
                     Item {
                         id: detailTitleCol
@@ -2103,7 +2232,7 @@ Item {
 
                         StyledText {
                             id: detailDescText
-                            width: parent.width
+                            width: detailCard.targetWidth - 2 * Tokens.padding.normal
                             text: {
                                 if (!root.detailTheme) return "";
                                 if (root.detailTheme.description && root.detailTheme.description.trim().length > 0)
@@ -2133,7 +2262,7 @@ Item {
                     readonly property real expandedActionW: 140
 
                     // Close Button (Smoothly expands width from 0 to 88 on left)
-                    StyledRect {
+                    Rectangle {
                         id: detailCloseBtn
                         x: 0
                         y: 0
@@ -2148,6 +2277,7 @@ Item {
                                Colours.palette.m3surfaceContainerHighest
                         border.width: 1
                         border.color: detailCancelMa.containsMouse ? Colours.palette.m3outline : Qt.alpha(Colours.palette.m3outlineVariant, 0.6)
+                        antialiasing: true
 
                         StyledText {
                             anchors.centerIn: parent
@@ -2167,7 +2297,7 @@ Item {
                     }
 
                     // Install / Installed Button (Morphs smoothly between compact full width at x=0 and 140px on right)
-                    StyledClippingRect {
+                    Rectangle {
                         id: detailActionBtn
                         width: detailBottomRow.compactActionW + (detailBottomRow.expandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
                         height: parent.height
@@ -2175,6 +2305,7 @@ Item {
                         y: 0
                         radius: height / 2
                         clip: true
+                        antialiasing: true
 
                         readonly property bool isInst: root.detailTheme ? Boolean(root.detailTheme.isInstalled) : false
                         readonly property bool isInsting: root.detailTheme ? Boolean(root.installingThemes[root.detailTheme.id]) : false
@@ -2241,7 +2372,7 @@ Item {
                     }
 
                     // Delete / Uninstall button if installed (Anchored at right edge, matches storeCardDelegate position!)
-                    StyledRect {
+                    Rectangle {
                         id: detailDeleteBtn
                         visible: detailBottomRow.hasDeleteBtn
                         width: 34 + 4 * root.clampedMorph
@@ -2254,6 +2385,7 @@ Item {
                                Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
                         border.width: 1
                         border.color: detailDelMa.containsMouse ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3outlineVariant, 0.3)
+                        antialiasing: true
 
                         MaterialIcon {
                             anchors.centerIn: parent
@@ -2278,6 +2410,7 @@ Item {
             }
         }
     }
+}
 
     // ══════════════════════════════════════════════════════════════════════
     // DELETE THEME CONFIRMATION MODAL
