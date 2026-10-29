@@ -206,22 +206,35 @@ Item {
     readonly property real startW: root.implicitWidth
     readonly property real startH: 36
     
-    readonly property real targetW: Math.max(startW, 220)
+    readonly property real targetW: Math.max(startW, root.searchable ? 220 : 180)
     readonly property real targetH: Math.min(root.menuMaxHeight, Math.max((root.count * root.rowHeight) + Tokens.padding.small * 2, 48))
 
     readonly property real targetX: {
-        const rawX = currentX + startW - targetW;
         const maxOverlayW = root.overlayParent ? root.overlayParent.width : 1920;
-        return Math.max(8, Math.min(rawX, maxOverlayW - targetW - 8));
+        // Shift left gently (~12-16px) to organically wrap and center around source button
+        const idealX = Math.round(currentX - Math.max(0, (targetW - startW) * 0.25));
+        if (idealX + targetW <= maxOverlayW - 8) {
+            return Math.max(8, idealX);
+        }
+        // Near right edge (e.g. SettingRow)
+        const rightAlignedX = currentX + startW - targetW;
+        return Math.max(8, Math.min(rightAlignedX, maxOverlayW - targetW - 8));
     }
 
     readonly property real targetY: {
-        const belowY = currentY + startH + Tokens.spacing.small;
-        const aboveY = currentY - targetH - Tokens.spacing.small;
         const maxOverlayH = root.overlayParent ? root.overlayParent.height : 1080;
+        // Align active item directly over the button face for true container transform continuity
+        const activeOffset = Tokens.padding.small + (root.searchable ? 44 : 0) + (Math.max(0, root.currentIndex) * root.rowHeight);
+        const idealY = Math.round(currentY - activeOffset + ((root.startH - root.rowHeight) / 2));
+        const aboveY = currentY + startH - targetH;
+        const fitsIdeal = (idealY >= 8 && idealY + targetH <= maxOverlayH - 8);
+        if (fitsIdeal && !root.menuOnTop) {
+            return idealY;
+        }
+        const fallbackBelow = Math.max(8, currentY - 6);
         return root.menuOnTop 
-            ? (aboveY < 8 ? belowY : aboveY)
-            : ((belowY + targetH > maxOverlayH - 8) ? aboveY : belowY);
+            ? (aboveY < 8 ? fallbackBelow : aboveY)
+            : ((fallbackBelow + targetH <= maxOverlayH - 8) ? fallbackBelow : Math.max(8, maxOverlayH - targetH - 8));
     }
 
     // ── Static Button (Placeholder in Layout) ──
@@ -233,7 +246,7 @@ Item {
         radius: height / 2
         color: Colours.palette.m3primary
         opacity: (root.expanded || closeGrace.running) ? 0 : 1
-        visible: true
+        visible: opacity > 0.01
         Behavior on opacity { NumberAnimation { duration: 0 } } // Instant cut, morph takes over
 
         StateLayer {
@@ -330,19 +343,33 @@ Item {
         id: dismissArea
         parent: root.overlayParent
         anchors.fill: parent
-        z: 9998
+        z: 9997
         visible: root.expanded
         onClicked: root.closePicker()
         onWheel: event => event.accepted = true
     }
 
-    // True M3 Expressive Shared Element Container Morph
-    Rectangle {
+    // M3 Ambient Elevation Shadow
+    Elevation {
+        parent: root.overlayParent
+        z: 9998
+        visible: morphContainer.visible
+        x: morphContainer.x
+        y: morphContainer.y
+        width: morphContainer.width
+        height: morphContainer.height
+        radius: morphContainer.radius
+        level: root.morphState === "open" ? 3 : 0
+        opacity: root.morphState === "open" ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+    }
+
+    // True M3 Expressive Shared Element Container Morph (StyledClippingRect clips children to rounded corners)
+    StyledClippingRect {
         id: morphContainer
         parent: root.overlayParent
         visible: root.expanded || closeGrace.running
         z: 9999
-        clip: true
 
         Timer {
             id: closeGrace
@@ -371,22 +398,29 @@ Item {
         Behavior on radius { Anim { type: Anim.DefaultSpatial } }
 
         // Background Crossfade
-        color: root.morphState === "open" ? Colours.palette.m3surfaceContainerLow : Colours.palette.m3primary
+        color: root.morphState === "open" ? Colours.palette.m3surfaceContainer : Colours.palette.m3primary
         Behavior on color { ColorAnimation { duration: root.morphDuration; easing: root.morphEasing } }
         
-        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
-        border.width: root.morphState === "open" ? 1 : 0
-        Behavior on border.width { NumberAnimation { duration: root.morphDuration } }
+        border.color: root.morphState === "open" ? Qt.alpha(Colours.palette.m3outlineVariant, 0.40) : "transparent"
+        border.width: 1
+        Behavior on border.color { ColorAnimation { duration: 180 } }
 
-        // ── Outgoing Button Face (Fades out smoothly when opening) ──
+        // ── Shared Element Morphing Button Face ──
         Item {
-            anchors.top: parent.top
-            anchors.left: parent.left
+            id: morphBtnFace
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
             width: root.startW
             height: root.startH
-            opacity: root.morphState === "open" ? 0 : 1
-            visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+            opacity: root.morphState === "open" ? 0.0 : 1.0
+            visible: opacity > 0.01
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.morphState === "open" ? 110 : 160
+                    easing.type: root.morphState === "open" ? Easing.OutQuad : Easing.OutCubic
+                }
+            }
 
             RowLayout {
                 anchors.centerIn: parent
@@ -443,11 +477,14 @@ Item {
                 }
 
                 MaterialIcon {
+                    id: morphChevron
                     Layout.alignment: Qt.AlignVCenter
                     text: "expand_more"
                     color: Colours.palette.m3surface
                     iconPointSize: Tokens.font.size.normal
+                    opacity: root.morphState === "open" ? 0.0 : 0.85
                     verticalAlignment: Text.AlignVCenter
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
                 }
             }
         }
@@ -461,8 +498,13 @@ Item {
             width: root.targetW - Tokens.padding.small * 2
             height: root.targetH - Tokens.padding.small * 2
             opacity: root.morphState === "open" ? 1 : 0
-            visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            visible: opacity > 0.01
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.morphState === "open" ? 220 : 110
+                    easing.type: root.morphState === "open" ? Easing.OutCubic : Easing.OutQuad
+                }
+            }
 
             WheelHandler {
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
