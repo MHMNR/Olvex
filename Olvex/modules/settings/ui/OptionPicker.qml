@@ -223,18 +223,23 @@ Item {
 
     readonly property real targetY: {
         const maxOverlayH = root.overlayParent ? root.overlayParent.height : 1080;
-        // Align active item directly over the button face for true container transform continuity
-        const activeOffset = Tokens.padding.small + (root.searchable ? 44 : 0) + (Math.max(0, root.currentIndex) * root.rowHeight);
-        const idealY = Math.round(currentY - activeOffset + ((root.startH - root.rowHeight) / 2));
-        const aboveY = currentY + startH - targetH;
-        const fitsIdeal = (idealY >= 8 && idealY + targetH <= maxOverlayH - 8);
-        if (fitsIdeal && !root.menuOnTop) {
-            return idealY;
+        const bottomLimit = maxOverlayH - 8;
+
+        if (root.menuOnTop) {
+            const aboveY = currentY + startH - targetH;
+            if (aboveY >= 8) return aboveY;
         }
-        const fallbackBelow = Math.max(8, currentY - 6);
-        return root.menuOnTop 
-            ? (aboveY < 8 ? fallbackBelow : aboveY)
-            : ((fallbackBelow + targetH <= maxOverlayH - 8) ? fallbackBelow : Math.max(8, maxOverlayH - targetH - 8));
+
+        // Natural position: align top of menu with button top
+        const naturalY = currentY;
+        const naturalBottom = naturalY + targetH;
+        const deficit = naturalBottom - bottomLimit;
+
+        // Only move up as much as needed to make enough space below
+        if (deficit > 0) {
+            return Math.max(8, naturalY - deficit);
+        }
+        return Math.max(8, naturalY);
     }
 
     // ── Static Button (Placeholder in Layout) ──
@@ -407,16 +412,13 @@ Item {
         // ── Shared Element Morphing Button Face ──
         Item {
             id: morphBtnFace
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            width: root.startW
-            height: root.startH
+            anchors.fill: parent
             opacity: root.morphState === "open" ? 0.0 : 1.0
             visible: opacity > 0.01
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: root.morphState === "open" ? 110 : 160
+                    duration: root.morphState === "open" ? 110 : 180
                     easing.type: root.morphState === "open" ? Easing.OutQuad : Easing.OutCubic
                 }
             }

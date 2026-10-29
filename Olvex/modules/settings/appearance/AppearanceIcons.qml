@@ -1103,7 +1103,7 @@ Item {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: modelData.name || modelData.id
-                                    font.weight: cardDelegate.isSelected ? Font.SemiBold : Font.Normal
+                                    font.weight: cardDelegate.isSelected ? Font.SemiBold : Font.Medium
                                     textPointSize: Tokens.font.size.normal
                                     color: cardDelegate.isSelected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
                                     elide: Text.ElideRight
@@ -1112,8 +1112,9 @@ Item {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: modelData.comment ? modelData.comment : (modelData.path.startsWith("/usr") ? qsTr("System") : qsTr("User (~/.icons)"))
-                                    textPointSize: Tokens.font.size.smaller
-                                    color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.75) : Colours.palette.m3onSurfaceVariant
+                                    textPointSize: Tokens.font.size.small
+                                    font.weight: Font.Normal
+                                    color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.70) : Colours.palette.m3onSurfaceVariant
                                     elide: Text.ElideRight
                                 }
                             }
@@ -1361,7 +1362,8 @@ Item {
                                 StyledText {
                                     Layout.fillWidth: true
                                     text: modelData.author ? (qsTr("by ") + modelData.author) : qsTr("Store")
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPointSize: Tokens.font.size.small
+                                    font.weight: Font.Normal
                                     color: Colours.palette.m3onSurfaceVariant
                                     elide: Text.ElideRight
                                 }
