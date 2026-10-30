@@ -41,8 +41,8 @@ Singleton {
 
     // ── Transparency ────────────────────────────────
     readonly property bool transparencyEnabled: Tokens.transparency.enabled
-    readonly property real transparencyBase: Math.max(0.01, Math.min(1, Tokens.transparency.base - (light ? 0.1 : 0)))
-    readonly property real transparencyLayers: Math.max(0.58, Math.min(0.92, (Tokens.transparency.layers || 0.4) + 0.18))
+    readonly property real transparencyBase: Math.max(0.01, Math.min(1, Tokens.transparency.base))
+    readonly property real transparencyLayers: Math.max(0, Math.min(1, Tokens.transparency.layers ?? 0.4))
     readonly property bool transparencyBlur: Tokens.transparency.blur
     property int customBlurRadius: -1
     property int customBlurPasses: -1
@@ -106,7 +106,7 @@ Singleton {
     }
 
     function tintContainer(base, amount) {
-        const tint = bootPalette.m3surfaceTint;
+        const tint = bootPalette.m3primaryContainer;
         return Qt.rgba(
             Math.max(0, Math.min(1, base.r * (1 - amount) + tint.r * amount)),
             Math.max(0, Math.min(1, base.g * (1 - amount) + tint.g * amount)),
@@ -114,52 +114,59 @@ Singleton {
             1);
     }
 
+    // Opaque, palette-tinted shell surface used by ContentWindow blobs (same tint with transparency on or off;
+    // opacity is applied once by ContentWindow via transparencyBase).
+    readonly property color shellTint: light
+        ? tintContainer(bootPalette.m3surfaceContainer, 0.25)
+        : tintContainer(bootPalette.m3surface, 0.14)
+    readonly property color shellTintDrawer: light
+        ? tintContainer(bootPalette.m3surfaceContainer, 0.30)
+        : tintContainer(bootPalette.m3surface, 0.22)
+
     function opaqueLightContainer(layerLevel, againstColor) {
-        let level = surfaceLayer(layerLevel ?? 2);
-        let color = containerAtLevel(level);
+        const level = Math.max(1, Math.min(4, layerLevel ?? 2));
+        const base = bootPalette.m3surfaceContainerLowest;
 
         // Guard: If bootPalette is still dark during async refresh, synthesize an instant light container
-        if (getLuminance(color) < 0.40) {
-            const h = color.hslHue >= 0 ? color.hslHue : 0;
-            const s = Math.min(0.20, color.hslSaturation * 0.35);
-            const l = Math.max(0.88, 0.96 - level * 0.02);
+        if (getLuminance(base) < 0.40) {
+            const h = base.hslHue >= 0 ? base.hslHue : 0;
+            const s = Math.min(0.20, base.hslSaturation * 0.35);
+            const l = Math.min(0.99, 0.92 + level * 0.018);
             return Qt.hsla(h, s, l, 1.0);
         }
 
-        const ref = againstColor ?? bootPalette.m3surface;
-        const target = againstColor ? 1.10 : 1.12;
-        const refLum = getLuminance(ref);
+        const tintAmounts = [0.20, 0.13, 0.08, 0.04, 0.01];
+        return tintContainer(base, tintAmounts[level] ?? 0.08);
+    }
 
-        function needsStep(c) {
-            return contrastRatio(c, ref) < target
-                || (againstColor && getLuminance(c) >= refLum);
+    function opaqueDarkContainer(layerLevel) {
+        const level = Math.max(1, Math.min(4, layerLevel ?? 2));
+        // Dark M3 Expressive hierarchy (matching Android dark screenshots):
+        // Level 1 (recessed/search well): deep dark container (#1d1311)
+        // Level 2 (elevated card/bar pill/dock): warm dark container (#2f201d) clearly above shellTint (#1f1411)
+        // Level 3 (inner tile / QS toggle pill): lifted warm brown-grey (#3d2b26)
+        // Level 4 (hover / icon well / highest): bright warm brown-grey (#4c3630)
+        if (level === 1)
+            return tintContainer(bootPalette.m3surfaceContainerLow, 0.05);
+        if (level === 2)
+            return tintContainer(bootPalette.m3surfaceContainerHigh, 0.12);
+        if (level === 3) {
+            const base = tintContainer(bootPalette.m3surfaceContainerHighest, 0.20);
+            return Qt.tint(base, Qt.alpha(bootPalette.m3onSurface, 0.04));
         }
-
-        while (needsStep(color) && level < 4) {
-            level++;
-            color = containerAtLevel(level);
-        }
-
-        let tint = 0.06;
-        while (needsStep(color) && tint <= 0.42) {
-            color = tintContainer(color, tint);
-            tint += 0.06;
-        }
-        return color;
+        const base = tintContainer(bootPalette.m3surfaceContainerHighest, 0.26);
+        return Qt.tint(base, Qt.alpha(bootPalette.m3onSurface, 0.10));
     }
 
     function alterColour(c, a, layerLevel) {
-        const luminance = getLuminance(c);
-        const layer = surfaceLayer(layerLevel);
-        const offset = (!light || layer <= 1 ? 1 : (light ? layer * 0.4 : -layer / 2))
-            * (light ? 0.2 : 0.3) * (1 - transparencyBase)
-            * (1 + wallLuminance * (light ? (layer === 1 ? 3 : 1) : 2.5));
-        const scale = (luminance + offset) / luminance;
-        return Qt.rgba(
-            Math.max(0, Math.min(1, c.r * scale)),
-            Math.max(0, Math.min(1, c.g * scale)),
-            Math.max(0, Math.min(1, c.b * scale)),
-            a);
+        const layer = Math.max(1, Math.min(4, surfaceLayer(layerLevel)));
+        if (!light) {
+            const darkRgb = opaqueDarkContainer(layer);
+            return Qt.rgba(darkRgb.r, darkRgb.g, darkRgb.b, a);
+        }
+        const base = containerAtLevel(layer);
+        const tinted = tintContainer(base, 0.12 + layer * 0.02);
+        return Qt.rgba(tinted.r, tinted.g, tinted.b, a);
     }
 
     function isSurfaceColor(c) {
@@ -193,27 +200,22 @@ Singleton {
         const layer = surfaceLayer(layerLevel !== undefined ? Math.max(layerLevel, baseLevel) : baseLevel);
 
         if (!transparencyEnabled) {
-            if (light && layer > 0)
-                return opaqueLightContainer(layer);
             if (layer === 0)
-                return bootPalette.m3surface;
-            if (layer === 1)
-                return bootPalette.m3surfaceContainerLow;
-            if (layer === 2)
-                return bootPalette.m3surfaceContainer;
-            if (layer === 3)
-                return bootPalette.m3surfaceContainerHigh;
-            return bootPalette.m3surfaceContainerHighest;
+                return shellTint;
+            if (light)
+                return opaqueLightContainer(layer);
+            return alterColour(c, 1.0, layer);
         }
 
-        const layerAlpha = Math.min(0.95, transparencyLayers + (layer > 1 ? (layer - 1) * 0.05 : 0));
+        const layerAlpha = Math.min(1, transparencyLayers * (1 + (layer > 1 ? (layer - 1) * 0.05 : 0)));
 
-        if (light && layer > 0)
+        if (layer === 0)
+            return Qt.alpha(shellTint, transparencyBase);
+
+        if (light)
             return Qt.alpha(opaqueLightContainer(layer), layerAlpha);
 
-        return layer === 0
-            ? Qt.alpha(c, transparencyBase)
-            : alterColour(c, layerAlpha, layer);
+        return alterColour(c, layerAlpha, layer);
     }
 
     // Declarative fast-path elevation properties for standard surface container
@@ -238,14 +240,14 @@ Singleton {
 
     function opaqueDarkTile(role) {
         if (role === "surface")
-            return palette.m3surfaceContainerHigh;
+            return opaqueDarkContainer(2);
         if (role === "fill")
-            return palette.m3surfaceContainerHighest;
+            return opaqueDarkContainer(3);
         if (role === "hover")
-            return Qt.tint(palette.m3surfaceContainerHighest, Qt.alpha(palette.m3onSurface, 0.08));
+            return Qt.tint(opaqueDarkContainer(3), Qt.alpha(palette.m3onSurface, 0.08));
         if (role === "tonal" || role === "elevated")
-            return palette.m3surfaceContainerHighest;
-        return palette.m3surfaceContainer;
+            return opaqueDarkContainer(4);
+        return opaqueDarkContainer(1);
     }
 
     // ── Tile colours (M3 elevation stack) ───────────
@@ -257,10 +259,10 @@ Singleton {
     readonly property color _tileFillElevatedRgb: opaqueLightContainer(3, _tileFillRgb)
 
     readonly property color tileSurface: light
-        ? (transparencyEnabled ? applyTileAlpha(_tileSurfaceRgb, 4) : containerAtLevel(3))
+        ? (transparencyEnabled ? applyTileAlpha(_tileSurfaceRgb, 4) : _tileSurfaceRgb)
         : (transparencyEnabled ? applyLayer(palette.m3surfaceContainer, 2) : opaqueDarkTile("surface"))
     readonly property color tileFill: light
-        ? (transparencyEnabled ? applyTileAlpha(tintContainer(containerAtLevel(2), 0.16), 2) : containerAtLevel(1))
+        ? (transparencyEnabled ? applyTileAlpha(tintContainer(containerAtLevel(2), 0.16), 2) : tintContainer(containerAtLevel(2), 0.16))
         : (transparencyEnabled ? applyLayer(palette.m3surfaceContainerHigh, 3) : opaqueDarkTile("fill"))
     readonly property color tileFillHover: light
         ? applyTileAlpha(_tileFillHoverRgb, 4)

@@ -34,7 +34,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: offBtCol.implicitHeight + Tokens.padding.large * 2
         radius: Tokens.rounding.large
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
         ColumnLayout {
             id: offBtCol
@@ -107,7 +107,7 @@ ColumnLayout {
                 text: qsTr("Connected")
                 textPointSize: Tokens.font.size.smaller
                 font.weight: Font.DemiBold
-                color: Colours.palette.m3secondary
+                color: Colours.palette.m3primary
                 Layout.leftMargin: Tokens.padding.small
             }
 
@@ -122,7 +122,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     implicitHeight: 64
                     radius: Tokens.rounding.normal
-                    color: Colours.palette.m3secondaryContainer
+                    color: Colours.palette.m3primaryContainer
 
                     readonly property bool loading: modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
 
@@ -137,12 +137,12 @@ ColumnLayout {
                             implicitWidth: 40
                             implicitHeight: 40
                             radius: Tokens.rounding.small
-                            color: Colours.palette.m3secondary
+                            color: Colours.palette.m3primary
 
                             MaterialIcon {
                                 anchors.centerIn: parent
                                 text: Icons.getBluetoothIcon(connectedCard.modelData.icon)
-                                color: Colours.palette.m3onSecondary
+                                color: Colours.palette.m3onPrimary
                                 iconPointSize: Tokens.font.size.normal
                             }
                         }
@@ -157,7 +157,7 @@ ColumnLayout {
                                 text: connectedCard.modelData.name || qsTr("Unknown Device")
                                 font.weight: Font.DemiBold
                                 textPointSize: Tokens.font.size.normal
-                                color: Colours.palette.m3onSecondaryContainer
+                                color: Colours.palette.m3onPrimaryContainer
                                 elide: Text.ElideRight
                             }
 
@@ -167,28 +167,28 @@ ColumnLayout {
                                 StyledText {
                                     text: qsTr("Connected")
                                     textPointSize: Tokens.font.size.smaller
-                                    color: Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.8)
+                                    color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
                                 }
 
                                 StyledText {
                                     visible: connectedCard.modelData.batteryAvailable
                                     text: "•"
                                     textPointSize: Tokens.font.size.smaller
-                                    color: Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.5)
+                                    color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.5)
                                 }
 
                                 MaterialIcon {
                                     visible: connectedCard.modelData.batteryAvailable
                                     text: Icons.getBatteryIcon(connectedCard.modelData.batteryAvailable ? connectedCard.modelData.battery * 100 : -1)
                                     iconPointSize: Tokens.font.size.smaller
-                                    color: connectedCard.modelData.battery < 0.2 ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.8)
+                                    color: connectedCard.modelData.battery < 0.2 ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
                                 }
 
                                 StyledText {
                                     visible: connectedCard.modelData.batteryAvailable
                                     text: `${Math.round(connectedCard.modelData.battery * 100)}%`
                                     textPointSize: Tokens.font.size.smaller
-                                    color: Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.8)
+                                    color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
                                 }
                             }
                         }
@@ -198,12 +198,12 @@ ColumnLayout {
                             implicitWidth: 36
                             implicitHeight: 36
                             radius: Tokens.rounding.full
-                            color: Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.12)
+                            color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.12)
 
                             LoadingIndicator {
                                 anchors.centerIn: parent
                                 implicitSize: 22
-                                color: Colours.palette.m3onSecondaryContainer
+                                color: Colours.palette.m3onPrimaryContainer
                                 animated: connectedCard.loading
                                 opacity: connectedCard.loading ? 1 : 0
                             }
@@ -212,13 +212,13 @@ ColumnLayout {
                                 anchors.centerIn: parent
                                 visible: !connectedCard.loading
                                 text: "link_off"
-                                color: Colours.palette.m3onSecondaryContainer
+                                color: Colours.palette.m3onPrimaryContainer
                                 iconPointSize: Tokens.font.size.normal
                             }
 
                             StateLayer {
                                 anchors.fill: parent
-                                color: Colours.palette.m3onSecondaryContainer
+                                color: Colours.palette.m3onPrimaryContainer
                                 disabled: connectedCard.loading
                                 onClicked: connectedCard.modelData.connected = false
                             }
@@ -292,7 +292,7 @@ ColumnLayout {
                         Layout.fillWidth: true
                         implicitHeight: 52
                         radius: Tokens.rounding.normal
-                        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+                        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
                         readonly property bool loading: modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
 
@@ -307,12 +307,12 @@ ColumnLayout {
                                 implicitWidth: 34
                                 implicitHeight: 34
                                 radius: Tokens.rounding.small
-                                color: Qt.alpha(Colours.palette.m3primary, 0.10)
+                                color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
                                 MaterialIcon {
                                     anchors.centerIn: parent
                                     text: Icons.getBluetoothIcon(pairedItem.modelData.icon)
-                                    color: Colours.palette.m3primary
+                                    color: Colours.palette.m3onSurfaceVariant
                                     iconPointSize: Tokens.font.size.normal
                                 }
                             }
@@ -419,7 +419,7 @@ ColumnLayout {
                         Layout.fillWidth: true
                         implicitHeight: 52
                         radius: Tokens.rounding.normal
-                        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+                        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
                         readonly property bool loading: modelData.state === BluetoothDeviceState.Connecting || modelData.state === BluetoothDeviceState.Disconnecting
 
@@ -551,7 +551,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 46
         radius: Tokens.rounding.normal
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
         RowLayout {
             anchors.fill: parent

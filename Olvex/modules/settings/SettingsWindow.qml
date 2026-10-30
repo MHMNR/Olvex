@@ -60,7 +60,7 @@ Item {
     StyledRect {
         anchors.fill: parent
         radius: 0
-        color: Qt.alpha(Colours.palette.m3surface, Colours.transparencyEnabled ? Math.max(0.72, Math.min(Colours.transparencyBase + 0.16, 0.82)) : (Colours.light ? 0.80 : 0.76))
+        color: Qt.alpha(Colours.shellTint, Colours.transparencyEnabled ? Colours.transparencyBase : 1.0)
         border.width: 0
 
         // ── Subtle ambient depth wash over background blur ─────────────────

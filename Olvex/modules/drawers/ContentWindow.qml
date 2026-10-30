@@ -285,9 +285,7 @@ StyledWindow {
 
             BlobGroup {
                 id: blobGroup
-                color: Colours.light
-                    ? Qt.tint(Colours.palette.m3surface, Qt.alpha(Colours.palette.m3surfaceTint, 0.04))
-                    : Colours.palette.m3surface
+                color: Colours.shellTint
                 smoothing: safeBorder.smoothing
                 Behavior on color {
                     CAnim {}
@@ -296,9 +294,7 @@ StyledWindow {
 
             BlobGroup {
                 id: drawerGroup
-                color: Colours.light
-                    ? Qt.tint(Colours.palette.m3surface, Qt.alpha(Colours.palette.m3surfaceTint, 0.05))
-                    : Colours.palette.m3surface
+                color: Colours.shellTintDrawer
                 smoothing: safeBorder.smoothing
                 Behavior on color {
                     CAnim {}

@@ -79,7 +79,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 56
         radius: Tokens.rounding.normal
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
         RowLayout {
             anchors.fill: parent
@@ -158,7 +158,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 56
         radius: Tokens.rounding.normal
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
         RowLayout {
             anchors.fill: parent
@@ -214,7 +214,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 56
         radius: Tokens.rounding.normal
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
         RowLayout {
             anchors.fill: parent
@@ -458,9 +458,9 @@ ColumnLayout {
                         implicitHeight: networkItem.isEditing ? 108 : 56
                         radius: Tokens.rounding.normal
                         color: {
-                            if (networkItem.isEditing) return Colours.layer(Colours.palette.m3surfaceContainerHigh, 1);
+                            if (networkItem.isEditing) return Colours.light ? Colours.tintContainer(Colours.containerAtLevel(3), 0.18) : Colours.opaqueDarkContainer(3);
                             if (networkItem.isActive) return Colours.palette.m3primaryContainer;
-                            return Colours.layer(Colours.palette.m3surfaceContainer, 1);
+                            return Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest;
                         }
                         border.width: 0
                         border.color: "transparent"
@@ -491,14 +491,14 @@ ColumnLayout {
                                 Layout.preferredWidth: 38
                                 Layout.preferredHeight: 38
                                 radius: Tokens.rounding.small
-                                color: networkItem.isActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3primary, 0.12)
+                                color: networkItem.isActive ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.08)
                                 Layout.alignment: Qt.AlignVCenter
 
                                 WifiLottieIcon {
                                     anchors.centerIn: parent
                                     size: 20
-                                    color: networkItem.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3primary
-                                    disabledColor: networkItem.isActive ? Qt.rgba(1, 1, 1, 0.35) : Qt.alpha(Colours.palette.m3primary, 0.28)
+                                    color: networkItem.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                                    disabledColor: networkItem.isActive ? Qt.rgba(1, 1, 1, 0.35) : Qt.alpha(Colours.palette.m3onSurface, 0.28)
                                     strength: (networkItem.modelData.strength || 0) / 100.0
                                     connected: true
                                     connecting: networkItem.isConnecting
@@ -921,7 +921,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 46
         radius: Tokens.rounding.normal
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
 
         RowLayout {
             anchors.fill: parent

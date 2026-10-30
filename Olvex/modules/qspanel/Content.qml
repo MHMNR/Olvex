@@ -27,17 +27,6 @@ Item {
         id: contentContainer
         anchors.fill: parent
 
-        opacity: root.props.expansionActive !== "" ? (root.props.expansionBgOpacity ?? 0.35) : 1.0
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: root.props.expansionActive !== "" ? 500 : 400
-                easing.type: Easing.Bezier
-                easing.bezierCurve: [0.05, 0, 0.133333, 0.06, 0.166666, 0.4, 0.208333, 0.82, 0.25, 1, 1, 1]
-            }
-        }
-
-
         ColumnLayout {
             id: layout
 
@@ -99,11 +88,32 @@ Item {
         }
     }
 
+    // M3 Container Transform Scrim: dims entire QS panel background (cards + gaps) behind expanded sheet
+    Rectangle {
+        id: expansionScrim
+        anchors.fill: parent
+        anchors.margins: -Tokens.padding.large
+        radius: (typeof Config !== "undefined" && Config && Config.border) ? Config.border.drawerRounding : Tokens.rounding.normal
+        color: Colours.palette.m3scrim
+        opacity: root.props.expansionActive !== "" ? (Colours.light ? 0.42 : 0.62) : 0.0
+        visible: opacity > 0.001
+        z: 50
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.props.expansionActive !== "" ? 500 : 400
+                easing.type: Easing.Bezier
+                easing.bezierCurve: [0.05, 0, 0.133333, 0.06, 0.166666, 0.4, 0.208333, 0.82, 0.25, 1, 1, 1]
+            }
+        }
+    }
+
     ExpansionOverlay {
         id: expansionOverlay
         anchors.fill: parent
         props: root.props
         visibilities: root.visibilities
+        z: 60
     }
 
     RecordingDeleteModal {

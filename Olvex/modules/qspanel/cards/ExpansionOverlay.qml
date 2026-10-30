@@ -240,7 +240,7 @@ Item {
                     width: root.width
                     height: root.expandedHeight
                     radius: Tokens.rounding.large
-                    color: Colours.palette.m3surfaceContainerHigh
+                    color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
                     border.color: "transparent"
                     border.width: 0
                 }
@@ -870,7 +870,7 @@ Item {
 
         readonly property bool isActive: PowerProfiles.profile === profile
 
-        color: isActive ? Colours.palette.m3primary : Colours.tileFill
+        color: isActive ? Colours.palette.m3primaryContainer : (Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest)
         border.width: 0
         border.color: "transparent"
 
@@ -882,7 +882,7 @@ Item {
 
             MaterialIcon {
                 text: itemRoot.icon
-                color: itemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                color: itemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                 iconPointSize: Tokens.font.size.large
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -895,14 +895,14 @@ Item {
                 StyledText {
                     text: itemRoot.title
                     font.weight: itemRoot.isActive ? 600 : 400
-                    color: itemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                    color: itemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.small
                     Layout.fillWidth: true
                 }
 
                 MarqueeText {
                     text: itemRoot.description
-                    color: itemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimary, 0.8) : Colours.palette.m3onSurfaceVariant
+                    color: itemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8) : Colours.palette.m3onSurfaceVariant
                     textPointSize: Tokens.font.size.smaller
                 }
             }
@@ -910,7 +910,7 @@ Item {
             MaterialIcon {
                 visible: itemRoot.isActive
                 text: "check_circle"
-                color: Colours.palette.m3onPrimary
+                color: Colours.palette.m3onPrimaryContainer
                 iconPointSize: Tokens.font.size.normal
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -918,7 +918,7 @@ Item {
 
         StateLayer {
             anchors.fill: parent
-            color: itemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+            color: itemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
             onClicked: PowerProfiles.profile = itemRoot.profile
         }
     }
@@ -972,7 +972,7 @@ Item {
 
         readonly property bool isActive: DisplayProjection.activeProjection === mode
 
-        color: isActive ? Colours.palette.m3primary : Colours.tileFill
+        color: isActive ? Colours.palette.m3primaryContainer : (Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest)
         border.width: 0
         border.color: "transparent"
 
@@ -994,7 +994,7 @@ Item {
 
             MaterialIcon {
                 text: projItemRoot.icon
-                color: projItemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                color: projItemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                 iconPointSize: Tokens.font.size.large
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -1007,14 +1007,14 @@ Item {
                 StyledText {
                     text: projItemRoot.title
                     font.weight: projItemRoot.isActive ? 600 : 400
-                    color: projItemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+                    color: projItemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.small
                     Layout.fillWidth: true
                 }
 
                 MarqueeText {
                     text: projItemRoot.description
-                    color: projItemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimary, 0.8) : Colours.palette.m3onSurfaceVariant
+                    color: projItemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8) : Colours.palette.m3onSurfaceVariant
                     textPointSize: Tokens.font.size.smaller
                 }
             }
@@ -1022,7 +1022,7 @@ Item {
             MaterialIcon {
                 visible: projItemRoot.isActive
                 text: "check_circle"
-                color: Colours.palette.m3onPrimary
+                color: Colours.palette.m3onPrimaryContainer
                 iconPointSize: Tokens.font.size.normal
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -1031,7 +1031,7 @@ Item {
         StateLayer {
             id: projMa
             anchors.fill: parent
-            color: projItemRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+            color: projItemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
             preventStealing: false
             onClicked: DisplayProjection.applyProjection(projItemRoot.mode)
         }
