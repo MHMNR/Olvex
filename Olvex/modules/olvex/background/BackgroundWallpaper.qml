@@ -61,7 +61,13 @@ Item {
     }
 
     function imageSourceUrl(image: Image): string {
-        return image?.source ? image.source.toString() : "";
+        if (!image?.source)
+            return "";
+        const raw = image.source.toString();
+        if (!raw)
+            return "";
+        const local = Paths.toLocalFile(image.source);
+        return local ? encodeFileUrl(local) : encodeFileUrl(raw);
     }
 
     function pickRandom(): string {
@@ -687,7 +693,13 @@ Item {
             }
 
             function playerSource(player: var): string {
-                return player?.source ? player.source.toString() : "";
+                if (!player?.source)
+                    return "";
+                const raw = player.source.toString();
+                if (!raw)
+                    return "";
+                const local = Paths.toLocalFile(player.source);
+                return local ? root.encodeFileUrl(local) : root.encodeFileUrl(raw);
             }
 
             function syncAudio(): void {
