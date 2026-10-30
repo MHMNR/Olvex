@@ -1692,7 +1692,7 @@ Item {
                                                 anchors.rightMargin: parent.deleteProgress * (34 + Tokens.spacing.small)
                                                 radius: height / 2
 
-                                                color: storeCardDelegate.isBeingInstalled ? Colours.palette.m3surfaceContainerHigh :
+                                                color: storeCardDelegate.isBeingInstalled ? Qt.alpha(Colours.palette.m3primary, 0.14) :
                                                        storeCardDelegate.isThemeInstalled ? Colours.palette.m3secondaryContainer :
                                                        installBtnMa.containsMouse ? Colours.layer(Colours.palette.m3primary, 1) : Colours.palette.m3primary
 
@@ -1701,11 +1701,34 @@ Item {
                                                     anchors.left: parent.left
                                                     anchors.top: parent.top
                                                     anchors.bottom: parent.bottom
-                                                    width: Math.max(0, Math.min(parent.width, parent.width * (storeCardDelegate.currentProgress / 100.0)))
+                                                    width: Math.max(0, Math.min(parent.width, Math.round(parent.width * (storeCardDelegate.currentProgress / 100.0))))
                                                     radius: height / 2
                                                     color: Colours.palette.m3primary
+                                                    clip: true
+                                                    z: 2
                                                     visible: storeCardDelegate.isBeingInstalled
                                                     Behavior on width { Anim { type: Anim.StandardLarge } }
+
+                                                    RowLayout {
+                                                        width: cursorInstallBaseContent.width
+                                                        height: cursorInstallBaseContent.height
+                                                        x: (installBtn.width - width) / 2
+                                                        y: (installBtn.height - height) / 2
+                                                        spacing: Tokens.spacing.small
+
+                                                        MaterialIcon {
+                                                            text: "downloading"
+                                                            iconPointSize: 16
+                                                            color: Colours.palette.m3onPrimary
+                                                        }
+
+                                                        StyledText {
+                                                            text: qsTr("Installing... %1%").arg(storeCardDelegate.currentProgress)
+                                                            font.weight: Font.Medium
+                                                            textPointSize: Tokens.font.size.small
+                                                            color: Colours.palette.m3onPrimary
+                                                        }
+                                                    }
                                                 }
 
                                                 // State 1: "Installed" Content (Fades out cleanly without text re-layout)
@@ -1754,8 +1777,9 @@ Item {
                                                     }
                                                 }
 
-                                                // State 3: "Installing %1%" Content
+                                                // State 3: "Installing... %1%" Content
                                                 RowLayout {
+                                                    id: cursorInstallBaseContent
                                                     anchors.centerIn: parent
                                                     spacing: Tokens.spacing.small
                                                     opacity: storeCardDelegate.isBeingInstalled ? 1.0 : 0.0
@@ -1770,10 +1794,10 @@ Item {
                                                     }
 
                                                     StyledText {
-                                                        text: qsTr("Installing %1%").arg(storeCardDelegate.currentProgress)
+                                                        text: qsTr("Installing... %1%").arg(storeCardDelegate.currentProgress)
                                                         font.weight: Font.Medium
                                                         textPointSize: Tokens.font.size.small
-                                                        color: Colours.palette.m3onSurface
+                                                        color: Colours.palette.m3primary
                                                     }
                                                 }
 
@@ -2595,7 +2619,9 @@ Item {
                     readonly property real targetDeleteBtnW: 34 + 4 * root.clampedMorph
                     readonly property real deleteSlotW: deleteBtnProgress * (targetDeleteBtnW + Tokens.spacing.small + 2 * root.clampedMorph)
                     readonly property real compactActionW: Math.max(60, width - deleteSlotW)
-                    readonly property real expandedActionW: 140
+                    readonly property real expandedActionW: detailActionBtn.isInsting ? Math.max(168, cursorDetailInstallBaseContent.implicitWidth + 32) : 140
+                    property real animatedExpandedActionW: expandedActionW
+                    Behavior on animatedExpandedActionW { Anim { type: Anim.DefaultSpatial } }
 
                     // Close Button (Smoothly expands width from 0 to 88 on left)
                     Rectangle {
@@ -2632,10 +2658,10 @@ Item {
                         }
                     }
 
-                    // Install / Installed Button (Morphs smoothly between compact full width at x=0 and 140px on right)
+                    // Install / Installed Button (Morphs smoothly between compact full width at x=0 and expandedActionW on right)
                     ClippingRectangle {
                         id: detailActionBtn
-                        width: detailBottomRow.compactActionW + (detailBottomRow.expandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
+                        width: detailBottomRow.compactActionW + (detailBottomRow.animatedExpandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
                         height: parent.height
                         x: detailBottomRow.width - detailBottomRow.deleteSlotW - width
                         y: 0
@@ -2661,7 +2687,7 @@ Item {
                         readonly property bool isHov: detailBtnMa.containsMouse
 
                         color: isInsting
-                            ? Colours.palette.m3surfaceContainerHigh
+                            ? Qt.alpha(Colours.palette.m3primary, 0.14)
                             : (isInst
                                 ? Colours.palette.m3secondaryContainer
                                 : (isHov ? Colours.layer(Colours.palette.m3primary, 1) : Colours.palette.m3primary))
@@ -2677,10 +2703,33 @@ Item {
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
-                            width: Math.max(0, Math.min(detailActionBtn.width, detailActionBtn.width * (detailActionBtn.currentProg / 100.0)))
+                            width: Math.max(0, Math.min(detailActionBtn.width, Math.round(detailActionBtn.width * (detailActionBtn.currentProg / 100.0))))
                             radius: height / 2
                             color: Colours.palette.m3primary
+                            clip: true
+                            z: 2
                             Behavior on width { Anim { type: Anim.StandardLarge } }
+
+                            RowLayout {
+                                width: cursorDetailInstallBaseContent.width
+                                height: cursorDetailInstallBaseContent.height
+                                x: (detailActionBtn.width - width) / 2
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Tokens.spacing.small
+
+                                MaterialIcon {
+                                    iconPointSize: 16
+                                    color: Colours.palette.m3onPrimary
+                                    text: "downloading"
+                                }
+
+                                StyledText {
+                                    font.weight: Font.Medium
+                                    textPointSize: Tokens.font.size.small
+                                    color: Colours.palette.m3onPrimary
+                                    text: qsTr("Installing... %1%").arg(detailActionBtn.currentProg)
+                                }
+                            }
                         }
 
                         // State 1: "Installed" Content (Fades out cleanly without text re-layout)
@@ -2729,8 +2778,9 @@ Item {
                             }
                         }
 
-                        // State 3: "Installing %1%" Content
+                        // State 3: "Installing... %1%" Content
                         RowLayout {
+                            id: cursorDetailInstallBaseContent
                             anchors.centerIn: parent
                             spacing: Tokens.spacing.small
                             opacity: detailActionBtn.isInsting ? 1.0 : 0.0
@@ -2747,8 +2797,8 @@ Item {
                             StyledText {
                                 font.weight: Font.Medium
                                 textPointSize: Tokens.font.size.small
-                                color: Colours.palette.m3onSurface
-                                text: qsTr("Installing %1%").arg(detailActionBtn.currentProg)
+                                color: Colours.palette.m3primary
+                                text: qsTr("Installing... %1%").arg(detailActionBtn.currentProg)
                             }
                         }
 

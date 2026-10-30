@@ -1557,6 +1557,7 @@ Item {
                                         width: Math.max(0, Math.min(actionBtn.width, Math.round(actionBtn.width * (root.installProgress / 100))))
                                         radius: height / 2
                                         color: Colours.palette.m3primary
+                                        clip: true
                                         z: 2
 
                                         Behavior on width {
@@ -2411,7 +2412,9 @@ Item {
                     readonly property real targetDeleteBtnW: 34 + 4 * root.clampedMorph
                     readonly property real deleteSlotW: deleteBtnProgress * (targetDeleteBtnW + Tokens.spacing.small + 2 * root.clampedMorph)
                     readonly property real compactActionW: Math.max(60, width - deleteSlotW)
-                    readonly property real expandedActionW: 140
+                    readonly property real expandedActionW: detailActionBtn.isInsting ? Math.max(168, detailActionBaseContent.implicitWidth + 32) : 140
+                    property real animatedExpandedActionW: expandedActionW
+                    Behavior on animatedExpandedActionW { Anim { type: Anim.DefaultSpatial } }
 
                     // Close Button (Smoothly expands width from 0 to 88 on left)
                     Rectangle {
@@ -2448,10 +2451,10 @@ Item {
                         }
                     }
 
-                    // Install / Installed Button (Morphs smoothly between compact full width at x=0 and 140px on right)
+                    // Install / Installed Button (Morphs smoothly between compact full width at x=0 and expandedActionW on right)
                     ClippingRectangle {
                         id: detailActionBtn
-                        width: detailBottomRow.compactActionW + (detailBottomRow.expandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
+                        width: detailBottomRow.compactActionW + (detailBottomRow.animatedExpandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
                         height: parent.height
                         x: detailBottomRow.width - detailBottomRow.deleteSlotW - width
                         y: 0
@@ -2565,6 +2568,7 @@ Item {
                             width: Math.max(0, Math.min(detailActionBtn.width, Math.round(detailActionBtn.width * (root.installProgress / 100))))
                             radius: height / 2
                             color: Colours.palette.m3primary
+                            clip: true
                             z: 2
 
                             Behavior on width { Anim { type: Anim.StandardLarge } }
