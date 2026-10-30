@@ -2681,7 +2681,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: Tokens.rounding.large
-            color: Colours.palette.m3scrim ? Qt.alpha(Colours.palette.m3scrim, 0.60) : Qt.alpha("#000000", 0.60)
+            color: Colours.palette.m3scrim ? Qt.alpha(Colours.palette.m3scrim, 0.60) : Qt.rgba(0, 0, 0, 0.60)
             opacity: deleteModal.visible ? 1.0 : 0.0
             Behavior on opacity { Anim { type: Anim.FastEffects } }
 
@@ -2698,51 +2698,80 @@ Item {
         StyledRect {
             anchors.centerIn: parent
             width: Math.min(parent.width - 32, 420)
-            implicitHeight: modalCol.implicitHeight + Tokens.padding.large * 2
-            radius: Tokens.rounding.large
-            color: root.normalCardBg
-            border.width: 1
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
+            implicitHeight: modalCol.implicitHeight + 48
+            radius: 28
+            color: Colours.palette.m3surfaceContainerHigh
+            border.width: 0
 
             ColumnLayout {
                 id: modalCol
                 anchors.fill: parent
-                anchors.margins: Tokens.padding.large
-                spacing: Tokens.spacing.normal
+                anchors.topMargin: 24
+                anchors.bottomMargin: 24
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
+                spacing: 16
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Tokens.spacing.normal
+                    spacing: 16
+                    Layout.alignment: Qt.AlignVCenter
 
                     StyledRect {
-                        Layout.preferredWidth: 40
-                        Layout.preferredHeight: 40
-                        radius: 20
-                        color: Qt.alpha(Colours.palette.m3error, 0.15)
+                        Layout.preferredWidth: 44
+                        Layout.preferredHeight: 44
+                        radius: 22
+                        color: Colours.palette.m3errorContainer
 
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "delete"
-                            color: Colours.palette.m3error
-                            iconPointSize: 20
+                            color: Colours.palette.m3onErrorContainer
+                            iconPointSize: 22
                         }
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
                         spacing: 2
 
                         StyledText {
+                            Layout.fillWidth: true
                             text: qsTr("Delete Icon Pack?")
-                            font.weight: Font.DemiBold
+                            font.weight: Font.SemiBold
                             textPointSize: Tokens.font.size.large
                             color: Colours.palette.m3onSurface
+                        }
+                    }
+                }
+
+                // Target theme pill/chip
+                StyledRect {
+                    visible: root.pendingDeleteTheme && (root.pendingDeleteTheme.name || root.pendingDeleteTheme.id || "").length > 0
+                    Layout.fillWidth: false
+                    implicitHeight: 28
+                    implicitWidth: Math.min(parent.width, iconChipRow.implicitWidth + 24)
+                    radius: 14
+                    color: Qt.alpha(Colours.palette.m3primary, 0.14)
+                    border.width: 0
+
+                    RowLayout {
+                        id: iconChipRow
+                        anchors.centerIn: parent
+                        spacing: 6
+
+                        MaterialIcon {
+                            iconPointSize: 14
+                            text: "category"
+                            color: Colours.palette.m3primary
                         }
 
                         StyledText {
                             text: root.pendingDeleteTheme ? (root.pendingDeleteTheme.name || root.pendingDeleteTheme.id) : ""
+                            font.weight: Font.Medium
                             textPointSize: Tokens.font.size.small
-                            color: Colours.palette.m3onSurfaceVariant
+                            color: Colours.palette.m3onSurface
                             elide: Text.ElideRight
                         }
                     }
@@ -2750,31 +2779,35 @@ Item {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: qsTr("Are you sure you want to permanently delete this icon pack from your system? This action cannot be undone.")
+                    text: root.pendingDeleteTheme
+                        ? qsTr("Are you sure you want to permanently delete <b>%1</b> from your system? This action cannot be undone.").arg(root.pendingDeleteTheme.name || root.pendingDeleteTheme.id || "")
+                        : qsTr("Are you sure you want to permanently delete this icon pack from your system? This action cannot be undone.")
+                    textFormat: Text.StyledText
                     textPointSize: Tokens.font.size.small
                     color: Colours.palette.m3onSurfaceVariant
                     wrapMode: Text.WordWrap
+                    lineHeight: 1.3
                 }
 
-                Item { Layout.preferredHeight: Tokens.spacing.small }
+                Item { Layout.preferredHeight: 8 }
 
                 // Action Buttons
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Tokens.spacing.normal
+                    spacing: 12
 
                     Item { Layout.fillWidth: true }
 
                     // Cancel Button
                     StyledRect {
                         implicitWidth: 88
-                        implicitHeight: 36
-                        radius: 18
+                        implicitHeight: 38
+                        radius: 19
                         color: cancelMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
                                cancelMa.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) :
-                               "transparent"
+                               Colours.palette.m3surfaceContainerHighest
                         border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.5)
+                        border.color: cancelMa.containsMouse ? Qt.alpha(Colours.palette.m3outlineVariant, 0.4) : Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
 
                         StyledText {
                             anchors.centerIn: parent
@@ -2799,8 +2832,8 @@ Item {
                     // Confirm Delete Button
                     StyledRect {
                         implicitWidth: 96
-                        implicitHeight: 36
-                        radius: 18
+                        implicitHeight: 38
+                        radius: 19
                         color: confirmDeleteMa.pressed ? Colours.layer(Colours.palette.m3error, 2) :
                                confirmDeleteMa.containsMouse ? Colours.layer(Colours.palette.m3error, 1) :
                                Colours.palette.m3error
