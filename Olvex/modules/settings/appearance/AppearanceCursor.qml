@@ -239,23 +239,46 @@ Item {
         onExited: (exitCode, exitStatus) => {
             root.isDeleting = false;
             if (exitCode === 0) {
+                const targetTheme = root.pendingDeleteTheme;
+                root.pendingDeleteTheme = null;
+                const delName = targetTheme ? (targetTheme.name || "") : "";
+                const delId = targetTheme ? (targetTheme.id || "") : "";
+                const delMarketId = targetTheme ? (targetTheme.marketId || "") : "";
+
                 if (typeof Toaster !== "undefined" && Toaster.toast) {
                     Toaster.toast(
                         qsTr("Cursor Theme Deleted"),
-                        qsTr("Deleted %1 successfully").arg(root.pendingDeleteTheme ? (root.pendingDeleteTheme.name || root.pendingDeleteTheme.id) : ""),
+                        qsTr("Deleted %1 successfully").arg(delName || delId),
                         "delete"
                     );
                 }
-                if (root.detailTheme && root.pendingDeleteTheme && (root.detailTheme.name === root.pendingDeleteTheme.name || root.detailTheme.id === root.pendingDeleteTheme.id)) {
-                    root.closeThemeDetails();
+
+                // Update overrides map to trigger smooth animation on normal card & detail modal WITHOUT destroying delegates
+                let ov = Object.assign({}, root.installedOverrides);
+                if (delId) ov[delId] = false;
+                if (delName) ov[delName] = false;
+                if (delMarketId) ov[delMarketId] = false;
+                root.installedOverrides = ov;
+
+                // Mutate items in place so data stays accurate without triggering Repeater model reset
+                for (let i = 0; i < root.marketList.length; i++) {
+                    const item = root.marketList[i];
+                    if (item.id === delId || item.installedThemeId === delId || (delName && (item.name === delName || item.installedThemeId === delName || item.id === delName)) || (delMarketId && item.id === delMarketId)) {
+                        item.isInstalled = false;
+                        item.installedThemeId = "";
+                    }
                 }
-                root.pendingDeleteTheme = null;
-                if (root.detailTheme) {
-                    root.closeThemeDetails();
+
+                if (root.detailTheme && (root.detailTheme.name === delName || root.detailTheme.id === delId || root.detailTheme.installedThemeId === delId || (delMarketId && root.detailTheme.id === delMarketId))) {
+                    let dt = Object.assign({}, root.detailTheme);
+                    dt.isInstalled = false;
+                    dt.installedThemeId = "";
+                    root.detailTheme = dt;
                 }
+
                 root.refreshThemes();
-                root.refreshMarket();
             } else {
+                root.pendingDeleteTheme = null;
                 if (typeof Toaster !== "undefined" && Toaster.toast) {
                     Toaster.toast(qsTr("Deletion Failed"), qsTr("Could not delete theme"), "error");
                 }
@@ -266,10 +289,31 @@ Item {
     // ── Online Cursor Pack Market Data ──
     property var marketList: []
     property bool marketLoading: false
+    property int marketPage: 0
+    property bool marketHasMore: true
+    property bool marketAppendMode: false
     property string marketSort: "downloads"
     property string marketSearch: ""
     property var installingThemes: ({})
     property var installProgress: ({})
+    property var installedOverrides: ({})
+
+    // ── Direct Flickable Connections for infinite scroll ──
+    Connections {
+        target: contentFlickable
+        enabled: root.currentTab === 1 && !root.marketLoading && root.marketHasMore && root.marketList.length > 0
+        function onContentYChanged() {
+            if (!contentFlickable) return;
+            if (contentFlickable.atYEnd || (contentFlickable.contentY + contentFlickable.height >= contentFlickable.contentHeight - 350)) {
+                root.loadMoreMarket();
+            }
+        }
+        function onAtYEndChanged() {
+            if (contentFlickable && contentFlickable.atYEnd) {
+                root.loadMoreMarket();
+            }
+        }
+    }
 
     function formatNumber(num) {
         if (!num) return "0";
@@ -294,18 +338,37 @@ Item {
     }
 
     function refreshMarket() {
+        marketPage = 0;
+        marketHasMore = true;
+        fetchMarket(0, false);
+    }
+
+    function loadMoreMarket() {
+        if (marketLoading || !marketHasMore) return;
+        fetchMarket(marketPage + 1, true);
+    }
+
+    function fetchMarket(page, append) {
+        if (marketLoading) return;
         marketLoading = true;
-        marketProc.running = false;
-        marketProc.command = [
-            "python3",
-            getMarketScriptPath(),
-            "browse",
-            root.marketSort,
-            "0",
-            root.marketSearch,
-            "desc"
-        ];
-        marketProc.running = true;
+        marketAppendMode = append;
+        marketPage = page;
+        try {
+            marketProc.command = [
+                "python3",
+                getMarketScriptPath(),
+                "browse",
+                root.marketSort,
+                String(page),
+                root.marketSearch,
+                "desc"
+            ];
+            marketProc.running = false;
+            marketProc.running = true;
+        } catch (e) {
+            console.warn("[AppearanceCursor] fetchMarket error:", e);
+            marketLoading = false;
+        }
     }
 
     property int thumbEpoch: 0
@@ -333,13 +396,35 @@ Item {
                 if (!text || text.trim() === "") return;
                 try {
                     const parsed = JSON.parse(text.trim());
-                    if (parsed && Array.isArray(parsed.items)) {
-                        root.marketList = parsed.items;
+                    if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+                        if (root.marketAppendMode) {
+                            const current = root.marketList.slice();
+                            const existingIds = new Set(current.map(it => it.id));
+                            for (let i = 0; i < parsed.items.length; i++) {
+                                if (!existingIds.has(parsed.items[i].id)) {
+                                    current.push(parsed.items[i]);
+                                }
+                            }
+                            root.marketList = current;
+                        } else {
+                            root.marketList = parsed.items;
+                        }
+                        root.marketHasMore = parsed.items.length >= 10;
                         root.thumbTicksLeft = 25;
                         root.thumbEpoch++;
+                    } else {
+                        if (!root.marketAppendMode) root.marketList = [];
+                        root.marketHasMore = false;
                     }
                 } catch (e) {
                     console.warn("[AppearanceCursor] Market parse error:", e);
+                }
+            }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim() !== "") {
+                    console.warn("[AppearanceCursor] Market stderr:", text);
                 }
             }
         }
@@ -406,8 +491,27 @@ Item {
                                 "download_done"
                             );
                         }
+                        if (themeItem) {
+                            let ov = Object.assign({}, root.installedOverrides);
+                            ov[themeItem.id] = true;
+                            if (themeItem.name) ov[themeItem.name] = true;
+                            root.installedOverrides = ov;
+
+                            for (let i = 0; i < root.marketList.length; i++) {
+                                if (root.marketList[i].id === themeItem.id) {
+                                    root.marketList[i].isInstalled = true;
+                                    root.marketList[i].installedThemeId = themeItem.name || themeItem.id;
+                                    break;
+                                }
+                            }
+                            if (root.detailTheme && root.detailTheme.id === themeItem.id) {
+                                let dt = Object.assign({}, root.detailTheme);
+                                dt.isInstalled = true;
+                                dt.installedThemeId = themeItem.name || themeItem.id;
+                                root.detailTheme = dt;
+                            }
+                        }
                         root.refreshThemes();
-                        root.refreshMarket();
                     } else {
                         if (typeof Toaster !== "undefined" && Toaster.toast) {
                             Toaster.toast(
@@ -427,7 +531,8 @@ Item {
         if (!item) return;
         promptDeleteTheme({
             id: item.installedThemeId || item.name,
-            name: item.name
+            name: item.name,
+            marketId: item.id
         });
     }
 
@@ -443,10 +548,21 @@ Item {
                     );
                 }
                 if (root.detailTheme) {
+                    const dtId = root.detailTheme.id;
+                    const dtName = root.detailTheme.name;
+                    let list = root.marketList.slice();
+                    for (let i = 0; i < list.length; i++) {
+                        if (list[i].id === dtId || list[i].installedThemeId === dtId || list[i].name === dtName) {
+                            let updated = Object.assign({}, list[i]);
+                            updated.isInstalled = false;
+                            updated.installedThemeId = "";
+                            list[i] = updated;
+                        }
+                    }
+                    root.marketList = list;
                     root.closeThemeDetails();
                 }
                 root.refreshThemes();
-                root.refreshMarket();
             }
         }
     }
@@ -457,9 +573,10 @@ Item {
     ColumnLayout {
         id: headerContainer
         anchors.top: parent.top
+        anchors.topMargin: Tokens.padding.normal
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: Tokens.spacing.normal
+        spacing: Tokens.spacing.large
         z: 10
 
         // Row 1: Clean M3 Segmented Navigation Bar (Installed (N) | Store)
@@ -501,6 +618,10 @@ Item {
                 StyledRect {
                     Layout.preferredWidth: 38
                     Layout.preferredHeight: 38
+                    Layout.maximumWidth: 38
+                    Layout.minimumWidth: 38
+                    width: 38
+                    height: 38
                     radius: Tokens.rounding.normal
                     color: Qt.alpha(Colours.palette.m3primary, 0.12)
 
@@ -547,13 +668,11 @@ Item {
                         radius: Tokens.rounding.full
                         clip: true
 
-                        color: openFolderMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                               Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
                         border.width: 1
                         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
 
                         Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on color { CAnim {} }
 
                         Item {
                             id: folderIconWrap
@@ -564,10 +683,9 @@ Item {
 
                             MaterialIcon {
                                 anchors.centerIn: parent
+                                anchors.horizontalCenterOffset: 1
                                 text: "folder_open"
                                 iconPointSize: 18
-                                renderType: Text.QtRendering
-                                antialiasing: true
                                 color: Colours.palette.m3onSurface
                             }
                         }
@@ -591,7 +709,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                openDirProc.command = ["xdg-open", Paths.home + "/.cursor"];
+                                openDirProc.command = ["xdg-open", Paths.home + "/.cursors"];
                                 openDirProc.running = false;
                                 openDirProc.running = true;
                             }
@@ -613,13 +731,11 @@ Item {
                         radius: Tokens.rounding.full
                         clip: true
 
-                        color: scanThemesMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                               Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
                         border.width: 1
                         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
 
                         Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on color { CAnim {} }
 
                         Item {
                             id: scanIconWrap
@@ -984,17 +1100,17 @@ Item {
                                 Layout.maximumWidth: installedGrid.cardWidth
                                 Layout.minimumWidth: installedGrid.cardWidth
                                 width: installedGrid.cardWidth
-                                Layout.preferredHeight: 154
-                                implicitHeight: 154
+                                Layout.preferredHeight: 160
+                                implicitHeight: 160
 
                                 StyledRect {
                                     id: cardBg
                                     anchors.fill: parent
                                     radius: Tokens.rounding.large
 
-                                    color: cardDelegate.isSelected
-                                        ? Colours.layer(Colours.palette.m3secondaryContainer, 1)
-                                        : (cardDelegate.isHovered ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) : Colours.layer(Colours.palette.m3surfaceContainerHigh, 1))
+                                    color: cardDelegate.isHovered
+                                        ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+                                        : Colours.layer(Colours.palette.m3surfaceContainer, 1)
 
                                     border.width: cardDelegate.isSelected ? 2 : 1
                                     border.color: cardDelegate.isSelected
@@ -1004,65 +1120,40 @@ Item {
                                     Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
                                     Behavior on border.color { CAnim { duration: Tokens.anim.durations.small } }
 
-                                    // Top Right Control Row: Delete button (if deletable) + Active check badge
-                                    RowLayout {
+                                    // Delete Button (top-right, only on hover for user-installed themes)
+                                    StyledRect {
+                                        id: deleteThemeBtn
+                                        visible: cardDelegate.isDeletable && !cardDelegate.isSelected
+                                        opacity: (cardDelegate.isHovered || deleteThemeMa.containsMouse) ? 1.0 : 0.0
                                         anchors.top: parent.top
                                         anchors.right: parent.right
                                         anchors.margins: 10
-                                        spacing: 6
+                                        width: 26
+                                        height: 26
+                                        radius: Tokens.rounding.full
+                                        color: deleteThemeMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
+                                               deleteThemeMa.containsMouse ? Colours.palette.m3error :
+                                               Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6)
+                                        border.width: 0
                                         z: 10
 
-                                        // Delete Button (only for user-installed themes)
-                                        StyledRect {
-                                            id: deleteThemeBtn
-                                            visible: cardDelegate.isDeletable && !cardDelegate.isSelected
-                                            opacity: (cardDelegate.isHovered || deleteThemeMa.containsMouse) ? 1.0 : 0.0
-                                            Layout.preferredWidth: 26
-                                            Layout.preferredHeight: 26
-                                            radius: Tokens.rounding.full
-                                            color: deleteThemeMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
-                                                   deleteThemeMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
-                                                   Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6)
-                                            border.width: 0
+                                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                        Behavior on color { CAnim {} }
 
-                                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                        MaterialIcon {
+                                            anchors.centerIn: parent
+                                            text: "delete"
+                                            iconPointSize: 14
+                                            color: (deleteThemeMa.pressed || deleteThemeMa.containsMouse) ? Colours.palette.m3onError : Colours.palette.m3error
                                             Behavior on color { CAnim {} }
-
-                                            MaterialIcon {
-                                                anchors.centerIn: parent
-                                                text: "delete"
-                                                iconPointSize: 14
-                                                color: deleteThemeMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                                                Behavior on color { CAnim {} }
-                                            }
-
-                                            MouseArea {
-                                                id: deleteThemeMa
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: root.promptDeleteTheme(modelData)
-                                            }
                                         }
 
-                                        // Active M3 shape badge with M3 checkmark
-                                        Item {
-                                            visible: cardDelegate.isSelected
-                                            Layout.preferredWidth: 26
-                                            Layout.preferredHeight: 26
-
-                                            MaterialShape {
-                                                anchors.fill: parent
-                                                shape: MaterialShape.Cookie12Sided
-                                                color: Colours.palette.m3primary
-                                            }
-
-                                            MaterialIcon {
-                                                anchors.centerIn: parent
-                                                text: "check"
-                                                iconPointSize: 14
-                                                color: Colours.palette.m3onPrimary
-                                            }
+                                        MouseArea {
+                                            id: deleteThemeMa
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.promptDeleteTheme(modelData)
                                         }
                                     }
 
@@ -1071,35 +1162,40 @@ Item {
                                         anchors.margins: Tokens.padding.normal
                                         spacing: Tokens.spacing.small
 
-                                        // Cursor Previews Strip (Dark Pedestal)
+                                        // Cursor Previews Strip (mathematically concentric: large 24 - normal 12 = small 12)
                                         StyledRect {
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: 62
+                                            Layout.preferredHeight: 68
                                             radius: Tokens.rounding.small
-                                            color: cardDelegate.isSelected
-                                                ? Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.55)
-                                                : Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.40)
-                                            border.width: 0
+                                            color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+                                            border.width: 1
+                                            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
 
                                             RowLayout {
                                                 anchors.centerIn: parent
-                                                spacing: 6
+                                                spacing: 10
 
                                                 Repeater {
                                                     model: (modelData.previews && modelData.previews.length > 0)
                                                         ? modelData.previews.slice(0, 4)
                                                         : []
 
-                                                    delegate: Image {
+                                                    delegate: Item {
                                                         required property string modelData
-                                                        source: modelData.startsWith("/") ? ("file://" + modelData) : modelData
-                                                        sourceSize.width: 32
-                                                        sourceSize.height: 32
-                                                        Layout.preferredWidth: 26
-                                                        Layout.preferredHeight: 26
-                                                        fillMode: Image.PreserveAspectFit
-                                                        smooth: true
-                                                        mipmap: true
+                                                        Layout.preferredWidth: 28
+                                                        Layout.preferredHeight: 28
+
+                                                        Image {
+                                                            anchors.centerIn: parent
+                                                            width: 26
+                                                            height: 26
+                                                            source: modelData.startsWith("/") ? ("file://" + modelData) : modelData
+                                                            sourceSize.width: 32
+                                                            sourceSize.height: 32
+                                                            fillMode: Image.PreserveAspectFit
+                                                            smooth: true
+                                                            mipmap: true
+                                                        }
                                                     }
                                                 }
 
@@ -1112,26 +1208,52 @@ Item {
                                             }
                                         }
 
-                                        // Info: Title and Description with refined typography scale
+                                        // Info with title + inline active check badge + subtitle
                                         ColumnLayout {
                                             Layout.fillWidth: true
-                                            spacing: 2
+                                            spacing: 3
 
-                                            StyledText {
+                                            RowLayout {
                                                 Layout.fillWidth: true
-                                                text: modelData.name || modelData.id
-                                                font.weight: cardDelegate.isSelected ? Font.DemiBold : Font.Medium
-                                                textPointSize: Tokens.font.size.normal
-                                                color: cardDelegate.isSelected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                                                elide: Text.ElideRight
+                                                spacing: 6
+
+                                                StyledText {
+                                                    Layout.fillWidth: true
+                                                    text: modelData.name || modelData.id
+                                                    font.weight: cardDelegate.isSelected ? Font.DemiBold : Font.Medium
+                                                    textPointSize: Tokens.font.size.normal
+                                                    color: cardDelegate.isSelected ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                // Active M3 shape badge with M3 checkmark beside the title
+                                                Item {
+                                                    visible: cardDelegate.isSelected
+                                                    Layout.preferredWidth: 18
+                                                    Layout.preferredHeight: 18
+                                                    Layout.alignment: Qt.AlignVCenter
+
+                                                    MaterialShape {
+                                                        anchors.fill: parent
+                                                        shape: MaterialShape.Cookie12Sided
+                                                        color: Colours.palette.m3primary
+                                                    }
+
+                                                    MaterialIcon {
+                                                        anchors.centerIn: parent
+                                                        text: "check"
+                                                        iconPointSize: 11
+                                                        color: Colours.palette.m3onPrimary
+                                                    }
+                                                }
                                             }
 
                                             StyledText {
                                                 Layout.fillWidth: true
-                                                text: modelData.comment ? modelData.comment : (modelData.path.startsWith("/usr") ? qsTr("System Cursor") : qsTr("User (~/.icons)"))
+                                                text: modelData.comment ? modelData.comment : (modelData.path.startsWith("/usr") ? qsTr("System Cursor") : qsTr("Custom Cursor"))
                                                 textPointSize: Tokens.font.size.small
                                                 font.weight: Font.Normal
-                                                color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.70) : Colours.palette.m3onSurfaceVariant
+                                                color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSurface, 0.70) : Colours.palette.m3onSurfaceVariant
                                                 elide: Text.ElideRight
                                             }
                                         }
@@ -1346,6 +1468,17 @@ Item {
                                 readonly property int currentProgress: root.installProgress[modelData.id] || 0
                                 readonly property bool isHovered: storeCardMouse.containsMouse
                                 readonly property bool isSelectedForDetail: root.detailTheme && (root.detailTheme.id === modelData.id) && root.detailVisible
+                                readonly property bool isThemeInstalled: {
+                                    const override = (root.installedOverrides[modelData.id] !== undefined)
+                                        ? root.installedOverrides[modelData.id]
+                                        : ((modelData.installedThemeId && root.installedOverrides[modelData.installedThemeId] !== undefined)
+                                            ? root.installedOverrides[modelData.installedThemeId]
+                                            : ((modelData.name && root.installedOverrides[modelData.name] !== undefined)
+                                                ? root.installedOverrides[modelData.name]
+                                                : undefined));
+                                    if (override !== undefined) return Boolean(override);
+                                    return Boolean(modelData.isInstalled);
+                                }
 
                                 opacity: {
                                     if (!isSelectedForDetail) return 1.0;
@@ -1376,6 +1509,14 @@ Item {
 
                                     Behavior on color { CAnim {} }
                                     Behavior on border.color { CAnim {} }
+
+                                    MouseArea {
+                                        id: storeCardMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.openThemeDetails(modelData, storeCardDelegate)
+                                    }
 
                                     ColumnLayout {
                                         anchors.fill: parent
@@ -1530,57 +1671,109 @@ Item {
                                             Layout.fillHeight: true
                                         }
 
-                                        // Action Row: Install / Uninstall Button
-                                        RowLayout {
+                                        // Action Row: Install / Uninstall Button (direct continuous spatial interpolation, zero RowLayout snapping)
+                                        Item {
                                             Layout.fillWidth: true
                                             Layout.preferredHeight: 34
-                                            spacing: Tokens.spacing.small
+                                            height: 34
                                             z: 10
+
+                                            readonly property bool showDelete: storeCardDelegate.isThemeInstalled && !storeCardDelegate.isBeingInstalled
+                                            property real deleteProgress: showDelete ? 1.0 : 0.0
+                                            Behavior on deleteProgress { Anim { type: Anim.DefaultSpatial } }
 
                                             // Main Install / Installed Button
                                             StyledClippingRect {
                                                 id: installBtn
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 34
+                                                anchors.left: parent.left
+                                                anchors.top: parent.top
+                                                anchors.bottom: parent.bottom
+                                                anchors.right: parent.right
+                                                anchors.rightMargin: parent.deleteProgress * (34 + Tokens.spacing.small)
                                                 radius: height / 2
 
                                                 color: storeCardDelegate.isBeingInstalled ? Colours.palette.m3surfaceContainerHigh :
-                                                       modelData.isInstalled ? Colours.palette.m3secondaryContainer :
+                                                       storeCardDelegate.isThemeInstalled ? Colours.palette.m3secondaryContainer :
                                                        installBtnMa.containsMouse ? Colours.layer(Colours.palette.m3primary, 1) : Colours.palette.m3primary
 
-                                                clip: true
-
-                                                // Progress Bar during installation
+                                                // Progress Bar during installation (strictly masked by StyledClippingRect with rounded cap)
                                                 Rectangle {
                                                     anchors.left: parent.left
                                                     anchors.top: parent.top
                                                     anchors.bottom: parent.bottom
                                                     width: Math.max(0, Math.min(parent.width, parent.width * (storeCardDelegate.currentProgress / 100.0)))
-                                                    radius: installBtn.radius
+                                                    radius: height / 2
                                                     color: Colours.palette.m3primary
                                                     visible: storeCardDelegate.isBeingInstalled
-                                                    Behavior on width { NumberAnimation { duration: 150 } }
+                                                    Behavior on width { Anim { type: Anim.StandardLarge } }
                                                 }
 
+                                                // State 1: "Installed" Content (Fades out cleanly without text re-layout)
                                                 RowLayout {
                                                     anchors.centerIn: parent
                                                     spacing: Tokens.spacing.small
+                                                    opacity: (storeCardDelegate.isThemeInstalled && !storeCardDelegate.isBeingInstalled) ? 1.0 : 0.0
+                                                    visible: opacity > 0.01
+
+                                                    Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                                                     MaterialIcon {
-                                                        text: storeCardDelegate.isBeingInstalled ? "downloading" :
-                                                              modelData.isInstalled ? "check" : "download"
+                                                        text: "check"
                                                         iconPointSize: 16
-                                                        color: storeCardDelegate.isBeingInstalled ? Colours.palette.m3primary :
-                                                               modelData.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3surface
+                                                        color: Colours.palette.m3onSecondaryContainer
                                                     }
 
                                                     StyledText {
-                                                        text: storeCardDelegate.isBeingInstalled ? (qsTr("Installing %1%").arg(storeCardDelegate.currentProgress)) :
-                                                              modelData.isInstalled ? qsTr("Installed") : qsTr("Install")
+                                                        text: qsTr("Installed")
                                                         font.weight: Font.Medium
                                                         textPointSize: Tokens.font.size.small
-                                                        color: storeCardDelegate.isBeingInstalled ? Colours.palette.m3onSurface :
-                                                               modelData.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3surface
+                                                        color: Colours.palette.m3onSecondaryContainer
+                                                    }
+                                                }
+
+                                                // State 2: "Install" Content (Fades in cleanly without text re-layout)
+                                                RowLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: Tokens.spacing.small
+                                                    opacity: (!storeCardDelegate.isThemeInstalled && !storeCardDelegate.isBeingInstalled) ? 1.0 : 0.0
+                                                    visible: opacity > 0.01
+
+                                                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                                                    MaterialIcon {
+                                                        text: "download"
+                                                        iconPointSize: 16
+                                                        color: Colours.palette.m3onPrimary
+                                                    }
+
+                                                    StyledText {
+                                                        text: qsTr("Install")
+                                                        font.weight: Font.Medium
+                                                        textPointSize: Tokens.font.size.small
+                                                        color: Colours.palette.m3onPrimary
+                                                    }
+                                                }
+
+                                                // State 3: "Installing %1%" Content
+                                                RowLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: Tokens.spacing.small
+                                                    opacity: storeCardDelegate.isBeingInstalled ? 1.0 : 0.0
+                                                    visible: opacity > 0.01
+
+                                                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                                                    MaterialIcon {
+                                                        text: "downloading"
+                                                        iconPointSize: 16
+                                                        color: Colours.palette.m3primary
+                                                    }
+
+                                                    StyledText {
+                                                        text: qsTr("Installing %1%").arg(storeCardDelegate.currentProgress)
+                                                        font.weight: Font.Medium
+                                                        textPointSize: Tokens.font.size.small
+                                                        color: Colours.palette.m3onSurface
                                                     }
                                                 }
 
@@ -1588,8 +1781,8 @@ Item {
                                                     id: installBtnMa
                                                     anchors.fill: parent
                                                     hoverEnabled: true
-                                                    cursorShape: (storeCardDelegate.isBeingInstalled || modelData.isInstalled) ? Qt.ArrowCursor : Qt.PointingHandCursor
-                                                    enabled: !storeCardDelegate.isBeingInstalled && !modelData.isInstalled && !!modelData.downloadUrl
+                                                    cursorShape: (storeCardDelegate.isBeingInstalled || storeCardDelegate.isThemeInstalled) ? Qt.ArrowCursor : Qt.PointingHandCursor
+                                                    enabled: !storeCardDelegate.isBeingInstalled && !storeCardDelegate.isThemeInstalled && !!modelData.downloadUrl
                                                     onPressed: (mouse) => { mouse.accepted = true; }
                                                     onClicked: (mouse) => {
                                                         mouse.accepted = true;
@@ -1598,28 +1791,32 @@ Item {
                                                 }
                                             }
 
-                                            // Uninstall Button (for installed market packs)
+                                            // Uninstall Button (for installed market packs - smoothly appears on install / disappears on delete)
                                             StyledRect {
                                                 id: uninstallStoreBtn
-                                                visible: modelData.isInstalled && !storeCardDelegate.isBeingInstalled
-                                                Layout.preferredWidth: 34
-                                                Layout.preferredHeight: 34
+                                                anchors.right: parent.right
+                                                anchors.top: parent.top
+                                                anchors.bottom: parent.bottom
+                                                width: parent.deleteProgress * 34
                                                 radius: Tokens.rounding.full
                                                 z: 10
-                                                color: uninstallBtnMa.pressed ? Colours.layer(Colours.palette.m3error, 2) :
-                                                       uninstallBtnMa.containsMouse ? Colours.layer(Colours.palette.m3error, 1) :
-                                                       Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                                                border.width: 1
-                                                border.color: uninstallBtnMa.containsMouse ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3outlineVariant, 0.3)
+                                                opacity: parent.deleteProgress
+                                                visible: width > 0.5 && opacity > 0.01
+                                                clip: true
+
+                                                color: uninstallBtnMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
+                                                       uninstallBtnMa.containsMouse ? Colours.palette.m3error :
+                                                       Qt.alpha(Colours.palette.m3error, 0.14)
+                                                border.width: 0
+                                                border.color: "transparent"
 
                                                 Behavior on color { CAnim {} }
-                                                Behavior on border.color { CAnim {} }
 
                                                 MaterialIcon {
                                                     anchors.centerIn: parent
                                                     text: "delete"
                                                     iconPointSize: 16
-                                                    color: uninstallBtnMa.containsMouse ? Colours.palette.m3onError : Colours.palette.m3error
+                                                    color: (uninstallBtnMa.pressed || uninstallBtnMa.containsMouse) ? Colours.palette.m3onError : Colours.palette.m3error
                                                     Behavior on color { CAnim {} }
                                                 }
 
@@ -1633,23 +1830,55 @@ Item {
                                                         mouse.accepted = true;
                                                         root.promptDeleteTheme({
                                                             id: modelData.installedThemeId || modelData.name,
-                                                            name: modelData.name
+                                                            name: modelData.name,
+                                                            marketId: modelData.id
                                                         });
                                                     }
                                                 }
                                             }
                                         }
                                     }
-
-                                    MouseArea {
-                                        id: storeCardMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        z: 0
-                                        onClicked: root.openThemeDetails(modelData, storeCardDelegate)
-                                    }
                                 }
+                            }
+                        }
+                    }
+
+                    // Auto-loading bottom indicator
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 60
+                        Layout.topMargin: Tokens.spacing.normal
+                        Layout.bottomMargin: Tokens.spacing.large
+                        visible: root.marketList.length > 0
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.small
+
+                            RowLayout {
+                                visible: root.marketLoading
+                                Layout.alignment: Qt.AlignHCenter
+                                spacing: Tokens.spacing.normal
+
+                                LoadingIndicator {
+                                    implicitSize: 24
+                                    color: Colours.palette.m3primary
+                                    animated: root.marketLoading
+                                }
+
+                                StyledText {
+                                    text: qsTr("Loading more cursor packs...")
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    textPointSize: Tokens.font.size.normal
+                                }
+                            }
+
+                            StyledText {
+                                visible: !root.marketLoading && !root.marketHasMore
+                                Layout.alignment: Qt.AlignHCenter
+                                text: qsTr("All %1 cursor packs loaded").arg(root.marketList.length)
+                                color: Colours.palette.m3onSurfaceVariant
+                                textPointSize: Tokens.font.size.smaller
                             }
                         }
                     }
@@ -1682,6 +1911,24 @@ Item {
     property real imgFitW: 0
     property real imgFitH: 0
 
+    function getPreviewUrl(idx) {
+        if (!root.detailTheme) return "";
+        const plist = root.detailTheme.previews;
+        if (plist && plist.length > 0) {
+            const i = Math.max(0, Math.min(plist.length - 1, idx));
+            const p = plist[i] || "";
+            if (p.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p)) {
+                return "file://" + p;
+            }
+            return p;
+        }
+        const p0 = root.detailTheme.preview || "";
+        if (p0.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p0)) {
+            return "file://" + p0;
+        }
+        return p0;
+    }
+
     function updateHeroImgBounds() {
         const aspect = (detailHeroImg.implicitWidth > 0 && detailHeroImg.implicitHeight > 0)
             ? (detailHeroImg.implicitWidth / detailHeroImg.implicitHeight)
@@ -1702,6 +1949,11 @@ Item {
         collapseAnimation.stop();
         expandAnimation.stop();
 
+        if (typeof heroSlideAnim !== "undefined" && heroSlideAnim.running) heroSlideAnim.stop();
+        if (typeof heroCarousel !== "undefined") {
+            heroCarousel.activeHeroSlot = 0;
+            heroCarousel.slideHeroProgress = 0.0;
+        }
         detailImgIndex = 0;
 
         const pt = cardItem.mapToItem(root, 0, 0);
@@ -1720,6 +1972,11 @@ Item {
     function closeThemeDetails() {
         if (!root.detailVisible || collapseAnimation.running) return;
         expandAnimation.stop();
+        if (typeof heroSlideAnim !== "undefined" && heroSlideAnim.running) heroSlideAnim.stop();
+        if (typeof heroCarousel !== "undefined") {
+            heroCarousel.activeHeroSlot = 0;
+            heroCarousel.slideHeroProgress = 0.0;
+        }
         detailImgIndex = 0;
         detailElevation.opacity = 0.0;
         collapseAnimation.restart();
@@ -1904,52 +2161,124 @@ Item {
                     antialiasing: true
                     clip: true
 
-                    // Unified Image: smoothly zooms from PreserveAspectCrop (t=0) to PreserveAspectFit (t=1)
-                    Image {
-                        id: detailHeroImg
-                        anchors.centerIn: parent
+                    // Carousel with smooth slide transitions between preview images
+                    Item {
+                        id: heroCarousel
+                        anchors.fill: parent
+                        clip: true
 
-                        width: root.imgCropW + (root.imgFitW - root.imgCropW) * root.clampedMorph
-                        height: root.imgCropH + (root.imgFitH - root.imgCropH) * root.clampedMorph
+                        property int activeHeroSlot: 0
+                        property int incomingHeroIndex: 0
+                        property int slideHeroDir: 1
+                        property real slideHeroProgress: 0.0
+                        readonly property real baseHeroX: (width - detailHeroImg.width) / 2
 
-                        onStatusChanged: {
-                            if (status === Image.Ready) root.updateHeroImgBounds();
-                        }
-
-                        source: {
-                            if (!root.detailTheme) return "";
-                            const plist = root.detailTheme.previews;
-                            if (plist && plist.length > 0) {
-                                const idx = Math.max(0, Math.min(plist.length - 1, root.detailImgIndex));
-                                const p = plist[idx] || "";
-                                if (p.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p)) {
-                                    return "file://" + p;
+                        Anim {
+                            id: heroSlideAnim
+                            target: heroCarousel
+                            property: "slideHeroProgress"
+                            type: Anim.DefaultSpatial
+                            duration: 320
+                            from: 0.0
+                            to: 1.0
+                            onFinished: {
+                                root.detailImgIndex = heroCarousel.incomingHeroIndex;
+                                heroCarousel.activeHeroSlot = (heroCarousel.activeHeroSlot === 0 ? 1 : 0);
+                                heroCarousel.slideHeroProgress = 0.0;
+                                if (heroCarousel.activeHeroSlot === 0) {
+                                    detailHeroImg2.visible = false;
+                                    detailHeroImg2.source = "";
+                                } else {
+                                    detailHeroImg.visible = false;
+                                    detailHeroImg.source = "";
                                 }
-                                return p;
                             }
-                            const p0 = root.detailTheme.preview || "";
-                            if (p0.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p0)) {
-                                return "file://" + p0;
-                            }
-                            return p0;
                         }
-                        fillMode: Image.PreserveAspectCrop
-                        sourceSize.width: 480
-                        sourceSize.height: 320
-                        cache: true
-                        asynchronous: true
-                        smooth: true
-                        antialiasing: true
-                        mipmap: true
-                        visible: status === Image.Ready
-                    }
 
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        visible: detailHeroImg.status !== Image.Ready
-                        text: "mouse"
-                        iconPointSize: 36 + 12 * root.clampedMorph
-                        color: Colours.palette.m3onSurfaceVariant
+                        function transitionToImage(targetIdx, dir) {
+                            if (heroSlideAnim.running) {
+                                heroSlideAnim.stop();
+                                root.detailImgIndex = incomingHeroIndex;
+                                activeHeroSlot = (activeHeroSlot === 0 ? 1 : 0);
+                                slideHeroProgress = 0.0;
+                            }
+                            incomingHeroIndex = targetIdx;
+                            slideHeroDir = dir;
+                            const nextUrl = root.getPreviewUrl(targetIdx);
+                            if (activeHeroSlot === 0) {
+                                detailHeroImg2.source = nextUrl;
+                                detailHeroImg2.visible = true;
+                            } else {
+                                detailHeroImg.source = nextUrl;
+                                detailHeroImg.visible = true;
+                            }
+                            heroSlideAnim.restart();
+                        }
+
+                        // Slot 0 Hero Image
+                        Image {
+                            id: detailHeroImg
+                            y: (parent.height - height) / 2
+                            width: root.imgCropW + (root.imgFitW - root.imgCropW) * root.clampedMorph
+                            height: root.imgCropH + (root.imgFitH - root.imgCropH) * root.clampedMorph
+
+                            x: heroCarousel.activeHeroSlot === 0
+                                ? (heroCarousel.baseHeroX - (heroCarousel.slideHeroDir * heroCarousel.slideHeroProgress * heroCarousel.width))
+                                : (heroCarousel.baseHeroX + (heroCarousel.slideHeroDir * (1.0 - heroCarousel.slideHeroProgress) * heroCarousel.width))
+
+                            opacity: heroCarousel.activeHeroSlot === 0
+                                ? (1.0 - 0.35 * heroCarousel.slideHeroProgress)
+                                : (0.65 + 0.35 * (1.0 - heroCarousel.slideHeroProgress))
+
+                            onStatusChanged: {
+                                if (status === Image.Ready) root.updateHeroImgBounds();
+                            }
+
+                            source: root.getPreviewUrl(root.detailImgIndex)
+                            fillMode: Image.PreserveAspectCrop
+                            sourceSize.width: 480
+                            sourceSize.height: 320
+                            cache: true
+                            asynchronous: true
+                            smooth: true
+                            antialiasing: true
+                            mipmap: true
+                            visible: status === Image.Ready
+                        }
+
+                        // Slot 1 Hero Image (Incoming during slide)
+                        Image {
+                            id: detailHeroImg2
+                            y: (parent.height - height) / 2
+                            width: root.imgCropW + (root.imgFitW - root.imgCropW) * root.clampedMorph
+                            height: root.imgCropH + (root.imgFitH - root.imgCropH) * root.clampedMorph
+
+                            x: heroCarousel.activeHeroSlot === 1
+                                ? (heroCarousel.baseHeroX - (heroCarousel.slideHeroDir * heroCarousel.slideHeroProgress * heroCarousel.width))
+                                : (heroCarousel.baseHeroX + (heroCarousel.slideHeroDir * (1.0 - heroCarousel.slideHeroProgress) * heroCarousel.width))
+
+                            opacity: heroCarousel.activeHeroSlot === 1
+                                ? (1.0 - 0.35 * heroCarousel.slideHeroProgress)
+                                : (0.65 + 0.35 * (1.0 - heroCarousel.slideHeroProgress))
+
+                            fillMode: Image.PreserveAspectCrop
+                            sourceSize.width: 480
+                            sourceSize.height: 320
+                            cache: true
+                            asynchronous: true
+                            smooth: true
+                            antialiasing: true
+                            mipmap: true
+                            visible: false
+                        }
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            visible: (detailHeroImg.status !== Image.Ready) && (detailHeroImg2.status !== Image.Ready)
+                            text: "mouse"
+                            iconPointSize: 36 + 12 * root.clampedMorph
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
                     }
 
                     // Left: Previous Image Button (if multiple images)
@@ -1986,7 +2315,8 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 const len = root.detailTheme.previews.length;
-                                root.detailImgIndex = (root.detailImgIndex - 1 + len) % len;
+                                const prevIdx = (root.detailImgIndex - 1 + len) % len;
+                                heroCarousel.transitionToImage(prevIdx, -1);
                             }
                         }
                     }
@@ -2025,7 +2355,8 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 const len = root.detailTheme.previews.length;
-                                root.detailImgIndex = (root.detailImgIndex + 1) % len;
+                                const nextIdx = (root.detailImgIndex + 1) % len;
+                                heroCarousel.transitionToImage(nextIdx, 1);
                             }
                         }
                     }
@@ -2052,10 +2383,11 @@ Item {
                             anchors.centerIn: parent
                             text: {
                                 if (!root.detailTheme || !root.detailTheme.previews) return "";
-                                return (root.detailImgIndex + 1) + " / " + root.detailTheme.previews.length;
+                                const displayIdx = heroSlideAnim.running ? heroCarousel.incomingHeroIndex : root.detailImgIndex;
+                                return (displayIdx + 1) + " / " + root.detailTheme.previews.length;
                             }
-                            textPointSize: Tokens.font.size.smaller
                             font.weight: Font.DemiBold
+                            textPointSize: Tokens.font.size.smaller
                             color: Colours.palette.m3onSurface
                         }
                     }
@@ -2256,8 +2588,12 @@ Item {
                     anchors.right: parent.right
                     height: 34 + 4 * root.clampedMorph
 
-                    readonly property bool hasDeleteBtn: root.detailTheme ? (Boolean(root.detailTheme.isInstalled) && !detailActionBtn.isInsting) : false
-                    readonly property real deleteSlotW: hasDeleteBtn ? (detailDeleteBtn.width + Tokens.spacing.small + 2 * root.clampedMorph) : 0
+                    readonly property bool hasDeleteBtn: detailActionBtn.isInst && !detailActionBtn.isInsting
+                    property real deleteBtnProgress: hasDeleteBtn ? 1.0 : 0.0
+                    Behavior on deleteBtnProgress { Anim { type: Anim.DefaultSpatial } }
+
+                    readonly property real targetDeleteBtnW: 34 + 4 * root.clampedMorph
+                    readonly property real deleteSlotW: deleteBtnProgress * (targetDeleteBtnW + Tokens.spacing.small + 2 * root.clampedMorph)
                     readonly property real compactActionW: Math.max(60, width - deleteSlotW)
                     readonly property real expandedActionW: 140
 
@@ -2297,17 +2633,29 @@ Item {
                     }
 
                     // Install / Installed Button (Morphs smoothly between compact full width at x=0 and 140px on right)
-                    Rectangle {
+                    ClippingRectangle {
                         id: detailActionBtn
                         width: detailBottomRow.compactActionW + (detailBottomRow.expandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
                         height: parent.height
                         x: detailBottomRow.width - detailBottomRow.deleteSlotW - width
                         y: 0
                         radius: height / 2
-                        clip: true
                         antialiasing: true
+                        smooth: true
+                        clip: true
 
-                        readonly property bool isInst: root.detailTheme ? Boolean(root.detailTheme.isInstalled) : false
+                        readonly property bool isInst: {
+                            if (!root.detailTheme) return false;
+                            const override = (root.installedOverrides[root.detailTheme.id] !== undefined)
+                                ? root.installedOverrides[root.detailTheme.id]
+                                : ((root.detailTheme.installedThemeId && root.installedOverrides[root.detailTheme.installedThemeId] !== undefined)
+                                    ? root.installedOverrides[root.detailTheme.installedThemeId]
+                                    : ((root.detailTheme.name && root.installedOverrides[root.detailTheme.name] !== undefined)
+                                        ? root.installedOverrides[root.detailTheme.name]
+                                        : undefined));
+                            if (override !== undefined) return Boolean(override);
+                            return Boolean(root.detailTheme.isInstalled);
+                        }
                         readonly property bool isInsting: root.detailTheme ? Boolean(root.installingThemes[root.detailTheme.id]) : false
                         readonly property int currentProg: root.detailTheme ? (root.installProgress[root.detailTheme.id] || 0) : 0
                         readonly property bool isHov: detailBtnMa.containsMouse
@@ -2318,42 +2666,89 @@ Item {
                                 ? Colours.palette.m3secondaryContainer
                                 : (isHov ? Colours.layer(Colours.palette.m3primary, 1) : Colours.palette.m3primary))
 
-                        // Dynamic Progress Fill
+                        Behavior on color {
+                            enabled: !expandAnimation.running && !collapseAnimation.running && root.detailVisible
+                            CAnim {}
+                        }
+
+                        // Dynamic Progress Fill (clipped cleanly inside ClippingRectangle)
                         Rectangle {
                             visible: detailActionBtn.isInsting
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             width: Math.max(0, Math.min(detailActionBtn.width, detailActionBtn.width * (detailActionBtn.currentProg / 100.0)))
-                            radius: detailActionBtn.radius
+                            radius: height / 2
                             color: Colours.palette.m3primary
-                            Behavior on width { NumberAnimation { duration: 150 } }
+                            Behavior on width { Anim { type: Anim.StandardLarge } }
                         }
 
-                        // Base Content
+                        // State 1: "Installed" Content (Fades out cleanly without text re-layout)
                         RowLayout {
                             anchors.centerIn: parent
                             spacing: Tokens.spacing.small
+                            opacity: (detailActionBtn.isInst && !detailActionBtn.isInsting) ? 1.0 : 0.0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                             MaterialIcon {
                                 iconPointSize: 16
-                                color: detailActionBtn.isInsting ? Colours.palette.m3primary : (detailActionBtn.isInst ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3surface)
-                                text: detailActionBtn.isInsting ? "downloading" : (detailActionBtn.isInst ? "check" : "download")
-                                Behavior on color { CAnim {} }
+                                color: Colours.palette.m3onSecondaryContainer
+                                text: "check"
                             }
 
                             StyledText {
                                 font.weight: Font.Medium
                                 textPointSize: Tokens.font.size.small
-                                color: detailActionBtn.isInsting ? Colours.palette.m3onSurface : (detailActionBtn.isInst ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3surface)
-                                text: {
-                                    if (detailActionBtn.isInsting) {
-                                        return qsTr("Installing %1%").arg(detailActionBtn.currentProg);
-                                    }
-                                    if (detailActionBtn.isInst) return qsTr("Installed");
-                                    return qsTr("Install");
-                                }
-                                Behavior on color { CAnim {} }
+                                color: Colours.palette.m3onSecondaryContainer
+                                text: qsTr("Installed")
+                            }
+                        }
+
+                        // State 2: "Install" Content (Fades in cleanly without text re-layout)
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.small
+                            opacity: (!detailActionBtn.isInst && !detailActionBtn.isInsting) ? 1.0 : 0.0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                            MaterialIcon {
+                                iconPointSize: 16
+                                color: Colours.palette.m3onPrimary
+                                text: "download"
+                            }
+
+                            StyledText {
+                                font.weight: Font.Medium
+                                textPointSize: Tokens.font.size.small
+                                color: Colours.palette.m3onPrimary
+                                text: qsTr("Install")
+                            }
+                        }
+
+                        // State 3: "Installing %1%" Content
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.small
+                            opacity: detailActionBtn.isInsting ? 1.0 : 0.0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                            MaterialIcon {
+                                iconPointSize: 16
+                                color: Colours.palette.m3primary
+                                text: "downloading"
+                            }
+
+                            StyledText {
+                                font.weight: Font.Medium
+                                textPointSize: Tokens.font.size.small
+                                color: Colours.palette.m3onSurface
+                                text: qsTr("Installing %1%").arg(detailActionBtn.currentProg)
                             }
                         }
 
@@ -2374,24 +2769,29 @@ Item {
                     // Delete / Uninstall button if installed (Anchored at right edge, matches storeCardDelegate position!)
                     Rectangle {
                         id: detailDeleteBtn
-                        visible: detailBottomRow.hasDeleteBtn
-                        width: 34 + 4 * root.clampedMorph
+                        visible: width > 0.5 && opacity > 0.01
+                        width: detailBottomRow.targetDeleteBtnW * detailBottomRow.deleteBtnProgress
                         height: parent.height
                         x: detailBottomRow.width - width
                         y: 0
                         radius: height / 2
-                        color: detailDelMa.pressed ? Colours.layer(Colours.palette.m3error, 2) :
-                               detailDelMa.containsMouse ? Colours.layer(Colours.palette.m3error, 1) :
-                               Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                        border.width: 1
-                        border.color: detailDelMa.containsMouse ? Colours.palette.m3error : Qt.alpha(Colours.palette.m3outlineVariant, 0.3)
+                        opacity: detailBottomRow.deleteBtnProgress
+                        clip: true
+                        color: detailDelMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
+                               detailDelMa.containsMouse ? Colours.palette.m3error :
+                               Qt.alpha(Colours.palette.m3error, 0.14)
+                        border.width: 0
+                        border.color: "transparent"
                         antialiasing: true
+
+                        Behavior on color { CAnim {} }
 
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "delete"
                             iconPointSize: 16 + 2 * root.clampedMorph
-                            color: detailDelMa.containsMouse ? Colours.palette.m3onError : Colours.palette.m3error
+                            color: (detailDelMa.pressed || detailDelMa.containsMouse) ? Colours.palette.m3onError : Colours.palette.m3error
+                            Behavior on color { CAnim {} }
                         }
 
                         MouseArea {

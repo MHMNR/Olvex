@@ -1,6 +1,8 @@
 local vars = require("variables")
 local fn   = require("utils.functions")
 
+local super_combo_used = false
+
 -- Helper functions for creating binds
 local function create_bind(key, dispatcher, flags)
     if type(key) == "table" then
@@ -8,6 +10,31 @@ local function create_bind(key, dispatcher, flags)
             create_bind(k, dispatcher, flags)
         end
     elseif key then
+        local resolved_flags = type(flags) == "function" and flags(key) or (flags or {})
+        local is_super_combo = (key ~= vars.kbLauncher) and (string.find(key, "SUPER") ~= nil)
+
+        if is_super_combo then
+            if resolved_flags.mouse then
+                hl.bind(key, dispatcher, resolved_flags)
+                hl.bind(key, function()
+                    super_combo_used = true
+                end, { non_consuming = true })
+                return
+            elseif type(dispatcher) == "function" then
+                local orig = dispatcher
+                dispatcher = function(...)
+                    super_combo_used = true
+                    return orig(...)
+                end
+            else
+                local orig_dsp = dispatcher
+                dispatcher = function()
+                    super_combo_used = true
+                    return hl.dispatch(orig_dsp)
+                end
+            end
+        end
+
         hl.bind(key, dispatcher, flags or {})
     end
 end
@@ -21,7 +48,17 @@ end
 local mouse                  = { mouse = true }
 
 -- Shell keybinds
-create_bind(vars.kbLauncher, hl.dsp.exec_cmd("olvex shell drawers toggle launcher"), { release = true })
+hl.bind(vars.kbLauncher, function()
+    super_combo_used = false
+end, { non_consuming = true })
+
+create_bind(vars.kbLauncher, function()
+    if super_combo_used then
+        super_combo_used = false
+        return
+    end
+    hl.dispatch(hl.dsp.exec_cmd("olvex shell drawers toggle launcher"))
+end, { release = true })
 create_bind(vars.kbSession, hl.dsp.global("olvex:session"))
 create_bind(vars.kbShowSidebar, hl.dsp.global("olvex:sidebar"))
 create_bind(vars.kbClearNotifs, hl.dsp.global("olvex:clearNotifs"), locked)

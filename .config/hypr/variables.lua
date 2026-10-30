@@ -51,8 +51,8 @@ return {
     -- Misc
     volumeStep                 = 10,
     volumeMax                  = 100,
-    cursorTheme                = "sweet-cursors",
-    cursorSize                 = 24,
+    cursorTheme = "Bibata-Modern-Classic",
+    cursorSize = 28,
     sleepGestureCmd            = "systemctl suspend-then-hibernate",
 
     ------------------

@@ -164,10 +164,15 @@ def scan_themes():
                 continue
             if name in seen or name == "default":
                 continue
-            seen.add(name)
+
+            # Detect and ignore pure cursor themes
+            cursors_dir = os.path.join(theme_dir, "cursors")
+            cursor_theme_file = os.path.join(theme_dir, "cursor.theme")
+            has_cursors = os.path.isdir(cursors_dir) or os.path.isfile(cursor_theme_file)
 
             display_name = name
             comment = ""
+            icon_dirs = []
             try:
                 with open(index_path, "r", encoding="utf-8", errors="ignore") as f:
                     in_theme = False
@@ -183,8 +188,15 @@ def scan_themes():
                                 display_name = line.split("=", 1)[1]
                             elif line.startswith("Comment="):
                                 comment = line.split("=", 1)[1]
+                            elif line.startswith("Directories="):
+                                dirs_str = line.split("=", 1)[1].strip()
+                                icon_dirs = [d.strip() for d in dirs_str.split(",") if d.strip() and d.strip() != "cursors"]
             except Exception:
                 pass
+
+            # If theme only has cursors and no icon directories declared, skip it
+            if has_cursors and not icon_dirs:
+                continue
 
             def is_clean_svg(fpath):
                 if not fpath.lower().endswith(".svg"):
@@ -228,6 +240,10 @@ def scan_themes():
                         break
 
             preview_list = list(previews.values())[:4]
+            if not preview_list:
+                continue
+
+            seen.add(name)
 
             results.append({
                 "id": name,

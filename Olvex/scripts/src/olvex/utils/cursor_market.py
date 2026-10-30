@@ -27,6 +27,37 @@ def clean_description(raw_text):
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
+def score_download_candidate(fname, url):
+    if not url or not url.startswith("http"):
+        return -100
+    name = (fname or "").lower()
+    score = 0
+    # Heavily penalize windows-only packages (.cur, .ani, .bat, .inf, .exe, .msi)
+    if any(k in name for k in ("windows", "win32", "win64", ".exe", ".msi", ".bat", ".inf")):
+        return -50
+    if name.endswith(".tar.xz"):
+        score += 100
+    elif name.endswith(".tar.gz") or name.endswith(".tgz"):
+        score += 90
+    elif name.endswith(".tar.bz2"):
+        score += 85
+    elif name.endswith(".tar.zst"):
+        score += 80
+    elif name.endswith(".tar"):
+        score += 70
+    elif name.endswith(".zip"):
+        score += 40
+    elif name.endswith(".7z"):
+        score += 30
+    else:
+        score += 10
+
+    if "linux" in name:
+        score += 20
+    if "x11" in name or "xcursor" in name:
+        score += 20
+    return score
+
 OCS_BASE_URL = "https://api.kde-look.org/ocs/v1/content/data"
 DEFAULT_CATEGORY = "107"  # X11 Mouse Theme (Cursors)
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) OlvexShell/1.0"
@@ -78,9 +109,10 @@ def download_thumb_worker(cid, url, idx=0):
 def get_installed_cursor_names():
     installed = {}
     dirs = [
+        os.path.expanduser("~/.cursors"),
         os.path.expanduser("~/.cursor"),
-        os.path.expanduser("~/.local/share/icons"),
         os.path.expanduser("~/.icons"),
+        os.path.expanduser("~/.local/share/icons"),
         "/usr/local/share/icons",
         "/usr/share/icons"
     ]
@@ -328,17 +360,20 @@ def fetch_cursor_market(sort="downloads", page=0, search="", order="desc"):
             if summary and len(summary) > 160:
                 summary = summary[:157] + "..."
 
-            dl_url = ""
-            dl_name = ""
-            for i in range(1, 10):
+            candidates = []
+            for i in range(1, 15):
                 link = item_node.findtext(f"downloadlink{i}", "")
                 fname = item_node.findtext(f"downloadname{i}", "")
                 if link:
-                    dl_url = link
-                    dl_name = fname or f"{name}.tar.gz"
-                    lower_name = dl_name.lower()
-                    if any(lower_name.endswith(ext) for ext in [".tar.xz", ".tar.gz", ".zip", ".tar.bz2"]):
-                        break
+                    s = score_download_candidate(fname, link)
+                    candidates.append((s, link, fname or f"{name}.tar.gz"))
+
+            dl_url = ""
+            dl_name = ""
+            if candidates:
+                candidates.sort(key=lambda c: c[0], reverse=True)
+                dl_url = candidates[0][1]
+                dl_name = candidates[0][2]
 
             name_clean = name.lower().replace(" ", "").replace("-", "").replace("_", "")
             is_installed = False
@@ -450,7 +485,7 @@ def install_archive(download_url, download_name=""):
         return {"success": False, "error": "No download URL provided"}
 
     print("PROGRESS:5", flush=True)
-    target_dir = os.path.expanduser("~/.cursor")
+    target_dir = os.path.expanduser("~/.cursors")
     os.makedirs(target_dir, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="olvex_cursor_pkg_") as tmpdir:
@@ -490,7 +525,7 @@ def install_archive(download_url, download_name=""):
         except Exception:
             # Fallback to tar or unzip
             lower_name = archive_path.lower()
-            if any(lower_name.endswith(ext) for ext in [".tar.xz", ".tar.gz", ".tar.bz2", ".tar"]):
+            if any(lower_name.endswith(ext) for ext in [".tar.xz", ".tar.gz", ".tar.bz2", ".tar", ".tgz"]):
                 res = subprocess.run(["tar", "-xf", archive_path, "-C", extract_dir], check=False)
                 if res.returncode != 0:
                     return {"success": False, "error": "Extraction failed"}
@@ -506,28 +541,40 @@ def install_archive(download_url, download_name=""):
         # 3. Locate cursor root directories
         cursor_roots = []
         for root_dir, dirs, files in os.walk(extract_dir):
-            if "cursors" in dirs or "cursor.theme" in files or "index.theme" in files:
+            if "cursors" in dirs or "cursor.theme" in files:
                 cursors_path = os.path.join(root_dir, "cursors")
-                if os.path.isdir(cursors_path):
+                if os.path.isdir(cursors_path) or "cursor.theme" in files:
                     cursor_roots.append(root_dir)
 
         if not cursor_roots:
-            # Check if any top-level dir contains files
-            top_entries = os.listdir(extract_dir)
-            for te in top_entries:
-                p = os.path.join(extract_dir, te)
-                if os.path.isdir(p):
-                    cursor_roots.append(p)
+            # Check if any directory directly contains cursor files without a 'cursors' folder
+            known_cursors = {"default", "left_ptr", "pointer", "arrow", "xterm", "ibeam", "crosshair"}
+            for root_dir, dirs, files in os.walk(extract_dir):
+                if known_cursors.intersection(files):
+                    cursors_sub = os.path.join(root_dir, "cursors")
+                    os.makedirs(cursors_sub, exist_ok=True)
+                    for f in list(files):
+                        try:
+                            shutil.move(os.path.join(root_dir, f), os.path.join(cursors_sub, f))
+                        except Exception:
+                            pass
+                    cursor_roots.append(root_dir)
+                    break
 
         if not cursor_roots:
-            cursor_roots = [extract_dir]
+            return {"success": False, "error": "No valid Linux cursor theme found in archive"}
 
         installed_ids = []
         for cr in cursor_roots:
             idx = os.path.join(cr, "index.theme")
             base_cand = os.path.basename(cr.rstrip("/"))
             theme_name = extract_cursor_theme_name_from_index(idx, fallback=base_cand or download_name)
-            safe_dest_name = "".join(c for c in theme_name if c.isalnum() or c in ("-", "_", ".")).strip()
+
+            if base_cand and base_cand not in ("unpacked", "extract", "out") and any(c.isalnum() for c in base_cand):
+                safe_dest_name = "".join(c for c in base_cand if c.isalnum() or c in ("-", "_", ".")).strip()
+            else:
+                safe_dest_name = "".join(c for c in theme_name.replace(" ", "-") if c.isalnum() or c in ("-", "_", ".")).strip()
+
             if not safe_dest_name:
                 safe_dest_name = "Custom-Cursor"
 
@@ -537,21 +584,13 @@ def install_archive(download_url, download_name=""):
                     os.unlink(final_dest)
                 else:
                     shutil.rmtree(final_dest)
-            shutil.move(cr, final_dest)
-            installed_ids.append(safe_dest_name)
 
-            # Create compatibility symlink in ~/.local/share/icons
-            try:
-                compat_dir = os.path.expanduser("~/.local/share/icons")
-                os.makedirs(compat_dir, exist_ok=True)
-                compat_link = os.path.join(compat_dir, safe_dest_name)
-                if os.path.islink(compat_link):
-                    os.unlink(compat_link)
-                elif os.path.exists(compat_link):
-                    shutil.rmtree(compat_link)
-                os.symlink(final_dest, compat_link)
-            except Exception:
-                pass
+            if cr == extract_dir:
+                shutil.copytree(cr, final_dest, dirs_exist_ok=True)
+            else:
+                shutil.move(cr, final_dest)
+
+            installed_ids.append(safe_dest_name)
 
         print("PROGRESS:100", flush=True)
         primary_id = installed_ids[0] if installed_ids else download_name
@@ -562,9 +601,10 @@ def uninstall_cursor(theme_id):
         return {"success": False, "error": "Cannot uninstall system/default cursor theme"}
 
     user_base_dirs = [
+        os.path.expanduser("~/.cursors"),
         os.path.expanduser("~/.cursor"),
-        os.path.expanduser("~/.local/share/icons"),
-        os.path.expanduser("~/.icons")
+        os.path.expanduser("~/.icons"),
+        os.path.expanduser("~/.local/share/icons")
     ]
 
     clean_id = theme_id.lower().replace(" ", "").replace("-", "").replace("_", "")
@@ -631,7 +671,10 @@ if __name__ == "__main__":
     elif args[0] == "install":
         url = args[1] if len(args) > 1 else ""
         name = args[2] if len(args) > 2 else ""
-        print(json.dumps(install_archive(url, name)))
+        res = install_archive(url, name)
+        print(json.dumps(res))
+        if not res.get("success", False):
+            sys.exit(1)
     elif args[0] == "uninstall":
         theme_id = args[1] if len(args) > 1 else ""
         print(json.dumps(uninstall_cursor(theme_id)))

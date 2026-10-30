@@ -220,14 +220,14 @@ def set_cursor_theme(theme_id, size=None):
     except Exception:
         pass
 
-    # 4. ~/.icons/default/index.theme
-    try:
-        os.makedirs(os.path.expanduser("~/.icons/default"), exist_ok=True)
-        idx_path = os.path.expanduser("~/.icons/default/index.theme")
-        with open(idx_path, "w", encoding="utf-8") as f:
-            f.write(f"[Icon Theme]\nInherits={theme_id}\n")
-    except Exception:
-        pass
+    # 4. ~/.icons/default/index.theme and ~/.cursors/default/index.theme
+    for d_path in [os.path.expanduser("~/.icons/default"), os.path.expanduser("~/.cursors/default")]:
+        try:
+            os.makedirs(d_path, exist_ok=True)
+            with open(os.path.join(d_path, "index.theme"), "w", encoding="utf-8") as f:
+                f.write(f"[Icon Theme]\nInherits={theme_id}\n")
+        except Exception:
+            pass
 
     # 5. GTK 3 & 4 settings.ini
     for gtk_dir in [os.path.expanduser("~/.config/gtk-3.0"), os.path.expanduser("~/.config/gtk-4.0")]:
@@ -331,9 +331,10 @@ def set_setting(key, value):
 
 def scan_cursor_themes():
     dirs = [
+        os.path.expanduser("~/.cursors"),
         os.path.expanduser("~/.cursor"),
-        os.path.expanduser("~/.local/share/icons"),
         os.path.expanduser("~/.icons"),
+        os.path.expanduser("~/.local/share/icons"),
         "/usr/local/share/icons",
         "/usr/share/icons"
     ]
@@ -440,9 +441,10 @@ def delete_cursor_theme(theme_id):
         return {"success": False, "error": "Cannot delete default/system cursor theme"}
 
     user_base_dirs = [
+        os.path.expanduser("~/.cursors"),
         os.path.expanduser("~/.cursor"),
-        os.path.expanduser("~/.local/share/icons"),
-        os.path.expanduser("~/.icons")
+        os.path.expanduser("~/.icons"),
+        os.path.expanduser("~/.local/share/icons")
     ]
 
     clean_id = theme_id.lower().replace(" ", "").replace("-", "").replace("_", "")

@@ -186,12 +186,35 @@ Item {
                 "delete"
             );
         }
-        if (root.detailTheme && (root.detailTheme.name === deletedName || root.detailTheme.id === deletedName)) {
-            root.closeThemeDetails();
+        if (pendingDeleteTheme) {
+            const delId = pendingDeleteTheme.id;
+            const delName = pendingDeleteTheme.name;
+            const delMarketId = pendingDeleteTheme.marketId || "";
+
+            let ov = Object.assign({}, root.installedOverrides);
+            if (delId) ov[delId] = false;
+            if (delName) ov[delName] = false;
+            if (delMarketId) ov[delMarketId] = false;
+            root.installedOverrides = ov;
+
+            if (root.marketList && root.marketList.length > 0) {
+                for (let i = 0; i < root.marketList.length; i++) {
+                    const item = root.marketList[i];
+                    if (item.id === delId || item.installedThemeId === delId || (delName && (item.name === delName || item.installedThemeId === delName || item.id === delName)) || (delMarketId && item.id === delMarketId)) {
+                        item.isInstalled = false;
+                        item.installedThemeId = "";
+                    }
+                }
+            }
+            if (root.detailTheme && (root.detailTheme.name === deletedName || root.detailTheme.id === delId || (delMarketId && root.detailTheme.id === delMarketId))) {
+                let dt = Object.assign({}, root.detailTheme);
+                dt.isInstalled = false;
+                dt.installedThemeId = "";
+                root.detailTheme = dt;
+            }
         }
         pendingDeleteTheme = null;
         root.refreshThemes();
-        root.refreshMarket();
         Icons.reloadIcons();
     }
 
@@ -225,6 +248,7 @@ Item {
     property string marketSearch: ""
     property string installingId: ""
     property int installProgress: 0
+    property var installedOverrides: ({})
     property int marketPage: 0
     property bool marketHasMore: true
     property bool marketAppendMode: false
@@ -409,8 +433,29 @@ Item {
                                     "download_done"
                                 );
                             }
+                            if (root.installingId) {
+                                const instName = (res.installedThemes && res.installedThemes.length > 0) ? res.installedThemes[0] : "";
+                                let ov = Object.assign({}, root.installedOverrides);
+                                ov[root.installingId] = true;
+                                if (instName) ov[instName] = true;
+                                root.installedOverrides = ov;
+
+                                for (let i = 0; i < root.marketList.length; i++) {
+                                    if (root.marketList[i].id === root.installingId) {
+                                        root.marketList[i].isInstalled = true;
+                                        root.marketList[i].installedThemeId = instName || root.marketList[i].name || root.installingId;
+                                        break;
+                                    }
+                                }
+                                if (root.detailTheme && root.detailTheme.id === root.installingId) {
+                                    let dt = Object.assign({}, root.detailTheme);
+                                    dt.isInstalled = true;
+                                    dt.installedThemeId = instName || dt.name || root.installingId;
+                                    root.detailTheme = dt;
+                                }
+                            }
                             root.refreshThemes();
-                            root.refreshMarket();
+                            Icons.reloadIcons();
                         } else {
                             if (typeof Toaster !== "undefined" && Toaster.toast) {
                                 Toaster.toast(
@@ -443,9 +488,10 @@ Item {
     ColumnLayout {
         id: headerContainer
         anchors.top: parent.top
+        anchors.topMargin: Tokens.padding.normal
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: Tokens.spacing.normal
+        spacing: Tokens.spacing.large
         z: 10
 
         // Row 1: Clean M3 Segmented Navigation Bar (Installed (N) | Store)
@@ -487,6 +533,10 @@ Item {
                 StyledRect {
                     Layout.preferredWidth: 38
                     Layout.preferredHeight: 38
+                    Layout.maximumWidth: 38
+                    Layout.minimumWidth: 38
+                    width: 38
+                    height: 38
                     radius: Tokens.rounding.normal
                     color: Qt.alpha(Colours.palette.m3primary, 0.12)
 
@@ -533,13 +583,11 @@ Item {
                         radius: Tokens.rounding.full
                         clip: true
 
-                        color: openFolderMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                               Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
                         border.width: 1
                         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
 
                         Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on color { CAnim {} }
 
                         Item {
                             id: folderIconWrap
@@ -550,10 +598,9 @@ Item {
 
                             MaterialIcon {
                                 anchors.centerIn: parent
+                                anchors.horizontalCenterOffset: 1
                                 text: "folder_open"
                                 iconPointSize: 18
-                                renderType: Text.QtRendering
-                                antialiasing: true
                                 color: Colours.palette.m3onSurface
                             }
                         }
@@ -593,13 +640,11 @@ Item {
                         radius: Tokens.rounding.full
                         clip: true
 
-                        color: scanThemesMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                               Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
                         border.width: 1
                         border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
 
                         Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-                        Behavior on color { CAnim {} }
 
                         Item {
                             id: scanIconWrap
@@ -954,16 +999,16 @@ Item {
                     Layout.maximumWidth: installedGrid.cardWidth
                     Layout.minimumWidth: installedGrid.cardWidth
                     width: installedGrid.cardWidth
-                    Layout.preferredHeight: 154
-                    implicitHeight: 154
+                    Layout.preferredHeight: 160
+                    implicitHeight: 160
 
                     StyledRect {
                         id: cardBg
                         anchors.fill: parent
                         radius: Tokens.rounding.large
-                        color: cardDelegate.isSelected
-                            ? Colours.layer(Colours.palette.m3secondaryContainer, 1)
-                            : (cardDelegate.isHovered ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1) : Colours.layer(Colours.palette.m3surfaceContainerHigh, 1))
+                        color: cardDelegate.isHovered
+                            ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+                            : Colours.layer(Colours.palette.m3surfaceContainer, 1)
                         border.color: cardDelegate.isSelected
                             ? Colours.palette.m3primary
                             : (cardDelegate.isHovered ? Qt.alpha(Colours.palette.m3outlineVariant, 0.45) : Qt.alpha(Colours.palette.m3outlineVariant, 0.20))
@@ -972,66 +1017,40 @@ Item {
                         Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
                         Behavior on border.color { CAnim { duration: Tokens.anim.durations.small } }
 
-                        // Top Right Control Row: Delete button (if deletable) + Active check badge
-                        RowLayout {
+                        // Delete button (top-right, only on hover for user-installed themes)
+                        StyledRect {
+                            id: deleteThemeBtn
+                            visible: cardDelegate.isDeletable && !cardDelegate.isSelected
+                            opacity: (cardDelegate.isHovered || deleteThemeMa.containsMouse) ? 1.0 : 0.0
                             anchors.top: parent.top
                             anchors.right: parent.right
-                            anchors.margins: 8
-                            spacing: 6
+                            anchors.margins: 10
+                            width: 26
+                            height: 26
+                            radius: Tokens.rounding.full
+                            color: deleteThemeMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
+                                   deleteThemeMa.containsMouse ? Colours.palette.m3error :
+                                   Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6)
+                            border.width: 0
                             z: 10
 
-                            // Delete Button (only for user-installed themes)
-                            StyledRect {
-                                id: deleteThemeBtn
-                                visible: cardDelegate.isDeletable
-                                opacity: (cardDelegate.isHovered || deleteThemeMa.containsMouse) ? 1.0 : 0.0
-                                Layout.preferredWidth: 26
-                                Layout.preferredHeight: 26
-                                radius: Tokens.rounding.full
-                                color: deleteThemeMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
-                                       deleteThemeMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
-                                       Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6)
-                                border.width: 0
-                                border.color: "transparent"
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            Behavior on color { CAnim {} }
 
-                                Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "delete"
+                                iconPointSize: 14
+                                color: (deleteThemeMa.pressed || deleteThemeMa.containsMouse) ? Colours.palette.m3onError : Colours.palette.m3error
                                 Behavior on color { CAnim {} }
-
-                                MaterialIcon {
-                                    anchors.centerIn: parent
-                                    text: "delete"
-                                    iconPointSize: 14
-                                    color: deleteThemeMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                                    Behavior on color { CAnim {} }
-                                }
-
-                                MouseArea {
-                                    id: deleteThemeMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.promptDeleteTheme(modelData)
-                                }
                             }
 
-                            // Active M3 shape badge with M3 checkmark
-                            Item {
-                                visible: cardDelegate.isSelected
-                                Layout.preferredWidth: 26
-                                Layout.preferredHeight: 26
-
-                                MaterialShape {
-                                    anchors.fill: parent
-                                    shape: MaterialShape.Cookie12Sided
-                                    color: Colours.palette.m3primary
-                                }
-
-                                MaterialIcon {
-                                    anchors.centerIn: parent
-                                    text: "check"
-                                    iconPointSize: 14
-                                    color: Colours.palette.m3onPrimary
-                                }
+                            MouseArea {
+                                id: deleteThemeMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.promptDeleteTheme(modelData)
                             }
                         }
 
@@ -1040,36 +1059,39 @@ Item {
                             anchors.margins: Tokens.padding.normal
                             spacing: Tokens.spacing.small
 
-                            // Preview pedestal for icons (borderless)
+                            // Preview pedestal for icons (mathematically concentric: large 24 - normal 12 = small 12)
                             StyledRect {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 62
+                                Layout.preferredHeight: 68
                                 radius: Tokens.rounding.small
-                                color: cardDelegate.isSelected
-                                    ? Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.50)
-                                    : Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.40)
-                                border.width: 0
-                                border.color: "transparent"
+                                color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+                                border.width: 1
+                                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
 
                                 RowLayout {
                                     anchors.centerIn: parent
-                                    spacing: Tokens.spacing.larger
+                                    spacing: 12
 
                                     Repeater {
                                         model: (modelData.previews && modelData.previews.length > 0)
                                             ? modelData.previews.slice(0, 4)
                                              : []
 
-                                        delegate: Image {
-                                            required property string modelData
-                                            source: modelData.startsWith("/") ? ("file://" + modelData) : modelData
-                                            sourceSize.width: 36
-                                            sourceSize.height: 36
+                                        delegate: Item {
                                             Layout.preferredWidth: 32
                                             Layout.preferredHeight: 32
-                                            fillMode: Image.PreserveAspectFit
-                                            smooth: true
-                                            mipmap: true
+
+                                            Image {
+                                                anchors.centerIn: parent
+                                                width: 32
+                                                height: 32
+                                                source: modelData.startsWith("/") ? ("file://" + modelData) : modelData
+                                                sourceSize.width: 36
+                                                sourceSize.height: 36
+                                                fillMode: Image.PreserveAspectFit
+                                                smooth: true
+                                                mipmap: true
+                                            }
                                         }
                                     }
 
@@ -1082,26 +1104,52 @@ Item {
                                 }
                             }
 
-                            // Info
+                            // Info with title + inline active check badge + subtitle
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: 2
+                                spacing: 3
 
-                                StyledText {
+                                RowLayout {
                                     Layout.fillWidth: true
-                                    text: modelData.name || modelData.id
-                                    font.weight: cardDelegate.isSelected ? Font.DemiBold : Font.Medium
-                                    textPointSize: Tokens.font.size.normal
-                                    color: cardDelegate.isSelected ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                                    elide: Text.ElideRight
+                                    spacing: 6
+
+                                    StyledText {
+                                        Layout.fillWidth: true
+                                        text: modelData.name || modelData.id
+                                        font.weight: cardDelegate.isSelected ? Font.DemiBold : Font.Medium
+                                        textPointSize: Tokens.font.size.normal
+                                        color: cardDelegate.isSelected ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                        elide: Text.ElideRight
+                                    }
+
+                                    // Active M3 shape badge with M3 checkmark beside the title
+                                    Item {
+                                        visible: cardDelegate.isSelected
+                                        Layout.preferredWidth: 18
+                                        Layout.preferredHeight: 18
+                                        Layout.alignment: Qt.AlignVCenter
+
+                                        MaterialShape {
+                                            anchors.fill: parent
+                                            shape: MaterialShape.Cookie12Sided
+                                            color: Colours.palette.m3primary
+                                        }
+
+                                        MaterialIcon {
+                                            anchors.centerIn: parent
+                                            text: "check"
+                                            iconPointSize: 11
+                                            color: Colours.palette.m3onPrimary
+                                        }
+                                    }
                                 }
 
                                 StyledText {
                                     Layout.fillWidth: true
-                                    text: modelData.comment ? modelData.comment : (modelData.path.startsWith("/usr") ? qsTr("System") : qsTr("User (~/.icons)"))
+                                    text: modelData.comment ? modelData.comment : (modelData.path.startsWith("/usr") ? qsTr("System") : qsTr("Custom Icon Theme"))
                                     textPointSize: Tokens.font.size.small
                                     font.weight: Font.Normal
-                                    color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSecondaryContainer, 0.70) : Colours.palette.m3onSurfaceVariant
+                                    color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSurface, 0.70) : Colours.palette.m3onSurfaceVariant
                                     elide: Text.ElideRight
                                 }
                             }
@@ -1208,6 +1256,17 @@ Item {
                     readonly property bool isThisInstalling: root.installingId === modelData.id
                     readonly property bool isHovered: marketCardMouse.containsMouse
                     readonly property bool isSelectedForDetail: root.detailTheme && (root.detailTheme.id === modelData.id) && root.detailVisible
+                    readonly property bool isThemeInstalled: {
+                        const override = (root.installedOverrides[modelData.id] !== undefined)
+                            ? root.installedOverrides[modelData.id]
+                            : ((modelData.installedThemeId && root.installedOverrides[modelData.installedThemeId] !== undefined)
+                                ? root.installedOverrides[modelData.installedThemeId]
+                                : ((modelData.name && root.installedOverrides[modelData.name] !== undefined)
+                                    ? root.installedOverrides[modelData.name]
+                                    : undefined));
+                        if (override !== undefined) return Boolean(override);
+                        return Boolean(modelData.isInstalled);
+                    }
 
                     opacity: {
                         if (!isSelectedForDetail) return 1.0;
@@ -1237,6 +1296,14 @@ Item {
 
                         Behavior on color { CAnim {} }
                         Behavior on border.color { CAnim {} }
+
+                        MouseArea {
+                            id: marketCardMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.openThemeDetails(modelData, marketCard)
+                        }
 
                         ColumnLayout {
                             anchors.fill: parent
@@ -1379,21 +1446,28 @@ Item {
                                 Layout.fillHeight: true
                             }
 
-                            // Action Row: Dual-mode Install Button & Uninstall Button
-                            RowLayout {
+                            // Action Row: Dual-mode Install Button & Uninstall Button (direct continuous spatial interpolation, zero RowLayout snapping)
+                            Item {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 34
-                                spacing: 6
+                                height: 34
                                 z: 10
+
+                                readonly property bool showDelete: actionBtn.isInstalled && !actionBtn.isInstalling
+                                property real deleteProgress: showDelete ? 1.0 : 0.0
+                                Behavior on deleteProgress { Anim { type: Anim.DefaultSpatial } }
 
                                 StyledClippingRect {
                                     id: actionBtn
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 34
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: parent.deleteProgress * (34 + Tokens.spacing.small)
                                     radius: height / 2
                                     clip: true
 
-                                    readonly property bool isInstalled: modelData.isInstalled
+                                    readonly property bool isInstalled: marketCard.isThemeInstalled
                                     readonly property bool isInstalling: marketCard.isThisInstalling
                                     readonly property bool isHovered: btnMa.containsMouse
 
@@ -1403,40 +1477,77 @@ Item {
                                             ? (isHovered ? Colours.layer(Colours.palette.m3secondaryContainer, 2) : Colours.palette.m3secondaryContainer)
                                             : (isHovered ? Colours.layer(Colours.palette.m3primary, 2) : Colours.palette.m3primary))
 
-                                    // 1. Base Layer (visible on unfilled track)
+                                    // State 1: "Installed" Content (Crossfades smoothly without text re-layout)
                                     RowLayout {
-                                        id: baseContent
                                         anchors.centerIn: parent
                                         spacing: 6
-                                        z: 1
+                                        opacity: (actionBtn.isInstalled && !actionBtn.isInstalling) ? 1.0 : 0.0
+                                        visible: opacity > 0.01
+
+                                        Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                                         MaterialIcon {
                                             iconPointSize: 15
-                                            color: actionBtn.isInstalling ? Colours.palette.m3primary : (actionBtn.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
-                                            text: {
-                                                if (actionBtn.isInstalling) return "downloading";
-                                                if (actionBtn.isInstalled) return "check";
-                                                return "download";
-                                            }
-                                            Behavior on color { CAnim {} }
+                                            color: Colours.palette.m3onSecondaryContainer
+                                            text: "check"
                                         }
 
                                         StyledText {
                                             font.weight: Font.DemiBold
                                             textPointSize: Tokens.font.size.normal
-                                            color: actionBtn.isInstalling ? Colours.palette.m3primary : (actionBtn.isInstalled ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
-                                            text: {
-                                                if (actionBtn.isInstalling) {
-                                                    return qsTr("Installing... %1%").arg(root.installProgress);
-                                                }
-                                                if (actionBtn.isInstalled) return qsTr("Installed");
-                                                return qsTr("Install");
-                                            }
-                                            Behavior on color { CAnim {} }
+                                            color: Colours.palette.m3onSecondaryContainer
+                                            text: qsTr("Installed")
                                         }
                                     }
 
-                                    // 2. Dynamic Progress Fill (clipped) with StandardLarge CPU meter behavior
+                                    // State 2: "Install" Content (Crossfades smoothly without text re-layout)
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 6
+                                        opacity: (!actionBtn.isInstalled && !actionBtn.isInstalling) ? 1.0 : 0.0
+                                        visible: opacity > 0.01
+
+                                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                                        MaterialIcon {
+                                            iconPointSize: 15
+                                            color: Colours.palette.m3onPrimary
+                                            text: "download"
+                                        }
+
+                                        StyledText {
+                                            font.weight: Font.DemiBold
+                                            textPointSize: Tokens.font.size.normal
+                                            color: Colours.palette.m3onPrimary
+                                            text: qsTr("Install")
+                                        }
+                                    }
+
+                                    // State 3: "Installing... X%" Content
+                                    RowLayout {
+                                        id: baseContent
+                                        anchors.centerIn: parent
+                                        spacing: 6
+                                        opacity: actionBtn.isInstalling ? 1.0 : 0.0
+                                        visible: opacity > 0.01
+
+                                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                                        MaterialIcon {
+                                            iconPointSize: 15
+                                            color: Colours.palette.m3primary
+                                            text: "downloading"
+                                        }
+
+                                        StyledText {
+                                            font.weight: Font.DemiBold
+                                            textPointSize: Tokens.font.size.normal
+                                            color: Colours.palette.m3primary
+                                            text: qsTr("Installing... %1%").arg(root.installProgress)
+                                        }
+                                    }
+
+                                    // 2. Dynamic Progress Fill (clipped inside StyledClippingRect with rounded cap)
                                     Rectangle {
                                         id: progressFill
                                         visible: actionBtn.isInstalling
@@ -1444,10 +1555,9 @@ Item {
                                         anchors.top: parent.top
                                         anchors.bottom: parent.bottom
                                         width: Math.max(0, Math.min(actionBtn.width, Math.round(actionBtn.width * (root.installProgress / 100))))
-                                        radius: actionBtn.radius
+                                        radius: height / 2
                                         color: Colours.palette.m3primary
                                         z: 2
-                                        clip: true
 
                                         Behavior on width {
                                             Anim {
@@ -1496,16 +1606,22 @@ Item {
                                     }
                                 }
 
-                                // Uninstall Button (visible when installed)
+                                // Uninstall Button (visible when installed - smoothly appears on install / disappears on delete)
                                 StyledRect {
                                     id: marketUninstallBtn
-                                    visible: actionBtn.isInstalled && !actionBtn.isInstalling
-                                    Layout.preferredWidth: 34
-                                    Layout.preferredHeight: 34
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    width: parent.deleteProgress * 34
                                     radius: Tokens.rounding.full
-                                    color: marketUninstallMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
-                                           marketUninstallMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
-                                           Colours.palette.m3surfaceContainerHighest
+                                    z: 10
+                                    opacity: parent.deleteProgress
+                                    visible: width > 0.5 && opacity > 0.01
+                                    clip: true
+
+                                    color: marketUninstallMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
+                                           marketUninstallMa.containsMouse ? Colours.palette.m3error :
+                                           Qt.alpha(Colours.palette.m3error, 0.14)
                                     border.width: 0
                                     border.color: "transparent"
 
@@ -1515,7 +1631,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "delete"
                                         iconPointSize: 16
-                                        color: marketUninstallMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                                        color: (marketUninstallMa.pressed || marketUninstallMa.containsMouse) ? Colours.palette.m3onError : Colours.palette.m3error
                                         Behavior on color { CAnim {} }
                                     }
 
@@ -1531,21 +1647,13 @@ Item {
                                             root.promptDeleteTheme({
                                                 id: thId,
                                                 name: modelData.name,
+                                                marketId: modelData.id,
                                                 path: ""
                                             });
                                         }
                                     }
                                 }
                             }
-                            }
-
-                        MouseArea {
-                            id: marketCardMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            z: 0
-                            onClicked: root.openThemeDetails(modelData, marketCard)
                         }
                     }
                 }
@@ -1618,6 +1726,24 @@ Item {
     property real imgFitW: 0
     property real imgFitH: 0
 
+    function getPreviewUrl(idx) {
+        if (!root.detailTheme) return "";
+        const plist = root.detailTheme.previews;
+        if (plist && plist.length > 0) {
+            const i = Math.max(0, Math.min(plist.length - 1, idx));
+            const p = plist[i] || "";
+            if (p.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p)) {
+                return "file://" + p;
+            }
+            return p;
+        }
+        const p0 = root.detailTheme.preview || "";
+        if (p0.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p0)) {
+            return "file://" + p0;
+        }
+        return p0;
+    }
+
     function updateHeroImgBounds() {
         const aspect = (detailHeroImg.implicitWidth > 0 && detailHeroImg.implicitHeight > 0)
             ? (detailHeroImg.implicitWidth / detailHeroImg.implicitHeight)
@@ -1638,6 +1764,11 @@ Item {
         collapseAnimation.stop();
         expandAnimation.stop();
 
+        if (typeof heroSlideAnim !== "undefined" && heroSlideAnim.running) heroSlideAnim.stop();
+        if (typeof heroCarousel !== "undefined") {
+            heroCarousel.activeHeroSlot = 0;
+            heroCarousel.slideHeroProgress = 0.0;
+        }
         detailImgIndex = 0;
 
         const pt = cardItem.mapToItem(root, 0, 0);
@@ -1656,6 +1787,11 @@ Item {
     function closeThemeDetails() {
         if (!root.detailVisible || collapseAnimation.running) return;
         expandAnimation.stop();
+        if (typeof heroSlideAnim !== "undefined" && heroSlideAnim.running) heroSlideAnim.stop();
+        if (typeof heroCarousel !== "undefined") {
+            heroCarousel.activeHeroSlot = 0;
+            heroCarousel.slideHeroProgress = 0.0;
+        }
         detailImgIndex = 0;
         detailElevation.opacity = 0.0;
         collapseAnimation.restart();
@@ -1840,35 +1976,80 @@ Item {
                         antialiasing: true
                         clip: true
 
-                        // Unified Image: smoothly zooms from PreserveAspectCrop (t=0) to PreserveAspectFit (t=1)
+                    // Carousel with smooth slide transitions between preview images
+                    Item {
+                        id: heroCarousel
+                        anchors.fill: parent
+                        clip: true
+
+                        property int activeHeroSlot: 0
+                        property int incomingHeroIndex: 0
+                        property int slideHeroDir: 1
+                        property real slideHeroProgress: 0.0
+                        readonly property real baseHeroX: (width - detailHeroImg.width) / 2
+
+                        Anim {
+                            id: heroSlideAnim
+                            target: heroCarousel
+                            property: "slideHeroProgress"
+                            type: Anim.DefaultSpatial
+                            duration: 320
+                            from: 0.0
+                            to: 1.0
+                            onFinished: {
+                                root.detailImgIndex = heroCarousel.incomingHeroIndex;
+                                heroCarousel.activeHeroSlot = (heroCarousel.activeHeroSlot === 0 ? 1 : 0);
+                                heroCarousel.slideHeroProgress = 0.0;
+                                if (heroCarousel.activeHeroSlot === 0) {
+                                    detailHeroImg2.visible = false;
+                                    detailHeroImg2.source = "";
+                                } else {
+                                    detailHeroImg.visible = false;
+                                    detailHeroImg.source = "";
+                                }
+                            }
+                        }
+
+                        function transitionToImage(targetIdx, dir) {
+                            if (heroSlideAnim.running) {
+                                heroSlideAnim.stop();
+                                root.detailImgIndex = incomingHeroIndex;
+                                activeHeroSlot = (activeHeroSlot === 0 ? 1 : 0);
+                                slideHeroProgress = 0.0;
+                            }
+                            incomingHeroIndex = targetIdx;
+                            slideHeroDir = dir;
+                            const nextUrl = root.getPreviewUrl(targetIdx);
+                            if (activeHeroSlot === 0) {
+                                detailHeroImg2.source = nextUrl;
+                                detailHeroImg2.visible = true;
+                            } else {
+                                detailHeroImg.source = nextUrl;
+                                detailHeroImg.visible = true;
+                            }
+                            heroSlideAnim.restart();
+                        }
+
+                        // Slot 0 Hero Image
                         Image {
                             id: detailHeroImg
-                            anchors.centerIn: parent
-
+                            y: (parent.height - height) / 2
                             width: root.imgCropW + (root.imgFitW - root.imgCropW) * root.clampedMorph
                             height: root.imgCropH + (root.imgFitH - root.imgCropH) * root.clampedMorph
+
+                            x: heroCarousel.activeHeroSlot === 0
+                                ? (heroCarousel.baseHeroX - (heroCarousel.slideHeroDir * heroCarousel.slideHeroProgress * heroCarousel.width))
+                                : (heroCarousel.baseHeroX + (heroCarousel.slideHeroDir * (1.0 - heroCarousel.slideHeroProgress) * heroCarousel.width))
+
+                            opacity: heroCarousel.activeHeroSlot === 0
+                                ? (1.0 - 0.35 * heroCarousel.slideHeroProgress)
+                                : (0.65 + 0.35 * (1.0 - heroCarousel.slideHeroProgress))
 
                             onStatusChanged: {
                                 if (status === Image.Ready) root.updateHeroImgBounds();
                             }
 
-                            source: {
-                                if (!root.detailTheme) return "";
-                                const plist = root.detailTheme.previews;
-                                if (plist && plist.length > 0) {
-                                    const idx = Math.max(0, Math.min(plist.length - 1, root.detailImgIndex));
-                                    const p = plist[idx] || "";
-                                    if (p.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p)) {
-                                        return "file://" + p;
-                                    }
-                                    return p;
-                                }
-                                const p0 = root.detailTheme.preview || "";
-                                if (p0.startsWith("/") && typeof CUtils !== "undefined" && CUtils.fileExists(p0)) {
-                                    return "file://" + p0;
-                                }
-                                return p0;
-                            }
+                            source: root.getPreviewUrl(root.detailImgIndex)
                             fillMode: Image.PreserveAspectCrop
                             sourceSize.width: 480
                             sourceSize.height: 320
@@ -1880,12 +2061,39 @@ Item {
                             visible: status === Image.Ready
                         }
 
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        visible: detailHeroImg.status !== Image.Ready
-                        text: "palette"
-                        iconPointSize: 32 + 16 * root.clampedMorph
-                        color: Colours.palette.m3onSurfaceVariant
+                        // Slot 1 Hero Image (Incoming during slide)
+                        Image {
+                            id: detailHeroImg2
+                            y: (parent.height - height) / 2
+                            width: root.imgCropW + (root.imgFitW - root.imgCropW) * root.clampedMorph
+                            height: root.imgCropH + (root.imgFitH - root.imgCropH) * root.clampedMorph
+
+                            x: heroCarousel.activeHeroSlot === 1
+                                ? (heroCarousel.baseHeroX - (heroCarousel.slideHeroDir * heroCarousel.slideHeroProgress * heroCarousel.width))
+                                : (heroCarousel.baseHeroX + (heroCarousel.slideHeroDir * (1.0 - heroCarousel.slideHeroProgress) * heroCarousel.width))
+
+                            opacity: heroCarousel.activeHeroSlot === 1
+                                ? (1.0 - 0.35 * heroCarousel.slideHeroProgress)
+                                : (0.65 + 0.35 * (1.0 - heroCarousel.slideHeroProgress))
+
+                            fillMode: Image.PreserveAspectCrop
+                            sourceSize.width: 480
+                            sourceSize.height: 320
+                            cache: true
+                            asynchronous: true
+                            smooth: true
+                            antialiasing: true
+                            mipmap: true
+                            visible: false
+                        }
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            visible: (detailHeroImg.status !== Image.Ready) && (detailHeroImg2.status !== Image.Ready)
+                            text: "palette"
+                            iconPointSize: 32 + 16 * root.clampedMorph
+                            color: Colours.palette.m3onSurfaceVariant
+                        }
                     }
 
                     // Left: Previous Image Button (if multiple images)
@@ -1922,7 +2130,8 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 const len = root.detailTheme.previews.length;
-                                root.detailImgIndex = (root.detailImgIndex - 1 + len) % len;
+                                const prevIdx = (root.detailImgIndex - 1 + len) % len;
+                                heroCarousel.transitionToImage(prevIdx, -1);
                             }
                         }
                     }
@@ -1961,7 +2170,8 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 const len = root.detailTheme.previews.length;
-                                root.detailImgIndex = (root.detailImgIndex + 1) % len;
+                                const nextIdx = (root.detailImgIndex + 1) % len;
+                                heroCarousel.transitionToImage(nextIdx, 1);
                             }
                         }
                     }
@@ -1988,7 +2198,8 @@ Item {
                             anchors.centerIn: parent
                             text: {
                                 if (!root.detailTheme || !root.detailTheme.previews) return "";
-                                return (root.detailImgIndex + 1) + " / " + root.detailTheme.previews.length;
+                                const displayIdx = heroSlideAnim.running ? heroCarousel.incomingHeroIndex : root.detailImgIndex;
+                                return (displayIdx + 1) + " / " + root.detailTheme.previews.length;
                             }
                             textPointSize: Tokens.font.size.smaller
                             font.weight: Font.DemiBold
@@ -2193,8 +2404,12 @@ Item {
                     anchors.right: parent.right
                     height: 34 + 4 * root.clampedMorph
 
-                    readonly property bool hasDeleteBtn: root.detailTheme ? (Boolean(root.detailTheme.isInstalled) && !detailActionBtn.isInsting) : false
-                    readonly property real deleteSlotW: hasDeleteBtn ? (detailDeleteBtn.width + 6 + 2 * root.clampedMorph) : 0
+                    readonly property bool hasDeleteBtn: detailActionBtn.isInst && !detailActionBtn.isInsting
+                    property real deleteBtnProgress: hasDeleteBtn ? 1.0 : 0.0
+                    Behavior on deleteBtnProgress { Anim { type: Anim.DefaultSpatial } }
+
+                    readonly property real targetDeleteBtnW: 34 + 4 * root.clampedMorph
+                    readonly property real deleteSlotW: deleteBtnProgress * (targetDeleteBtnW + Tokens.spacing.small + 2 * root.clampedMorph)
                     readonly property real compactActionW: Math.max(60, width - deleteSlotW)
                     readonly property real expandedActionW: 140
 
@@ -2234,17 +2449,29 @@ Item {
                     }
 
                     // Install / Installed Button (Morphs smoothly between compact full width at x=0 and 140px on right)
-                    Rectangle {
+                    ClippingRectangle {
                         id: detailActionBtn
                         width: detailBottomRow.compactActionW + (detailBottomRow.expandedActionW - detailBottomRow.compactActionW) * root.clampedMorph
                         height: parent.height
                         x: detailBottomRow.width - detailBottomRow.deleteSlotW - width
                         y: 0
                         radius: height / 2
-                        clip: true
                         antialiasing: true
+                        smooth: true
+                        clip: true
 
-                        readonly property bool isInst: root.detailTheme ? Boolean(root.detailTheme.isInstalled) : false
+                        readonly property bool isInst: {
+                            if (!root.detailTheme) return false;
+                            const override = (root.installedOverrides[root.detailTheme.id] !== undefined)
+                                ? root.installedOverrides[root.detailTheme.id]
+                                : ((root.detailTheme.installedThemeId && root.installedOverrides[root.detailTheme.installedThemeId] !== undefined)
+                                    ? root.installedOverrides[root.detailTheme.installedThemeId]
+                                    : ((root.detailTheme.name && root.installedOverrides[root.detailTheme.name] !== undefined)
+                                        ? root.installedOverrides[root.detailTheme.name]
+                                        : undefined));
+                            if (override !== undefined) return Boolean(override);
+                            return Boolean(root.detailTheme.isInstalled);
+                        }
                         readonly property bool isInsting: root.detailTheme ? (root.installingId === root.detailTheme.id) : false
                         readonly property bool isHov: detailBtnMa.containsMouse
 
@@ -2254,45 +2481,91 @@ Item {
                                 ? (isHov ? Colours.layer(Colours.palette.m3secondaryContainer, 2) : Colours.palette.m3secondaryContainer)
                                 : (isHov ? Colours.layer(Colours.palette.m3primary, 2) : Colours.palette.m3primary))
 
-                        // Base Content
+                        Behavior on color {
+                            enabled: !expandAnimation.running && !collapseAnimation.running && root.detailVisible
+                            CAnim {}
+                        }
+
+                        // State 1: "Installed" Content (Crossfades smoothly without text re-layout)
                         RowLayout {
-                            id: detailActionBaseContent
                             anchors.centerIn: parent
                             spacing: 6
+                            opacity: (detailActionBtn.isInst && !detailActionBtn.isInsting) ? 1.0 : 0.0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                             MaterialIcon {
                                 iconPointSize: 15
-                                color: detailActionBtn.isInsting ? Colours.palette.m3primary : (detailActionBtn.isInst ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
-                                text: detailActionBtn.isInsting ? "downloading" : (detailActionBtn.isInst ? "check" : "download")
-                                Behavior on color { CAnim {} }
+                                color: Colours.palette.m3onSecondaryContainer
+                                text: "check"
                             }
 
                             StyledText {
                                 font.weight: Font.DemiBold
                                 textPointSize: Tokens.font.size.normal
-                                color: detailActionBtn.isInsting ? Colours.palette.m3primary : (detailActionBtn.isInst ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onPrimary)
-                                text: {
-                                    if (detailActionBtn.isInsting) {
-                                        return qsTr("Installing... %1%").arg(root.installProgress);
-                                    }
-                                    if (detailActionBtn.isInst) return qsTr("Installed");
-                                    return qsTr("Install");
-                                }
-                                Behavior on color { CAnim {} }
+                                color: Colours.palette.m3onSecondaryContainer
+                                text: qsTr("Installed")
                             }
                         }
 
-                        // Dynamic Progress Fill
+                        // State 2: "Install" Content (Crossfades smoothly without text re-layout)
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 6
+                            opacity: (!detailActionBtn.isInst && !detailActionBtn.isInsting) ? 1.0 : 0.0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                            MaterialIcon {
+                                iconPointSize: 15
+                                color: Colours.palette.m3onPrimary
+                                text: "download"
+                            }
+
+                            StyledText {
+                                font.weight: Font.DemiBold
+                                textPointSize: Tokens.font.size.normal
+                                color: Colours.palette.m3onPrimary
+                                text: qsTr("Install")
+                            }
+                        }
+
+                        // State 3: "Installing... X%" Content
+                        RowLayout {
+                            id: detailActionBaseContent
+                            anchors.centerIn: parent
+                            spacing: 6
+                            opacity: detailActionBtn.isInsting ? 1.0 : 0.0
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                            MaterialIcon {
+                                iconPointSize: 15
+                                color: Colours.palette.m3primary
+                                text: "downloading"
+                            }
+
+                            StyledText {
+                                font.weight: Font.DemiBold
+                                textPointSize: Tokens.font.size.normal
+                                color: Colours.palette.m3primary
+                                text: qsTr("Installing... %1%").arg(root.installProgress)
+                            }
+                        }
+
+                        // Dynamic Progress Fill (strictly masked inside StyledClippingRect)
                         Rectangle {
                             visible: detailActionBtn.isInsting
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             width: Math.max(0, Math.min(detailActionBtn.width, Math.round(detailActionBtn.width * (root.installProgress / 100))))
-                            radius: detailActionBtn.radius
+                            radius: height / 2
                             color: Colours.palette.m3primary
                             z: 2
-                            clip: true
 
                             Behavior on width { Anim { type: Anim.StandardLarge } }
 
@@ -2335,22 +2608,29 @@ Item {
                     // Delete / Uninstall button if installed (Anchored at right edge, matches marketCard position!)
                     Rectangle {
                         id: detailDeleteBtn
-                        visible: detailBottomRow.hasDeleteBtn
-                        width: 34 + 4 * root.clampedMorph
+                        visible: width > 0.5 && opacity > 0.01
+                        width: detailBottomRow.targetDeleteBtnW * detailBottomRow.deleteBtnProgress
                         height: parent.height
                         x: detailBottomRow.width - width
                         y: 0
                         radius: height / 2
-                        color: detailDelMa.pressed ? Qt.alpha(Colours.palette.m3error, 0.28) :
-                               detailDelMa.containsMouse ? Qt.alpha(Colours.palette.m3error, 0.16) :
-                               Colours.palette.m3surfaceContainerHighest
+                        opacity: detailBottomRow.deleteBtnProgress
+                        clip: true
+                        color: detailDelMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
+                               detailDelMa.containsMouse ? Colours.palette.m3error :
+                               Qt.alpha(Colours.palette.m3error, 0.14)
+                        border.width: 0
+                        border.color: "transparent"
                         antialiasing: true
+
+                        Behavior on color { CAnim {} }
 
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "delete"
                             iconPointSize: 16 + 2 * root.clampedMorph
-                            color: detailDelMa.containsMouse ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                            color: (detailDelMa.pressed || detailDelMa.containsMouse) ? Colours.palette.m3onError : Colours.palette.m3error
+                            Behavior on color { CAnim {} }
                         }
 
                         MouseArea {
@@ -2364,6 +2644,7 @@ Item {
                                     root.promptDeleteTheme({
                                         id: thId,
                                         name: root.detailTheme.name,
+                                        marketId: root.detailTheme.id,
                                         path: ""
                                     });
                                 }
