@@ -586,7 +586,7 @@ Item {
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 14
-                        anchors.rightMargin: 14
+                        anchors.rightMargin: 12
                         spacing: 10
 
                         Item {
@@ -604,7 +604,6 @@ Item {
                         }
 
                         ColumnLayout {
-                            Layout.fillWidth: true
                             spacing: 2
 
                             // Primary Title: 14px Medium bright
@@ -624,7 +623,12 @@ Item {
                             }
                         }
 
+                        Item {
+                            Layout.fillWidth: true
+                        }
+
                         StyledSwitch {
+                            Layout.alignment: Qt.AlignVCenter
                             checked: menu.savedProfile ? menu.savedProfile.autoconnect : true
                             onToggled: {
                                 if (menu.savedProfile && menu.savedProfile.uuid) {

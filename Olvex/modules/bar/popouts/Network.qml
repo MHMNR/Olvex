@@ -349,14 +349,14 @@ ColumnLayout {
         StyledFlickable {
             id: wifiScroll
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(wifiContent.implicitHeight, 320)
-            contentHeight: wifiContent.implicitHeight
+            Layout.preferredHeight: Math.min(wifiScrollContent.implicitHeight, 320)
+            contentHeight: wifiScrollContent.implicitHeight
             flickableDirection: Flickable.VerticalFlick
             clip: true
             smoothWheel: true
 
             ScrollBar.vertical: ScrollBar {
-                policy: wifiContent.implicitHeight > wifiScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                policy: wifiScrollContent.implicitHeight > wifiScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
             }
 
             MouseArea {
@@ -366,32 +366,32 @@ ColumnLayout {
                 onClicked: root.dismissEditing()
             }
 
-            ColumnLayout {
-                id: wifiContent
+            Item {
+                id: wifiScrollContent
                 width: wifiScroll.width
-                spacing: Tokens.spacing.small
+                implicitHeight: wifiContent.implicitHeight
 
                 property Item hoveredItem: null
 
                 Timer {
                     id: clearWifiHoverTimer
                     interval: 75
-                    onTriggered: wifiContent.hoveredItem = null
+                    onTriggered: wifiScrollContent.hoveredItem = null
                 }
 
                 // Sliding hover highlight marker
                 StyledRect {
                     id: wifiPopoutHoverHighlight
-                    z: 5
+                    z: 0
                     visible: opacity > 0.001
-                    opacity: (wifiContent.hoveredItem !== null && !wifiContent.hoveredItem.isActive && !wifiContent.hoveredItem.isEditing) ? 0.08 : 0
+                    opacity: (wifiScrollContent.hoveredItem !== null && !wifiScrollContent.hoveredItem.isActive && !wifiScrollContent.hoveredItem.isEditing) ? 0.08 : 0
                     color: Colours.palette.m3onSurface
                     radius: Tokens.rounding.normal
 
-                    x: wifiContent.hoveredItem ? wifiContent.hoveredItem.mapToItem(wifiContent, 0, 0).x : x
-                    y: wifiContent.hoveredItem ? wifiContent.hoveredItem.mapToItem(wifiContent, 0, 0).y : y
-                    width: wifiContent.hoveredItem ? wifiContent.hoveredItem.width : width
-                    height: wifiContent.hoveredItem ? wifiContent.hoveredItem.height : height
+                    x: wifiScrollContent.hoveredItem ? wifiScrollContent.hoveredItem.mapToItem(wifiScrollContent, 0, 0).x : x
+                    y: wifiScrollContent.hoveredItem ? wifiScrollContent.hoveredItem.mapToItem(wifiScrollContent, 0, 0).y : y
+                    width: wifiScrollContent.hoveredItem ? wifiScrollContent.hoveredItem.width : width
+                    height: wifiScrollContent.hoveredItem ? wifiScrollContent.hoveredItem.height : height
 
                     Behavior on x {
                         enabled: wifiPopoutHoverHighlight.opacity > 0
@@ -413,6 +413,11 @@ ColumnLayout {
                         NumberAnimation { duration: 150 }
                     }
                 }
+
+                ColumnLayout {
+                    id: wifiContent
+                    anchors.fill: parent
+                    spacing: Tokens.spacing.small
 
                 Repeater {
                     model: ScriptModel {
@@ -907,7 +912,7 @@ ColumnLayout {
                             disabled: networkItem.isConnecting || !Nmcli.wifiEnabled || networkItem.isActive
                             onEntered: {
                                 clearWifiHoverTimer.stop();
-                                wifiContent.hoveredItem = networkItem;
+                                wifiScrollContent.hoveredItem = networkItem;
                             }
                             onExited: {
                                 clearWifiHoverTimer.restart();
@@ -965,6 +970,7 @@ ColumnLayout {
                 }
             }
         }
+    }
     }
 
     // ── Footer: Open Network Settings ────────────────────────────────────────

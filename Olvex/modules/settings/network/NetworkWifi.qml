@@ -205,7 +205,7 @@ Item {
                     size: 24
                     wifiEnabled: Nmcli.wifiEnabled
                     connected: Boolean(Nmcli.active)
-                    signalStrength: (Nmcli.active?.strength ?? 0) / 100.0
+                    signalStrength: (Nmcli.active ? Nmcli.active.strength : 0) / 100.0
                     color: Nmcli.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                     disabledColor: Qt.alpha(Colours.palette.m3onSurface, 0.28)
                     showSlashOnDisable: true
@@ -258,18 +258,18 @@ Item {
             }
         }
 
-        Column {
-            id: availableNetworksCol
+        Item {
+            id: availableNetworksWrapper
             Layout.fillWidth: true
+            implicitHeight: availableNetworksCol.implicitHeight
             visible: Nmcli.wifiEnabled
-            spacing: 0
 
             property Item hoveredItem: null
 
             Timer {
                 id: clearHoverTimer
                 interval: 75
-                onTriggered: availableNetworksCol.hoveredItem = null
+                onTriggered: availableNetworksWrapper.hoveredItem = null
             }
 
             // Sliding hover highlight marker
@@ -277,14 +277,14 @@ Item {
                 id: wifiHoverHighlight
                 z: 0
                 visible: opacity > 0.001
-                opacity: (availableNetworksCol.hoveredItem !== null && !availableNetworksCol.hoveredItem.isEditing && !availableNetworksCol.hoveredItem.modelData?.active && !root.menuIsOpen) ? 0.08 : 0
+                opacity: (availableNetworksWrapper.hoveredItem !== null && !availableNetworksWrapper.hoveredItem.isEditing && !availableNetworksWrapper.hoveredItem.modelData?.active && !root.menuIsOpen) ? 0.08 : 0
                 color: Colours.palette.m3onSurface
                 radius: Tokens.rounding.normal
 
-                x: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.mapToItem(availableNetworksCol, 0, 0).x : x
-                y: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.mapToItem(availableNetworksCol, 0, 0).y : y
-                width: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.width : width
-                height: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.height : height
+                x: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.mapToItem(availableNetworksWrapper, 0, 0).x : x
+                y: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.mapToItem(availableNetworksWrapper, 0, 0).y : y
+                width: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.width : width
+                height: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.height : height
 
                 Behavior on x {
                     enabled: wifiHoverHighlight.opacity > 0
@@ -306,6 +306,12 @@ Item {
                     NumberAnimation { duration: 150 }
                 }
             }
+
+            Column {
+                id: availableNetworksCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                spacing: 0
 
             Item {
                 width: parent.width
@@ -404,7 +410,7 @@ Item {
                         disabled: network.isEditing || root.menuIsOpen
                         onEntered: {
                             clearHoverTimer.stop();
-                            availableNetworksCol.hoveredItem = network;
+                            availableNetworksWrapper.hoveredItem = network;
                         }
                         onExited: {
                             clearHoverTimer.restart();
@@ -434,7 +440,7 @@ Item {
 
                         WifiLottieIcon {
                             size: 24
-                            anchors.verticalCenter: parent.verticalCenter
+                            Layout.alignment: Qt.AlignVCenter
                             visible: !network.isConnecting
                             wifiEnabled: true
                             connected: network.modelData.active
@@ -761,6 +767,7 @@ Item {
                 }
             }
         }
+    }
 
         // ── Saved Networks Section ──────────────────────────────────────────
         Column {
@@ -836,54 +843,54 @@ Item {
                     Anim { type: Anim.FastEffects }
                 }
 
+                property Item hoveredItem: null
+
+                Timer {
+                    id: clearSavedHoverTimer
+                    interval: 75
+                    onTriggered: savedListContainer.hoveredItem = null
+                }
+
+                // Sliding hover highlight marker for saved networks
+                StyledRect {
+                    id: savedHoverHighlight
+                    z: 0
+                    visible: opacity > 0.001
+                    opacity: (savedListContainer.hoveredItem !== null && !savedListContainer.hoveredItem.isCurrentActive && !root.menuIsOpen) ? 0.08 : 0
+                    color: Colours.palette.m3onSurface
+                    radius: Tokens.rounding.normal
+
+                    x: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.mapToItem(savedListContainer, 0, 0).x : x
+                    y: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.mapToItem(savedListContainer, 0, 0).y : y
+                    width: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.width : width
+                    height: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.height : height
+
+                    Behavior on x {
+                        enabled: savedHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on y {
+                        enabled: savedHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on width {
+                        enabled: savedHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on height {
+                        enabled: savedHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 150 }
+                    }
+                }
+
                 Column {
                     id: savedListCol
                     width: parent ? parent.width : 0
                     spacing: 2
                     y: root.showSavedNetworks ? 0 : -8
-
-                    property Item hoveredItem: null
-
-                    Timer {
-                        id: clearSavedHoverTimer
-                        interval: 75
-                        onTriggered: savedListCol.hoveredItem = null
-                    }
-
-                    // Sliding hover highlight marker for saved networks
-                    StyledRect {
-                        id: savedHoverHighlight
-                        z: 0
-                        visible: opacity > 0.001
-                        opacity: (savedListCol.hoveredItem !== null && !savedListCol.hoveredItem.isCurrentActive && !root.menuIsOpen) ? 0.08 : 0
-                        color: Colours.palette.m3onSurface
-                        radius: Tokens.rounding.normal
-
-                        x: savedListCol.hoveredItem ? savedListCol.hoveredItem.mapToItem(savedListCol, 0, 0).x : x
-                        y: savedListCol.hoveredItem ? savedListCol.hoveredItem.mapToItem(savedListCol, 0, 0).y : y
-                        width: savedListCol.hoveredItem ? savedListCol.hoveredItem.width : width
-                        height: savedListCol.hoveredItem ? savedListCol.hoveredItem.height : height
-
-                        Behavior on x {
-                            enabled: savedHoverHighlight.opacity > 0
-                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                        }
-                        Behavior on y {
-                            enabled: savedHoverHighlight.opacity > 0
-                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                        }
-                        Behavior on width {
-                            enabled: savedHoverHighlight.opacity > 0
-                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                        }
-                        Behavior on height {
-                            enabled: savedHoverHighlight.opacity > 0
-                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                        }
-                        Behavior on opacity {
-                            NumberAnimation { duration: 150 }
-                        }
-                    }
 
                     Behavior on y {
                         Anim { type: Anim.DefaultSpatial }
@@ -925,7 +932,7 @@ Item {
                                 disabled: root.menuIsOpen
                                 onEntered: {
                                     clearSavedHoverTimer.stop();
-                                    savedListCol.hoveredItem = savedDev;
+                                    savedListContainer.hoveredItem = savedDev;
                                 }
                                 onExited: {
                                     clearSavedHoverTimer.restart();
@@ -957,7 +964,7 @@ Item {
 
                                 WifiLottieIcon {
                                     size: 24
-                                    anchors.verticalCenter: parent.verticalCenter
+                                    Layout.alignment: Qt.AlignVCenter
                                     wifiEnabled: true
                                     connected: savedDev.isCurrentActive
                                     signalStrength: (savedDev.liveNet ? savedDev.liveNet.strength : 0) / 100.0
