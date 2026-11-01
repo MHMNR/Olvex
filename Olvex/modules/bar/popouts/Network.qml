@@ -371,6 +371,49 @@ ColumnLayout {
                 width: wifiScroll.width
                 spacing: Tokens.spacing.small
 
+                property Item hoveredItem: null
+
+                Timer {
+                    id: clearWifiHoverTimer
+                    interval: 75
+                    onTriggered: wifiContent.hoveredItem = null
+                }
+
+                // Sliding hover highlight marker
+                StyledRect {
+                    id: wifiPopoutHoverHighlight
+                    z: 5
+                    visible: opacity > 0.001
+                    opacity: (wifiContent.hoveredItem !== null && !wifiContent.hoveredItem.isActive && !wifiContent.hoveredItem.isEditing) ? 0.08 : 0
+                    color: Colours.palette.m3onSurface
+                    radius: Tokens.rounding.normal
+
+                    x: wifiContent.hoveredItem ? wifiContent.hoveredItem.mapToItem(wifiContent, 0, 0).x : x
+                    y: wifiContent.hoveredItem ? wifiContent.hoveredItem.mapToItem(wifiContent, 0, 0).y : y
+                    width: wifiContent.hoveredItem ? wifiContent.hoveredItem.width : width
+                    height: wifiContent.hoveredItem ? wifiContent.hoveredItem.height : height
+
+                    Behavior on x {
+                        enabled: wifiPopoutHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on y {
+                        enabled: wifiPopoutHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on width {
+                        enabled: wifiPopoutHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on height {
+                        enabled: wifiPopoutHoverHighlight.opacity > 0
+                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: 150 }
+                    }
+                }
+
                 Repeater {
                     model: ScriptModel {
                         values: {
@@ -858,9 +901,17 @@ ColumnLayout {
                         StateLayer {
                             anchors.fill: parent
                             color: networkItem.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+                            showHoverBackground: false
                             preventStealing: false
                             interactive: !networkItem.isConnecting && !networkItem.isActive
                             disabled: networkItem.isConnecting || !Nmcli.wifiEnabled || networkItem.isActive
+                            onEntered: {
+                                clearWifiHoverTimer.stop();
+                                wifiContent.hoveredItem = networkItem;
+                            }
+                            onExited: {
+                                clearWifiHoverTimer.restart();
+                            }
 
                             onClicked: {
                                 if (root.editingSsid !== "") {

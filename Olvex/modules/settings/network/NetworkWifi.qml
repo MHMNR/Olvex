@@ -28,6 +28,7 @@ Item {
 
     readonly property var savedWifiList: (Nmcli.savedProfiles || []).filter(p => p.isWireless)
     readonly property string connectingSsid: (Nmcli.pendingConnection && Nmcli.pendingConnection.ssid) ? Nmcli.pendingConnection.ssid : ""
+    readonly property bool menuIsOpen: root.session && root.session.wifiConfigMenu && root.session.wifiConfigMenu.isOpen
 
     function refreshNetworkList() {
         const connecting = root.connectingSsid;
@@ -258,9 +259,53 @@ Item {
         }
 
         Column {
+            id: availableNetworksCol
             Layout.fillWidth: true
             visible: Nmcli.wifiEnabled
             spacing: 0
+
+            property Item hoveredItem: null
+
+            Timer {
+                id: clearHoverTimer
+                interval: 75
+                onTriggered: availableNetworksCol.hoveredItem = null
+            }
+
+            // Sliding hover highlight marker
+            StyledRect {
+                id: wifiHoverHighlight
+                z: 0
+                visible: opacity > 0.001
+                opacity: (availableNetworksCol.hoveredItem !== null && !availableNetworksCol.hoveredItem.isEditing && !availableNetworksCol.hoveredItem.modelData?.active && !root.menuIsOpen) ? 0.08 : 0
+                color: Colours.palette.m3onSurface
+                radius: Tokens.rounding.normal
+
+                x: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.mapToItem(availableNetworksCol, 0, 0).x : x
+                y: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.mapToItem(availableNetworksCol, 0, 0).y : y
+                width: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.width : width
+                height: availableNetworksCol.hoveredItem ? availableNetworksCol.hoveredItem.height : height
+
+                Behavior on x {
+                    enabled: wifiHoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on y {
+                    enabled: wifiHoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on width {
+                    enabled: wifiHoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on height {
+                    enabled: wifiHoverHighlight.opacity > 0
+                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                }
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+            }
 
             Item {
                 width: parent.width
@@ -354,8 +399,16 @@ Item {
                     StateLayer {
                         radius: parent.radius
                         color: Colours.palette.m3onSurface
-                        interactive: !network.isEditing
-                        disabled: network.isEditing
+                        showHoverBackground: false
+                        interactive: !network.isEditing && !root.menuIsOpen
+                        disabled: network.isEditing || root.menuIsOpen
+                        onEntered: {
+                            clearHoverTimer.stop();
+                            availableNetworksCol.hoveredItem = network;
+                        }
+                        onExited: {
+                            clearHoverTimer.restart();
+                        }
                         onClicked: {
                             if (root.editingSsid !== "") {
                                 if (network.isEditing) {
@@ -789,6 +842,49 @@ Item {
                     spacing: 2
                     y: root.showSavedNetworks ? 0 : -8
 
+                    property Item hoveredItem: null
+
+                    Timer {
+                        id: clearSavedHoverTimer
+                        interval: 75
+                        onTriggered: savedListCol.hoveredItem = null
+                    }
+
+                    // Sliding hover highlight marker for saved networks
+                    StyledRect {
+                        id: savedHoverHighlight
+                        z: 0
+                        visible: opacity > 0.001
+                        opacity: (savedListCol.hoveredItem !== null && !savedListCol.hoveredItem.isCurrentActive && !root.menuIsOpen) ? 0.08 : 0
+                        color: Colours.palette.m3onSurface
+                        radius: Tokens.rounding.normal
+
+                        x: savedListCol.hoveredItem ? savedListCol.hoveredItem.mapToItem(savedListCol, 0, 0).x : x
+                        y: savedListCol.hoveredItem ? savedListCol.hoveredItem.mapToItem(savedListCol, 0, 0).y : y
+                        width: savedListCol.hoveredItem ? savedListCol.hoveredItem.width : width
+                        height: savedListCol.hoveredItem ? savedListCol.hoveredItem.height : height
+
+                        Behavior on x {
+                            enabled: savedHoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on y {
+                            enabled: savedHoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on width {
+                            enabled: savedHoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on height {
+                            enabled: savedHoverHighlight.opacity > 0
+                            SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation { duration: 150 }
+                        }
+                    }
+
                     Behavior on y {
                         Anim { type: Anim.DefaultSpatial }
                     }
@@ -824,6 +920,16 @@ Item {
                             StateLayer {
                                 radius: parent.radius
                                 color: Colours.palette.m3onSurface
+                                showHoverBackground: false
+                                interactive: !root.menuIsOpen
+                                disabled: root.menuIsOpen
+                                onEntered: {
+                                    clearSavedHoverTimer.stop();
+                                    savedListCol.hoveredItem = savedDev;
+                                }
+                                onExited: {
+                                    clearSavedHoverTimer.restart();
+                                }
                                 onClicked: {
                                     if (savedDev.liveNet) {
                                         root.handleApClick(savedDev.liveNet);

@@ -128,6 +128,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             enabled: container.state === "expanded"
+            hoverEnabled: true
             onClicked: menu.close()
         }
     }
@@ -267,9 +268,11 @@ Item {
             }
         ]
 
-        // Prevent clicks within container from closing via scrim
+        // Prevent clicks & hovers within container from leaking
         MouseArea {
             anchors.fill: parent
+            enabled: container.state === "expanded"
+            hoverEnabled: true
             onClicked: {}
         }
 
