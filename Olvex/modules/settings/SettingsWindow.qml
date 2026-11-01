@@ -155,9 +155,13 @@ Item {
                         implicitWidth: 36
                         implicitHeight: 36
                         radius: Tokens.rounding.full
-                        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                        border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
+                        color: backMouse.pressed
+                            ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+                            : (backMouse.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.14) : Qt.alpha(Colours.palette.m3onSurface, 0.09))
+                        border.width: 0
+                        border.color: "transparent"
+
+                        Behavior on color { CAnim {} }
 
                         MaterialIcon {
                             anchors.centerIn: parent
@@ -166,8 +170,11 @@ Item {
                             iconPointSize: Tokens.font.size.large
                         }
 
-                        StateLayer {
-                            radius: parent.radius
+                        MouseArea {
+                            id: backMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: session.goHome()
                         }
                     }
