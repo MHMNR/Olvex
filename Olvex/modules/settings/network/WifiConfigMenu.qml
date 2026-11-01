@@ -7,6 +7,7 @@ import ".."
 import "../../../components"
 import "../../../components/controls"
 import "../../../components/effects"
+import "../../../components/icons"
 
 Item {
     id: menu
@@ -314,12 +315,18 @@ Item {
 
                         Behavior on color { CAnim {} }
 
-                        MaterialIcon {
+                        WifiLottieIcon {
                             anchors.centerIn: parent
-                            text: Icons.getNetworkIcon(menu.network ? menu.network.strength : 0, menu.network ? menu.network.isSecure : false)
+                            size: 22
+                            wifiEnabled: true
+                            connected: menu.isActive
+                            signalStrength: (menu.network ? menu.network.strength : 0) / 100.0
                             color: menu.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-                            iconPointSize: 16.5
-                            fill: 0
+                            disabledColor: menu.isActive ? Qt.rgba(1, 1, 1, 0.35) : Qt.alpha(Colours.palette.m3onSurface, 0.28)
+                            connecting: false
+                            locked: !menu.isActive && (menu.network ? menu.network.isSecure : false)
+                            saved: menu.isSaved && !menu.isActive
+                            showSlashOnDisable: false
                         }
                     }
 
@@ -426,12 +433,15 @@ Item {
                                 height: 22
                                 Layout.alignment: Qt.AlignVCenter
 
-                                MaterialIcon {
+                                WifiLottieIcon {
                                     anchors.centerIn: parent
-                                    text: "signal_wifi_4_bar"
+                                    size: 18
+                                    wifiEnabled: true
+                                    connected: true
+                                    signalStrength: (menu.network ? menu.network.strength : 0) / 100.0
                                     color: Colours.palette.m3primary
-                                    iconPointSize: 13.5
-                                    fill: 0
+                                    disabledColor: Qt.alpha(Colours.palette.m3primary, 0.28)
+                                    showSlashOnDisable: false
                                 }
                             }
 

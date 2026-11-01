@@ -5,6 +5,7 @@ import "../components"
 import "../../../components"
 import "../../../components/controls"
 import "../../../components/containers"
+import "../../../components/icons"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -78,6 +79,14 @@ Item {
                 return root.btStatusText;
             }
             icon: "bluetooth"
+            customIcon: Component {
+                BluetoothLottieIcon {
+                    size: 24
+                    connected: root.btEnabled
+                    deviceConnected: root.btConnectedCount > 0
+                    color: (root.btEnabled && root.btConnectedCount > 0) ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                }
+            }
             divider: true
 
             Row {
@@ -203,11 +212,31 @@ Item {
                         anchors.bottomMargin: Tokens.padding.normal
                         spacing: Tokens.spacing.normal
 
-                        MaterialIcon {
-                            text: Icons.getBluetoothIcon(btDev.modelData.icon || "")
-                            color: btDev.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                            iconPointSize: Tokens.font.size.large
-                            opacity: btDev.textOpacity
+                        Loader {
+                            id: btIconLoader
+                            readonly property string devIcon: Icons.getBluetoothIcon(btDev.modelData.icon || "")
+                            readonly property bool isGenericBt: devIcon === "bluetooth"
+                            sourceComponent: isGenericBt ? btLottieComp : devIconComp
+
+                            Component {
+                                id: btLottieComp
+                                BluetoothLottieIcon {
+                                    size: 24
+                                    connected: btDev.isConnected
+                                    color: btDev.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                                    opacity: btDev.textOpacity
+                                }
+                            }
+
+                            Component {
+                                id: devIconComp
+                                MaterialIcon {
+                                    text: btIconLoader.devIcon
+                                    color: btDev.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                                    iconPointSize: Tokens.font.size.large
+                                    opacity: btDev.textOpacity
+                                }
+                            }
                         }
 
                         ColumnLayout {

@@ -5,6 +5,7 @@ import "../components"
 import "../../../components"
 import "../../../components/controls"
 import "../../../components/containers"
+import "../../../components/icons"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -198,6 +199,17 @@ Item {
                 return qsTr("On · Not connected");
             }
             icon: "wifi"
+            customIcon: Component {
+                WifiLottieIcon {
+                    size: 24
+                    wifiEnabled: Nmcli.wifiEnabled
+                    connected: Boolean(Nmcli.active)
+                    signalStrength: (Nmcli.active?.strength ?? 0) / 100.0
+                    color: Nmcli.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                    disabledColor: Qt.alpha(Colours.palette.m3onSurface, 0.28)
+                    showSlashOnDisable: true
+                }
+            }
             divider: true
 
             Row {
@@ -367,11 +379,21 @@ Item {
                         anchors.bottomMargin: Tokens.padding.normal
                         spacing: Tokens.spacing.normal
 
-                        MaterialIcon {
-                            text: Icons.getNetworkIcon(network.modelData.strength, network.modelData.isSecure)
+                        WifiLottieIcon {
+                            size: 24
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: !network.isConnecting
+                            wifiEnabled: true
+                            connected: network.modelData.active
+                            signalStrength: (network.modelData.strength || 0) / 100.0
                             color: network.modelData.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                            iconPointSize: Tokens.font.size.large
-                            opacity: network.textOpacity
+                            disabledColor: network.modelData.active ? Qt.rgba(1, 1, 1, 0.35) : Qt.alpha(Colours.palette.m3onSurface, 0.28)
+                            connecting: network.isConnecting
+                            locked: !network.modelData.active && !Nmcli.hasSavedProfile(network.modelData.ssid) && network.modelData.isSecure
+                            saved: !network.modelData.active && Nmcli.hasSavedProfile(network.modelData.ssid)
+                            showSlashOnDisable: false
+                            opacity: network.isConnecting ? 0 : network.textOpacity
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
                         }
 
                         ColumnLayout {
@@ -690,7 +712,7 @@ Item {
         // ── Saved Networks Section ──────────────────────────────────────────
         Column {
             Layout.fillWidth: true
-            visible: Nmcli.wifiEnabled && root.savedWifiList.length > 0
+            visible: true
             spacing: Tokens.spacing.extraSmall
 
             StyledRect {
@@ -771,6 +793,18 @@ Item {
                         Anim { type: Anim.DefaultSpatial }
                     }
 
+                    StyledText {
+                        visible: root.savedWifiList.length === 0
+                        width: parent ? parent.width : 0
+                        horizontalAlignment: Text.AlignHCenter
+                        text: qsTr("No saved networks")
+                        color: Colours.palette.m3onSurfaceVariant
+                        font.weight: Font.Normal
+                        textPointSize: Tokens.font.size.small
+                        topPadding: Tokens.padding.normal
+                        bottomPadding: Tokens.padding.normal
+                    }
+
                     Repeater {
                         model: root.savedWifiList
                         delegate: StyledRect {
@@ -793,6 +827,15 @@ Item {
                                 onClicked: {
                                     if (savedDev.liveNet) {
                                         root.handleApClick(savedDev.liveNet);
+                                    } else if (root.session && root.session.wifiConfigMenu) {
+                                        const ap = {
+                                            ssid: savedDev.modelData.ssid,
+                                            bssid: "",
+                                            strength: 0,
+                                            isSecure: true,
+                                            active: false
+                                        };
+                                        root.session.wifiConfigMenu.openFor(ap, savedSettingsBtn);
                                     }
                                 }
                             }
@@ -806,10 +849,18 @@ Item {
                                 anchors.bottomMargin: Tokens.padding.small
                                 spacing: Tokens.spacing.normal
 
-                                MaterialIcon {
-                                    text: Icons.getNetworkIcon(savedDev.liveNet ? savedDev.liveNet.strength : 0, savedDev.liveNet ? savedDev.liveNet.isSecure : true)
+                                WifiLottieIcon {
+                                    size: 24
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    wifiEnabled: true
+                                    connected: savedDev.isCurrentActive
+                                    signalStrength: (savedDev.liveNet ? savedDev.liveNet.strength : 0) / 100.0
                                     color: savedDev.isCurrentActive ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                                    iconPointSize: Tokens.font.size.large
+                                    disabledColor: savedDev.isCurrentActive ? Qt.rgba(1, 1, 1, 0.35) : Qt.alpha(Colours.palette.m3onSurface, 0.28)
+                                    connecting: false
+                                    locked: !savedDev.isCurrentActive && (savedDev.liveNet ? savedDev.liveNet.isSecure : true)
+                                    saved: true
+                                    showSlashOnDisable: false
                                 }
 
                                 ColumnLayout {

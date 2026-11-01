@@ -23,6 +23,7 @@ Item {
     property string title: ""
     property string description: ""
     property string icon: ""
+    property Component customIcon: null
     property bool clickable: false
     property bool divider: true
 
@@ -37,10 +38,20 @@ Item {
     implicitHeight: Math.max(56, textCol.implicitHeight + Tokens.padding.normal * 2)
     width: parent ? parent.width : implicitWidth
 
+    Loader {
+        id: customIconLoader
+        visible: !!root.customIcon
+        active: !!root.customIcon
+        sourceComponent: root.customIcon
+        anchors.left: parent.left
+        anchors.leftMargin: Tokens.padding.small
+        anchors.verticalCenter: parent.verticalCenter
+    }
+
     MaterialIcon {
         id: iconItem
 
-        visible: !!root.icon
+        visible: !root.customIcon && !!root.icon
         anchors.left: parent.left
         anchors.leftMargin: Tokens.padding.small
         anchors.verticalCenter: parent.verticalCenter
@@ -52,8 +63,8 @@ Item {
     Column {
         id: textCol
 
-        anchors.left: root.icon ? iconItem.right : parent.left
-        anchors.leftMargin: root.icon ? Tokens.spacing.normal : Tokens.padding.small
+        anchors.left: root.customIcon ? customIconLoader.right : (root.icon ? iconItem.right : parent.left)
+        anchors.leftMargin: (root.customIcon || root.icon) ? Tokens.spacing.normal : Tokens.padding.small
         anchors.right: controlHolder.left
         anchors.rightMargin: Tokens.spacing.normal
         anchors.verticalCenter: parent.verticalCenter
