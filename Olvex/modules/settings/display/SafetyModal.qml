@@ -71,9 +71,9 @@ FloatingWindow {
         width: parent.width - 16
         implicitHeight: cardCol.implicitHeight + root.padLarge * 2
         radius: root.rExLarge
-        color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-        border.width: 1
-        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
+        color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
+        border.width: 0
+        border.color: "transparent"
 
         ColumnLayout {
             id: cardCol

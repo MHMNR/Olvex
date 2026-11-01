@@ -330,7 +330,7 @@ Item {
         Behavior on radius { Anim { type: Anim.DefaultSpatial } }
 
         // Background Crossfade
-        color: root.morphState === "open" ? Colours.palette.m3surfaceContainerLow : Colours.palette.m3primary
+        color: root.morphState === "open" ? (Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright) : Colours.palette.m3primary
         Behavior on color { ColorAnimation { duration: root.morphDuration; easing: root.morphEasing } }
 
         // ── Outgoing Button Face (Fades out smoothly when opening) ──

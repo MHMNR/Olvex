@@ -2496,7 +2496,7 @@ Item {
         StyledRect {
             anchors.fill: parent
             radius: parent.radius
-            color: Colours.palette.m3surfaceContainerLow
+            color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
             clip: true
 
             // Sliding hover highlight marker

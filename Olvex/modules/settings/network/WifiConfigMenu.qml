@@ -32,8 +32,8 @@ Item {
     readonly property int expandDur: Tokens.anim.durations.expressiveDefaultSpatial || 400
     readonly property int collapseDur: Tokens.anim.durations.normal || 250
 
-    readonly property real targetW: Math.min(380, Math.max(300, (menu.width > 50) ? (menu.width - 32) : 380))
-    readonly property real targetH: Math.max(320, (contentCol ? contentCol.implicitHeight + 32 : 360))
+    readonly property real targetW: Math.min(390, Math.max(320, (menu.width > 50) ? (menu.width - 32) : 390))
+    readonly property real targetH: Math.max(340, (contentCol ? contentCol.implicitHeight + 36 : 380))
     readonly property real targetX: Math.max(16, Math.min(menu.width - targetW - 16, startX + startW - targetW))
     readonly property real targetY: Math.max(16, Math.min(menu.height - targetH - 16, Math.max(16, startY - 32)))
 
@@ -176,7 +176,7 @@ Item {
                     width: menu.targetW
                     height: menu.targetH
                     radius: Tokens.rounding.large
-                    color: Colours.palette.m3surfaceContainer
+                    color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
                 }
                 PropertyChanges {
                     target: buttonContent
@@ -297,7 +297,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: 16
+                anchors.margins: 18
                 spacing: 10
 
                 // ── 1. Header ──────────────────────────────────────────────
@@ -305,11 +305,11 @@ Item {
                     Layout.fillWidth: true
                     spacing: 12
 
-                    // Leading Squircle Icon
+                    // Leading Squircle Icon (46x46 box with 22px icon)
                     StyledRect {
-                        implicitWidth: 42
-                        implicitHeight: 42
-                        radius: Tokens.rounding.normal
+                        implicitWidth: 46
+                        implicitHeight: 46
+                        radius: 14
                         color: menu.isActive ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHighest
 
                         Behavior on color { CAnim {} }
@@ -318,30 +318,33 @@ Item {
                             anchors.centerIn: parent
                             text: Icons.getNetworkIcon(menu.network ? menu.network.strength : 0, menu.network ? menu.network.isSecure : false)
                             color: menu.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-                            iconPointSize: Tokens.font.size.large
+                            iconPointSize: 16.5
+                            fill: 0
                         }
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 3
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: 4
 
+                        // SSID Title: 18px-20px SemiBold
                         StyledText {
                             Layout.fillWidth: true
                             text: menu.network ? (menu.network.ssid || qsTr("Hidden network")) : ""
                             font.weight: Font.DemiBold
-                            textPointSize: Tokens.font.size.larger
+                            textPixelSize: 19
                             color: Colours.palette.m3onSurface
                             elide: Text.ElideRight
                         }
 
-                        Row {
-                            spacing: 6
+                        RowLayout {
+                            spacing: 8
 
-                            // Status Tag
+                            // Status Tag: 11px Medium with breathing room padding
                             StyledRect {
-                                implicitWidth: statusText.implicitWidth + 12
-                                implicitHeight: 20
+                                implicitWidth: statusText.implicitWidth + 20
+                                implicitHeight: 22
                                 radius: Tokens.rounding.full
                                 color: menu.isActive ? Qt.alpha(Colours.palette.m3primary, 0.16) : Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
@@ -350,15 +353,15 @@ Item {
                                     anchors.centerIn: parent
                                     text: menu.isActive ? qsTr("Connected") : (menu.isSaved ? qsTr("Saved") : qsTr("Available"))
                                     color: menu.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPixelSize: 11
                                     font.weight: Font.Medium
                                 }
                             }
 
-                            // Security Tag
+                            // Security Tag: 11px Medium with breathing room padding
                             StyledRect {
-                                implicitWidth: secText.implicitWidth + 12
-                                implicitHeight: 20
+                                implicitWidth: secText.implicitWidth + 20
+                                implicitHeight: 22
                                 radius: Tokens.rounding.full
                                 color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
                                 visible: menu.network ? (menu.network.security || menu.network.isSecure) : false
@@ -368,17 +371,18 @@ Item {
                                     anchors.centerIn: parent
                                     text: menu.network ? (menu.network.security || (menu.network.isSecure ? qsTr("Secured") : qsTr("Open"))) : ""
                                     color: Colours.palette.m3onSurfaceVariant
-                                    textPointSize: Tokens.font.size.smaller
-                                    font.weight: Font.Normal
+                                    textPixelSize: 11
+                                    font.weight: Font.Medium
                                 }
                             }
                         }
                     }
 
-                    // Close Button
+                    // Close Button: Vertically centered with the header
                     StyledRect {
-                        implicitWidth: 30
-                        implicitHeight: 30
+                        Layout.alignment: Qt.AlignVCenter
+                        implicitWidth: 32
+                        implicitHeight: 32
                         radius: Tokens.rounding.full
                         color: Qt.alpha(Colours.palette.m3onSurface, 0.06)
 
@@ -391,51 +395,64 @@ Item {
                         MaterialIcon {
                             anchors.centerIn: parent
                             text: "close"
-                            iconPointSize: Tokens.font.size.small
+                            iconPointSize: 12
+                            fill: 0
                             color: Colours.palette.m3onSurfaceVariant
                         }
                     }
                 }
 
-                // ── 2. Bento Grid ──────────────────────────────────────────
+                // ── 2. Bento Grid (Signal & Frequency) ─────────────────────
                 GridLayout {
                     Layout.fillWidth: true
                     columns: 2
-                    rowSpacing: 8
-                    columnSpacing: 8
+                    rowSpacing: 10
+                    columnSpacing: 10
 
                     StyledRect {
                         Layout.fillWidth: true
-                        implicitHeight: 52
+                        implicitHeight: 56
                         radius: Tokens.rounding.normal
                         color: Colours.palette.m3surfaceContainerHigh
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Tokens.padding.small
-                            spacing: Tokens.spacing.small
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
 
-                            MaterialIcon {
-                                text: "signal_wifi_4_bar"
-                                color: Colours.palette.m3primary
-                                iconPointSize: Tokens.font.size.normal
+                            Item {
+                                width: 22
+                                height: 22
+                                Layout.alignment: Qt.AlignVCenter
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "signal_wifi_4_bar"
+                                    color: Colours.palette.m3primary
+                                    iconPointSize: 13.5
+                                    fill: 0
+                                }
                             }
 
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: 1
+                                spacing: 2
 
+                                // Label: 12px Regular, muted
                                 StyledText {
                                     text: qsTr("Signal Strength")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPixelSize: 12
+                                    font.weight: Font.Normal
                                 }
 
+                                // Value: 15px-16px SemiBold, bright
                                 StyledText {
                                     text: (menu.network ? menu.network.strength : 0) + "%"
-                                    font.weight: Font.Medium
+                                    font.weight: Font.DemiBold
                                     color: Colours.palette.m3onSurface
-                                    textPointSize: Tokens.font.size.small
+                                    textPixelSize: 15
                                 }
                             }
                         }
@@ -443,31 +460,43 @@ Item {
 
                     StyledRect {
                         Layout.fillWidth: true
-                        implicitHeight: 52
+                        implicitHeight: 56
                         radius: Tokens.rounding.normal
                         color: Colours.palette.m3surfaceContainerHigh
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Tokens.padding.small
-                            spacing: Tokens.spacing.small
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
 
-                            MaterialIcon {
-                                text: "router"
-                                color: Colours.palette.m3tertiary
-                                iconPointSize: Tokens.font.size.normal
+                            Item {
+                                width: 22
+                                height: 22
+                                Layout.alignment: Qt.AlignVCenter
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "router"
+                                    color: Colours.palette.m3tertiary
+                                    iconPointSize: 13.5
+                                    fill: 0
+                                }
                             }
 
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: 1
+                                spacing: 2
 
+                                // Label: 12px Regular, muted
                                 StyledText {
                                     text: qsTr("Frequency")
                                     color: Colours.palette.m3onSurfaceVariant
-                                    textPointSize: Tokens.font.size.smaller
+                                    textPixelSize: 12
+                                    font.weight: Font.Normal
                                 }
 
+                                // Value: 15px-16px SemiBold, bright
                                 StyledText {
                                     text: {
                                         if (menu.network && menu.network.frequency) {
@@ -475,87 +504,110 @@ Item {
                                         }
                                         return qsTr("Standard");
                                     }
-                                    font.weight: Font.Medium
+                                    font.weight: Font.DemiBold
                                     color: Colours.palette.m3onSurface
-                                    textPointSize: Tokens.font.size.small
+                                    textPixelSize: 15
                                 }
                             }
                         }
                     }
                 }
 
-                // ── 3. IP Address ──────────────────────────────────────────
+                // ── 3. IP Address Card ─────────────────────────────────────
                 StyledRect {
                     Layout.fillWidth: true
-                    implicitHeight: 46
+                    implicitHeight: 48
                     radius: Tokens.rounding.normal
                     color: Colours.palette.m3surfaceContainerHigh
                     visible: menu.isActive && !!Nmcli.wirelessDeviceDetails && !!Nmcli.wirelessDeviceDetails.ipAddress
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: Tokens.padding.normal
-                        anchors.rightMargin: Tokens.padding.normal
-                        spacing: Tokens.spacing.small
+                        anchors.leftMargin: 14
+                        anchors.rightMargin: 14
+                        spacing: 10
 
-                        MaterialIcon {
-                            text: "lan"
-                            color: Colours.palette.m3secondary
-                            iconPointSize: Tokens.font.size.normal
+                        Item {
+                            width: 22
+                            height: 22
+                            Layout.alignment: Qt.AlignVCenter
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "lan"
+                                color: Colours.palette.m3secondary
+                                iconPointSize: 13.5
+                                fill: 0
+                            }
                         }
 
+                        // Label: 14px Medium
                         StyledText {
                             text: qsTr("IP Address")
-                            color: Colours.palette.m3onSurfaceVariant
-                            textPointSize: Tokens.font.size.small
+                            color: Colours.palette.m3onSurface
+                            textPixelSize: 14
+                            font.weight: Font.Medium
                         }
 
                         Item { Layout.fillWidth: true }
 
+                        // Value: 14px Monospace / Tabular
                         StyledText {
                             text: (Nmcli.wirelessDeviceDetails && Nmcli.wirelessDeviceDetails.ipAddress) ? Nmcli.wirelessDeviceDetails.ipAddress : ""
+                            font.family: Tokens.font.family.mono
                             font.weight: Font.Medium
-                            color: Colours.palette.m3onSurface
-                            textPointSize: Tokens.font.size.small
+                            textPixelSize: 14
+                            color: Colours.palette.m3onSurfaceVariant
                         }
                     }
                 }
 
-                // ── 4. Auto-connect ────────────────────────────────────────
+                // ── 4. Auto-connect Row ────────────────────────────────────
                 StyledRect {
                     Layout.fillWidth: true
-                    implicitHeight: 52
+                    implicitHeight: 54
                     radius: Tokens.rounding.normal
                     color: Colours.palette.m3surfaceContainerHigh
                     visible: menu.isSaved
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: Tokens.padding.normal
-                        anchors.rightMargin: Tokens.padding.normal
-                        spacing: Tokens.spacing.small
+                        anchors.leftMargin: 14
+                        anchors.rightMargin: 14
+                        spacing: 10
 
-                        MaterialIcon {
-                            text: "sync"
-                            color: Colours.palette.m3onSurfaceVariant
-                            iconPointSize: Tokens.font.size.normal
+                        Item {
+                            width: 22
+                            height: 22
+                            Layout.alignment: Qt.AlignVCenter
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "sync"
+                                color: Colours.palette.m3onSurfaceVariant
+                                iconPointSize: 13.5
+                                fill: 0
+                            }
                         }
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 1
+                            spacing: 2
 
+                            // Primary Title: 14px Medium bright
                             StyledText {
                                 text: qsTr("Auto-connect")
                                 color: Colours.palette.m3onSurface
-                                textPointSize: Tokens.font.size.small
-                                font.weight: Font.Normal
+                                textPixelSize: 14
+                                font.weight: Font.Medium
                             }
 
+                            // Subtext: 12px Regular muted
                             StyledText {
                                 text: qsTr("Connect when in range")
                                 color: Colours.palette.m3onSurfaceVariant
-                                textPointSize: Tokens.font.size.smaller
+                                textPixelSize: 12
+                                font.weight: Font.Normal
                             }
                         }
 
@@ -570,10 +622,10 @@ Item {
                     }
                 }
 
-                // ── 5. Password Field ──────────────────────────────────────
+                // ── 5. Password Field Refinement ───────────────────────────
                 StyledRect {
                     Layout.fillWidth: true
-                    implicitHeight: passEditCol.implicitHeight + Tokens.padding.normal * 2
+                    implicitHeight: passEditCol.implicitHeight + 24
                     radius: Tokens.rounding.normal
                     color: Colours.palette.m3surfaceContainerHigh
                     visible: menu.isSaved && menu.network && menu.network.isSecure
@@ -583,56 +635,69 @@ Item {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        anchors.margins: Tokens.padding.normal
-                        spacing: Tokens.spacing.extraSmall
+                        anchors.margins: 12
+                        spacing: 8
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Tokens.spacing.small
+                            spacing: 10
 
-                            MaterialIcon {
-                                text: "key"
-                                color: Colours.palette.m3onSurfaceVariant
-                                iconPointSize: Tokens.font.size.normal
+                            Item {
+                                width: 22
+                                height: 22
+                                Layout.alignment: Qt.AlignVCenter
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "key"
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    iconPointSize: 13.5
+                                    fill: 0
+                                }
                             }
 
+                            // Label: 14px Medium
                             StyledText {
                                 Layout.fillWidth: true
                                 text: qsTr("Network Password")
-                                color: Colours.palette.m3onSurfaceVariant
-                                textPointSize: Tokens.font.size.smaller
+                                color: Colours.palette.m3onSurface
+                                textPixelSize: 14
+                                font.weight: Font.Medium
                             }
 
                             StyledText {
                                 text: menu.isPasswordEditing ? qsTr("Editing…") : ""
                                 color: Colours.palette.m3primary
-                                textPointSize: Tokens.font.size.smaller
+                                textPixelSize: 12
                                 visible: menu.isPasswordEditing
                             }
                         }
 
+                        // Subtle inner pill container
                         StyledRect {
                             Layout.fillWidth: true
-                            implicitHeight: 34
+                            implicitHeight: 36
                             radius: Tokens.rounding.full
-                            color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                            color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.70)
                             border.width: 0
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: Tokens.padding.normal
-                                anchors.rightMargin: 4
-                                spacing: Tokens.spacing.extraSmall
+                                anchors.leftMargin: 14
+                                anchors.rightMargin: 12
+                                spacing: 8
 
                                 Item {
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
 
+                                    // Crisp 7px password dots
                                     M3PasswordDots {
                                         anchors.fill: parent
                                         text: configPassField.text
-                                        dotSize: 18
+                                        dotSize: 7
                                         dotSpacing: 5
+                                        color: Colours.palette.m3onSurface
                                         hasFocus: configPassField.activeFocus
                                         visible: !menu.showPasswordText
                                     }
@@ -646,7 +711,7 @@ Item {
                                         color: menu.showPasswordText ? Colours.palette.m3onSurface : "transparent"
                                         cursorVisible: menu.showPasswordText
                                         font.family: Tokens.font.family.sans
-                                        font.pointSize: Tokens.font.size.small
+                                        font.pixelSize: 13
                                         selectByMouse: true
                                         selectionColor: Colours.palette.m3primary
                                         selectedTextColor: Colours.palette.m3onPrimary
@@ -704,7 +769,8 @@ Item {
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         text: menu.showPasswordText ? "visibility_off" : "visibility"
-                                        iconPointSize: Tokens.font.size.smaller
+                                        iconPointSize: 12
+                                        fill: 0
                                         color: Colours.palette.m3onSurfaceVariant
                                     }
                                 }
@@ -725,7 +791,7 @@ Item {
                                     MaterialIcon {
                                         anchors.centerIn: parent
                                         text: "check"
-                                        iconPointSize: Tokens.font.size.smaller
+                                        iconPointSize: 11
                                         color: Colours.palette.m3onPrimary
                                     }
                                 }
@@ -734,27 +800,31 @@ Item {
                     }
                 }
 
-                // ── 6. Action Footer ───────────────────────────────────────
+                // ── 6. Bottom Action Buttons (50/50 Equal Width) ───────────
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Tokens.spacing.small
+                    spacing: 10
 
+                    // Forget Button (50% equal width, subtle tonal style)
                     StyledRect {
-                        implicitWidth: forgetRow.implicitWidth + Tokens.padding.normal * 2
-                        implicitHeight: 36
-                        radius: Tokens.rounding.full
-                        color: Qt.alpha(Colours.palette.m3error, 0.12)
+                        id: forgetBtn
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        implicitHeight: 40
+                        radius: 20
+                        color: Qt.alpha(Colours.palette.m3error, 0.10)
                         visible: menu.isSaved
 
                         Row {
                             id: forgetRow
                             anchors.centerIn: parent
-                            spacing: Tokens.spacing.extraSmall
+                            spacing: 6
 
                             MaterialIcon {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: "delete"
-                                iconPointSize: Tokens.font.size.small
+                                iconPointSize: 12
+                                fill: 0
                                 color: Colours.palette.m3error
                             }
 
@@ -763,7 +833,7 @@ Item {
                                 text: qsTr("Forget")
                                 color: Colours.palette.m3error
                                 font.weight: Font.Medium
-                                textPointSize: Tokens.font.size.small
+                                textPixelSize: 13
                             }
                         }
 
@@ -779,40 +849,42 @@ Item {
                         }
                     }
 
-                    Item { Layout.fillWidth: true }
-
+                    // Disconnect / Connect Button (50% equal width, filled style)
                     StyledRect {
-                        implicitWidth: actionRow.implicitWidth + Tokens.padding.large * 2
-                        implicitHeight: 36
-                        radius: Tokens.rounding.full
-                        color: menu.isActive ? Colours.palette.m3errorContainer : Colours.palette.m3primary
+                        id: actionBtn
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        implicitHeight: 40
+                        radius: 20
+                        color: menu.isActive ? Colours.palette.m3error : Colours.palette.m3primary
 
                         Behavior on color { CAnim {} }
 
                         Row {
                             id: actionRow
                             anchors.centerIn: parent
-                            spacing: Tokens.spacing.extraSmall
+                            spacing: 6
 
                             MaterialIcon {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: menu.isActive ? "wifi_off" : "wifi"
-                                iconPointSize: Tokens.font.size.small
-                                color: menu.isActive ? Colours.palette.m3onErrorContainer : Colours.palette.m3onPrimary
+                                iconPointSize: 12
+                                fill: 0
+                                color: menu.isActive ? Colours.palette.m3onError : Colours.palette.m3onPrimary
                             }
 
                             StyledText {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: menu.isActive ? qsTr("Disconnect") : qsTr("Connect")
-                                color: menu.isActive ? Colours.palette.m3onErrorContainer : Colours.palette.m3onPrimary
+                                color: menu.isActive ? Colours.palette.m3onError : Colours.palette.m3onPrimary
                                 font.weight: Font.Medium
-                                textPointSize: Tokens.font.size.small
+                                textPixelSize: 13
                             }
                         }
 
                         StateLayer {
                             radius: parent.radius
-                            color: menu.isActive ? Colours.palette.m3error : Colours.palette.m3onPrimary
+                            color: menu.isActive ? Colours.palette.m3onError : Colours.palette.m3onPrimary
                             onClicked: {
                                 if (menu.isActive) {
                                     Nmcli.disconnectFromNetwork();

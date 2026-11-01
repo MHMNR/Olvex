@@ -815,7 +815,7 @@ Item {
             width: root.originW
             height: root.originH
             radius: root.originRadius
-            color: Qt.tint(Colours.palette.m3surfaceContainerHighest, Qt.alpha(Colours.palette.m3surfaceTint || Colours.palette.m3primary, 0.08))
+            color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
             border.width: 0
             clip: true
             z: 2

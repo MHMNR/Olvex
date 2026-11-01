@@ -2909,7 +2909,7 @@ Item {
             width: Math.min(parent.width - 32, 420)
             implicitHeight: modalCol.implicitHeight + 48
             radius: 28
-            color: Colours.palette.m3surfaceContainerHigh
+            color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
             border.width: 0
             border.color: "transparent"
 
