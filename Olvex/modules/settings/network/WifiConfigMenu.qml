@@ -114,7 +114,7 @@ Item {
         anchors.fill: parent
         z: 0
         color: Colours.palette.m3scrim
-        opacity: container.state === "expanded" ? 0.40 : 0.0
+        opacity: container.state === "expanded" ? (Colours.light ? 0.42 : 0.62) : 0.0
         visible: opacity > 0.001
 
         Behavior on opacity {

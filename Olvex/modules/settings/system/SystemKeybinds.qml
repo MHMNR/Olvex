@@ -780,7 +780,7 @@ Item {
         StyledRect {
             id: scrimRect
             anchors.fill: parent
-            color: Qt.alpha(Colours.palette.m3scrim || "#000000", 0.74)
+            color: Colours.palette.m3scrim
             opacity: 0.0
 
             MouseArea {
@@ -864,7 +864,7 @@ Item {
                         height: modalLayer.targetH
                         radius: 28
                     }
-                    PropertyChanges { target: scrimRect; opacity: 1.0 }
+                    PropertyChanges { target: scrimRect; opacity: Colours.light ? 0.42 : 0.62 }
                     PropertyChanges { target: startSurfaceTint; opacity: 0.0 }
                     PropertyChanges { target: buttonPlaceholder; opacity: 0.0 }
                     PropertyChanges { target: dialogContentContainer; opacity: 1.0 }

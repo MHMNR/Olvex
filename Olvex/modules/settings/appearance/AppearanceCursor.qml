@@ -2093,8 +2093,8 @@ Item {
             anchors.topMargin: -Tokens.padding.normal
             anchors.bottomMargin: -Tokens.padding.normal
             radius: Tokens.rounding.large
-            color: Colours.palette.m3scrim ? Qt.alpha(Colours.palette.m3scrim, 0.65) : Qt.alpha("#000000", 0.65)
-            opacity: root.expandedExtrasOpacity
+            color: Colours.palette.m3scrim
+            opacity: root.expandedExtrasOpacity * (Colours.light ? 0.42 : 0.62)
 
             MouseArea {
                 anchors.fill: parent
@@ -2888,8 +2888,8 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: Tokens.rounding.large
-            color: Colours.palette.m3scrim ? Qt.alpha(Colours.palette.m3scrim, 0.60) : Qt.rgba(0, 0, 0, 0.60)
-            opacity: deleteModal.visible ? 1.0 : 0.0
+            color: Colours.palette.m3scrim
+            opacity: deleteModal.visible ? (Colours.light ? 0.42 : 0.62) : 0.0
             Behavior on opacity { Anim { type: Anim.FastEffects } }
 
             MouseArea {
