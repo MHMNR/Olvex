@@ -840,7 +840,13 @@ Item {
                     implicitHeight: 38
                     implicitWidth: searchActive ? 240 : 38
                     radius: Tokens.rounding.full
-                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
+                    color: searchActive
+                        ? (marketSearchInput.activeFocus
+                            ? Qt.alpha(Colours.palette.m3onSurface, 0.16)
+                            : (searchPillTrigger.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.13) : Qt.alpha(Colours.palette.m3onSurface, 0.10)))
+                        : (searchPillTrigger.containsMouse
+                            ? Qt.alpha(Colours.palette.m3onSurface, 0.15)
+                            : Qt.alpha(Colours.palette.m3onSurface, 0.09))
                     border.width: 0
                     border.color: "transparent"
                     clip: true
@@ -854,7 +860,7 @@ Item {
                         anchors.leftMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
                         text: "search"
-                        color: searchPill.searchActive ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                        color: marketSearchInput.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurface
                         iconPointSize: 16
                         verticalAlignment: Text.AlignVCenter
                         Behavior on color { CAnim {} }
@@ -866,6 +872,7 @@ Item {
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         width: 38
+                        hoverEnabled: true
                         enabled: !searchPill.searchActive
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
@@ -984,13 +991,15 @@ Item {
                     implicitHeight: 38
                     implicitWidth: 38
                     radius: Tokens.rounding.full
-                    color: refreshMarketMa.pressed ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2) :
-                           Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                    border.width: 1
-                    border.color: refreshMarketMa.containsMouse ? "transparent" : Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+                    color: refreshMarketMa.pressed
+                        ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+                        : (refreshMarketMa.containsMouse
+                            ? Qt.alpha(Colours.palette.m3onSurface, 0.15)
+                            : Qt.alpha(Colours.palette.m3onSurface, 0.09))
+                    border.width: 0
+                    border.color: "transparent"
 
                     Behavior on color { CAnim {} }
-                    Behavior on border.color { CAnim {} }
 
                     LoadingIndicator {
                         anchors.centerIn: parent
