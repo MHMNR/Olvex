@@ -92,7 +92,7 @@ class ConfigObject : public QObject {
 public:
     explicit ConfigObject(QObject* parent = nullptr);
 
-    void loadFromJson(const QJsonObject& obj);
+    virtual void loadFromJson(const QJsonObject& obj);
     [[nodiscard]] QJsonObject toJsonObject() const;
 
     // Per-monitor overlay support (Qt Resolve Mask pattern).

@@ -41,8 +41,24 @@ Singleton {
 
     // ── Transparency ────────────────────────────────
     readonly property bool transparencyEnabled: Tokens.transparency.enabled
-    readonly property real transparencyBase: Math.max(0.01, Math.min(1, Tokens.transparency.base))
-    readonly property real transparencyLayers: Math.max(0, Math.min(1, Tokens.transparency.layers ?? 0.4))
+    readonly property real transparencyBase: {
+        const isLight = root.light;
+        const t = Tokens.transparency;
+        if (!t) return 0.5;
+        const val = isLight
+            ? ((t.baseLight !== undefined && t.baseLight > 0) ? t.baseLight : t.base)
+            : ((t.baseDark !== undefined && t.baseDark > 0) ? t.baseDark : t.base);
+        return Math.max(0.01, Math.min(1, val));
+    }
+    readonly property real transparencyLayers: {
+        const isLight = root.light;
+        const t = Tokens.transparency;
+        if (!t) return 0.4;
+        const val = isLight
+            ? ((t.layersLight !== undefined && t.layersLight >= 0) ? t.layersLight : (t.layers ?? 0.4))
+            : ((t.layersDark !== undefined && t.layersDark >= 0) ? t.layersDark : (t.layers ?? 0.4));
+        return Math.max(0, Math.min(1, val));
+    }
     readonly property bool transparencyBlur: Tokens.transparency.blur
     property int customBlurRadius: -1
     property int customBlurPasses: -1
@@ -54,6 +70,30 @@ Singleton {
     onTransparencyBlurChanged: root.requestReloadHyprRules()
     onTransparencyBlurRadiusChanged: root.requestReloadHyprRules()
     onTransparencyBlurPassesChanged: root.requestReloadHyprRules()
+    onLightChanged: root.syncActiveTransparency()
+
+    function syncActiveTransparency() {
+        if (!GlobalConfig.appearance || !GlobalConfig.appearance.transparency) return;
+        const t = GlobalConfig.appearance.transparency;
+        const targetBase = root.light
+            ? ((t.baseLight !== undefined && t.baseLight > 0) ? t.baseLight : t.base)
+            : ((t.baseDark !== undefined && t.baseDark > 0) ? t.baseDark : t.base);
+        const targetLayers = root.light
+            ? ((t.layersLight !== undefined && t.layersLight >= 0) ? t.layersLight : t.layers)
+            : ((t.layersDark !== undefined && t.layersDark >= 0) ? t.layersDark : t.layers);
+        let changed = false;
+        if (Math.abs(t.base - targetBase) > 0.0001) {
+            t.base = targetBase;
+            changed = true;
+        }
+        if (Math.abs(t.layers - targetLayers) > 0.0001) {
+            t.layers = targetLayers;
+            changed = true;
+        }
+        if (changed) {
+            GlobalConfig.save();
+        }
+    }
 
     function setBlurRadius(radius) {
         customBlurRadius = Math.max(1, Math.min(30, Math.round(radius)));
@@ -618,6 +658,7 @@ Singleton {
     }
 
     Component.onCompleted: {
+        root.syncActiveTransparency();
         root.requestReloadHyprRules();
         root.syncSystemPortalTheme();
         useFallbackPalette();

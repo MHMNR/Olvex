@@ -15,12 +15,21 @@ ColumnLayout {
     id: root
     
     property Session session
+    property bool isLightEditing: Colours.light
     spacing: Tokens.spacing.large
     opacity: 0.0
     transform: Translate { y: 20; id: yTrans }
 
     Component.onCompleted: {
         revealAnim.start();
+        root.isLightEditing = Colours.light;
+    }
+
+    Connections {
+        target: Colours
+        function onLightChanged() {
+            root.isLightEditing = Colours.light;
+        }
     }
 
     ParallelAnimation {
@@ -96,15 +105,43 @@ ColumnLayout {
         }
 
         SettingRow {
+            title: qsTr("Mode target")
+            description: qsTr("Adjust opacity settings for Dark or Light mode")
+            divider: true
+            Segmented {
+                model: [
+                    { label: qsTr("Dark") },
+                    { label: qsTr("Light") }
+                ]
+                currentIndex: root.isLightEditing ? 1 : 0
+                onSelected: i => {
+                    root.isLightEditing = (i === 1);
+                }
+            }
+        }
+
+        SettingRow {
             title: qsTr("Base opacity")
-            description: qsTr("Opacity of panel backgrounds")
+            description: root.isLightEditing
+                ? qsTr("Panel background opacity in Light mode")
+                : qsTr("Panel background opacity in Dark mode")
+            divider: true
             StyledSlider {
                 width: 280
                 from: 0
                 to: 1
-                value: GlobalConfig.appearance.transparency.base
+                value: root.isLightEditing
+                    ? (GlobalConfig.appearance.transparency.baseLight !== undefined ? GlobalConfig.appearance.transparency.baseLight : GlobalConfig.appearance.transparency.base)
+                    : (GlobalConfig.appearance.transparency.baseDark !== undefined ? GlobalConfig.appearance.transparency.baseDark : GlobalConfig.appearance.transparency.base)
                 onMoved: {
-                    GlobalConfig.appearance.transparency.base = value;
+                    if (root.isLightEditing) {
+                        GlobalConfig.appearance.transparency.baseLight = value;
+                    } else {
+                        GlobalConfig.appearance.transparency.baseDark = value;
+                    }
+                    if (root.isLightEditing === Colours.light) {
+                        GlobalConfig.appearance.transparency.base = value;
+                    }
                     GlobalConfig.save();
                 }
             }
@@ -112,15 +149,26 @@ ColumnLayout {
 
         SettingRow {
             title: qsTr("Layer opacity")
-            description: qsTr("Opacity of raised surfaces and cards")
+            description: root.isLightEditing
+                ? qsTr("Raised card & surface opacity in Light mode")
+                : qsTr("Raised card & surface opacity in Dark mode")
             divider: false
             StyledSlider {
                 width: 280
                 from: 0
                 to: 1
-                value: GlobalConfig.appearance.transparency.layers
+                value: root.isLightEditing
+                    ? (GlobalConfig.appearance.transparency.layersLight !== undefined ? GlobalConfig.appearance.transparency.layersLight : GlobalConfig.appearance.transparency.layers)
+                    : (GlobalConfig.appearance.transparency.layersDark !== undefined ? GlobalConfig.appearance.transparency.layersDark : GlobalConfig.appearance.transparency.layers)
                 onMoved: {
-                    GlobalConfig.appearance.transparency.layers = value;
+                    if (root.isLightEditing) {
+                        GlobalConfig.appearance.transparency.layersLight = value;
+                    } else {
+                        GlobalConfig.appearance.transparency.layersDark = value;
+                    }
+                    if (root.isLightEditing === Colours.light) {
+                        GlobalConfig.appearance.transparency.layers = value;
+                    }
                     GlobalConfig.save();
                 }
             }

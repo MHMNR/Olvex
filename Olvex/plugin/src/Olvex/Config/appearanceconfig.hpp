@@ -230,6 +230,10 @@ class AppearanceTransparency : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(bool, blur, true)
     CONFIG_GLOBAL_PROPERTY(qreal, base, 0.49954530423280424)
     CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.3995595079787234)
+    CONFIG_GLOBAL_PROPERTY(qreal, baseDark, 0.49954530423280424)
+    CONFIG_GLOBAL_PROPERTY(qreal, baseLight, 0.49954530423280424)
+    CONFIG_GLOBAL_PROPERTY(qreal, layersDark, 0.3995595079787234)
+    CONFIG_GLOBAL_PROPERTY(qreal, layersLight, 0.3995595079787234)
     CONFIG_GLOBAL_PROPERTY(int, blurRadius, 10)
     CONFIG_GLOBAL_PROPERTY(int, blurPasses, 3)
 
@@ -240,8 +244,28 @@ public:
         markPropertyLoaded(QStringLiteral("blur"));
         markPropertyLoaded(QStringLiteral("base"));
         markPropertyLoaded(QStringLiteral("layers"));
+        markPropertyLoaded(QStringLiteral("baseDark"));
+        markPropertyLoaded(QStringLiteral("baseLight"));
+        markPropertyLoaded(QStringLiteral("layersDark"));
+        markPropertyLoaded(QStringLiteral("layersLight"));
         markPropertyLoaded(QStringLiteral("blurRadius"));
         markPropertyLoaded(QStringLiteral("blurPasses"));
+    }
+
+    void loadFromJson(const QJsonObject& obj) override {
+        ConfigObject::loadFromJson(obj);
+        if (!obj.contains(QStringLiteral("baseDark"))) {
+            set_baseDark(base());
+        }
+        if (!obj.contains(QStringLiteral("baseLight"))) {
+            set_baseLight(base());
+        }
+        if (!obj.contains(QStringLiteral("layersDark"))) {
+            set_layersDark(layers());
+        }
+        if (!obj.contains(QStringLiteral("layersLight"))) {
+            set_layersLight(layers());
+        }
     }
 };
 

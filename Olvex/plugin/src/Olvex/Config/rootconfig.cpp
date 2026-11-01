@@ -42,11 +42,15 @@ const char* defaultShellJson() {
         "themeMode": "dark",
         "transparency": {
             "base": 0.49954530423280424,
+            "baseDark": 0.49954530423280424,
+            "baseLight": 0.49954530423280424,
             "blur": true,
             "blurPasses": 3,
             "blurRadius": 10,
             "enabled": true,
-            "layers": 0.3995595079787234
+            "layers": 0.3995595079787234,
+            "layersDark": 0.3995595079787234,
+            "layersLight": 0.3995595079787234
         }
     },
     "background": {
