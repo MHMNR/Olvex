@@ -62,6 +62,20 @@ Item {
         NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.normal || 300; easing.type: Easing.OutCubic }
     }
 
+    // Click outside to collapse searchbar
+    MouseArea {
+        id: searchBackdrop
+        anchors.fill: parent
+        z: 5
+        visible: searchPill.searchActive
+        onClicked: {
+            searchPill.searchExpanded = false;
+            searchInput.text = "";
+            Keybinds.query = "";
+            searchInput.focus = false;
+        }
+    }
+
     ColumnLayout {
         id: mainLayout
         anchors.fill: parent
@@ -70,81 +84,222 @@ Item {
 
         // ── Top Header Controls ──
         RowLayout {
+            z: 10
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
 
-            // Search Bar
+            Item { Layout.fillWidth: true }
+
+            // ── Expandable Search Pill (Circle 40px → 280px input field) ──
             StyledRect {
-                Layout.fillWidth: true
+                id: searchPill
+
+                property bool searchExpanded: false
+                readonly property bool searchActive: searchExpanded || (searchInput && (searchInput.text.length > 0 || searchInput.activeFocus))
+
+                implicitWidth: searchActive ? 280 : 40
                 implicitHeight: 40
                 radius: Tokens.rounding.full
-                color: searchInput.activeFocus 
-                    ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
-                    : (searchHover.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.15) : Qt.alpha(Colours.palette.m3onSurface, 0.12))
+                clip: true
 
+                color: searchActive
+                    ? (searchInput.activeFocus
+                        ? Qt.alpha(Colours.palette.m3onSurface, 0.16)
+                        : (searchHover.hovered ? Qt.alpha(Colours.palette.m3onSurface, 0.13) : Qt.alpha(Colours.palette.m3onSurface, 0.10)))
+                    : (searchHover.hovered
+                        ? Qt.alpha(Colours.palette.m3onSurface, 0.15)
+                        : Qt.alpha(Colours.palette.m3onSurface, 0.09))
+                border.width: 0
+                border.color: "transparent"
+
+                Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
                 Behavior on color { CAnim {} }
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Tokens.padding.normal
-                    anchors.rightMargin: Tokens.padding.normal
-                    spacing: Tokens.spacing.small
+                HoverHandler {
+                    id: searchHover
+                    cursorShape: searchPill.searchActive ? Qt.IBeamCursor : Qt.PointingHandCursor
+                }
 
-                    MaterialIcon {
-                        text: "search"
-                        color: Colours.palette.m3outline
-                        iconPointSize: Tokens.font.size.normal
+                // Collapsed Click-to-Expand Trigger
+                MouseArea {
+                    id: searchPillTrigger
+                    anchors.fill: parent
+                    visible: !searchPill.searchActive
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        searchPill.searchExpanded = true;
+                        Qt.callLater(() => searchInput.forceActiveFocus());
                     }
+                }
+
+                // Single Persistent Search Icon (Smoothly transitions position & tint)
+                MaterialIcon {
+                    id: searchIcon
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.leftMargin: searchPill.searchActive ? 12 : Math.round((40 - searchIcon.implicitWidth) / 2)
+                    text: "search"
+                    fill: 1
+                    iconPointSize: searchPill.searchActive ? Tokens.font.size.normal : (Tokens.font.size.normal + 1)
+                    color: searchInput.activeFocus ? Colours.palette.m3primary : Colours.palette.m3onSurface
+
+                    Behavior on anchors.leftMargin { Anim { type: Anim.DefaultSpatial } }
+                    Behavior on color { CAnim {} }
+                }
+
+                // Text Input & Placeholder Holder
+                Item {
+                    id: inputHolder
+                    anchors.left: searchIcon.right
+                    anchors.leftMargin: 8
+                    anchors.right: clearBtn.left
+                    anchors.rightMargin: 4
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    clip: true
+                    opacity: searchPill.searchActive ? 1.0 : 0.0
+                    visible: opacity > 0.01
+
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
 
                     TextInput {
                         id: searchInput
-                        Layout.fillWidth: true
+                        anchors.fill: parent
                         verticalAlignment: TextInput.AlignVCenter
                         color: Colours.palette.m3onSurface
+                        selectionColor: Colours.palette.m3primary
+                        selectedTextColor: Colours.palette.m3onPrimary
                         font.family: Tokens.font.family.sans
                         font.pointSize: Tokens.font.size.small
                         selectByMouse: true
-                        selectionColor: Colours.palette.m3primary
-                        selectedTextColor: Colours.palette.m3onPrimary
                         clip: true
 
                         onTextChanged: Keybinds.query = text
 
-                        StyledText {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: qsTr("Search shortcuts, commands, keys...")
-                            color: Colours.palette.m3outline
-                            font.family: Tokens.font.family.sans
-                            textPointSize: Tokens.font.size.small
-                            visible: !searchInput.text && !searchInput.activeFocus
+                        onActiveFocusChanged: {
+                            if (!activeFocus && text.length === 0)
+                                searchPill.searchExpanded = false;
+                        }
+
+                        Keys.onEscapePressed: event => {
+                            text = "";
+                            Keybinds.query = "";
+                            searchPill.searchExpanded = false;
+                            focus = false;
+                            event.accepted = true;
                         }
                     }
 
-                    IconButton {
-                        icon: "close"
-                        type: IconButton.Text
-                        visible: searchInput.text.length > 0
+                    StyledText {
+                        anchors.fill: parent
+                        verticalAlignment: Text.AlignVCenter
+                        text: qsTr("Search shortcuts...")
+                        color: Colours.palette.m3onSurfaceVariant
+                        font.family: Tokens.font.family.sans
+                        textPointSize: Tokens.font.size.small
+                        visible: searchInput.text.length === 0 && !searchInput.inputMethodComposing
+                        opacity: searchInput.text.length === 0 ? 1.0 : 0
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                    }
+                }
+
+                // Clear button
+                StyledRect {
+                    id: clearBtn
+                    anchors.right: parent.right
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    implicitWidth: 26
+                    implicitHeight: 26
+                    radius: Tokens.rounding.full
+                    color: clearBtnMa.pressed ? Qt.alpha(Colours.palette.m3onSurface, 0.12) :
+                           clearBtnMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
+                    opacity: searchPill.searchActive && searchInput.text.length > 0 ? 1.0 : 0.0
+                    visible: opacity > 0.01
+
+                    Behavior on color { CAnim {} }
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "close"
+                        color: Colours.palette.m3onSurfaceVariant
+                        iconPointSize: 14
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    MouseArea {
+                        id: clearBtnMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             searchInput.text = "";
                             Keybinds.query = "";
+                            searchPill.searchExpanded = false;
+                            searchInput.focus = false;
                         }
                     }
                 }
-
-                HoverHandler {
-                    id: searchHover
-                    cursorShape: Qt.IBeamCursor
-                }
             }
 
-            // Refresh live binds button
-            IconButton {
-                icon: "refresh"
-                type: IconButton.Tonal
-                onClicked: {
-                    listView.prepareDelete(listView.indexAt(10, listView.contentY + 10));
-                    Keybinds.reload();
+            // ── Refresh live binds button (Store-style animated LoadingIndicator) ──
+            StyledRect {
+                id: refreshBtn
+                property bool isRefreshing: false
+
+                implicitHeight: 40
+                implicitWidth: 40
+                radius: Tokens.rounding.full
+                color: refreshMa.pressed
+                    ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
+                    : (refreshMa.containsMouse
+                        ? Qt.alpha(Colours.palette.m3onSurface, 0.15)
+                        : Qt.alpha(Colours.palette.m3onSurface, 0.09))
+                border.width: 0
+                border.color: "transparent"
+
+                Behavior on color { CAnim {} }
+
+                Timer {
+                    id: refreshAnimTimer
+                    interval: 650
+                    onTriggered: refreshBtn.isRefreshing = false
+                }
+
+                LoadingIndicator {
+                    anchors.centerIn: parent
+                    implicitSize: 20
+                    color: Colours.palette.m3primary
+                    animated: refreshBtn.isRefreshing
+                    visible: opacity > 0
+                    opacity: refreshBtn.isRefreshing ? 1.0 : 0.0
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "refresh"
+                    iconPointSize: 18
+                    color: Colours.palette.m3onSurface
+                    visible: opacity > 0
+                    opacity: refreshBtn.isRefreshing ? 0.0 : 1.0
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
+
+                MouseArea {
+                    id: refreshMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: refreshBtn.isRefreshing ? Qt.ArrowCursor : Qt.PointingHandCursor
+                    enabled: !refreshBtn.isRefreshing
+                    onClicked: {
+                        refreshBtn.isRefreshing = true;
+                        refreshAnimTimer.restart();
+                        listView.prepareDelete(listView.indexAt(10, listView.contentY + 10));
+                        Keybinds.reload();
+                    }
                 }
             }
 

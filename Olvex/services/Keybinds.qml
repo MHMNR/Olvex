@@ -77,8 +77,8 @@ Singleton {
             const item = rawList[i];
             const modmask = item.modmask || 0;
             const key = item.key || "";
-            const dispatcher = item.dispatcher || "";
-            const arg = item.arg || "";
+            let dispatcher = item.dispatcher || "";
+            let arg = item.arg || "";
             const submap = item.submap || "";
             
             // Skip submap binds
@@ -88,6 +88,13 @@ Singleton {
             const modString = modArray.join(" + ");
             const displayKey = root.formatKey(key);
             const shortcutDisplay = modArray.length > 0 ? `${modString} + ${displayKey}` : displayKey;
+
+            // Sanitize raw Lua function pointers if any slipped through
+            if (dispatcher.startsWith("function:") || dispatcher.startsWith("HL.Dispatcher") || dispatcher.includes("0x")) {
+                dispatcher = "custom";
+                arg = "Hyprland Action (" + shortcutDisplay + ")";
+            }
+
             const category = root.categorizeBind(dispatcher, arg, key);
             const desc = root.describeBind(dispatcher, arg, item.description);
 

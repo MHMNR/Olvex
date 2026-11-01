@@ -283,7 +283,7 @@ std::tuple<QString, QString, QString> KeybindManager::resolveDispExpr(const QStr
 
     if (dispExpr.contains(QStringLiteral("hl.dsp.exec_cmd"))) {
         disp = QStringLiteral("exec");
-        static const QRegularExpression regex(QStringLiteral("hl\\.dsp\\.exec_cmd\\s*\\(\\s*(.+?)\\s*\\)$"), QRegularExpression::DotMatchesEverythingOption);
+        static const QRegularExpression regex(QStringLiteral("hl\\.dsp\\.exec_cmd\\s*\\(\\s*(.+?)\\s*\\)"), QRegularExpression::DotMatchesEverythingOption);
         auto m = regex.match(dispExpr);
         if (m.hasMatch()) {
             const auto inner = m.captured(1).trimmed();
@@ -594,7 +594,16 @@ QVariantList KeybindManager::getBinds() {
         QString arg = obj.value(QStringLiteral("arg")).toString();
         QString desc = obj.value(QStringLiteral("description")).toString();
 
-        if (disp == QStringLiteral("__lua") || disp.isEmpty() || arg.isEmpty()) {
+        const bool isLuaCallback = (disp == QStringLiteral("__lua") ||
+                                    disp.startsWith(QStringLiteral("function:")) ||
+                                    disp.startsWith(QStringLiteral("function")) ||
+                                    disp.startsWith(QStringLiteral("HL.Dispatcher")) ||
+                                    disp.contains(QStringLiteral("Dispatcher")) ||
+                                    disp.contains(QStringLiteral("0x")) ||
+                                    disp.isEmpty() ||
+                                    arg.isEmpty());
+
+        if (isLuaCallback) {
             const auto pairKey = qMakePair(modmask, normK);
             if (parsedLuaMap.contains(pairKey)) {
                 const auto& info = parsedLuaMap.value(pairKey);
@@ -603,7 +612,7 @@ QVariantList KeybindManager::getBinds() {
                 if (!info.value(QStringLiteral("description")).toString().isEmpty()) {
                     desc = info.value(QStringLiteral("description")).toString();
                 }
-            } else if (disp == QStringLiteral("__lua")) {
+            } else {
                 disp = QStringLiteral("exec");
                 arg = QStringLiteral("Lua Callback (%1)").arg(key);
                 desc = QStringLiteral("Hyprland Lua Callback (%1)").arg(key);
