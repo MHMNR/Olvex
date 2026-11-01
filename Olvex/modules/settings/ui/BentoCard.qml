@@ -92,13 +92,8 @@ Item {
             anchors.fill: parent
             radius: parent.radius
             color: "transparent"
-            border.width: 1
-            border.color: root.hovered ? Qt.alpha(root.accent, 0.35) : Qt.alpha(Colours.palette.m3outlineVariant, 0.14)
-
-            Behavior on border.color {
-                enabled: !root.animsFrozen
-                CAnim {}
-            }
+            border.width: 0
+            border.color: "transparent"
         }
 
         // ── Compact (search row) ──

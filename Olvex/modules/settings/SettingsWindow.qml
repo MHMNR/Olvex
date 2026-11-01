@@ -674,8 +674,8 @@ Item {
                 height: stack.lerp(stack.startH, stack.height, stack.transformProgress)
                 radius: stack.lerp(stack.startRadius, stack.endRadius, stack.shapeT)
                 color: Qt.alpha(stack.containerColor, (stack.containerColor.a ?? 1.0) * stack.morphBgAlpha)
-                border.width: 1
-                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.15 * stack.morphBgAlpha)
+                border.width: 0
+                border.color: "transparent"
                 clip: stack.transformActive || stack.transformProgress < 0.999
                 // Visible whole time page is open OR mid-transform — includes progress=0
                 // (old progress>0.001 hid morph on first frames = dead delay after card hide)

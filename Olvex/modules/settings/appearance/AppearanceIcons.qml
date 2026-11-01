@@ -1009,10 +1009,8 @@ Item {
                         color: cardDelegate.isHovered
                             ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
                             : Colours.layer(Colours.palette.m3surfaceContainer, 1)
-                        border.color: cardDelegate.isSelected
-                            ? Colours.palette.m3primary
-                            : (cardDelegate.isHovered ? Qt.alpha(Colours.palette.m3outlineVariant, 0.45) : Qt.alpha(Colours.palette.m3outlineVariant, 0.20))
-                        border.width: cardDelegate.isSelected ? 2 : 1
+                        border.color: cardDelegate.isSelected ? Colours.palette.m3primary : "transparent"
+                        border.width: cardDelegate.isSelected ? 2 : 0
 
                         Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
                         Behavior on border.color { CAnim { duration: Tokens.anim.durations.small } }
@@ -1065,8 +1063,8 @@ Item {
                                 Layout.preferredHeight: 68
                                 radius: Tokens.rounding.small
                                 color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
-                                border.width: 1
-                                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
+                                border.width: 0
+                                border.color: "transparent"
 
                                 RowLayout {
                                     anchors.centerIn: parent
@@ -1289,13 +1287,10 @@ Item {
                             ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
                             : root.normalCardBg
 
-                        border.width: 1
-                        border.color: marketCard.isHovered
-                            ? Qt.alpha(Colours.palette.m3outline, 0.4)
-                            : Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
+                        border.width: 0
+                        border.color: "transparent"
 
                         Behavior on color { CAnim {} }
-                        Behavior on border.color { CAnim {} }
 
                         MouseArea {
                             id: marketCardMouse
@@ -1360,8 +1355,8 @@ Item {
                                     implicitWidth: rateRow.implicitWidth + 12
                                     radius: Tokens.rounding.full
                                     color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85)
-                                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
-                                    border.width: 1
+                                    border.color: "transparent"
+                                    border.width: 0
 
                                     RowLayout {
                                         id: rateRow
@@ -1393,8 +1388,8 @@ Item {
                                     implicitWidth: dlRow.implicitWidth + 12
                                     radius: Tokens.rounding.full
                                     color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85)
-                                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2)
-                                    border.width: 1
+                                    border.color: "transparent"
+                                    border.width: 0
 
                                     RowLayout {
                                         id: dlRow
@@ -1940,8 +1935,8 @@ Item {
 
                 radius: Tokens.rounding.large
                 color: root.normalCardBg
-                border.width: 1
-                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25 + 0.05 * root.clampedMorph)
+                border.width: 0
+                border.color: "transparent"
                 clip: true
                 antialiasing: true
                 smooth: true
@@ -2190,8 +2185,8 @@ Item {
                         opacity: root.expandedExtrasOpacity
                         scale: 0.7 + 0.3 * root.clampedMorph
                         color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.88)
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
-                        border.width: 1
+                        border.color: "transparent"
+                        border.width: 0
                         antialiasing: true
 
                         StyledText {
@@ -2220,8 +2215,8 @@ Item {
                         implicitWidth: detailRateRow.implicitWidth + 12 + 2 * root.clampedMorph
                         radius: Tokens.rounding.full
                         color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85 + 0.03 * root.clampedMorph)
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2 + 0.05 * root.clampedMorph)
-                        border.width: 1
+                        border.color: "transparent"
+                        border.width: 0
                         antialiasing: true
 
                         RowLayout {
@@ -2256,8 +2251,8 @@ Item {
                         implicitWidth: detailDlRow.implicitWidth + 12 + 2 * root.clampedMorph
                         radius: Tokens.rounding.full
                         color: Qt.alpha(Colours.palette.m3surfaceContainerLowest, 0.85 + 0.03 * root.clampedMorph)
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.2 + 0.05 * root.clampedMorph)
-                        border.width: 1
+                        border.color: "transparent"
+                        border.width: 0
                         antialiasing: true
 
                         RowLayout {
@@ -2706,6 +2701,7 @@ Item {
             radius: 28
             color: Colours.palette.m3surfaceContainerHigh
             border.width: 0
+            border.color: "transparent"
 
             ColumnLayout {
                 id: modalCol

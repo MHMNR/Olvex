@@ -59,8 +59,8 @@ ColumnLayout {
         implicitHeight: 96
         radius: Tokens.rounding.large
         color: Colours.tPalette.m3surfaceContainerHigh
-        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
-        border.width: 1
+        border.color: "transparent"
+        border.width: 0
 
         RowLayout {
             anchors.fill: parent

@@ -90,8 +90,8 @@ Item {
                 implicitHeight: sysCol.implicitHeight + 40 // 20px top + 20px bottom
                 radius: 20 // M3Shapes.large
                 color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
-                border.width: 1
+                border.color: "transparent"
+                border.width: 0
                 clip: true
 
                 ColumnLayout {
@@ -700,8 +700,8 @@ Item {
                     implicitHeight: Math.max(hwCol.implicitHeight, maintCol.implicitHeight) + 40
                     radius: 20 // M3Shapes.large
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
-                    border.width: 1
+                    border.color: "transparent"
+                    border.width: 0
 
                     ColumnLayout {
                         id: hwCol
@@ -958,8 +958,8 @@ Item {
                     implicitHeight: Math.max(hwCol.implicitHeight, maintCol.implicitHeight) + 40
                     radius: 20 // M3Shapes.large
                     color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
-                    border.width: 1
+                    border.color: "transparent"
+                    border.width: 0
 
                     ColumnLayout {
                         id: maintCol

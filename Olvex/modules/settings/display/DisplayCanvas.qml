@@ -40,8 +40,8 @@ StyledClippingRect {
     radius: root.rLarge
     clip: true
 
-    border.width: 1
-    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.3)
+    border.width: 0
+    border.color: "transparent"
 
     // ── Zoom & Canvas Coordinates ───────────────────────────────────────────
     property real viewScale: 0.10

@@ -55,8 +55,8 @@ Item {
             anchors.rightMargin: Tokens.padding.small
             radius: Tokens.rounding.large
             color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
-            border.width: 1
+            border.color: "transparent"
+            border.width: 0
             clip: false
 
             ColumnLayout {
@@ -213,8 +213,8 @@ Item {
             anchors.rightMargin: Tokens.padding.normal
             radius: Tokens.rounding.large
             color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
-            border.width: 1
+            border.color: "transparent"
+            border.width: 0
 
             Loader {
                 id: rightLoader
