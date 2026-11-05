@@ -21,6 +21,15 @@ Item {
     readonly property bool isCollapsed: width < 100
 
     property Item hoveredItem: null
+    property Item activeItem: null
+    property bool isReady: false
+
+    readonly property real highlightX: highlightRect.x
+    readonly property real highlightY: highlightRect.y
+    readonly property real highlightWidth: highlightRect.width
+    readonly property real highlightHeight: highlightRect.height
+
+    Component.onCompleted: Qt.callLater(() => { root.isReady = true; })
 
     Timer {
         id: clearHoverTimer
@@ -32,6 +41,7 @@ Item {
     StyledRect {
         id: highlightRect
         x: root.isCollapsed ? Math.round((root.width - 40) / 2) : Math.round(colLayout.x + Tokens.padding.small)
+        y: root.activeItem ? (colLayout.y + root.activeItem.y) : 0
         width: root.isCollapsed ? 40 : Math.max(40, Math.round(colLayout.width - (Tokens.padding.small * 2)))
         height: 40
         radius: height / 2
@@ -51,6 +61,7 @@ Item {
             }
         }
         Behavior on y {
+            enabled: root.isReady && root.activeItem !== null
             Anim { type: Anim.FastSpatial }
         }
     }
@@ -114,7 +125,7 @@ Item {
         id: colLayout
         anchors.fill: parent
         anchors.margins: root.isCollapsed ? 0 : Tokens.padding.small
-        spacing: Tokens.spacing.extraSmall
+        spacing: 6
 
         Behavior on anchors.margins {
             NumberAnimation {
@@ -138,12 +149,12 @@ Item {
 
                 onIsActiveChanged: {
                     if (isActive) {
-                        highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
+                        root.activeItem = delegateRoot;
                     }
                 }
                 Component.onCompleted: {
                     if (isActive) {
-                        highlightRect.y = Qt.binding(() => colLayout.y + delegateRoot.y);
+                        root.activeItem = delegateRoot;
                     }
                 }
 
