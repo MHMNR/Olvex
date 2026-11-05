@@ -342,7 +342,7 @@ std::tuple<QString, QString, QString> KeybindManager::resolveDispExpr(const QStr
     } else if (dispExpr.contains(QStringLiteral("hl.dsp.group.prev"))) {
         disp = QStringLiteral("changegroupactive");
         arg = QStringLiteral("b");
-    } else if (dispExpr.contains(QStringLiteral("hl.dsp.group.lock_active"))) {
+    } else if (dispExpr.contains(QStringLiteral("hl.dsp.group.lock"))) {
         disp = QStringLiteral("lockactivegroup");
     } else if (dispExpr.contains(QStringLiteral("hl.dsp.window.move"))) {
         disp = QStringLiteral("movewindow");
@@ -669,7 +669,7 @@ QString KeybindManager::formatLuaBind(const QString& mods, const QString& key, c
     } else if (disp == QStringLiteral("changegroupactive")) {
         dispExpr = (a == QStringLiteral("b")) ? QStringLiteral("hl.dsp.group.prev()") : QStringLiteral("hl.dsp.group.next()");
     } else if (disp == QStringLiteral("lockactivegroup")) {
-        dispExpr = QStringLiteral("hl.dsp.group.lock_active()");
+        dispExpr = QStringLiteral("hl.dsp.group.lock()");
     } else if (disp == QStringLiteral("moveoutofgroup")) {
         dispExpr = QStringLiteral("hl.dsp.window.move({ out_of_group = true })");
     } else if (disp == QStringLiteral("movefocus")) {
