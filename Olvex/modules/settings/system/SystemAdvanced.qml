@@ -26,8 +26,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.large ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.large ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -40,34 +40,52 @@ Item {
         anchors.leftMargin: Tokens.padding.large
         anchors.rightMargin: Tokens.padding.large
         anchors.topMargin: Tokens.padding.large
-        spacing: 0
+        spacing: Tokens.spacing.large
 
-        SettingRow {
-            title: qsTr("GPU type")
-            description: qsTr("Vendor used for performance monitoring")
-            divider: true
-            OptionPicker {
-                id: gpuPicker
-                model: ["", "auto", "amd", "nvidia", "intel"]
-                currentIndex: root.idxOf(gpuPicker.model, GlobalConfig.services.gpuType || "")
-                onSelected: i => {
-                    GlobalConfig.services.gpuType = gpuPicker.model[i];
-                    GlobalConfig.save();
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Hardware & Performance")
+            description: qsTr("GPU vendor drivers and telemetry monitoring")
+            icon: "memory"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("GPU type")
+                description: qsTr("Vendor used for performance monitoring and usage stats")
+                OptionPicker {
+                    id: gpuPicker
+                    model: ["auto", "amd", "nvidia", "intel"]
+                    currentIndex: {
+                        const cur = GlobalConfig.services.gpuType || "auto";
+                        const idx = model.indexOf(cur);
+                        return idx >= 0 ? idx : 0;
+                    }
+                    onSelected: i => {
+                        GlobalConfig.services.gpuType = gpuPicker.model[i];
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
-        
-        SettingRow {
-            title: qsTr("Open config folder")
-            description: qsTr("Edit shell.json & shell-tokens.json directly")
-            clickable: true
-            divider: false
-            MaterialIcon {
-                text: "chevron_right"
-                color: Colours.palette.m3onSurfaceVariant
-                iconPointSize: Tokens.font.size.large
+
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Configuration Files")
+            description: qsTr("Direct access to Olvex JSON configs and monitor tokens")
+            icon: "folder"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("Open config folder")
+                description: qsTr("Edit shell.json & shell-tokens.json directly in file manager")
+                clickable: true
+                MaterialIcon {
+                    text: "open_in_new"
+                    color: Colours.palette.m3onSurfaceVariant
+                    iconPointSize: Tokens.font.size.normal
+                }
+                onClicked: Quickshell.execDetached(["xdg-open", Paths.config])
             }
-            onClicked: Quickshell.execDetached(["xdg-open", Paths.config])
         }
     }
 }

@@ -16,7 +16,7 @@ ColumnLayout {
     spacing: Tokens.spacing.large
     implicitHeight: actionsSection.implicitHeight + safeguardsSection.implicitHeight + spacing
 
-    function getTimeoutItem(key: string): var {
+    function getTimeoutItem(key) {
         const list = GlobalConfig.general.idle.timeouts || [];
         for (let i = 0; i < list.length; i++) {
             const a = list[i].idleAction;
@@ -26,17 +26,17 @@ ColumnLayout {
         return null;
     }
 
-    function isTimeoutEnabled(key: string): bool {
+    function isTimeoutEnabled(key) {
         const item = getTimeoutItem(key);
         return item ? (item.enabled !== false) : false;
     }
 
-    function getTimeoutMinutes(key: string, defaultMin: int): int {
+    function getTimeoutMinutes(key, defaultMin) {
         const item = getTimeoutItem(key);
         return item ? Math.round((item.timeout || 0) / 60) : defaultMin;
     }
 
-    function updateTimeout(key: string, enabled: bool, minutes: int, defaultAction: var): void {
+    function updateTimeout(key, enabled, minutes, defaultAction) {
         const list = (GlobalConfig.general.idle.timeouts || []).map(x => Object.assign({}, x));
         let found = false;
         for (let i = 0; i < list.length; i++) {
@@ -228,7 +228,7 @@ ColumnLayout {
             description: qsTr("Manually prevent system from dimming, locking, or suspending")
             divider: false
             StyledSwitch {
-                checked: GlobalConfig.qspanel?.keepAwake ?? false
+                checked: (GlobalConfig.qspanel && GlobalConfig.qspanel.keepAwake !== undefined) ? GlobalConfig.qspanel.keepAwake : false
                 onToggled: {
                     if (GlobalConfig.qspanel) {
                         GlobalConfig.qspanel.keepAwake = checked;

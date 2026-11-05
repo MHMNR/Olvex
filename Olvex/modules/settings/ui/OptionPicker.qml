@@ -256,7 +256,7 @@ Item {
 
         StateLayer {
             radius: parent.radius
-            color: Colours.palette.m3surface
+            color: Colours.palette.m3onPrimary
             enabled: !root.expanded && !closeGrace.running
             onClicked: root.openPicker()
         }
@@ -279,7 +279,7 @@ Item {
                     anchors.centerIn: parent
                     visible: !faceRow.isMat
                     text: faceRow.currentPrev
-                    color: Colours.palette.m3surface
+                    color: Colours.palette.m3onPrimary
                     textPointSize: root.isCircledText(text) ? Tokens.font.size.normal : Tokens.font.size.small
                     font.weight: Font.Medium
                     font.family: Tokens.font.family.sans
@@ -291,7 +291,7 @@ Item {
                     anchors.centerIn: parent
                     visible: faceRow.isMat
                     text: faceRow.currentPrev
-                    color: Colours.palette.m3surface
+                    color: Colours.palette.m3onPrimary
                     iconPointSize: Tokens.font.size.normal
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
@@ -299,46 +299,34 @@ Item {
             }
 
             Item {
-                Layout.preferredWidth: Math.min(faceText.implicitWidth, 160)
+                Layout.preferredWidth: Math.min(faceText.implicitWidth, 240)
                 Layout.preferredHeight: faceText.implicitHeight
                 Layout.alignment: Qt.AlignVCenter
                 clip: true
 
                 StyledText {
                     id: faceText
-                    anchors.centerIn: parent
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    width: parent.width
                     text: root.labelOf(root.currentIndex)
-                    color: Colours.palette.m3surface
+                    color: Colours.palette.m3onPrimary
                     textPointSize: Tokens.font.size.small
                     font.weight: Font.Medium
                     font.family: Tokens.font.family.sans
                     verticalAlignment: Text.AlignVCenter
-                    
-                    SequentialAnimation on x {
-                        loops: Animation.Infinite
-                        running: Boolean(parent) && root.visible && faceText.implicitWidth > (parent ? parent.width : 0) && !root.expanded
-                        PauseAnimation { duration: 1500 }
-                        NumberAnimation {
-                            from: 0
-                            to: (parent ? parent.width : 0) - faceText.implicitWidth
-                            duration: Math.max(0, faceText.implicitWidth - (parent ? parent.width : 0)) * 30
-                        }
-                        PauseAnimation { duration: 1500 }
-                        NumberAnimation {
-                            to: 0
-                            duration: 400
-                            easing.type: Easing.InOutQuad
-                        }
-                    }
+                    elide: Text.ElideRight
                 }
             }
             MaterialIcon {
                 Layout.alignment: Qt.AlignVCenter
                 text: "expand_more"
-                color: Colours.palette.m3surface
+                color: Colours.palette.m3onPrimary
                 iconPointSize: Tokens.font.size.normal
-                opacity: 0.85
+                opacity: 0.9
                 verticalAlignment: Text.AlignVCenter
+                rotation: (root.expanded || root.morphState === "open") ? 180 : 0
+                Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             }
         }
     }
@@ -350,8 +338,14 @@ Item {
         anchors.fill: parent
         z: 9997
         visible: root.expanded
+        hoverEnabled: true
+        preventStealing: true
+        acceptedButtons: Qt.AllButtons
         onClicked: root.closePicker()
         onWheel: event => event.accepted = true
+        onPressed: event => event.accepted = true
+        onReleased: event => event.accepted = true
+        onDoubleClicked: event => event.accepted = true
     }
 
     // M3 Ambient Elevation Shadow
@@ -364,7 +358,11 @@ Item {
         width: morphContainer.width
         height: morphContainer.height
         radius: morphContainer.radius
-        level: root.morphState === "open" ? 3 : 0
+        level: root.morphState === "open" ? 2 : 0
+        color: Qt.alpha(Colours.palette.m3shadow, Colours.light ? 0.22 : 0.45)
+        blur: 18
+        offset.y: 4
+        spread: 0
         opacity: root.morphState === "open" ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
     }
@@ -404,10 +402,7 @@ Item {
 
         // Background Crossfade (StyledClippingRect has built-in Behavior on color with CAnim)
         color: root.morphState === "open" ? Colours.palette.m3surfaceContainer : Colours.palette.m3primary
-        
-        border.color: root.morphState === "open" ? Qt.alpha(Colours.palette.m3outlineVariant, 0.40) : "transparent"
-        border.width: 1
-        Behavior on border.color { ColorAnimation { duration: 180 } }
+        border.width: 0
 
         // ── Shared Element Morphing Button Face ──
         Item {
@@ -440,7 +435,7 @@ Item {
                         anchors.centerIn: parent
                         visible: !parent.isMat
                         text: parent.morphPrev
-                        color: Colours.palette.m3surface
+                        color: Colours.palette.m3onPrimary
                         textPointSize: root.isCircledText(text) ? Tokens.font.size.normal : Tokens.font.size.small
                         font.weight: Font.Medium
                         font.family: Tokens.font.family.sans
@@ -452,7 +447,7 @@ Item {
                         anchors.centerIn: parent
                         visible: parent.isMat
                         text: parent.morphPrev
-                        color: Colours.palette.m3surface
+                        color: Colours.palette.m3onPrimary
                         iconPointSize: Tokens.font.size.normal
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
@@ -460,20 +455,23 @@ Item {
                 }
 
                 Item {
-                    Layout.preferredWidth: Math.min(morphText.implicitWidth, 160)
+                    Layout.preferredWidth: Math.min(morphText.implicitWidth, 240)
                     Layout.preferredHeight: morphText.implicitHeight
                     Layout.alignment: Qt.AlignVCenter
                     clip: true
 
                     StyledText {
                         id: morphText
-                        anchors.centerIn: parent
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        width: parent.width
                         text: root.labelOf(root.currentIndex)
-                        color: Colours.palette.m3surface
+                        color: Colours.palette.m3onPrimary
                         textPointSize: Tokens.font.size.small
                         font.weight: Font.Medium
                         font.family: Tokens.font.family.sans
                         verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
                     }
                 }
 
@@ -481,11 +479,13 @@ Item {
                     id: morphChevron
                     Layout.alignment: Qt.AlignVCenter
                     text: "expand_more"
-                    color: Colours.palette.m3surface
+                    color: Colours.palette.m3onPrimary
                     iconPointSize: Tokens.font.size.normal
-                    opacity: root.morphState === "open" ? 0.0 : 0.85
+                    opacity: root.morphState === "open" ? 0.0 : 0.9
                     verticalAlignment: Text.AlignVCenter
+                    rotation: root.morphState === "open" ? 180 : 0
                     Behavior on opacity { NumberAnimation { duration: 150 } }
+                    Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                 }
             }
         }

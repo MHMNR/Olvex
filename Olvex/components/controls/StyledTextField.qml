@@ -20,6 +20,14 @@ TextField {
     topPadding: 8
     bottomPadding: 8
 
+    TextMetrics {
+        id: placeholderMetrics
+        font: root.font
+        text: root.placeholderText || ""
+    }
+
+    implicitWidth: Math.max(140, Math.round(Math.max(contentWidth, placeholderMetrics.width) + leftPadding + rightPadding + 16))
+
     onAccepted: {
         root.focus = false;
     }

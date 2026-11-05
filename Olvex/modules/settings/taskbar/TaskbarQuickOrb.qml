@@ -24,14 +24,14 @@ Item {
             target: root
             property: "opacity"
             to: 1.0
-            duration: Tokens?.anim?.durations?.slow ?? 400
+            duration: Tokens.anim.durations.slow
             easing.type: Easing.OutCubic
         }
         NumberAnimation {
             target: root
             property: "y"
             to: 0
-            duration: Tokens?.anim?.durations?.slow ?? 400
+            duration: Tokens.anim.durations.slow
             easing.type: Easing.OutCubic
         }
     }

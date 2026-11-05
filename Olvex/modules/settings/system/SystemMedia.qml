@@ -8,6 +8,7 @@ import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
+import qs.services
 
 Item {
     id: root
@@ -30,8 +31,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.large ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.large ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -44,19 +45,26 @@ Item {
         anchors.leftMargin: Tokens.padding.large
         anchors.rightMargin: Tokens.padding.large
         anchors.topMargin: Tokens.padding.large
-        spacing: 0
+        spacing: Tokens.spacing.large
 
-        SettingRow {
-            title: qsTr("Default player")
-            description: qsTr("Preferred source when several are playing")
-            divider: false
-            OptionPicker {
-                id: playerPicker
-                model: ["Spotify", "mpv", "firefox", "vlc", "auto"]
-                currentIndex: root.idxOf(playerPicker.model, GlobalConfig.services.defaultPlayer || "Spotify")
-                onSelected: i => {
-                    GlobalConfig.services.defaultPlayer = playerPicker.model[i];
-                    GlobalConfig.save();
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Media Playback")
+            description: qsTr("MPRIS player prioritization for taskbar and control center")
+            icon: "music_note"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("Default player")
+                description: qsTr("Preferred media player when multiple applications are active")
+                OptionPicker {
+                    id: playerPicker
+                    model: ["Spotify", "mpv", "firefox", "vlc", "auto"]
+                    currentIndex: root.idxOf(playerPicker.model, GlobalConfig.services.defaultPlayer || "Spotify")
+                    onSelected: i => {
+                        GlobalConfig.services.defaultPlayer = playerPicker.model[i];
+                        GlobalConfig.save();
+                    }
                 }
             }
         }

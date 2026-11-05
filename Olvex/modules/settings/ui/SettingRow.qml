@@ -1,5 +1,3 @@
-
-
 import ".."
 import "."
 import "../components"
@@ -7,15 +5,14 @@ import "../../../components"
 import "../../../components/controls"
 import "../../../components/containers"
 import QtQuick
+import QtQuick.Layouts
 import Olvex.Config
 import qs.services
 
-// Title/desc left, control right.
-// Cursor rules:
-//  · Title / description / row padding → always Arrow
-//  · Control slot (switch/slider/…) → that control's own cursor
-//  · Full-row hand only when clickable:true (and only over the text side)
-Item {
+// Android 17 (M3 Expressive) Connected Setting Row
+// Features dynamic corner rounding (22dp outer, 6dp inner), optional squircle icon,
+// and full-row click activation for switches.
+StyledRect {
     id: root
 
     property Session session: null
@@ -25,58 +22,109 @@ Item {
     property string icon: ""
     property Component customIcon: null
     property bool clickable: false
-    property bool divider: true
+    property bool divider: false // Deprecated: connected stack uses gap spacing instead of hairline divider
 
     // Clean neutral variant for description text — follows M3 specification
     property color descriptionColor: Colours.palette.m3onSurfaceVariant
+
+    // Optional icon background tint (defaults to primaryContainer, set transparent for clean borderless icon)
+    property bool showIconBackground: true
+    property color iconContainerColor: showIconBackground ? Qt.alpha(Colours.palette.m3primary, 0.15) : "transparent"
+    property color iconColor: Colours.palette.m3primary
+
+    // Group position flags (automatically managed by Section.qml)
+    property bool isFirstInGroup: false
+    property bool isLastInGroup: false
+    property bool isSingleInGroup: false
 
     default property alias control: controlHolder.data
 
     signal clicked
 
-    implicitWidth: parent ? parent.width : 400
-    implicitHeight: Math.max(56, textCol.implicitHeight + Tokens.padding.normal * 2)
+    Layout.fillWidth: true
+    implicitWidth: parent ? parent.width : 0
+    implicitHeight: Math.max(58, Math.max(textCol.implicitHeight, controlHolder.implicitHeight) + 20)
     width: parent ? parent.width : implicitWidth
 
-    Loader {
-        id: customIconLoader
-        visible: !!root.customIcon
-        active: !!root.customIcon
-        sourceComponent: root.customIcon
-        anchors.left: parent.left
-        anchors.leftMargin: Tokens.padding.small
-        anchors.verticalCenter: parent.verticalCenter
+    // Variable corner radiuses matching Android 17 Connected Stack
+    readonly property real topR: (isSingleInGroup || isFirstInGroup) ? 22 : 6
+    readonly property real bottomR: (isSingleInGroup || isLastInGroup) ? 22 : 6
+    topLeftRadius: topR
+    topRightRadius: topR
+    bottomLeftRadius: bottomR
+    bottomRightRadius: bottomR
+
+    property bool isReady: false
+
+    Behavior on topLeftRadius { enabled: root.isReady; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+    Behavior on topRightRadius { enabled: root.isReady; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+    Behavior on bottomLeftRadius { enabled: root.isReady; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+    Behavior on bottomRightRadius { enabled: root.isReady; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+    border.width: 0
+    color: (clickArea.containsMouse && (root.clickable || root.hasSwitch) && root.enabled)
+           ? Colours.palette.m3surfaceContainerHighest
+           : Colours.palette.m3surfaceContainerHigh
+
+    Behavior on color { CAnim {} }
+
+    opacity: root.enabled ? 1.0 : 0.45
+    Behavior on opacity {
+        NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
     }
 
-    MaterialIcon {
-        id: iconItem
-
-        visible: !root.customIcon && !!root.icon
+    // ── Optional Squircle Icon Box (Only shown if icon is explicitly provided) ──
+    Item {
+        id: iconHolder
+        visible: !!root.customIcon || (root.icon !== "")
         anchors.left: parent.left
-        anchors.leftMargin: Tokens.padding.small
+        anchors.leftMargin: 14
         anchors.verticalCenter: parent.verticalCenter
-        text: root.icon
-        color: Colours.palette.m3onSurfaceVariant
-        iconPointSize: Tokens.font.size.large
+        width: visible ? 40 : 0
+        height: 40
+
+        StyledRect {
+            anchors.fill: parent
+            radius: 12
+            color: root.iconContainerColor
+            border.width: 0
+
+            Loader {
+                id: customIconLoader
+                visible: !!root.customIcon
+                active: !!root.customIcon
+                sourceComponent: root.customIcon
+                anchors.centerIn: parent
+            }
+
+            MaterialIcon {
+                id: iconItem
+                visible: !root.customIcon && !!root.icon
+                anchors.centerIn: parent
+                text: root.icon
+                color: root.iconColor
+                iconPointSize: 20
+            }
+        }
     }
 
+    // ── Label Column (Title + Description) ──────────────────────────────────
     Column {
         id: textCol
-
-        anchors.left: root.customIcon ? customIconLoader.right : (root.icon ? iconItem.right : parent.left)
-        anchors.leftMargin: (root.customIcon || root.icon) ? Tokens.spacing.normal : Tokens.padding.small
+        anchors.left: iconHolder.visible ? iconHolder.right : parent.left
+        anchors.leftMargin: iconHolder.visible ? 14 : 18
         anchors.right: controlHolder.left
-        anchors.rightMargin: Tokens.spacing.normal
+        anchors.rightMargin: 16
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 3
+        spacing: 2
 
         StyledText {
             width: parent.width
             text: root.title
             wrapMode: Text.WordWrap
             maximumLineCount: 2
-            font.weight: Font.Medium
-            font.letterSpacing: 0.0
+            font.weight: Font.DemiBold
+            font.letterSpacing: -0.1
             lineHeight: 1.25
             lineHeightMode: Text.ProportionalHeight
             color: Colours.palette.m3onSurface
@@ -92,62 +140,96 @@ Item {
             color: root.descriptionColor
             font.weight: Font.Normal
             font.letterSpacing: 0.1
-            lineHeight: 1.4
+            lineHeight: 1.35
             lineHeightMode: Text.ProportionalHeight
             textPointSize: Tokens.font.size.small
         }
     }
 
+    // ── Control Slot (Switch, Slider, Segmented, OptionPicker) ───────────────
     Item {
         id: controlHolder
-
         anchors.right: parent.right
+        anchors.rightMargin: 16
         anchors.verticalCenter: parent.verticalCenter
-        anchors.rightMargin: Tokens.padding.small
-        implicitWidth: children.length > 0 ? (children[0].implicitWidth || children[0].width || Math.max(0, childrenRect.width)) : 0
-        implicitHeight: children.length > 0 ? (children[0].implicitHeight || children[0].height || Math.max(0, childrenRect.height)) : 0
+        implicitWidth: {
+            if (children.length === 0) return 0;
+            let c = children[0];
+            if (c.width > 0 && c.implicitWidth > 0 && c.width !== c.implicitWidth) {
+                return c.width;
+            }
+            return c.implicitWidth || c.width || Math.max(0, childrenRect.width);
+        }
+        implicitHeight: {
+            if (children.length === 0) return 0;
+            let c = children[0];
+            if (c.height > 0 && c.implicitHeight > 0 && c.height !== c.implicitHeight) {
+                return c.height;
+            }
+            return c.implicitHeight || c.height || Math.max(0, childrenRect.height);
+        }
         width: implicitWidth
         height: implicitHeight
         z: 3
-    }
 
-    Rectangle {
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: Tokens.padding.small
-        anchors.rightMargin: Tokens.padding.small
-        height: 1
-        visible: root.divider
-        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-    }
-
-    MouseArea {
-        id: arrowShield
-
-        anchors.fill: parent
-        anchors.rightMargin: controlHolder.width + Tokens.spacing.small
-        z: 1
-        visible: !root.clickable
-        enabled: !root.clickable
-        hoverEnabled: true
-        acceptedButtons: Qt.NoButton
-        cursorShape: Qt.ArrowCursor
-    }
-
-    Loader {
-        anchors.fill: parent
-        anchors.rightMargin: controlHolder.width + Tokens.spacing.small
-        active: root.clickable
-        z: 2
-        sourceComponent: StateLayer {
-            showHoverBackground: true
-            showRipple: true
-            onClicked: root.clicked()
+        onChildrenChanged: {
+            if (children.length > 0) {
+                let c = children[0];
+                if (c && !c.anchors.right && !c.anchors.fill) {
+                    c.anchors.right = controlHolder.right;
+                }
+            }
+            Qt.callLater(root.updateSwitchTarget);
         }
     }
 
-    // ── Ultra-sanitize for robust string matching ──────────────────────────
+    // ── Switch Auto-Detection for Whole-Row Toggle Activation ────────────────
+    property Item switchTarget: null
+
+    function updateSwitchTarget() {
+        switchTarget = findSwitch(controlHolder);
+    }
+
+    function findSwitch(parentItem) {
+        if (!parentItem) return null;
+        for (let i = 0; i < parentItem.children.length; i++) {
+            let child = parentItem.children[i];
+            if (child && (child.hasOwnProperty("toggled") || (child.hasOwnProperty("checked") && typeof child.toggle === "function"))) {
+                return child;
+            }
+            if (child && child.children && child.children.length > 0) {
+                let nested = findSwitch(child);
+                if (nested) return nested;
+            }
+        }
+        return null;
+    }
+
+    readonly property bool hasSwitch: switchTarget !== null
+
+    MouseArea {
+        id: clickArea
+        anchors.fill: parent
+        anchors.rightMargin: root.hasSwitch ? (controlHolder.width + 16) : 0
+        visible: root.clickable || root.hasSwitch
+        enabled: root.clickable || root.hasSwitch
+        hoverEnabled: true
+        cursorShape: (root.clickable || root.hasSwitch) ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: {
+            if (root.hasSwitch && root.switchTarget) {
+                if (typeof root.switchTarget.toggle === "function") {
+                    root.switchTarget.toggle();
+                } else if (root.switchTarget.hasOwnProperty("checked")) {
+                    root.switchTarget.checked = !root.switchTarget.checked;
+                }
+            }
+            if (root.clickable) {
+                root.clicked();
+            }
+        }
+    }
+
+    // ── Ultra-sanitize for search target highlighting ────────────────────────
     function ultraSanitize(str) {
         if (!str) return "";
         return String(str).toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -167,20 +249,16 @@ Item {
         const myKey = ultraSanitize(root.highlightKey);
         const myTitle = ultraSanitize(root.title);
 
-        // 1. Exact match on explicit highlightKey
         if (myKey && (myKey === hKey || myKey === hId || myKey === hTitle))
             return true;
 
-        // 2. Exact match on row title
         if (myTitle && hTitle) {
             if (myTitle === hTitle)
                 return true;
-            // Also allow matching if hTitle ends with or starts with myTitle (e.g. "Dark / Light Mode" -> "Mode")
             if (myTitle.length >= 3 && (hTitle.endsWith(myTitle) || hTitle.startsWith(myTitle)))
                 return true;
         }
 
-        // 3. Exact match on ID suffix (e.g. appearance_theme_mode -> mode)
         if (myTitle && hId && hId.endsWith(myTitle))
             return true;
 
@@ -197,16 +275,15 @@ Item {
     StyledRect {
         id: rowFlashOverlay
         anchors.fill: parent
-        anchors.margins: -2
-        radius: Tokens.rounding.normal
+        topLeftRadius: root.topLeftRadius
+        topRightRadius: root.topRightRadius
+        bottomLeftRadius: root.bottomLeftRadius
+        bottomRightRadius: root.bottomRightRadius
         color: Qt.alpha(Colours.palette.m3primary, 0.24)
         border.width: 0
-        border.color: "transparent"
         opacity: 0.0
         z: 10
         visible: opacity > 0.001
-
-        MouseArea { anchors.fill: parent; enabled: false }
 
         SequentialAnimation {
             id: rowFlashAnim
@@ -224,8 +301,6 @@ Item {
         }
     }
 
-    // PaneRegistry is a pragma Singleton imported via "..".
-    // This Connections block fires on every page, regardless of Loader depth.
     Connections {
         target: PaneRegistry
         function onHighlightTimestampChanged() {
@@ -235,9 +310,23 @@ Item {
         }
     }
 
+    function notifySection() {
+        let p = root.parent;
+        while (p) {
+            if (typeof p.updateRowPositions === "function") {
+                p.updateRowPositions();
+                break;
+            }
+            p = p.parent;
+        }
+    }
+
     Component.onCompleted: {
+        updateSwitchTarget();
+        notifySection();
         if (root.isTargetHighlighted()) {
             root.triggerFlash();
         }
+        Qt.callLater(() => { root.isReady = true; });
     }
 }

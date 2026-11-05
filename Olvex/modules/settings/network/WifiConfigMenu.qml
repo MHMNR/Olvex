@@ -43,6 +43,30 @@ Item {
     visible: active || expandTransition.running || collapseTransition.running
     focus: active
 
+    Binding {
+        target: menu.session || null
+        property: "modalActive"
+        value: menu.active
+    }
+
+    Keys.onPressed: event => {
+        // Block all keyboard shortcuts from reaching underlying window while modal is open
+        if (event.key === Qt.Key_Escape) {
+            if (isPasswordEditing) {
+                isPasswordEditing = false;
+                event.accepted = true;
+                return;
+            }
+            menu.close();
+            event.accepted = true;
+            return;
+        }
+        // Consume tab and navigation keys so focus doesn't escape to the underlying page
+        if (!container.focus && !isPasswordEditing) {
+            event.accepted = true;
+        }
+    }
+
     Keys.onEscapePressed: event => {
         if (isPasswordEditing) {
             isPasswordEditing = false;
@@ -127,9 +151,15 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            enabled: container.state === "expanded"
+            enabled: container.state === "expanded" || menu.active
             hoverEnabled: true
+            preventStealing: true
+            acceptedButtons: Qt.AllButtons
             onClicked: menu.close()
+            onWheel: event => event.accepted = true
+            onPressed: event => event.accepted = true
+            onReleased: event => event.accepted = true
+            onDoubleClicked: event => event.accepted = true
         }
     }
 
@@ -268,12 +298,18 @@ Item {
             }
         ]
 
-        // Prevent clicks & hovers within container from leaking
+        // Prevent clicks, hovers & scrolls within container from leaking
         MouseArea {
             anchors.fill: parent
             enabled: container.state === "expanded"
             hoverEnabled: true
-            onClicked: {}
+            preventStealing: true
+            acceptedButtons: Qt.AllButtons
+            onClicked: event => event.accepted = true
+            onWheel: event => event.accepted = true
+            onPressed: event => event.accepted = true
+            onReleased: event => event.accepted = true
+            onDoubleClicked: event => event.accepted = true
         }
 
         // ── Layer 1: Button Content (visible at docked state) ───────────────

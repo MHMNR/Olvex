@@ -19,9 +19,9 @@ Item {
 
     property Session session
     
-    readonly property bool btEnabled: Bluetooth.defaultAdapter?.enabled ?? false
+    readonly property bool btEnabled: (Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled) || false
     readonly property var btDevices: {
-        const vals = Bluetooth.devices?.values;
+        const vals = Bluetooth.devices ? Bluetooth.devices.values : null;
         if (!vals)
             return [];
         return [...vals].sort((a, b) => (b.connected - a.connected) || (b.paired - a.paired) || (a.name || "").localeCompare(b.name || "")).slice(0, 24);
@@ -37,7 +37,7 @@ Item {
         return qsTr("On · %1 device%2").arg(root.btDevices.length).arg(root.btDevices.length === 1 ? "" : "s");
     }
 
-    function toggleBluetooth(on: bool): void {
+    function toggleBluetooth(on) {
         const adapter = Bluetooth.defaultAdapter;
         if (!adapter)
             return;
@@ -52,8 +52,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -68,150 +68,117 @@ Item {
         anchors.topMargin: Tokens.padding.large
         spacing: Tokens.spacing.large
 
-        SettingRow {
-            Layout.fillWidth: true
+        Section {
             title: qsTr("Bluetooth")
-            description: {
-                if (!root.btEnabled)
-                    return root.btStatusText;
-                if (Bluetooth.defaultAdapter?.discovering)
-                    return qsTr("%1 · Scanning…").arg(root.btStatusText);
-                return root.btStatusText;
-            }
+            description: qsTr("Pair and manage wireless accessories")
             icon: "bluetooth"
-            customIcon: Component {
-                BluetoothLottieIcon {
-                    size: 24
-                    connected: root.btEnabled
-                    deviceConnected: root.btConnectedCount > 0
-                    color: (root.btEnabled && root.btConnectedCount > 0) ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("Bluetooth")
+                description: {
+                    if (!root.btEnabled)
+                        return root.btStatusText;
+                    if (Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.discovering)
+                        return qsTr("%1 · Scanning…").arg(root.btStatusText);
+                    return root.btStatusText;
                 }
-            }
-            divider: true
 
-            Row {
-                spacing: Tokens.spacing.small
+                Row {
+                    spacing: Tokens.spacing.small
 
-                Item {
-                    id: btScanCtl
-                    readonly property bool scanning: Bluetooth.defaultAdapter?.discovering ?? false
-                    readonly property bool canScan: root.btEnabled && !!Bluetooth.defaultAdapter
-                    implicitWidth: 40
-                    implicitHeight: 40
+                    Item {
+                        id: btScanCtl
+                        readonly property bool scanning: (Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.discovering) || false
+                        readonly property bool canScan: root.btEnabled && !!Bluetooth.defaultAdapter
+                        implicitWidth: 36
+                        implicitHeight: 36
 
-                    LoadingIndicator {
-                        anchors.centerIn: parent
-                        implicitSize: 32
-                        color: Colours.palette.m3primary
-                        animated: btScanCtl.scanning
-                        opacity: btScanCtl.scanning ? 1 : 0
-                        scale: btScanCtl.scanning ? 1 : 0.72
-                        visible: opacity > 0.01
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        Behavior on scale { Anim { type: Anim.DefaultSpatial } }
-                    }
+                        LoadingIndicator {
+                            anchors.centerIn: parent
+                            implicitSize: 32
+                            color: Colours.palette.m3primary
+                            animated: btScanCtl.scanning
+                            opacity: btScanCtl.scanning ? 1 : 0
+                            scale: btScanCtl.scanning ? 1 : 0.72
+                            visible: opacity > 0.01
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            Behavior on scale { Anim { type: Anim.DefaultSpatial } }
+                        }
 
-                    IconButton {
-                        anchors.centerIn: parent
-                        type: IconButton.Text
-                        icon: "refresh"
-                        disabled: !btScanCtl.canScan
-                        opacity: btScanCtl.scanning ? 0 : 1
-                        visible: opacity > 0.01
-                        enabled: btScanCtl.canScan && !btScanCtl.scanning
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                        IconButton {
+                            anchors.centerIn: parent
+                            type: IconButton.Text
+                            icon: "refresh"
+                            disabled: !btScanCtl.canScan
+                            opacity: btScanCtl.scanning ? 0 : 1
+                            visible: opacity > 0.01
+                            enabled: btScanCtl.canScan && !btScanCtl.scanning
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
 
-                        onClicked: {
-                            const a = Bluetooth.defaultAdapter;
-                            if (!a || !root.btEnabled) return;
-                            if (a.discovering) {
-                                a.discovering = false;
-                                Qt.callLater(() => {
-                                    if (Bluetooth.defaultAdapter)
-                                        Bluetooth.defaultAdapter.discovering = true;
-                                });
-                            } else {
-                                a.discovering = true;
+                            onClicked: {
+                                const a = Bluetooth.defaultAdapter;
+                                if (!a || !root.btEnabled) return;
+                                if (a.discovering) {
+                                    a.discovering = false;
+                                    Qt.callLater(() => {
+                                        if (Bluetooth.defaultAdapter)
+                                            Bluetooth.defaultAdapter.discovering = true;
+                                    });
+                                } else {
+                                    a.discovering = true;
+                                }
                             }
                         }
                     }
-                }
 
-                StyledSwitch {
-                    anchors.verticalCenter: parent.verticalCenter
-                    checked: root.btEnabled
-                    enabled: !!Bluetooth.defaultAdapter
-                    onToggled: root.toggleBluetooth(checked)
+                    StyledSwitch {
+                        anchors.verticalCenter: parent.verticalCenter
+                        checked: root.btEnabled
+                        enabled: !!Bluetooth.defaultAdapter
+                        onToggled: root.toggleBluetooth(checked)
+                    }
                 }
             }
         }
 
-        Column {
+        Section {
             Layout.fillWidth: true
-            visible: root.btEnabled
-            spacing: 0
-
-            Item {
-                width: parent.width
-                height: 96
-                visible: root.btDevices.length === 0
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            const a = Bluetooth.defaultAdapter;
-                            if (!a || !root.btEnabled) return;
-                            a.discovering = true;
-                        }
-                    }
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: Tokens.spacing.normal
-
-                        LoadingIndicator {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            implicitSize: 36
-                            color: Colours.palette.m3primary
-                            animated: Bluetooth.defaultAdapter?.discovering ?? false
-                            opacity: (Bluetooth.defaultAdapter?.discovering ?? false) ? 1 : 0.45
-                        }
-
-                        StyledText {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: (Bluetooth.defaultAdapter?.discovering ?? false) ? qsTr("Scanning for devices…") : qsTr("No devices yet · tap to scan")
-                            color: Colours.palette.m3onSurfaceVariant
-                            font.weight: Font.Normal
-                            textPointSize: Tokens.font.size.normal
-                        }
-                    }
-            }
+            visible: root.btEnabled && root.btDevices.length > 0
+            title: qsTr("Paired & Available Devices")
+            accentColor: Colours.palette.m3primary
 
             Repeater {
                 model: root.btDevices
-                delegate: Item {
+                delegate: SettingRow {
                     id: btDev
                     required property var modelData
+                    required property int index
+                    showIconBackground: false
+
                     readonly property bool isConnecting: {
                         const s = modelData.state;
                         return s === BluetoothDeviceState.Connecting || s === BluetoothDeviceState.Disconnecting;
                     }
                     readonly property bool isConnected: modelData.connected && !btDev.isConnecting
-                    readonly property real textOpacity: isConnecting ? 0.7 : 1
 
-                    width: parent ? parent.width : 0
-                    height: btRow.implicitHeight + Tokens.padding.large * 2
+                    title: btDev.modelData.name || btDev.modelData.address || qsTr("Unknown device")
+                    description: {
+                        if (btDev.isConnecting) {
+                            if (btDev.modelData.state === BluetoothDeviceState.Disconnecting) return qsTr("Disconnecting…");
+                            return qsTr("Connecting…");
+                        }
+                        if (btDev.isConnected) return qsTr("Connected");
+                        if (btDev.modelData.paired || btDev.modelData.bonded) return qsTr("Paired");
+                        return qsTr("Nearby");
+                    }
+                    clickable: !btDev.isConnecting
+                    onClicked: {
+                        if (!btDev.isConnecting)
+                            btDev.modelData.connected = !btDev.modelData.connected;
+                    }
 
-                    RowLayout {
-                        id: btRow
-                        anchors.fill: parent
-                        anchors.leftMargin: Tokens.padding.normal
-                        anchors.rightMargin: Tokens.padding.normal
-                        anchors.topMargin: Tokens.padding.normal
-                        anchors.bottomMargin: Tokens.padding.normal
-                        spacing: Tokens.spacing.normal
-
+                    customIcon: Component {
                         Loader {
                             id: btIconLoader
                             readonly property string devIcon: Icons.getBluetoothIcon(btDev.modelData.icon || "")
@@ -224,7 +191,6 @@ Item {
                                     size: 24
                                     connected: btDev.isConnected
                                     color: btDev.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                                    opacity: btDev.textOpacity
                                 }
                             }
 
@@ -234,102 +200,67 @@ Item {
                                     text: btIconLoader.devIcon
                                     color: btDev.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                                     iconPointSize: Tokens.font.size.large
-                                    opacity: btDev.textOpacity
-                                }
-                            }
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 3
-                            opacity: btDev.textOpacity
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: btDev.modelData.name || btDev.modelData.address || qsTr("Unknown device")
-                                elide: Text.ElideRight
-                                font.weight: Font.Normal
-                                color: btDev.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                                textPointSize: Tokens.font.size.normal
-                            }
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: {
-                                    if (btDev.modelData.paired || btDev.modelData.bonded) return qsTr("Paired");
-                                    return qsTr("Nearby");
-                                }
-                                elide: Text.ElideRight
-                                color: Colours.palette.m3onSurfaceVariant
-                                font.weight: Font.Normal
-                                textPointSize: Tokens.font.size.small
-                            }
-                        }
-
-                        StyledRect {
-                            Layout.alignment: Qt.AlignVCenter
-                            implicitWidth: btPillRow.implicitWidth + Tokens.padding.normal * 2
-                            implicitHeight: 26
-                            radius: height / 2
-                            color: {
-                                if (btDev.isConnecting) return Qt.alpha(Colours.palette.m3primary, 0.16);
-                                if (btDev.isConnected) return Colours.palette.m3primaryContainer;
-                                return Colours.palette.m3surfaceContainerHighest;
-                            }
-
-                            Row {
-                                id: btPillRow
-                                anchors.centerIn: parent
-                                spacing: Tokens.spacing.extraSmall
-
-                                LoadingIndicator {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    implicitSize: 14
-                                    color: Colours.palette.m3primary
-                                    animated: btDev.isConnecting
-                                    visible: btDev.isConnecting
-                                }
-
-                                StyledText {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: {
-                                        if (btDev.isConnecting) {
-                                            if (btDev.modelData.state === BluetoothDeviceState.Disconnecting) return qsTr("Disconnecting");
-                                            return qsTr("Connecting");
-                                        }
-                                        if (btDev.isConnected) return qsTr("Connected");
-                                        return qsTr("Available");
-                                    }
-                                    color: {
-                                        if (btDev.isConnecting) return Colours.palette.m3primary;
-                                        if (btDev.isConnected) return Colours.palette.m3onPrimaryContainer;
-                                        return Colours.palette.m3onSurfaceVariant;
-                                    }
-                                    font.weight: Font.Normal
-                                    font.letterSpacing: 0.15
-                                    textPointSize: Tokens.font.size.small
-                                }
-                            }
-
-                            StateLayer {
-                                anchors.fill: parent
-                                radius: parent.radius
-                                interactive: !btDev.isConnecting
-                                disabled: btDev.isConnecting
-                                onClicked: {
-                                    if (!btDev.isConnecting)
-                                        btDev.modelData.connected = !btDev.modelData.connected;
                                 }
                             }
                         }
                     }
 
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 1
-                        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+                    StyledRect {
+                        implicitWidth: btPillRow.implicitWidth + Tokens.padding.normal * 2
+                        implicitHeight: 28
+                        radius: Tokens.rounding.full
+                        color: {
+                            if (btDev.isConnecting) return Qt.alpha(Colours.palette.m3primary, 0.16);
+                            if (btDev.isConnected) return Colours.palette.m3primaryContainer;
+                            return Colours.palette.m3surfaceContainerHighest;
+                        }
+
+                        Behavior on color { CAnim {} }
+
+                        Row {
+                            id: btPillRow
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.extraSmall
+
+                            LoadingIndicator {
+                                anchors.verticalCenter: parent.verticalCenter
+                                implicitSize: 14
+                                color: Colours.palette.m3primary
+                                animated: btDev.isConnecting
+                                visible: btDev.isConnecting
+                            }
+
+                            StyledText {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: {
+                                    if (btDev.isConnecting) {
+                                        if (btDev.modelData.state === BluetoothDeviceState.Disconnecting) return qsTr("Disconnecting");
+                                        return qsTr("Connecting");
+                                    }
+                                    if (btDev.isConnected) return qsTr("Connected");
+                                    return qsTr("Available");
+                                }
+                                color: {
+                                    if (btDev.isConnecting) return Colours.palette.m3primary;
+                                    if (btDev.isConnected) return Colours.palette.m3onPrimaryContainer;
+                                    return Colours.palette.m3onSurfaceVariant;
+                                }
+                                font.weight: Font.Normal
+                                font.letterSpacing: 0.15
+                                textPointSize: Tokens.font.size.small
+                            }
+                        }
+
+                        StateLayer {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            interactive: !btDev.isConnecting
+                            disabled: btDev.isConnecting
+                            onClicked: {
+                                if (!btDev.isConnecting)
+                                    btDev.modelData.connected = !btDev.modelData.connected;
+                            }
+                        }
                     }
                 }
             }

@@ -8,6 +8,7 @@ import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
+import qs.services
 
 Item {
     id: root
@@ -20,8 +21,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -36,16 +37,18 @@ Item {
         anchors.topMargin: Tokens.padding.large
         spacing: Tokens.spacing.large
 
-        Column {
+        Section {
             Layout.fillWidth: true
-            spacing: 0
-            
+            title: qsTr("Workspaces & Indicators")
+            description: qsTr("Number of workspaces, active indicators, and monitor filtering")
+            icon: "workspaces"
+            accentColor: Colours.palette.m3secondary
+
             SettingRow {
                 title: qsTr("Workspaces shown")
-                description: qsTr("Number of workspaces to show")
-                divider: true
+                description: qsTr("Maximum number of workspace pills to display")
                 CustomSpinBox {
-                    value: Config.bar.workspaces.shown ?? 5
+                    value: (Config.bar.workspaces.shown !== undefined) ? Config.bar.workspaces.shown : 5
                     min: 1
                     max: 20
                     step: 1
@@ -58,10 +61,9 @@ Item {
 
             SettingRow {
                 title: qsTr("Per monitor workspaces")
-                description: qsTr("Only show workspaces on the active monitor")
-                divider: true
+                description: qsTr("Only show workspaces assigned to the active monitor")
                 StyledSwitch {
-                    checked: GlobalConfig.bar.workspaces.perMonitorWorkspaces ?? true
+                    checked: (GlobalConfig.bar.workspaces.perMonitorWorkspaces !== undefined) ? GlobalConfig.bar.workspaces.perMonitorWorkspaces : true
                     onToggled: {
                         GlobalConfig.bar.workspaces.perMonitorWorkspaces = checked;
                         GlobalConfig.save();
@@ -71,10 +73,9 @@ Item {
 
             SettingRow {
                 title: qsTr("Active indicator")
-                description: qsTr("Highlight the current workspace")
-                divider: true
+                description: qsTr("Highlight the current workspace pill with accent background")
                 StyledSwitch {
-                    checked: Config.bar.workspaces.activeIndicator ?? true
+                    checked: (Config.bar.workspaces.activeIndicator !== undefined) ? Config.bar.workspaces.activeIndicator : true
                     onToggled: {
                         GlobalConfig.bar.workspaces.activeIndicator = checked;
                         GlobalConfig.save();
@@ -84,8 +85,7 @@ Item {
 
             SettingRow {
                 title: qsTr("Active indicator icon")
-                description: qsTr("Icon or number style for the active workspace")
-                divider: true
+                description: qsTr("Icon, number, or mascot style for the active workspace")
                 OptionPicker {
                     id: tbActiveLabelPicker
                     model: [
@@ -105,7 +105,7 @@ Item {
                         { label: qsTr("Dot"), preview: "circle", isMaterial: true, value: "circle" }
                     ]
                     currentIndex: {
-                        const cur = Config.bar.workspaces.activeLabel ?? "󰮯";
+                        const cur = Config.bar.workspaces.activeLabel || "󰮯";
                         for (let i = 0; i < model.length; i++) {
                             const v = model[i].value;
                             if (v === cur) return i;
@@ -129,27 +129,31 @@ Item {
                 }
             }
 
-
-
             SettingRow {
                 title: qsTr("Scroll to switch workspaces")
-                description: qsTr("Adjust workspaces by scrolling over the bar")
-                divider: true
+                description: qsTr("Cycle workspaces by scrolling over the taskbar workspace pill")
                 StyledSwitch {
-                    checked: Config.bar.scrollActions.workspaces ?? true
+                    checked: (Config.bar.scrollActions.workspaces !== undefined) ? Config.bar.scrollActions.workspaces : true
                     onToggled: {
                         GlobalConfig.bar.scrollActions.workspaces = checked;
                         GlobalConfig.save();
                     }
                 }
             }
+        }
+
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Window Previews in Workspaces")
+            description: qsTr("Mini app icons inside workspace pills")
+            icon: "window"
+            accentColor: Colours.palette.m3secondary
 
             SettingRow {
                 title: qsTr("Show windows")
-                description: qsTr("Show small icons of open applications")
-                divider: true
+                description: qsTr("Show small icons of open applications inside each workspace")
                 StyledSwitch {
-                    checked: Config.bar.workspaces.showWindows ?? false
+                    checked: (Config.bar.workspaces.showWindows !== undefined) ? Config.bar.workspaces.showWindows : false
                     onToggled: {
                         GlobalConfig.bar.workspaces.showWindows = checked;
                         GlobalConfig.save();
@@ -159,10 +163,9 @@ Item {
 
             SettingRow {
                 title: qsTr("Max window icons")
-                description: qsTr("Limit the number of icons shown")
-                divider: false
+                description: qsTr("Limit the number of app icons shown per workspace pill")
                 CustomSpinBox {
-                    value: Config.bar.workspaces.maxWindowIcons ?? 0
+                    value: Config.bar.workspaces.maxWindowIcons || 0
                     min: 0
                     max: 20
                     step: 1
@@ -176,16 +179,16 @@ Item {
         
         Section {
             Layout.fillWidth: true
-            title: qsTr("Active Window")
-            description: qsTr("Show currently focused application title")
-            icon: "window"
+            title: qsTr("Active Window Title")
+            description: qsTr("Focused application title display in taskbar")
+            icon: "branding_watermark"
+            accentColor: Colours.palette.m3secondary
             
             SettingRow {
                 title: qsTr("Compact mode")
-                description: qsTr("Use a smaller layout for the title")
-                divider: true
+                description: qsTr("Use a smaller layout for the active application title")
                 StyledSwitch {
-                    checked: Config.bar.activeWindow.compact ?? false
+                    checked: (Config.bar.activeWindow.compact !== undefined) ? Config.bar.activeWindow.compact : false
                     onToggled: { GlobalConfig.bar.activeWindow.compact = checked; GlobalConfig.save(); }
                 }
             }
@@ -193,9 +196,8 @@ Item {
             SettingRow {
                 title: qsTr("Inverted text alignment")
                 description: qsTr("Invert the active window text alignment direction")
-                divider: false
                 StyledSwitch {
-                    checked: Config.bar.activeWindow.inverted ?? false
+                    checked: (Config.bar.activeWindow.inverted !== undefined) ? Config.bar.activeWindow.inverted : false
                     onToggled: { GlobalConfig.bar.activeWindow.inverted = checked; GlobalConfig.save(); }
                 }
             }

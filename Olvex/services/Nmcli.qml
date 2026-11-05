@@ -1153,12 +1153,11 @@ Singleton {
                     if (value !== "--" && value.length > 0) {
                         details.dns.push(value);
                     }
-                } else if (isEthernet && key === "WIRED-PROPERTIES.MAC") {
+                } else if (key === "GENERAL.HWADDR" || (isEthernet && key === "WIRED-PROPERTIES.MAC")) {
                     details.macAddress = value;
+                    details.hwAddress = value;
                 } else if (isEthernet && key === "WIRED-PROPERTIES.SPEED") {
                     details.speed = value;
-                } else if (!isEthernet && key === "GENERAL.HWADDR") {
-                    details.macAddress = value;
                 }
             }
         }

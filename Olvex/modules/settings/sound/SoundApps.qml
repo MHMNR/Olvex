@@ -21,8 +21,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -37,27 +37,30 @@ Item {
         anchors.topMargin: Tokens.padding.large
         spacing: Tokens.spacing.large
 
-        Column {
+        Section {
             Layout.fillWidth: true
-            spacing: 0
+            title: qsTr("Application Streams")
+            description: qsTr("Per-application volume controls and stream balance")
+            icon: "equalizer"
+            accentColor: Colours.palette.m3secondary
 
             Repeater {
                 model: Audio.streams
 
                 delegate: SettingRow {
+                    id: appRow
                     required property var modelData
                     required property int index
 
                     title: Audio.getStreamName(modelData)
-                    description: qsTr("Application output level")
-                    icon: "apps"
-                    divider: index < Audio.streams.length - 1
-                    
+                    description: qsTr("Volume: %1%").arg(Math.round(Audio.getStreamVolume(modelData) * 100))
+
                     StyledSlider {
                         width: 200
                         from: 0
                         to: Math.max(1, GlobalConfig.services.maxVolume || 1)
                         value: Audio.getStreamVolume(modelData)
+                        valueAsPercent: true
                         onMoved: Audio.setStreamVolume(modelData, value)
                     }
                 }
@@ -65,10 +68,8 @@ Item {
 
             SettingRow {
                 visible: Audio.streams.length === 0
-                title: qsTr("No active apps")
-                description: qsTr("App streams appear here while playing audio")
-                divider: false
-                icon: "info"
+                title: qsTr("No active audio streams")
+                description: qsTr("Applications playing sound will appear here automatically")
             }
         }
     }

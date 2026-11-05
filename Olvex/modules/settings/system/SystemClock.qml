@@ -10,6 +10,7 @@ import QtQuick.Layouts
 import Olvex.Config
 import Quickshell
 import Quickshell.Io
+import qs.services
 
 Item {
     id: root
@@ -86,61 +87,73 @@ Item {
         anchors.leftMargin: Tokens.padding.large
         anchors.rightMargin: Tokens.padding.large
         anchors.topMargin: Tokens.padding.large
-        spacing: 0
+        spacing: Tokens.spacing.large
 
-        SettingRow {
-            title: qsTr("Clock format")
-            description: qsTr("12-hour or 24-hour time")
-            divider: true
-            Segmented {
-                minSegmentWidth: 96
-                model: [{
-                        label: qsTr("24-hour")
-                    }, {
-                        label: qsTr("12-hour")
-                    }]
-                currentIndex: GlobalConfig.services.useTwelveHourClock ? 1 : 0
-                onSelected: i => {
-                    GlobalConfig.services.useTwelveHourClock = i === 1;
-                    GlobalConfig.save();
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Time & Date Format")
+            description: qsTr("Display format and system regional time zone")
+            icon: "schedule"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("Clock format")
+                description: qsTr("Choose between 24-hour military or 12-hour AM/PM time")
+                Segmented {
+                    minSegmentWidth: 96
+                    model: [
+                        { label: qsTr("24-hour") },
+                        { label: qsTr("12-hour") }
+                    ]
+                    currentIndex: GlobalConfig.services.useTwelveHourClock ? 1 : 0
+                    onSelected: i => {
+                        GlobalConfig.services.useTwelveHourClock = i === 1;
+                        GlobalConfig.save();
+                    }
+                }
+            }
+
+            SettingRow {
+                title: qsTr("Timezone")
+                description: qsTr("System timezone (e.g. Asia/Dhaka, Europe/London, America/New_York)")
+                OptionPicker {
+                    id: tzPicker
+                    menuMaxHeight: 360
+                    model: root.timezones
+                    currentIndex: {
+                        const cur = root.currentTz || "";
+                        return root.idxOf(tzPicker.model, cur);
+                    }
+                    onSelected: i => {
+                        if (tzPicker.model && tzPicker.model[i]) {
+                            tzSetProc.command = ["timedatectl", "set-timezone", tzPicker.model[i]];
+                            tzSetProc.running = true;
+                        }
+                    }
                 }
             }
         }
-        
-        SettingRow {
-            title: qsTr("Temperature unit")
-            description: qsTr("Units used for weather readouts")
-            divider: true
-            Segmented {
-                model: [{
-                        label: "°C"
-                    }, {
-                        label: "°F"
-                    }]
-                currentIndex: GlobalConfig.services.useFahrenheit ? 1 : 0
-                onSelected: i => {
-                    GlobalConfig.services.useFahrenheit = i === 1;
-                    GlobalConfig.save();
-                }
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Timezone")
-            description: qsTr("System timezone (e.g. Asia/Dhaka or America/New_York)")
-            divider: false
-            OptionPicker {
-                id: tzPicker
-                menuMaxHeight: 360
-                model: root.timezones
-                currentIndex: {
-                    const cur = root.currentTz || "";
-                    return root.idxOf(tzPicker.model, cur);
-                }
-                onSelected: i => {
-                    if (tzPicker.model && tzPicker.model[i]) {
-                        tzSetProc.command = ["timedatectl", "set-timezone", tzPicker.model[i]];
-                        tzSetProc.running = true;
+
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Weather & Regional Units")
+            description: qsTr("Measurement scale used in widgets and notifications")
+            icon: "thermostat"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("Temperature unit")
+                description: qsTr("Celsius (°C) or Fahrenheit (°F)")
+                Segmented {
+                    minSegmentWidth: 80
+                    model: [
+                        { label: "°C" },
+                        { label: "°F" }
+                    ]
+                    currentIndex: GlobalConfig.services.useFahrenheit ? 1 : 0
+                    onSelected: i => {
+                        GlobalConfig.services.useFahrenheit = i === 1;
+                        GlobalConfig.save();
                     }
                 }
             }

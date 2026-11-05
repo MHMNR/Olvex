@@ -61,25 +61,28 @@ GridView {
         width: root.cellWidth
         height: root.cellHeight
 
+        readonly property bool isVideoItem: modelData ? (modelData.isVideo || Wallpapers.isVideoPath(modelData.path || "")) : false
+        readonly property string itemPath: (modelData && modelData.path) ? modelData.path : ""
+
         // Live: ensure ffmpeg thumb is queued; rebind when map updates
         readonly property string imagePath: {
             const _ = Wallpapers.thumbnailUpdateCount;
-            if (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? ""))
-                return Wallpapers.displayPathFor(modelData.path);
-            return modelData?.path ?? "";
+            if (isVideoItem)
+                return Wallpapers.displayPathFor(itemPath);
+            return itemPath;
         }
 
         Component.onCompleted: {
-            if (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? ""))
-                Wallpapers.queueThumbnail(modelData.path, isCurrent);
+            if (isVideoItem)
+                Wallpapers.queueThumbnail(itemPath, isCurrent);
         }
 
         // If thumb arrives later, path binding updates via thumbnailUpdateCount
         Connections {
             target: Wallpapers
-            function onThumbnailUpdateCountChanged(): void {
-                if ((modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")) && !imagePath)
-                    Wallpapers.queueThumbnail(modelData.path, isCurrent);
+            function onThumbnailUpdateCountChanged() {
+                if (isVideoItem && !imagePath)
+                    Wallpapers.queueThumbnail(itemPath, isCurrent);
             }
         }
 
@@ -87,7 +90,10 @@ GridView {
             anchors.fill: parent
             anchors.margins: itemMargin
             radius: itemRadius
-            onClicked: Wallpapers.setWallpaper(modelData.path)
+            onClicked: {
+                if (itemPath)
+                    Wallpapers.setWallpaper(itemPath);
+            }
         }
 
         StyledClippingRect {
@@ -127,7 +133,7 @@ GridView {
             MaterialIcon {
                 anchors.centerIn: parent
                 visible: !imagePath
-                text: (modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")) ? "movie" : "image"
+                text: isVideoItem ? "movie" : "image"
                 color: Colours.palette.m3outline
                 iconPointSize: Tokens.font.size.extraLarge
             }
@@ -136,7 +142,7 @@ GridView {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: Tokens.padding.small
-                visible: modelData?.isVideo || Wallpapers.isVideoPath(modelData?.path ?? "")
+                visible: isVideoItem
                 text: "play_circle"
                 color: Qt.alpha(Colours.palette.m3onSurface, 0.9)
                 iconPointSize: Tokens.font.size.large

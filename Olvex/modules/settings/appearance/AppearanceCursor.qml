@@ -579,7 +579,7 @@ Item {
         spacing: Tokens.spacing.large
         z: 10
 
-        // Row 1: Clean M3 Segmented Navigation Bar (Installed (N) | Store)
+        // Row 1: Clean M3 Segmented Navigation Bar (Installed (N) | Store) + Action Buttons
         RowLayout {
             Layout.fillWidth: true
             spacing: Tokens.spacing.normal
@@ -601,200 +601,158 @@ Item {
             }
 
             Item { Layout.fillWidth: true }
+
+                            RowLayout {
+                                spacing: Tokens.spacing.small
+                                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                                // Expanding "Open Folder" button
+                                StyledRect {
+                                    id: openFolderBtn
+                                    readonly property bool hovered: openFolderMa.containsMouse
+                                    readonly property real expandedWidth: Math.round(38 + folderText.implicitWidth + 18)
+
+                                    implicitHeight: 38
+                                    implicitWidth: hovered ? expandedWidth : 38
+                                    Layout.preferredHeight: 38
+                                    Layout.preferredWidth: implicitWidth
+                                    radius: Tokens.rounding.full
+                                    clip: true
+
+                                    color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                                    border.width: 1
+                                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+
+                                    Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
+
+                                    Item {
+                                        id: folderIconWrap
+                                        width: 38
+                                        height: 38
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        MaterialIcon {
+                                            anchors.centerIn: parent
+                                            anchors.horizontalCenterOffset: 1
+                                            text: "folder_open"
+                                            iconPointSize: 18
+                                            color: Colours.palette.m3onSurface
+                                        }
+                                    }
+
+                                    StyledText {
+                                        id: folderText
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: folderIconWrap.right
+                                        anchors.leftMargin: 2
+                                        text: qsTr("Open Folder")
+                                        textPointSize: Tokens.font.size.smaller
+                                        font.weight: Font.Medium
+                                        color: Colours.palette.m3onSurface
+                                        opacity: openFolderBtn.hovered ? 1.0 : 0.0
+                                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                    }
+
+                                    MouseArea {
+                                        id: openFolderMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            openDirProc.command = ["xdg-open", Paths.home + "/.cursors"];
+                                            openDirProc.running = false;
+                                            openDirProc.running = true;
+                                        }
+                                    }
+
+                                    Process { id: openDirProc }
+                                }
+
+                                // Expanding "Scan Themes" (rebuild) button
+                                StyledRect {
+                                    id: scanThemesBtn
+                                    readonly property bool hovered: scanThemesMa.containsMouse
+                                    readonly property real expandedWidth: Math.round(38 + scanText.implicitWidth + 18)
+
+                                    implicitHeight: 38
+                                    implicitWidth: hovered ? expandedWidth : 38
+                                    Layout.preferredHeight: 38
+                                    Layout.preferredWidth: implicitWidth
+                                    radius: Tokens.rounding.full
+                                    clip: true
+
+                                    color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                                    border.width: 1
+                                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+
+                                    Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
+
+                                    Item {
+                                        id: scanIconWrap
+                                        width: 38
+                                        height: 38
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        LoadingIndicator {
+                                            anchors.centerIn: parent
+                                            implicitSize: 18
+                                            color: Colours.palette.m3primary
+                                            animated: root.isScanning
+                                            visible: opacity > 0
+                                            opacity: root.isScanning ? 1.0 : 0.0
+                                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                        }
+
+                                        MaterialIcon {
+                                            id: scanIcon
+                                            anchors.centerIn: parent
+                                            text: "refresh"
+                                            iconPointSize: 18
+                                            renderType: Text.QtRendering
+                                            antialiasing: true
+                                            color: Colours.palette.m3onSurface
+                                            visible: opacity > 0
+                                            opacity: root.isScanning ? 0.0 : 1.0
+                                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                        }
+                                    }
+
+                                    StyledText {
+                                        id: scanText
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: scanIconWrap.right
+                                        anchors.leftMargin: 2
+                                        text: qsTr("Scan Themes")
+                                        textPointSize: Tokens.font.size.smaller
+                                        font.weight: Font.Medium
+                                        color: Colours.palette.m3onSurface
+                                        opacity: scanThemesBtn.hovered ? 1.0 : 0.0
+                                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                    }
+
+                                    MouseArea {
+                                        id: scanThemesMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: root.isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (!root.isScanning) {
+                                                root.refreshThemes();
+                                                root.refreshSettings();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
         }
 
-        // Row 2: Control Header Row (Tab 0 Section vs Tab 1 Toolbar)
+        // Row 2: Store Toolbar (Only visible on Tab 1 / Store)
         Item {
             Layout.fillWidth: true
-            implicitHeight: root.currentTab === 0 ? installedSection.implicitHeight : marketToolbarRow.implicitHeight
-
-            // Tab 0: Section Title, Subtitle, and Installed Actions
-            RowLayout {
-                id: installedSection
-                anchors.fill: parent
-                spacing: Tokens.spacing.normal
-                visible: root.currentTab === 0
-
-                StyledRect {
-                    Layout.preferredWidth: 38
-                    Layout.preferredHeight: 38
-                    Layout.maximumWidth: 38
-                    Layout.minimumWidth: 38
-                    width: 38
-                    height: 38
-                    radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3primary, 0.12)
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "mouse"
-                        color: Colours.palette.m3primary
-                        iconPointSize: 20
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    StyledText {
-                        text: qsTr("System Cursor Theme")
-                        font.weight: Font.DemiBold
-                        textPointSize: Tokens.font.size.large
-                        color: Colours.palette.m3onSurface
-                    }
-
-                    StyledText {
-                        text: qsTr("Pointers, hands, and window resize indicators")
-                        textPointSize: Tokens.font.size.small
-                        color: Colours.palette.m3onSurfaceVariant
-                    }
-                }
-
-                RowLayout {
-                    spacing: Tokens.spacing.small
-                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-
-                    // Expanding "Open Folder" button
-                    StyledRect {
-                        id: openFolderBtn
-                        readonly property bool hovered: openFolderMa.containsMouse
-                        readonly property real expandedWidth: Math.round(38 + folderText.implicitWidth + 18)
-
-                        implicitHeight: 38
-                        implicitWidth: hovered ? expandedWidth : 38
-                        Layout.preferredHeight: 38
-                        Layout.preferredWidth: implicitWidth
-                        radius: Tokens.rounding.full
-                        clip: true
-
-                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                        border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-
-                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-
-                        Item {
-                            id: folderIconWrap
-                            width: 38
-                            height: 38
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            MaterialIcon {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenterOffset: 1
-                                text: "folder_open"
-                                iconPointSize: 18
-                                color: Colours.palette.m3onSurface
-                            }
-                        }
-
-                        StyledText {
-                            id: folderText
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: folderIconWrap.right
-                            anchors.leftMargin: 2
-                            text: qsTr("Open Folder")
-                            textPointSize: Tokens.font.size.smaller
-                            font.weight: Font.Medium
-                            color: Colours.palette.m3onSurface
-                            opacity: openFolderBtn.hovered ? 1.0 : 0.0
-                            Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        }
-
-                        MouseArea {
-                            id: openFolderMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                openDirProc.command = ["xdg-open", Paths.home + "/.cursors"];
-                                openDirProc.running = false;
-                                openDirProc.running = true;
-                            }
-                        }
-
-                        Process { id: openDirProc }
-                    }
-
-                    // Expanding "Scan Themes" (rebuild) button
-                    StyledRect {
-                        id: scanThemesBtn
-                        readonly property bool hovered: scanThemesMa.containsMouse
-                        readonly property real expandedWidth: Math.round(38 + scanText.implicitWidth + 18)
-
-                        implicitHeight: 38
-                        implicitWidth: hovered ? expandedWidth : 38
-                        Layout.preferredHeight: 38
-                        Layout.preferredWidth: implicitWidth
-                        radius: Tokens.rounding.full
-                        clip: true
-
-                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                        border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-
-                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-
-                        Item {
-                            id: scanIconWrap
-                            width: 38
-                            height: 38
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            LoadingIndicator {
-                                anchors.centerIn: parent
-                                implicitSize: 18
-                                color: Colours.palette.m3primary
-                                animated: root.isScanning
-                                visible: opacity > 0
-                                opacity: root.isScanning ? 1.0 : 0.0
-                                Behavior on opacity { Anim { type: Anim.FastEffects } }
-                            }
-
-                            MaterialIcon {
-                                id: scanIcon
-                                anchors.centerIn: parent
-                                text: "refresh"
-                                iconPointSize: 18
-                                renderType: Text.QtRendering
-                                antialiasing: true
-                                color: Colours.palette.m3onSurface
-                                visible: opacity > 0
-                                opacity: root.isScanning ? 0.0 : 1.0
-                                Behavior on opacity { Anim { type: Anim.FastEffects } }
-                            }
-                        }
-
-                        StyledText {
-                            id: scanText
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: scanIconWrap.right
-                            anchors.leftMargin: 2
-                            text: qsTr("Scan Themes")
-                            textPointSize: Tokens.font.size.smaller
-                            font.weight: Font.Medium
-                            color: Colours.palette.m3onSurface
-                            opacity: scanThemesBtn.hovered ? 1.0 : 0.0
-                            Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        }
-
-                        MouseArea {
-                            id: scanThemesMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: root.isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor
-                            enabled: !root.isScanning
-                            onClicked: {
-                                root.refreshThemes();
-                                root.refreshSettings();
-                            }
-                        }
-                    }
-                }
-            }
+            implicitHeight: marketToolbarRow.implicitHeight
+            visible: root.currentTab === 1
 
             // Tab 1: Store Toolbar (Sort by, Search, Refresh)
             RowLayout {
@@ -1078,208 +1036,259 @@ Item {
                     visible: root.currentTab === 0
                     spacing: Tokens.spacing.large
 
-                    // 3-Column Grid of Installed Cursor Themes (Fixed 3-card sizing)
-                    GridLayout {
-                        id: installedGrid
-                        width: parent.width
+                    Section {
                         Layout.fillWidth: true
-                        columns: 3
-                        columnSpacing: Tokens.spacing.normal
-                        rowSpacing: Tokens.spacing.normal
-                        visible: root.themesList.length > 0
+                        title: qsTr("Cursor Theme")
+                        accentColor: Colours.palette.m3primary
 
-                        readonly property real cardWidth: Math.max(140, Math.floor((scrollContent.width - columnSpacing * 2) / 3))
+                        // Unified Cursor Theme Picker Card (StyledRect matching Wallpaper / Connected Stack)
+                        StyledRect {
+                            id: cursorThemeCard
+                            Layout.fillWidth: true
+                            implicitWidth: parent ? parent.width : 0
+                            width: parent ? parent.width : implicitWidth
 
-                        Repeater {
-                            model: root.themesList
+                            // Group position flags for Section.qml connected stack
+                            property bool isFirstInGroup: false
+                            property bool isLastInGroup: false
+                            property bool isSingleInGroup: false
 
-                            delegate: Item {
-                                id: cardDelegate
-                                required property var modelData
-                                required property int index
+                            readonly property real topR: (isSingleInGroup || isFirstInGroup) ? 22 : 6
+                            readonly property real bottomR: (isSingleInGroup || isLastInGroup) ? 22 : 6
+                            topLeftRadius: topR
+                            topRightRadius: topR
+                            bottomLeftRadius: bottomR
+                            bottomRightRadius: bottomR
 
-                                readonly property bool isSelected: modelData.id === root.activeThemeId
-                                readonly property bool isHovered: installedCardMouse.containsMouse
-                                readonly property bool isDeletable: (modelData.isDeletable !== undefined)
-                                    ? modelData.isDeletable
-                                    : (!modelData.path.startsWith("/usr") && modelData.id !== "default" && modelData.id !== "hicolor")
+                            color: Colours.palette.m3surfaceContainerHigh
+                            border.width: 0
 
-                                Layout.fillWidth: false
-                                Layout.preferredWidth: installedGrid.cardWidth
-                                Layout.maximumWidth: installedGrid.cardWidth
-                                Layout.minimumWidth: installedGrid.cardWidth
-                                width: installedGrid.cardWidth
-                                Layout.preferredHeight: 160
-                                implicitHeight: 160
+                            implicitHeight: cardContentLayout.implicitHeight + 28
 
-                                StyledRect {
-                                    id: cardBg
-                                    anchors.fill: parent
-                                    radius: Tokens.rounding.large
+                            ColumnLayout {
+                                id: cardContentLayout
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.topMargin: 14
+                                anchors.leftMargin: 16
+                                anchors.rightMargin: 16
+                                spacing: 14
 
-                                    color: cardDelegate.isHovered
-                                        ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
-                                        : Colours.layer(Colours.palette.m3surfaceContainer, 1)
+                                // Top row: Clean Title/Subtitle
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
 
-                                    border.width: cardDelegate.isSelected ? 2 : 0
-                                    border.color: cardDelegate.isSelected
-                                        ? Colours.palette.m3primary
-                                        : "transparent"
-
-                                    Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
-                                    Behavior on border.color { CAnim { duration: Tokens.anim.durations.small } }
-
-                                    // Delete Button (top-right, only on hover for user-installed themes)
-                                    StyledRect {
-                                        id: deleteThemeBtn
-                                        visible: cardDelegate.isDeletable && !cardDelegate.isSelected
-                                        opacity: (cardDelegate.isHovered || deleteThemeMa.containsMouse) ? 1.0 : 0.0
-                                        anchors.top: parent.top
-                                        anchors.right: parent.right
-                                        anchors.margins: 10
-                                        width: 26
-                                        height: 26
-                                        radius: Tokens.rounding.full
-                                        color: deleteThemeMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
-                                               deleteThemeMa.containsMouse ? Colours.palette.m3error :
-                                               Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6)
-                                        border.width: 0
-                                        z: 10
-
-                                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                                        Behavior on color { CAnim {} }
-
-                                        MaterialIcon {
-                                            anchors.centerIn: parent
-                                            text: "delete"
-                                            iconPointSize: 14
-                                            color: (deleteThemeMa.pressed || deleteThemeMa.containsMouse) ? Colours.palette.m3onError : Colours.palette.m3error
-                                            Behavior on color { CAnim {} }
-                                        }
-
-                                        MouseArea {
-                                            id: deleteThemeMa
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.promptDeleteTheme(modelData)
-                                        }
+                                    StyledText {
+                                        text: qsTr("System Cursor Theme")
+                                        font.weight: Font.DemiBold
+                                        textPointSize: Tokens.font.size.normal
+                                        color: Colours.palette.m3onSurface
                                     }
 
-                                    ColumnLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: Tokens.padding.normal
-                                        spacing: Tokens.spacing.small
+                                    StyledText {
+                                        text: qsTr("Pointers, hands, and window resize indicators")
+                                        textPointSize: Tokens.font.size.small
+                                        color: Colours.palette.m3onSurfaceVariant
+                                    }
+                                }
 
-                                        // Cursor Previews Strip (mathematically concentric: large 24 - normal 12 = small 12)
-                                        StyledRect {
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: 68
-                                            radius: Tokens.rounding.small
-                                            color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
-                                            border.width: 0
-                                            border.color: "transparent"
+                                // 3-Column Grid of Installed Cursor Themes (Fixed 3-card sizing)
+                                GridLayout {
+                                    id: installedGrid
+                                    Layout.fillWidth: true
+                                    columns: 3
+                                    columnSpacing: Tokens.spacing.normal
+                                    rowSpacing: Tokens.spacing.normal
+                                    visible: root.themesList.length > 0
 
-                                            RowLayout {
-                                                anchors.centerIn: parent
-                                                spacing: 10
+                                    readonly property real cardWidth: Math.max(140, Math.floor((cursorThemeCard.width - 32 - columnSpacing * 2) / 3))
 
-                                                Repeater {
-                                                    model: (modelData.previews && modelData.previews.length > 0)
-                                                        ? modelData.previews.slice(0, 4)
-                                                        : []
+                                    Repeater {
+                                        model: root.themesList
 
-                                                    delegate: Item {
-                                                        required property string modelData
-                                                        Layout.preferredWidth: 28
-                                                        Layout.preferredHeight: 28
+                                        delegate: Item {
+                                            id: cardDelegate
+                                            required property var modelData
+                                            required property int index
 
-                                                        Image {
-                                                            anchors.centerIn: parent
-                                                            width: 26
-                                                            height: 26
-                                                            source: modelData.startsWith("/") ? ("file://" + modelData) : modelData
-                                                            sourceSize.width: 32
-                                                            sourceSize.height: 32
-                                                            fillMode: Image.PreserveAspectFit
-                                                            smooth: true
-                                                            mipmap: true
+                                            readonly property bool isSelected: modelData.id === root.activeThemeId
+                                            readonly property bool isHovered: installedCardMouse.containsMouse
+                                            readonly property bool isDeletable: (modelData.isDeletable !== undefined)
+                                                ? modelData.isDeletable
+                                                : (!modelData.path.startsWith("/usr") && modelData.id !== "default" && modelData.id !== "hicolor")
+
+                                            Layout.fillWidth: false
+                                            Layout.preferredWidth: installedGrid.cardWidth
+                                            Layout.maximumWidth: installedGrid.cardWidth
+                                            Layout.minimumWidth: installedGrid.cardWidth
+                                            width: installedGrid.cardWidth
+                                            Layout.preferredHeight: 160
+                                            implicitHeight: 160
+
+                                            StyledRect {
+                                                id: cardBg
+                                                anchors.fill: parent
+                                                radius: Tokens.rounding.large
+
+                                                color: cardDelegate.isHovered
+                                                    ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                                                    : Colours.palette.m3surfaceContainer
+
+                                                border.width: cardDelegate.isSelected ? 2 : 0
+                                                border.color: cardDelegate.isSelected
+                                                    ? Colours.palette.m3primary
+                                                    : "transparent"
+
+                                                Behavior on color { CAnim { duration: Tokens.anim.durations.small } }
+                                                Behavior on border.color { CAnim { duration: Tokens.anim.durations.small } }
+
+                                                // Delete Button (top-right, only on hover for user-installed themes)
+                                                StyledRect {
+                                                    id: deleteThemeBtn
+                                                    visible: cardDelegate.isDeletable && !cardDelegate.isSelected
+                                                    opacity: (cardDelegate.isHovered || deleteThemeMa.containsMouse) ? 1.0 : 0.0
+                                                    anchors.top: parent.top
+                                                    anchors.right: parent.right
+                                                    anchors.margins: 10
+                                                    width: 26
+                                                    height: 26
+                                                    radius: Tokens.rounding.full
+                                                    color: deleteThemeMa.pressed ? Colours.layer(Colours.palette.m3error, 1) :
+                                                           deleteThemeMa.containsMouse ? Colours.palette.m3error :
+                                                           Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.6)
+                                                    border.width: 0
+                                                    z: 10
+
+                                                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                                                    Behavior on color { CAnim {} }
+
+                                                    MaterialIcon {
+                                                        anchors.centerIn: parent
+                                                        text: "delete"
+                                                        color: deleteThemeMa.containsMouse ? Colours.palette.m3onError : Colours.palette.m3onSurface
+                                                        iconPointSize: 14
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
+
+                                                    MouseArea {
+                                                        id: deleteThemeMa
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: root.deleteTheme(modelData.id)
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    anchors.fill: parent
+                                                    anchors.margins: 16
+                                                    spacing: Tokens.spacing.small
+
+                                                    // Cursor Previews Grid
+                                                    RowLayout {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 48
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                        spacing: Tokens.spacing.normal
+
+                                                        Repeater {
+                                                            model: root.cursorPreviewNames
+
+                                                            delegate: Item {
+                                                                required property string modelData
+                                                                required property int index
+
+                                                                Layout.preferredWidth: 32
+                                                                Layout.preferredHeight: 32
+                                                                Layout.alignment: Qt.AlignVCenter
+
+                                                                Image {
+                                                                    id: cursorImg
+                                                                    anchors.centerIn: parent
+                                                                    width: 24
+                                                                    height: 24
+                                                                    sourceSize.width: 24
+                                                                    sourceSize.height: 24
+                                                                    fillMode: Image.PreserveAspectFit
+                                                                    smooth: true
+                                                                    mipmap: true
+                                                                    asynchronous: true
+                                                                    cache: true
+                                                                    source: {
+                                                                        const p = modelData.startsWith("/")
+                                                                            ? modelData
+                                                                            : root.getCursorPreviewPath(cardDelegate.modelData.path, modelData);
+                                                                        return p ? "image://icon/" + p : "";
+                                                                    }
+
+                                                                    onStatusChanged: {
+                                                                        if (status === Image.Error && !modelData.startsWith("/")) {
+                                                                            const altPath = root.findAlternativeCursorPath(cardDelegate.modelData.path, modelData);
+                                                                            if (altPath) {
+                                                                                source = "image://icon/" + altPath;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Item { Layout.fillHeight: true }
+
+                                                    // Theme Name & Subtitle
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 2
+
+                                                        RowLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: Tokens.spacing.small
+
+                                                            StyledText {
+                                                                Layout.fillWidth: true
+                                                                text: modelData.name || modelData.id
+                                                                font.weight: Font.DemiBold
+                                                                textPointSize: Tokens.font.size.normal
+                                                                color: cardDelegate.isSelected ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                                                                elide: Text.ElideRight
+                                                            }
+
+                                                            MaterialIcon {
+                                                                visible: cardDelegate.isSelected
+                                                                text: "check_circle"
+                                                                color: Colours.palette.m3primary
+                                                                iconPointSize: 16
+                                                            }
+                                                        }
+
+                                                        StyledText {
+                                                            Layout.fillWidth: true
+                                                            text: modelData.comment ? modelData.comment : (modelData.path.startsWith("/usr") ? qsTr("System Cursor") : qsTr("Custom Cursor"))
+                                                            textPointSize: Tokens.font.size.small
+                                                            font.weight: Font.Normal
+                                                            color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSurface, 0.70) : Colours.palette.m3onSurfaceVariant
+                                                            elide: Text.ElideRight
                                                         }
                                                     }
                                                 }
 
-                                                MaterialIcon {
-                                                    visible: !modelData.previews || modelData.previews.length === 0
-                                                    text: "mouse"
-                                                    iconPointSize: 24
-                                                    color: Colours.palette.m3onSurfaceVariant
+                                                MouseArea {
+                                                    id: installedCardMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: root.applyTheme(modelData.id)
                                                 }
                                             }
                                         }
-
-                                        // Info with title + inline active check badge + subtitle
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 3
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 6
-
-                                                StyledText {
-                                                    Layout.fillWidth: true
-                                                    text: modelData.name || modelData.id
-                                                    font.weight: cardDelegate.isSelected ? Font.DemiBold : Font.Medium
-                                                    textPointSize: Tokens.font.size.normal
-                                                    color: cardDelegate.isSelected ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                                                    elide: Text.ElideRight
-                                                }
-
-                                                // Active M3 shape badge with M3 checkmark beside the title
-                                                Item {
-                                                    visible: cardDelegate.isSelected
-                                                    Layout.preferredWidth: 18
-                                                    Layout.preferredHeight: 18
-                                                    Layout.alignment: Qt.AlignVCenter
-
-                                                    MaterialShape {
-                                                        anchors.fill: parent
-                                                        shape: MaterialShape.Cookie12Sided
-                                                        color: Colours.palette.m3primary
-                                                    }
-
-                                                    MaterialIcon {
-                                                        anchors.centerIn: parent
-                                                        text: "check"
-                                                        iconPointSize: 11
-                                                        color: Colours.palette.m3onPrimary
-                                                    }
-                                                }
-                                            }
-
-                                            StyledText {
-                                                Layout.fillWidth: true
-                                                text: modelData.comment ? modelData.comment : (modelData.path.startsWith("/usr") ? qsTr("System Cursor") : qsTr("Custom Cursor"))
-                                                textPointSize: Tokens.font.size.small
-                                                font.weight: Font.Normal
-                                                color: cardDelegate.isSelected ? Qt.alpha(Colours.palette.m3onSurface, 0.70) : Colours.palette.m3onSurfaceVariant
-                                                elide: Text.ElideRight
-                                            }
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: installedCardMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.applyTheme(modelData.id)
                                     }
                                 }
                             }
                         }
                     }
-
                     // ── Basic Cursor Settings Section ──
                     Section {
                         Layout.fillWidth: true
@@ -1291,8 +1300,7 @@ Item {
                         SettingRow {
                             title: qsTr("Cursor Size")
                             description: qsTr("Size of mouse pointer across Wayland and GTK applications (%1 px)").arg(root.cursorSize)
-                            icon: "format_size"
-
+                            
                             OptionPicker {
                                 model: [
                                     { label: "24 px (Default)", val: 24 },
@@ -1319,8 +1327,7 @@ Item {
                         SettingRow {
                             title: qsTr("Hide Cursor When Inactive")
                             description: qsTr("Automatically hide mouse cursor after a duration of no mouse movement")
-                            icon: "timer"
-
+                            
                             OptionPicker {
                                 model: [
                                     { label: qsTr("Never (Always Visible)"), val: 0 },
@@ -1347,8 +1354,7 @@ Item {
                         SettingRow {
                             title: qsTr("Prevent Cursor Warping")
                             description: qsTr("Do not automatically snap mouse pointer to newly focused windows")
-                            icon: "near_me_disabled"
-
+                            
                             StyledSwitch {
                                 checked: root.noWarps
                                 onToggled: {
@@ -1362,8 +1368,7 @@ Item {
                         SettingRow {
                             title: qsTr("Cursor Zoom Factor")
                             description: qsTr("Hardware magnification scale multiplier for pointer visibility (%1x)").arg(root.zoomFactor.toFixed(2))
-                            icon: "zoom_in"
-                            divider: false
+                                                        divider: false
 
                             OptionPicker {
                                 model: [

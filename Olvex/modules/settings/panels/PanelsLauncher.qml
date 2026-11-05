@@ -8,6 +8,7 @@ import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
+import qs.services
 
 Item {
     id: root
@@ -104,53 +105,67 @@ Item {
         anchors.leftMargin: Tokens.padding.large
         anchors.rightMargin: Tokens.padding.large
         anchors.topMargin: Tokens.padding.large
-        spacing: 0
+        spacing: Tokens.spacing.large
 
-        SettingRow {
-            title: qsTr("Enable launcher")
-            description: qsTr("Allow opening the app launcher")
-            divider: true
-            StyledSwitch {
-                checked: Config.launcher.enabled ?? true
-                onToggled: {
-                    GlobalConfig.launcher.enabled = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("App Launcher Behavior")
+            description: qsTr("Search capabilities, dangerous commands, and launcher toggle")
+            icon: "apps"
+            accentColor: Colours.palette.m3secondary
 
-        SettingRow {
-            title: qsTr("Enable dangerous actions")
-            description: qsTr("Allow shutdown / reboot from search")
-            divider: true
-            StyledSwitch {
-                checked: GlobalConfig.launcher.enableDangerousActions ?? true
-                onToggled: {
-                    GlobalConfig.launcher.enableDangerousActions = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
-
-        SettingRow {
-            title: qsTr("Launcher button logo")
-            description: qsTr("Select active distro icon or brand mark")
-            divider: false
-            PickerGrid {
-                id: logoPickerGrid
-                model: root.logoOptions
-                currentIndex: {
-                    const cur = (GlobalConfig.general.logo || "").trim().toLowerCase();
-                    for (let i = 0; i < root.logoOptions.length; i++) {
-                        if (root.logoOptions[i].value === cur)
-                            return i;
-                    }
-                    return 0;
-                }
-                onSelected: index => {
-                    if (index >= 0 && index < root.logoOptions.length) {
-                        GlobalConfig.general.logo = root.logoOptions[index].value;
+            SettingRow {
+                title: qsTr("Enable launcher")
+                description: qsTr("Allow opening the search and application launcher")
+                StyledSwitch {
+                    checked: (Config.launcher.enabled !== undefined) ? Config.launcher.enabled : true
+                    onToggled: {
+                        GlobalConfig.launcher.enabled = checked;
                         GlobalConfig.save();
+                    }
+                }
+            }
+
+            SettingRow {
+                title: qsTr("Enable dangerous actions")
+                description: qsTr("Allow direct shutdown, reboot, and sleep execution from search results")
+                StyledSwitch {
+                    checked: (GlobalConfig.launcher.enableDangerousActions !== undefined) ? GlobalConfig.launcher.enableDangerousActions : true
+                    onToggled: {
+                        GlobalConfig.launcher.enableDangerousActions = checked;
+                        GlobalConfig.save();
+                    }
+                }
+            }
+        }
+
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Launcher Button Icon")
+            description: qsTr("Distribution emblem or custom mascot on the main bar button")
+            icon: "palette"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("Button Emblem")
+                description: qsTr("Choose from official Linux distros or custom logos")
+
+                PickerGrid {
+                    id: logoPickerGrid
+                    model: root.logoOptions
+                    currentIndex: {
+                        const cur = (GlobalConfig.general.logo || "").trim().toLowerCase();
+                        for (let i = 0; i < root.logoOptions.length; i++) {
+                            if (root.logoOptions[i].value === cur)
+                                return i;
+                        }
+                        return 0;
+                    }
+                    onSelected: index => {
+                        if (index >= 0 && index < root.logoOptions.length) {
+                            GlobalConfig.general.logo = root.logoOptions[index].value;
+                            GlobalConfig.save();
+                        }
                     }
                 }
             }

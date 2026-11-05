@@ -187,82 +187,76 @@ Item {
         anchors.topMargin: Tokens.padding.large
         spacing: Tokens.spacing.large
 
-        SettingRow {
-            Layout.fillWidth: true
+        Section {
             title: qsTr("Wi‑Fi")
-            description: {
-                if (!Nmcli.wifiEnabled)
-                    return qsTr("Off");
-                if (Nmcli.scanning)
-                    return Nmcli.active ? qsTr("Scanning… · %1").arg(Nmcli.active.ssid) : qsTr("Scanning…");
-                if (Nmcli.active)
-                    return qsTr("Connected to %1").arg(Nmcli.active.ssid);
-                return qsTr("On · Not connected");
-            }
+            description: qsTr("Wireless connections and hotspot")
             icon: "wifi"
-            customIcon: Component {
-                WifiLottieIcon {
-                    size: 24
-                    wifiEnabled: Nmcli.wifiEnabled
-                    connected: Boolean(Nmcli.active)
-                    signalStrength: (Nmcli.active ? Nmcli.active.strength : 0) / 100.0
-                    color: Nmcli.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                    disabledColor: Qt.alpha(Colours.palette.m3onSurface, 0.28)
-                    showSlashOnDisable: true
-                }
-            }
-            divider: true
 
-            Row {
-                spacing: Tokens.spacing.small
-
-                Item {
-                    id: wifiScanCtl
-                    readonly property bool scanning: Nmcli.scanning
-                    readonly property bool canScan: Nmcli.wifiEnabled
-                    implicitWidth: 36
-                    implicitHeight: 36
-
-                    LoadingIndicator {
-                        anchors.centerIn: parent
-                        implicitSize: 32
-                        color: Colours.palette.m3primary
-                        animated: wifiScanCtl.scanning
-                        opacity: wifiScanCtl.scanning ? 1 : 0
-                        scale: wifiScanCtl.scanning ? 1 : 0.72
-                        visible: opacity > 0.01
-
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        Behavior on scale { Anim { type: Anim.DefaultSpatial } }
-                    }
-
-                    IconButton {
-                        anchors.centerIn: parent
-                        type: IconButton.Text
-                        icon: "refresh"
-                        disabled: !wifiScanCtl.canScan
-                        opacity: wifiScanCtl.scanning ? 0 : 1
-                        visible: opacity > 0.01
-                        enabled: wifiScanCtl.canScan && !wifiScanCtl.scanning
-
-                        Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        onClicked: if (Nmcli.wifiEnabled) Nmcli.rescanWifi()
-                    }
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("Wi‑Fi")
+                description: {
+                    if (!Nmcli.wifiEnabled)
+                        return qsTr("Off");
+                    if (Nmcli.scanning)
+                        return Nmcli.active ? qsTr("Scanning… · %1").arg(Nmcli.active.ssid) : qsTr("Scanning…");
+                    if (Nmcli.active)
+                        return qsTr("Connected to %1").arg(Nmcli.active.ssid);
+                    return qsTr("On · Not connected");
                 }
 
-                StyledSwitch {
-                    anchors.verticalCenter: parent.verticalCenter
-                    checked: Nmcli.wifiEnabled
-                    onToggled: Nmcli.enableWifi(checked)
+                Row {
+                    spacing: Tokens.spacing.small
+
+                    Item {
+                        id: wifiScanCtl
+                        readonly property bool scanning: Nmcli.scanning
+                        readonly property bool canScan: Nmcli.wifiEnabled
+                        implicitWidth: 36
+                        implicitHeight: 36
+
+                        LoadingIndicator {
+                            anchors.centerIn: parent
+                            implicitSize: 32
+                            color: Colours.palette.m3primary
+                            animated: wifiScanCtl.scanning
+                            opacity: wifiScanCtl.scanning ? 1 : 0
+                            scale: wifiScanCtl.scanning ? 1 : 0.72
+                            visible: opacity > 0.01
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            Behavior on scale { Anim { type: Anim.DefaultSpatial } }
+                        }
+
+                        IconButton {
+                            anchors.centerIn: parent
+                            type: IconButton.Text
+                            icon: "refresh"
+                            disabled: !wifiScanCtl.canScan
+                            opacity: wifiScanCtl.scanning ? 0 : 1
+                            visible: opacity > 0.01
+                            enabled: wifiScanCtl.canScan && !wifiScanCtl.scanning
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            onClicked: if (Nmcli.wifiEnabled) Nmcli.rescanWifi()
+                        }
+                    }
+
+                    StyledSwitch {
+                        anchors.verticalCenter: parent.verticalCenter
+                        checked: Nmcli.wifiEnabled
+                        onToggled: Nmcli.enableWifi(checked)
+                    }
                 }
             }
         }
 
-        Item {
+        Section {
             id: availableNetworksWrapper
             Layout.fillWidth: true
-            implicitHeight: availableNetworksCol.implicitHeight
-            visible: Nmcli.wifiEnabled
+            visible: Nmcli.wifiEnabled && root.networkList.length > 0
+            title: qsTr("Available Networks")
+            accentColor: Colours.palette.m3primary
 
             property Item hoveredItem: null
 
@@ -272,87 +266,12 @@ Item {
                 onTriggered: availableNetworksWrapper.hoveredItem = null
             }
 
-            // Sliding hover highlight marker
-            StyledRect {
-                id: wifiHoverHighlight
-                z: 0
-                visible: opacity > 0.001
-                opacity: (availableNetworksWrapper.hoveredItem !== null && !availableNetworksWrapper.hoveredItem.isEditing && !availableNetworksWrapper.hoveredItem.modelData?.active && !root.menuIsOpen) ? 0.08 : 0
-                color: Colours.palette.m3onSurface
-                radius: Tokens.rounding.normal
-
-                x: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.mapToItem(availableNetworksWrapper, 0, 0).x : x
-                y: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.mapToItem(availableNetworksWrapper, 0, 0).y : y
-                width: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.width : width
-                height: availableNetworksWrapper.hoveredItem ? availableNetworksWrapper.hoveredItem.height : height
-
-                Behavior on x {
-                    enabled: wifiHoverHighlight.opacity > 0
-                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                }
-                Behavior on y {
-                    enabled: wifiHoverHighlight.opacity > 0
-                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                }
-                Behavior on width {
-                    enabled: wifiHoverHighlight.opacity > 0
-                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                }
-                Behavior on height {
-                    enabled: wifiHoverHighlight.opacity > 0
-                    SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                }
-                Behavior on opacity {
-                    NumberAnimation { duration: 150 }
-                }
-            }
-
-            Column {
-                id: availableNetworksCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                spacing: 0
-
-            Item {
-                width: parent.width
-                height: 96
-                visible: root.networkList.length === 0
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (Nmcli.wifiEnabled) Nmcli.rescanWifi();
-                    }
-                }
-
-                Column {
-                    anchors.centerIn: parent
-                    spacing: Tokens.spacing.normal
-
-                    LoadingIndicator {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        implicitSize: 36
-                        color: Colours.palette.m3primary
-                        animated: Nmcli.scanning
-                        opacity: Nmcli.scanning ? 1 : 0.45
-                    }
-
-                    StyledText {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Nmcli.scanning ? qsTr("Scanning for networks…") : qsTr("No networks found · tap to scan")
-                        color: Colours.palette.m3onSurfaceVariant
-                        font.weight: Font.Normal
-                        textPointSize: Tokens.font.size.normal
-                    }
-                }
-            }
-
             Repeater {
                 model: root.networkList
                 delegate: StyledRect {
                     id: network
                     required property var modelData
+                    required property int index
                     readonly property bool isEditing: root.editingSsid === modelData.ssid
                     readonly property bool isConnecting: root.connectingSsid === modelData.ssid || (root.selectedSsid === modelData.ssid && !modelData.active)
                     readonly property real textOpacity: isConnecting ? 0.7 : 1
@@ -396,16 +315,26 @@ Item {
                     }
 
                     width: parent ? parent.width : 0
-                    height: Math.max(wifiRow.implicitHeight, wifiPill.implicitHeight) + Tokens.padding.normal * 2
+                    height: Math.max(58, Math.max(wifiRow.implicitHeight, wifiPill.implicitHeight) + 16)
                     implicitHeight: height
-                    radius: Tokens.rounding.normal
-                    color: "transparent"
 
-                    // M3 StateLayer hover & press ripple
+                    readonly property real topR: (root.networkList.length === 1 || index === 0) ? 22 : 6
+                    readonly property real bottomR: (root.networkList.length === 1 || index === root.networkList.length - 1) ? 22 : 6
+                    topLeftRadius: topR
+                    topRightRadius: topR
+                    bottomLeftRadius: bottomR
+                    bottomRightRadius: bottomR
+
+                    color: network.modelData.active
+                           ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+                           : Colours.palette.m3surfaceContainerHigh
+
+                    Behavior on color { CAnim {} }
+
                     StateLayer {
                         radius: parent.radius
                         color: Colours.palette.m3onSurface
-                        showHoverBackground: false
+                        showHoverBackground: true
                         interactive: !network.isEditing && !root.menuIsOpen
                         disabled: network.isEditing || root.menuIsOpen
                         onEntered: {
@@ -432,10 +361,10 @@ Item {
                     RowLayout {
                         id: wifiRow
                         anchors.fill: parent
-                        anchors.leftMargin: Tokens.padding.normal
-                        anchors.rightMargin: Tokens.padding.normal
-                        anchors.topMargin: Tokens.padding.normal
-                        anchors.bottomMargin: Tokens.padding.normal
+                        anchors.leftMargin: 16
+                        anchors.rightMargin: 16
+                        anchors.topMargin: 8
+                        anchors.bottomMargin: 8
                         spacing: Tokens.spacing.normal
 
                         WifiLottieIcon {
@@ -457,14 +386,14 @@ Item {
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 3
+                            spacing: 2
                             opacity: network.textOpacity
 
                             StyledText {
                                 Layout.fillWidth: true
                                 text: network.modelData.ssid || qsTr("Hidden network")
                                 elide: Text.ElideRight
-                                font.weight: Font.Normal
+                                font.weight: Font.DemiBold
                                 color: network.modelData.active ? Colours.palette.m3primary : Colours.palette.m3onSurface
                                 textPointSize: Tokens.font.size.normal
                             }
@@ -492,11 +421,8 @@ Item {
                             radius: Tokens.rounding.full
                             color: Colours.palette.m3secondaryContainer
 
-                            // Show if not editing AND network is saved/active
                             visible: !network.isEditing && (network.modelData.active || Nmcli.hasSavedProfile(network.modelData.ssid))
 
-                            // Hide the real button while container transform overlay is morphing
-                            // so it looks like the button itself is growing into the menu
                             opacity: {
                                 const menu = root.session ? root.session.wifiConfigMenu : null;
                                 if (menu && menu.isOpen && menu.network === network.modelData) return 0.0;
@@ -528,7 +454,7 @@ Item {
                             z: 1
                             Layout.alignment: Qt.AlignVCenter
                             implicitWidth: network.isEditing ? Math.min(310, network.width * 0.70) : (wifiPillRow.implicitWidth + Tokens.padding.normal * 2)
-                            implicitHeight: network.isEditing ? 36 : 26
+                            implicitHeight: network.isEditing ? 36 : 28
                             radius: Tokens.rounding.full
                             clip: true
                             border.width: 0
@@ -545,7 +471,6 @@ Item {
                                 return Colours.palette.m3surfaceContainerHighest;
                             }
 
-                            // 1. Normal Available / Connected / Connecting Row
                             Row {
                                 id: wifiPillRow
                                 anchors.centerIn: parent
@@ -590,7 +515,6 @@ Item {
                                 onClicked: root.handleApClick(network.modelData)
                             }
 
-                            // 2. Morphing Inline Password Field (Matches Lockscreen Card Style)
                             RowLayout {
                                 id: editingRow
                                 anchors.fill: parent
@@ -638,55 +562,24 @@ Item {
                                         selectedTextColor: Colours.palette.m3onPrimary
                                         clip: true
 
+                                        onAccepted: network.submitInlineConnect(inlinePassInput.text)
+
                                         HoverHandler {
                                             cursorShape: Qt.IBeamCursor
                                         }
 
-                                        cursorDelegate: Item {
-                                            visible: network.showPasswordText && inlinePassInput.cursorVisible
-                                            width: visible ? 2 : 0
-                                            height: visible ? (inlinePassInput.height * 0.7) : 0
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                color: Colours.palette.m3primary
-                                                radius: 1
-                                            }
+                                        Component.onCompleted: {
+                                            forceActiveFocus();
                                         }
-
-                                        Keys.onReturnPressed: network.submitInlineConnect(text)
-                                        Keys.onEnterPressed: network.submitInlineConnect(text)
-                                        Keys.onEscapePressed: network.cancelInline()
-
-                                        Connections {
-                                            target: network
-                                            function onIsEditingChanged() {
-                                                if (network.isEditing) {
-                                                    Qt.callLater(() => inlinePassInput.forceActiveFocus());
-                                                } else {
-                                                    inlinePassInput.text = "";
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    StyledText {
-                                        anchors.left: parent.left
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: qsTr("Enter password")
-                                        color: Colours.palette.m3outline
-                                        font.family: Tokens.font.family.sans
-                                        textPointSize: Tokens.font.size.small
-                                        visible: !inlinePassInput.text && !inlinePassInput.activeFocus
                                     }
                                 }
 
-                                // Eye toggle button
                                 StyledRect {
                                     Layout.alignment: Qt.AlignVCenter
                                     implicitWidth: 26
                                     implicitHeight: 26
                                     radius: Tokens.rounding.full
-                                    color: "transparent"
+                                    color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
                                     border.width: 0
 
                                     StateLayer {
@@ -703,7 +596,6 @@ Item {
                                     }
                                 }
 
-                                // Cancel button (✕)
                                 StyledRect {
                                     Layout.alignment: Qt.AlignVCenter
                                     implicitWidth: 26
@@ -726,7 +618,6 @@ Item {
                                     }
                                 }
 
-                                // Submit button (matching lockscreen's action circle)
                                 StyledRect {
                                     Layout.alignment: Qt.AlignVCenter
                                     implicitWidth: 26
@@ -756,71 +647,53 @@ Item {
                             }
                         }
                     }
-
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 1
-                        color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-                    }
                 }
             }
         }
-    }
 
         // ── Saved Networks Section ──────────────────────────────────────────
-        Column {
+        Section {
             Layout.fillWidth: true
-            visible: true
-            spacing: Tokens.spacing.extraSmall
+            visible: Nmcli.wifiEnabled && root.savedWifiList.length > 0
+            title: qsTr("Saved Networks")
+            accentColor: Colours.palette.m3primary
 
-            StyledRect {
-                width: parent ? parent.width : 0
-                height: 48
-                implicitHeight: height
-                radius: Tokens.rounding.normal
-                color: "transparent"
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Tokens.padding.normal
-                    anchors.rightMargin: Tokens.padding.normal
-                    spacing: Tokens.spacing.normal
-
-                    MaterialIcon {
-                        text: "bookmark"
-                        iconPointSize: Tokens.font.size.large
-                        color: Colours.palette.m3primary
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: qsTr("Saved networks (%1)").arg(root.savedWifiList.length)
-                        font.weight: Font.Medium
-                        textPointSize: Tokens.font.size.normal
-                        color: Colours.palette.m3onSurface
-                    }
-
-                    MaterialIcon {
-                        text: "expand_more"
-                        color: Colours.palette.m3onSurfaceVariant
-                        iconPointSize: Tokens.font.size.large
-                        rotation: root.showSavedNetworks ? 180 : 0
-
-                        Behavior on rotation {
-                            Anim { type: Anim.DefaultSpatial }
-                        }
-                    }
+            SettingRow {
+                id: savedHeaderCard
+                Layout.fillWidth: true
+                title: qsTr("Saved Networks")
+                description: qsTr("%1 saved networks").arg(root.savedWifiList.length)
+                clickable: true
+                onClicked: {
+                    root.showSavedNetworks = !root.showSavedNetworks;
+                    savedHeaderCard.notifySection();
                 }
 
-                StateLayer {
-                    radius: parent.radius
-                    color: Colours.palette.m3onSurface
-                    onClicked: {
-                        root.showSavedNetworks = !root.showSavedNetworks;
-                        if (root.showSavedNetworks) {
-                            Nmcli.loadSavedConnections(() => {});
+                StyledRect {
+                    implicitWidth: 32
+                    implicitHeight: 32
+                    radius: Tokens.rounding.full
+                    color: chevronMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
+
+                    Behavior on color { CAnim {} }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "expand_more"
+                        iconPointSize: 24
+                        color: Colours.palette.m3onSurfaceVariant
+                        rotation: root.showSavedNetworks ? 180 : 0
+                        Behavior on rotation { Anim { type: Anim.DefaultSpatial } }
+                    }
+
+                    MouseArea {
+                        id: chevronMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.showSavedNetworks = !root.showSavedNetworks;
+                            savedHeaderCard.notifySection();
                         }
                     }
                 }
@@ -828,143 +701,64 @@ Item {
 
             Item {
                 id: savedListContainer
-                width: parent ? parent.width : 0
-                height: root.showSavedNetworks ? savedListCol.implicitHeight : 0
-                implicitHeight: height
+                width: parent.width
+                implicitHeight: savedCol.implicitHeight
+                height: root.showSavedNetworks ? implicitHeight : 0
+                opacity: root.showSavedNetworks ? 1.0 : 0.0
                 clip: true
-                opacity: root.showSavedNetworks ? 1 : 0
-                visible: height > 0 || opacity > 0.01
+                visible: root.showSavedNetworks || height > 0 || opacity > 0.01
 
                 Behavior on height {
-                    Anim { type: Anim.DefaultSpatial }
+                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
                 }
-
                 Behavior on opacity {
-                    Anim { type: Anim.FastEffects }
-                }
-
-                property Item hoveredItem: null
-
-                Timer {
-                    id: clearSavedHoverTimer
-                    interval: 75
-                    onTriggered: savedListContainer.hoveredItem = null
-                }
-
-                // Sliding hover highlight marker for saved networks
-                StyledRect {
-                    id: savedHoverHighlight
-                    z: 0
-                    visible: opacity > 0.001
-                    opacity: (savedListContainer.hoveredItem !== null && !savedListContainer.hoveredItem.isCurrentActive && !root.menuIsOpen) ? 0.08 : 0
-                    color: Colours.palette.m3onSurface
-                    radius: Tokens.rounding.normal
-
-                    x: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.mapToItem(savedListContainer, 0, 0).x : x
-                    y: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.mapToItem(savedListContainer, 0, 0).y : y
-                    width: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.width : width
-                    height: savedListContainer.hoveredItem ? savedListContainer.hoveredItem.height : height
-
-                    Behavior on x {
-                        enabled: savedHoverHighlight.opacity > 0
-                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                    }
-                    Behavior on y {
-                        enabled: savedHoverHighlight.opacity > 0
-                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                    }
-                    Behavior on width {
-                        enabled: savedHoverHighlight.opacity > 0
-                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                    }
-                    Behavior on height {
-                        enabled: savedHoverHighlight.opacity > 0
-                        SpringAnimation { spring: 7.0; damping: 0.8; mass: 1.0; epsilon: 0.005 }
-                    }
-                    Behavior on opacity {
-                        NumberAnimation { duration: 150 }
-                    }
+                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
                 }
 
                 Column {
-                    id: savedListCol
-                    width: parent ? parent.width : 0
-                    spacing: 2
-                    y: root.showSavedNetworks ? 0 : -8
-
-                    Behavior on y {
-                        Anim { type: Anim.DefaultSpatial }
-                    }
-
-                    StyledText {
-                        visible: root.savedWifiList.length === 0
-                        width: parent ? parent.width : 0
-                        horizontalAlignment: Text.AlignHCenter
-                        text: qsTr("No saved networks")
-                        color: Colours.palette.m3onSurfaceVariant
-                        font.weight: Font.Normal
-                        textPointSize: Tokens.font.size.small
-                        topPadding: Tokens.padding.normal
-                        bottomPadding: Tokens.padding.normal
-                    }
+                    id: savedCol
+                    width: parent.width
+                    spacing: 3
 
                     Repeater {
                         model: root.savedWifiList
-                        delegate: StyledRect {
+                        delegate: SettingRow {
                             id: savedDev
                             required property var modelData
+                            required property int index
+                            showIconBackground: false
 
                             readonly property var liveNet: (root.networkList || []).find(n => n.ssid === modelData.ssid) || null
                             readonly property bool isLive: !!liveNet
                             readonly property bool isCurrentActive: liveNet && liveNet.active
 
-                            width: parent ? parent.width : 0
-                            height: savedRow.implicitHeight + Tokens.padding.normal * 2
-                            implicitHeight: height
-                            radius: Tokens.rounding.normal
-                            color: "transparent"
-
-                            StateLayer {
-                                radius: parent.radius
-                                color: Colours.palette.m3onSurface
-                                showHoverBackground: false
-                                interactive: !root.menuIsOpen
-                                disabled: root.menuIsOpen
-                                onEntered: {
-                                    clearSavedHoverTimer.stop();
-                                    savedListContainer.hoveredItem = savedDev;
+                            title: savedDev.modelData.name || savedDev.modelData.ssid || qsTr("Unknown")
+                            description: {
+                                let status = savedDev.isCurrentActive ? qsTr("Connected") : (savedDev.isLive ? qsTr("In range · %1%").arg(savedDev.liveNet.strength) : qsTr("Not in range"));
+                                if (savedDev.modelData.autoconnect) {
+                                    status += qsTr(" · Auto-connect");
                                 }
-                                onExited: {
-                                    clearSavedHoverTimer.restart();
-                                }
-                                onClicked: {
-                                    if (savedDev.liveNet) {
-                                        root.handleApClick(savedDev.liveNet);
-                                    } else if (root.session && root.session.wifiConfigMenu) {
-                                        const ap = {
-                                            ssid: savedDev.modelData.ssid,
-                                            bssid: "",
-                                            strength: 0,
-                                            isSecure: true,
-                                            active: false
-                                        };
-                                        root.session.wifiConfigMenu.openFor(ap, savedSettingsBtn);
-                                    }
+                                return status;
+                            }
+                            clickable: true
+                            onClicked: {
+                                if (savedDev.liveNet) {
+                                    root.handleApClick(savedDev.liveNet);
+                                } else if (root.session && root.session.wifiConfigMenu) {
+                                    const ap = {
+                                        ssid: savedDev.modelData.ssid,
+                                        bssid: "",
+                                        strength: 0,
+                                        isSecure: true,
+                                        active: false
+                                    };
+                                    root.session.wifiConfigMenu.openFor(ap, savedSettingsBtn);
                                 }
                             }
 
-                            RowLayout {
-                                id: savedRow
-                                anchors.fill: parent
-                                anchors.leftMargin: Tokens.padding.normal
-                                anchors.rightMargin: Tokens.padding.normal
-                                anchors.topMargin: Tokens.padding.small
-                                anchors.bottomMargin: Tokens.padding.small
-                                spacing: Tokens.spacing.normal
-
+                            customIcon: Component {
                                 WifiLottieIcon {
                                     size: 24
-                                    Layout.alignment: Qt.AlignVCenter
                                     wifiEnabled: true
                                     connected: savedDev.isCurrentActive
                                     signalStrength: (savedDev.liveNet ? savedDev.liveNet.strength : 0) / 100.0
@@ -975,89 +769,47 @@ Item {
                                     saved: true
                                     showSlashOnDisable: false
                                 }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 3
-
-                                    StyledText {
-                                        Layout.fillWidth: true
-                                        text: savedDev.modelData.name || savedDev.modelData.ssid || qsTr("Unknown")
-                                        elide: Text.ElideRight
-                                        font.weight: Font.Normal
-                                        color: savedDev.isCurrentActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
-                                        textPointSize: Tokens.font.size.normal
-                                    }
-
-                                    StyledText {
-                                        Layout.fillWidth: true
-                                        text: {
-                                            let status = savedDev.isCurrentActive ? qsTr("Connected") : (savedDev.isLive ? qsTr("In range · %1%").arg(savedDev.liveNet.strength) : qsTr("Not in range"));
-                                            if (savedDev.modelData.autoconnect) {
-                                                status += qsTr(" · Auto-connect");
-                                            }
-                                            return status;
-                                        }
-                                        elide: Text.ElideRight
-                                        color: Colours.palette.m3onSurfaceVariant
-                                        font.weight: Font.Normal
-                                        textPointSize: Tokens.font.size.small
-                                    }
-                                }
-
-                                // Settings / Modify button -> opens WifiConfigMenu container transform
-                                StyledRect {
-                                    id: savedSettingsBtn
-                                    z: 1
-                                    Layout.alignment: Qt.AlignVCenter
-                                    implicitWidth: 32
-                                    implicitHeight: 32
-                                    radius: Tokens.rounding.full
-                                    color: Colours.palette.m3secondaryContainer
-
-                                    opacity: {
-                                        const menu = root.session ? root.session.wifiConfigMenu : null;
-                                        if (menu && menu.isOpen && menu.network && menu.network.ssid === savedDev.modelData.ssid) return 0.0;
-                                        return 1.0;
-                                    }
-
-                                    Behavior on color { CAnim {} }
-                                    Behavior on opacity { NumberAnimation { duration: 80 } }
-
-                                    StateLayer {
-                                        radius: parent.radius
-                                        color: Colours.palette.m3onSecondaryContainer
-                                        onClicked: {
-                                            if (root.session && root.session.wifiConfigMenu) {
-                                                const ap = savedDev.liveNet || {
-                                                    ssid: savedDev.modelData.ssid,
-                                                    bssid: "",
-                                                    strength: 0,
-                                                    isSecure: true,
-                                                    active: false
-                                                };
-                                                root.session.wifiConfigMenu.openFor(ap, savedSettingsBtn);
-                                            }
-                                        }
-                                    }
-
-                                    MaterialIcon {
-                                        anchors.centerIn: parent
-                                        text: "settings"
-                                        iconPointSize: Tokens.font.size.small
-                                        color: Colours.palette.m3onSecondaryContainer
-                                    }
-                                }
                             }
 
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.leftMargin: Tokens.padding.normal
-                                anchors.rightMargin: Tokens.padding.normal
-                                height: 1
-                                color: Qt.alpha(Colours.palette.m3outlineVariant, 0.25)
+                            StyledRect {
+                                id: savedSettingsBtn
+                                implicitWidth: 36
+                                implicitHeight: 36
+                                radius: Tokens.rounding.full
+                                color: Colours.palette.m3secondaryContainer
+
+                                opacity: {
+                                    const menu = root.session ? root.session.wifiConfigMenu : null;
+                                    if (menu && menu.isOpen && menu.network && menu.network.ssid === savedDev.modelData.ssid) return 0.0;
+                                    return 1.0;
+                                }
+
+                                Behavior on color { CAnim {} }
+                                Behavior on opacity { NumberAnimation { duration: 80 } }
+
+                                StateLayer {
+                                    radius: parent.radius
+                                    color: Colours.palette.m3onSecondaryContainer
+                                    onClicked: {
+                                        if (root.session && root.session.wifiConfigMenu) {
+                                            const ap = savedDev.liveNet || {
+                                                ssid: savedDev.modelData.ssid,
+                                                bssid: "",
+                                                strength: 0,
+                                                isSecure: true,
+                                                active: false
+                                            };
+                                            root.session.wifiConfigMenu.openFor(ap, savedSettingsBtn);
+                                        }
+                                    }
+                                }
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "settings"
+                                    iconPointSize: Tokens.font.size.normal
+                                    color: Colours.palette.m3onSecondaryContainer
+                                }
                             }
                         }
                     }
@@ -1065,199 +817,64 @@ Item {
             }
         }
 
-        Column {
+        Section {
             Layout.fillWidth: true
             visible: Nmcli.wifiEnabled
-            spacing: Tokens.spacing.extraSmall
+            title: qsTr("Add Network")
+            accentColor: Colours.palette.m3primary
 
-            StyledRect {
-                width: parent ? parent.width : 0
-                height: 48
-                implicitHeight: height
-                radius: Tokens.rounding.normal
-                color: "transparent"
+            SettingRow {
+                title: qsTr("Network name")
+                description: qsTr("SSID of the hidden or manual network")
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Tokens.padding.normal
-                    anchors.rightMargin: Tokens.padding.normal
-                    spacing: Tokens.spacing.normal
-
-                    MaterialIcon {
-                        text: "add"
-                        iconPointSize: Tokens.font.size.large
-                        color: Colours.palette.m3primary
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: qsTr("Add network")
-                        font.weight: Font.Medium
-                        textPointSize: Tokens.font.size.normal
-                        color: Colours.palette.m3onSurface
-                    }
-
-                    MaterialIcon {
-                        text: "expand_more"
-                        color: Colours.palette.m3onSurfaceVariant
-                        iconPointSize: Tokens.font.size.large
-                        rotation: root.showAddNetwork ? 180 : 0
-
-                        Behavior on rotation {
-                            Anim { type: Anim.DefaultSpatial }
-                        }
-                    }
-                }
-
-                StateLayer {
-                    radius: parent.radius
-                    color: Colours.palette.m3onSurface
-                    onClicked: root.showAddNetwork = !root.showAddNetwork
+                StyledTextField {
+                    id: addSsidField
+                    width: Math.max(260, Math.round(contentWidth + leftPadding + rightPadding + 16))
+                    placeholderText: qsTr("Network SSID")
+                    Keys.onReturnPressed: addPasswordField.focus = true
+                    Keys.onEnterPressed: addPasswordField.focus = true
                 }
             }
 
-            Item {
-                id: addNetworkContainer
-                width: parent ? parent.width : 0
-                height: root.showAddNetwork ? addNetworkCol.implicitHeight : 0
-                implicitHeight: height
-                clip: true
-                opacity: root.showAddNetwork ? 1 : 0
-                visible: height > 0 || opacity > 0.01
+            SettingRow {
+                title: qsTr("Password")
+                description: qsTr("Leave empty for open networks")
 
-                Behavior on height {
-                    Anim { type: Anim.DefaultSpatial }
-                }
+                RowLayout {
+                    spacing: Tokens.spacing.small
 
-                Behavior on opacity {
-                    Anim { type: Anim.FastEffects }
-                }
-
-                Column {
-                    id: addNetworkCol
-                    width: parent ? parent.width : 0
-                    spacing: Tokens.spacing.normal
-                    y: root.showAddNetwork ? 0 : -8
-
-                    Behavior on y {
-                        Anim { type: Anim.DefaultSpatial }
+                    StyledTextField {
+                        id: addPasswordField
+                        width: Math.max(195, Math.round(contentWidth + leftPadding + rightPadding + 16))
+                        Layout.preferredWidth: width
+                        echoMode: TextInput.Password
+                        placeholderText: qsTr("Optional")
+                        Keys.onReturnPressed: root.submitAddNetwork()
+                        Keys.onEnterPressed: root.submitAddNetwork()
                     }
 
-                    SettingRow {
-                        title: qsTr("Network name")
-                        description: qsTr("SSID of the hidden or manual network")
-                        divider: true
+                    StyledRect {
+                        implicitWidth: joinLbl.implicitWidth + 28
+                        implicitHeight: 36
+                        radius: Tokens.rounding.full
+                        color: addSsidField.text.trim().length > 0 ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.12)
                         
-                        StyledRect {
-                            width: 200
-                            implicitHeight: 34
-                            radius: Tokens.rounding.full
-                            color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-                            border.width: 0
+                        Behavior on color { CAnim {} }
 
-                            TextInput {
-                                id: addSsidField
-                                anchors.fill: parent
-                                anchors.leftMargin: Tokens.padding.normal
-                                anchors.rightMargin: Tokens.padding.normal
-                                verticalAlignment: TextInput.AlignVCenter
-                                color: Colours.palette.m3onSurface
-                                font.family: Tokens.font.family.sans
-                                font.pointSize: Tokens.font.size.small
-                                selectByMouse: true
-                                selectionColor: Colours.palette.m3primary
-                                selectedTextColor: Colours.palette.m3onPrimary
-                                clip: true
-
-                                HoverHandler {
-                                    cursorShape: Qt.IBeamCursor
-                                }
-
-                                StyledText {
-                                    anchors.left: parent.left
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: qsTr("SSID")
-                                    color: Colours.palette.m3outline
-                                    font.family: Tokens.font.family.sans
-                                    textPointSize: Tokens.font.size.small
-                                    visible: !addSsidField.text && !addSsidField.activeFocus
-                                }
-                            }
+                        StyledText {
+                            id: joinLbl
+                            anchors.centerIn: parent
+                            text: qsTr("Join")
+                            color: addSsidField.text.trim().length > 0 ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                            font.weight: Font.Medium
+                            textPointSize: Tokens.font.size.small
                         }
-                    }
 
-                    SettingRow {
-                        title: qsTr("Password")
-                        description: qsTr("Leave empty for open networks")
-                        divider: false
-                        
-                        StyledRect {
-                            width: 200
-                            implicitHeight: 34
-                            radius: Tokens.rounding.full
-                            color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-                            border.width: 0
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: Tokens.padding.normal
-                                anchors.rightMargin: 4
-                                spacing: Tokens.spacing.extraSmall
-
-                                TextInput {
-                                    id: addPasswordField
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    echoMode: TextInput.Password
-                                    color: Colours.palette.m3onSurface
-                                    font.family: Tokens.font.family.sans
-                                    font.pointSize: Tokens.font.size.small
-                                    selectByMouse: true
-                                    selectionColor: Colours.palette.m3primary
-                                    selectedTextColor: Colours.palette.m3onPrimary
-                                    clip: true
-                                    Keys.onReturnPressed: root.submitAddNetwork()
-                                    Keys.onEnterPressed: root.submitAddNetwork()
-
-                                    HoverHandler {
-                                        cursorShape: Qt.IBeamCursor
-                                    }
-
-                                    StyledText {
-                                        anchors.left: parent.left
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: qsTr("Optional")
-                                        color: Colours.palette.m3outline
-                                        font.family: Tokens.font.family.sans
-                                        textPointSize: Tokens.font.size.small
-                                        visible: !addPasswordField.text && !addPasswordField.activeFocus
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Row {
-                        anchors.right: parent.right
-                        StyledRect {
-                            implicitWidth: joinLbl.implicitWidth + Tokens.padding.large * 2
-                            implicitHeight: 36
-                            radius: Tokens.rounding.full
-                            color: Colours.palette.m3primary
-                            StyledText {
-                                id: joinLbl
-                                anchors.centerIn: parent
-                                text: qsTr("Join")
-                                color: Colours.palette.m3onPrimary
-                                font.weight: Font.Normal
-                                textPointSize: Tokens.font.size.small
-                            }
-                            StateLayer {
-                                radius: parent.radius
-                                color: Colours.palette.m3onPrimary
-                                onClicked: root.submitAddNetwork()
-                            }
+                        StateLayer {
+                            radius: parent.radius
+                            color: Colours.palette.m3onPrimary
+                            enabled: addSsidField.text.trim().length > 0
+                            onClicked: root.submitAddNetwork()
                         }
                     }
                 }
@@ -1265,4 +882,3 @@ Item {
         }
     }
 }
-

@@ -37,66 +37,67 @@ Item {
         anchors.topMargin: Tokens.padding.large
         spacing: Tokens.spacing.large
 
-        SettingRow {
+        Section {
             Layout.fillWidth: true
-            title: qsTr("Secondary Panel")
-            description: qsTr("Quick settings panel below the taskbar")
-            divider: true
-            
-            StyledSwitch {
-                checked: Config.bar.secondaryPanel.enabled ?? true
-                onToggled: {
-                    GlobalConfig.bar.secondaryPanel.enabled = checked;
-                    GlobalConfig.save();
-                }
-            }
-        }
+            title: qsTr("Secondary Panel & Quick Settings")
+            description: qsTr("Auxiliary controls panel below or opposite the main taskbar")
+            icon: "view_sidebar"
+            accentColor: Colours.palette.m3secondary
 
-        SettingRow {
-            Layout.fillWidth: true
-            title: qsTr("Dock Background")
-            description: qsTr("Show a container background behind pinned apps")
-            divider: true
-            enabled: Config.bar.secondaryPanel.enabled ?? true
-            opacity: enabled ? 1.0 : 0.38
-            Behavior on opacity { Anim { type: Anim.FastEffects } }
-            
-            StyledSwitch {
-                enabled: Config.bar.secondaryPanel.enabled ?? true
-                checked: Visibilities.secondaryPanelDockBackground
-                onToggled: {
-                    Visibilities.setSecondaryPanelDockBackground(checked);
-                    if (GlobalConfig.bar && GlobalConfig.bar.secondaryPanel) {
-                        GlobalConfig.bar.secondaryPanel.dockBackground = checked;
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("Enable Secondary Panel")
+                description: qsTr("Show the quick settings and mini-dock panel")
+                
+                StyledSwitch {
+                    checked: (Config.bar.secondaryPanel.enabled !== undefined) ? Config.bar.secondaryPanel.enabled : true
+                    onToggled: {
+                        GlobalConfig.bar.secondaryPanel.enabled = checked;
+                        GlobalConfig.save();
                     }
-                    GlobalConfig.save();
                 }
             }
-        }
 
-        SettingRow {
-            Layout.fillWidth: true
-            title: qsTr("Visibility Mode")
-            description: qsTr("When the secondary panel should be shown")
-            divider: false
-            enabled: Config.bar.secondaryPanel.enabled ?? true
-            opacity: enabled ? 1.0 : 0.38
-            Behavior on opacity { Anim { type: Anim.FastEffects } }
-            
-            Segmented {
-                enabled: Config.bar.secondaryPanel.enabled ?? true
-                model: [qsTr("Always Show"), qsTr("Auto Hide"), qsTr("Smart Hide")]
-                currentIndex: {
-                    const act = Config.bar.secondaryPanel.visibilityMode || "always";
-                    if (act === "autohide") return 1;
-                    if (act === "smarthide") return 2;
-                    return 0;
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("Dock Background")
+                description: qsTr("Show a container background behind pinned applications")
+                enabled: (Config.bar.secondaryPanel.enabled !== undefined) ? Config.bar.secondaryPanel.enabled : true
+                
+                StyledSwitch {
+                    enabled: (Config.bar.secondaryPanel.enabled !== undefined) ? Config.bar.secondaryPanel.enabled : true
+                    checked: Visibilities.secondaryPanelDockBackground
+                    onToggled: {
+                        Visibilities.setSecondaryPanelDockBackground(checked);
+                        if (GlobalConfig.bar && GlobalConfig.bar.secondaryPanel) {
+                            GlobalConfig.bar.secondaryPanel.dockBackground = checked;
+                        }
+                        GlobalConfig.save();
+                    }
                 }
-                onSelected: i => {
-                    if (i === 0) GlobalConfig.bar.secondaryPanel.visibilityMode = "always";
-                    else if (i === 1) GlobalConfig.bar.secondaryPanel.visibilityMode = "autohide";
-                    else if (i === 2) GlobalConfig.bar.secondaryPanel.visibilityMode = "smarthide";
-                    GlobalConfig.save();
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("Visibility Mode")
+                description: qsTr("Choose auto-hide or persistent state for the secondary panel")
+                enabled: (Config.bar.secondaryPanel.enabled !== undefined) ? Config.bar.secondaryPanel.enabled : true
+                
+                Segmented {
+                    enabled: (Config.bar.secondaryPanel.enabled !== undefined) ? Config.bar.secondaryPanel.enabled : true
+                    model: [qsTr("Always Show"), qsTr("Auto Hide"), qsTr("Smart Hide")]
+                    currentIndex: {
+                        const act = Config.bar.secondaryPanel.visibilityMode || "always";
+                        if (act === "autohide") return 1;
+                        if (act === "smarthide") return 2;
+                        return 0;
+                    }
+                    onSelected: i => {
+                        if (i === 0) GlobalConfig.bar.secondaryPanel.visibilityMode = "always";
+                        else if (i === 1) GlobalConfig.bar.secondaryPanel.visibilityMode = "autohide";
+                        else if (i === 2) GlobalConfig.bar.secondaryPanel.visibilityMode = "smarthide";
+                        GlobalConfig.save();
+                    }
                 }
             }
         }

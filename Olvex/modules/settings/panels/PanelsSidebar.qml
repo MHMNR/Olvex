@@ -8,6 +8,7 @@ import "../../../components/containers"
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
+import qs.services
 
 Item {
     id: root
@@ -20,8 +21,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.large; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -34,33 +35,39 @@ Item {
         anchors.leftMargin: Tokens.padding.large
         anchors.rightMargin: Tokens.padding.large
         anchors.topMargin: Tokens.padding.large
-        spacing: 0
+        spacing: Tokens.spacing.large
 
-        SettingRow {
-            title: qsTr("Enable sidebar")
-            description: qsTr("Allow opening the sidebar")
-            divider: true
-            StyledSwitch {
-                checked: Config.notificationcenter.enabled ?? true
-                onToggled: {
-                    GlobalConfig.notificationcenter.enabled = checked;
-                    GlobalConfig.save();
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Sidebar & Notification Center")
+            description: qsTr("Flyout sidebar reveal triggers and swipe distances")
+            icon: "dock_to_left"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("Enable sidebar")
+                description: qsTr("Allow opening the lateral notification and control sidebar")
+                StyledSwitch {
+                    checked: (Config.notificationcenter.enabled !== undefined) ? Config.notificationcenter.enabled : true
+                    onToggled: {
+                        GlobalConfig.notificationcenter.enabled = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
-        }
-        
-        SettingRow {
-            title: qsTr("Drag threshold (px)")
-            description: qsTr("Distance before a drag opens the sidebar")
-            divider: false
-            CustomSpinBox {
-                value: Config.notificationcenter.dragThreshold ?? 80
-                min: 5
-                max: 100
-                step: 5
-                onValueModified: v => {
-                    GlobalConfig.notificationcenter.dragThreshold = v;
-                    GlobalConfig.save();
+            
+            SettingRow {
+                title: qsTr("Drag threshold (px)")
+                description: qsTr("Screen edge drag distance required to trigger opening the sidebar")
+                CustomSpinBox {
+                    value: Config.notificationcenter.dragThreshold || 80
+                    min: 5
+                    max: 100
+                    step: 5
+                    onValueModified: v => {
+                        GlobalConfig.notificationcenter.dragThreshold = v;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }

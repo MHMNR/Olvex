@@ -273,7 +273,7 @@ ColumnLayout {
             description: qsTr("Android 17 style expanding ripple bloom and battery pill on AC connect")
             divider: true
             StyledSwitch {
-                checked: GlobalConfig.general?.battery?.chargingRipple ?? true
+                checked: (GlobalConfig.general && GlobalConfig.general.battery && GlobalConfig.general.battery.chargingRipple !== undefined) ? GlobalConfig.general.battery.chargingRipple : true
                 onToggled: {
                     if (GlobalConfig.general && GlobalConfig.general.battery) {
                         GlobalConfig.general.battery.chargingRipple = checked;
@@ -288,7 +288,7 @@ ColumnLayout {
             description: qsTr("Show popup toast when AC charger is connected or disconnected")
             divider: false
             StyledSwitch {
-                checked: GlobalConfig.qspanel?.toasts?.chargingChanged ?? true
+                checked: (GlobalConfig.qspanel && GlobalConfig.qspanel.toasts && GlobalConfig.qspanel.toasts.chargingChanged !== undefined) ? GlobalConfig.qspanel.toasts.chargingChanged : true
                 onToggled: {
                     if (GlobalConfig.qspanel && GlobalConfig.qspanel.toasts) {
                         GlobalConfig.qspanel.toasts.chargingChanged = checked;

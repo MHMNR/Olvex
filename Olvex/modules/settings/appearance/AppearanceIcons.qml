@@ -494,7 +494,7 @@ Item {
         spacing: Tokens.spacing.large
         z: 10
 
-        // Row 1: Clean M3 Segmented Navigation Bar (Installed (N) | Store)
+        // Row 1: Clean M3 Segmented Navigation Bar (Installed (N) | Store) + Action Buttons
         RowLayout {
             Layout.fillWidth: true
             spacing: Tokens.spacing.normal
@@ -516,191 +516,151 @@ Item {
             }
 
             Item { Layout.fillWidth: true }
-        }
 
-        // Row 2: Control Header Row (Tab 0 Section vs Tab 1 Toolbar)
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: root.currentTab === 0 ? installedSection.implicitHeight : marketToolbarRow.implicitHeight
+RowLayout {
+            spacing: Tokens.spacing.small
+            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
-            // Tab 0: Section Title, Subtitle, and Installed Actions
-            RowLayout {
-                id: installedSection
-                anchors.fill: parent
-                spacing: Tokens.spacing.normal
-                visible: root.currentTab === 0
+            // Expanding "Open Folder" button
+            StyledRect {
+                id: openFolderBtn
+                readonly property bool hovered: openFolderMa.containsMouse
+                readonly property real expandedWidth: Math.round(38 + folderText.implicitWidth + 18)
 
-                StyledRect {
-                    Layout.preferredWidth: 38
-                    Layout.preferredHeight: 38
-                    Layout.maximumWidth: 38
-                    Layout.minimumWidth: 38
+                implicitHeight: 38
+                implicitWidth: hovered ? expandedWidth : 38
+                Layout.preferredHeight: 38
+                Layout.preferredWidth: implicitWidth
+                radius: Tokens.rounding.full
+                clip: true
+
+                color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                border.width: 1
+                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+
+                Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
+
+                Item {
+                    id: folderIconWrap
                     width: 38
                     height: 38
-                    radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3primary, 0.12)
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
 
                     MaterialIcon {
                         anchors.centerIn: parent
-                        text: "palette"
-                        color: Colours.palette.m3primary
-                        iconPointSize: 20
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    StyledText {
-                        text: qsTr("System Icon Theme")
-                        font.weight: Font.DemiBold
-                        textPointSize: Tokens.font.size.large
+                        anchors.horizontalCenterOffset: 1
+                        text: "folder_open"
+                        iconPointSize: 18
                         color: Colours.palette.m3onSurface
                     }
+                }
 
-                    StyledText {
-                        text: qsTr("Applications, launcher, and desktop icon set")
-                        textPointSize: Tokens.font.size.small
-                        color: Colours.palette.m3onSurfaceVariant
+                StyledText {
+                    id: folderText
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: folderIconWrap.right
+                    anchors.leftMargin: 2
+                    text: qsTr("Open Folder")
+                    textPointSize: Tokens.font.size.smaller
+                    font.weight: Font.Medium
+                    color: Colours.palette.m3onSurface
+                    opacity: openFolderBtn.hovered ? 1.0 : 0.0
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
+
+                MouseArea {
+                    id: openFolderMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Quickshell.execDetached(["xdg-open", Paths.home + "/.icons"])
+                }
+            }
+
+            // Expanding "Scan Themes" (rebuild) button
+            StyledRect {
+                id: scanThemesBtn
+                readonly property bool hovered: scanThemesMa.containsMouse
+                readonly property real expandedWidth: Math.round(38 + scanText.implicitWidth + 18)
+
+                implicitHeight: 38
+                implicitWidth: hovered ? expandedWidth : 38
+                Layout.preferredHeight: 38
+                Layout.preferredWidth: implicitWidth
+                radius: Tokens.rounding.full
+                clip: true
+
+                color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
+                border.width: 1
+                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+
+                Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
+
+                Item {
+                    id: scanIconWrap
+                    width: 38
+                    height: 38
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    LoadingIndicator {
+                        anchors.centerIn: parent
+                        implicitSize: 18
+                        color: Colours.palette.m3primary
+                        animated: root.isScanning
+                        visible: opacity > 0
+                        opacity: root.isScanning ? 1.0 : 0.0
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
+                    }
+
+                    MaterialIcon {
+                        id: scanIcon
+                        anchors.centerIn: parent
+                        text: "refresh"
+                        iconPointSize: 18
+                        renderType: Text.QtRendering
+                        antialiasing: true
+                        color: Colours.palette.m3onSurface
+                        visible: opacity > 0
+                        opacity: root.isScanning ? 0.0 : 1.0
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
                     }
                 }
 
-                RowLayout {
-                    spacing: Tokens.spacing.small
-                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                StyledText {
+                    id: scanText
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: scanIconWrap.right
+                    anchors.leftMargin: 2
+                    text: qsTr("Scan Themes")
+                    textPointSize: Tokens.font.size.smaller
+                    font.weight: Font.Medium
+                    color: Colours.palette.m3onSurface
+                    opacity: scanThemesBtn.hovered ? 1.0 : 0.0
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
 
-                    // Expanding "Open Folder" button
-                    StyledRect {
-                        id: openFolderBtn
-                        readonly property bool hovered: openFolderMa.containsMouse
-                        readonly property real expandedWidth: Math.round(38 + folderText.implicitWidth + 18)
-
-                        implicitHeight: 38
-                        implicitWidth: hovered ? expandedWidth : 38
-                        Layout.preferredHeight: 38
-                        Layout.preferredWidth: implicitWidth
-                        radius: Tokens.rounding.full
-                        clip: true
-
-                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                        border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-
-                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-
-                        Item {
-                            id: folderIconWrap
-                            width: 38
-                            height: 38
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            MaterialIcon {
-                                anchors.centerIn: parent
-                                anchors.horizontalCenterOffset: 1
-                                text: "folder_open"
-                                iconPointSize: 18
-                                color: Colours.palette.m3onSurface
-                            }
-                        }
-
-                        StyledText {
-                            id: folderText
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: folderIconWrap.right
-                            anchors.leftMargin: 2
-                            text: qsTr("Open Folder")
-                            textPointSize: Tokens.font.size.smaller
-                            font.weight: Font.Medium
-                            color: Colours.palette.m3onSurface
-                            opacity: openFolderBtn.hovered ? 1.0 : 0.0
-                            Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        }
-
-                        MouseArea {
-                            id: openFolderMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Quickshell.execDetached(["xdg-open", Paths.home + "/.icons"])
-                        }
-                    }
-
-                    // Expanding "Scan Themes" (rebuild) button
-                    StyledRect {
-                        id: scanThemesBtn
-                        readonly property bool hovered: scanThemesMa.containsMouse
-                        readonly property real expandedWidth: Math.round(38 + scanText.implicitWidth + 18)
-
-                        implicitHeight: 38
-                        implicitWidth: hovered ? expandedWidth : 38
-                        Layout.preferredHeight: 38
-                        Layout.preferredWidth: implicitWidth
-                        radius: Tokens.rounding.full
-                        clip: true
-
-                        color: Colours.layer(Colours.palette.m3surfaceContainerHighest, 1)
-                        border.width: 1
-                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
-
-                        Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
-
-                        Item {
-                            id: scanIconWrap
-                            width: 38
-                            height: 38
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            LoadingIndicator {
-                                anchors.centerIn: parent
-                                implicitSize: 18
-                                color: Colours.palette.m3primary
-                                animated: root.isScanning
-                                visible: opacity > 0
-                                opacity: root.isScanning ? 1.0 : 0.0
-                                Behavior on opacity { Anim { type: Anim.FastEffects } }
-                            }
-
-                            MaterialIcon {
-                                id: scanIcon
-                                anchors.centerIn: parent
-                                text: "refresh"
-                                iconPointSize: 18
-                                renderType: Text.QtRendering
-                                antialiasing: true
-                                color: Colours.palette.m3onSurface
-                                visible: opacity > 0
-                                opacity: root.isScanning ? 0.0 : 1.0
-                                Behavior on opacity { Anim { type: Anim.FastEffects } }
-                            }
-                        }
-
-                        StyledText {
-                            id: scanText
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: scanIconWrap.right
-                            anchors.leftMargin: 2
-                            text: qsTr("Scan Themes")
-                            textPointSize: Tokens.font.size.smaller
-                            font.weight: Font.Medium
-                            color: Colours.palette.m3onSurface
-                            opacity: scanThemesBtn.hovered ? 1.0 : 0.0
-                            Behavior on opacity { Anim { type: Anim.FastEffects } }
-                        }
-
-                        MouseArea {
-                            id: scanThemesMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: root.isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor
-                            enabled: !root.isScanning
-                            onClicked: root.refreshThemes()
+                MouseArea {
+                    id: scanThemesMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: root.isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor
+                    onClicked: {
+                        if (!root.isScanning) {
+                            root.refreshThemes();
                         }
                     }
                 }
             }
+        }
+    }
+
+        // Row 2: Store Toolbar (Only visible on Tab 1 / Store)
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: marketToolbarRow.implicitHeight
+            visible: root.currentTab === 1
 
             // Tab 1: Store Toolbar Row
             RowLayout {
@@ -975,10 +935,74 @@ Item {
         Item {
             id: scrollContent
             width: contentFlickable.width
-            implicitHeight: root.currentTab === 0 ? installedGrid.implicitHeight : marketContentCol.implicitHeight
+            implicitHeight: root.currentTab === 0 ? installedContentCol.implicitHeight : marketContentCol.implicitHeight
 
-            // Bento Grid of Installed Themes
-        GridLayout {
+            // TAB 0: Installed Icon Themes Content
+            ColumnLayout {
+                id: installedContentCol
+                width: parent.width
+                visible: root.currentTab === 0
+                spacing: Tokens.spacing.large
+
+                Section {
+                    Layout.fillWidth: true
+                    title: qsTr("Icon Theme")
+                    accentColor: Colours.palette.m3primary
+
+                    // Unified Icon Theme Picker Card (StyledRect matching Connected Stack)
+                    StyledRect {
+                        id: iconThemeCard
+                        Layout.fillWidth: true
+                        implicitWidth: parent ? parent.width : 0
+                        width: parent ? parent.width : implicitWidth
+
+                        // Group position flags for Section.qml connected stack
+                        property bool isFirstInGroup: false
+                        property bool isLastInGroup: false
+                        property bool isSingleInGroup: false
+
+                        readonly property real topR: (isSingleInGroup || isFirstInGroup) ? 22 : 6
+                        readonly property real bottomR: (isSingleInGroup || isLastInGroup) ? 22 : 6
+                        topLeftRadius: topR
+                        topRightRadius: topR
+                        bottomLeftRadius: bottomR
+                        bottomRightRadius: bottomR
+
+                        color: Colours.palette.m3surfaceContainerHigh
+                        border.width: 0
+
+                        implicitHeight: cardContentLayout.implicitHeight + 28
+
+                        ColumnLayout {
+                            id: cardContentLayout
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.topMargin: 14
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            spacing: 14
+
+                            // Top row: Clean Title/Subtitle
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                StyledText {
+                                    text: qsTr("System Icon Theme")
+                                    font.weight: Font.DemiBold
+                                    textPointSize: Tokens.font.size.normal
+                                    color: Colours.palette.m3onSurface
+                                }
+
+                                StyledText {
+                                    text: qsTr("Applications, launcher, and desktop icon set")
+                                    textPointSize: Tokens.font.size.small
+                                    color: Colours.palette.m3onSurfaceVariant
+                                }
+                            }
+
+                            GridLayout {
             id: installedGrid
             width: parent.width
             visible: root.currentTab === 0
@@ -987,7 +1011,7 @@ Item {
             columnSpacing: Tokens.spacing.normal
             rowSpacing: Tokens.spacing.normal
 
-            readonly property real cardWidth: Math.max(140, Math.floor((scrollContent.width - columnSpacing * 2) / 3))
+            readonly property real cardWidth: Math.max(140, Math.floor((iconThemeCard.width - 32 - columnSpacing * 2) / 3))
 
             Repeater {
                 model: root.themesList
@@ -1173,6 +1197,10 @@ Item {
                 }
             }
         }
+                        }
+                    }
+                }
+            }
 
             // TAB 1: Online Icon Pack Market Content
             ColumnLayout {

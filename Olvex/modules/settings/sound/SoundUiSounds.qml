@@ -23,8 +23,8 @@ Item {
 
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
     }
 
     readonly property var defaultSoundOptions: [
@@ -113,7 +113,7 @@ Item {
 
         OptionPicker {
             id: picker
-            Layout.preferredWidth: 160
+            Layout.preferredWidth: Math.max(160, picker.implicitWidth)
             model: scRow.opts
             currentIndex: root.idxOfSound(scRow.opts, scRow.soundValue, "")
             enabled: scRow.effectivelyEnabled
@@ -182,7 +182,6 @@ Item {
             SettingRow {
                 title: qsTr("UI Sound Effects")
                 description: qsTr("Play audio feedback for desktop events")
-                icon: "volume_up"
                 divider: true
                 StyledSwitch {
                     checked: GlobalConfig.services.uiSounds.enabled
@@ -196,7 +195,6 @@ Item {
             SettingRow {
                 title: qsTr("Effects volume")
                 description: qsTr("Master volume level for UI sound effects")
-                icon: "tune"
                 divider: false
                 StyledSlider {
                     width: 200
@@ -225,19 +223,25 @@ Item {
             description: qsTr("Audio chimes for incoming desktop notifications")
             icon: "notifications"
             accentColor: Colours.palette.m3tertiary
-            headerControl: StyledSwitch {
-                checked: GlobalConfig.services.uiSounds.notifications
+
+            SettingRow {
+                title: qsTr("Enable notification sounds")
+                description: qsTr("Play chimes for incoming desktop notifications")
                 enabled: GlobalConfig.services.uiSounds.enabled
-                onToggled: {
-                    GlobalConfig.services.uiSounds.notifications = checked;
-                    GlobalConfig.save();
+                StyledSwitch {
+                    checked: GlobalConfig.services.uiSounds.notifications
+                    enabled: GlobalConfig.services.uiSounds.enabled
+                    onToggled: {
+                        GlobalConfig.services.uiSounds.notifications = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
 
             SettingRow {
                 title: qsTr("Notification chime")
                 description: qsTr("Sound for regular desktop notifications")
-                divider: true
+                enabled: GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.notifications
                 SoundControlRow {
                     propName: "notificationsSound"
                     soundValue: GlobalConfig.services.uiSounds.notificationsSound || "notif.mp3"
@@ -252,7 +256,7 @@ Item {
             SettingRow {
                 title: qsTr("Urgent notification")
                 description: qsTr("Sound for high-priority / critical alerts")
-                divider: false
+                enabled: GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.notifications
                 SoundControlRow {
                     propName: "notificationsUrgentSound"
                     soundValue: GlobalConfig.services.uiSounds.notificationsUrgentSound || "notificationV.mp3"
@@ -271,19 +275,25 @@ Item {
             description: qsTr("Sounds for AC adapter state and battery alerts")
             icon: "battery_charging_full"
             accentColor: Colours.palette.m3primary
-            headerControl: StyledSwitch {
-                checked: GlobalConfig.services.uiSounds.charger
+
+            SettingRow {
+                title: qsTr("Enable power & battery sounds")
+                description: qsTr("Play audio when charger connects or disconnects")
                 enabled: GlobalConfig.services.uiSounds.enabled
-                onToggled: {
-                    GlobalConfig.services.uiSounds.charger = checked;
-                    GlobalConfig.save();
+                StyledSwitch {
+                    checked: GlobalConfig.services.uiSounds.charger
+                    enabled: GlobalConfig.services.uiSounds.enabled
+                    onToggled: {
+                        GlobalConfig.services.uiSounds.charger = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
 
             SettingRow {
                 title: qsTr("Charger connected")
                 description: qsTr("Sound when AC adapter is plugged in")
-                divider: true
+                enabled: GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.charger
                 SoundControlRow {
                     propName: "chargerInSound"
                     soundValue: GlobalConfig.services.uiSounds.chargerInSound || "charger-in.mp3"
@@ -298,7 +308,7 @@ Item {
             SettingRow {
                 title: qsTr("Charger disconnected")
                 description: qsTr("Sound when AC adapter is unplugged")
-                divider: false
+                enabled: GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.charger
                 SoundControlRow {
                     propName: "chargerOutSound"
                     soundValue: GlobalConfig.services.uiSounds.chargerOutSound || "charger-out.mp3"
@@ -317,19 +327,25 @@ Item {
             description: qsTr("Sounds for Bluetooth and USB device connections")
             icon: "devices"
             accentColor: Colours.palette.m3secondary
-            headerControl: StyledSwitch {
-                checked: GlobalConfig.services.uiSounds.device
+
+            SettingRow {
+                title: qsTr("Enable peripheral connection sounds")
+                description: qsTr("Play audio when external devices connect or disconnect")
                 enabled: GlobalConfig.services.uiSounds.enabled
-                onToggled: {
-                    GlobalConfig.services.uiSounds.device = checked;
-                    GlobalConfig.save();
+                StyledSwitch {
+                    checked: GlobalConfig.services.uiSounds.device
+                    enabled: GlobalConfig.services.uiSounds.enabled
+                    onToggled: {
+                        GlobalConfig.services.uiSounds.device = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
 
             SettingRow {
                 title: qsTr("Device connected")
                 description: qsTr("Sound when a peripheral connects")
-                divider: true
+                enabled: GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.device
                 SoundControlRow {
                     propName: "deviceInSound"
                     soundValue: GlobalConfig.services.uiSounds.deviceInSound || "device-in.mp3"
@@ -344,7 +360,7 @@ Item {
             SettingRow {
                 title: qsTr("Device disconnected")
                 description: qsTr("Sound when a peripheral disconnects")
-                divider: false
+                enabled: GlobalConfig.services.uiSounds.enabled && GlobalConfig.services.uiSounds.device
                 SoundControlRow {
                     propName: "deviceOutSound"
                     soundValue: GlobalConfig.services.uiSounds.deviceOutSound || "device-out.mp3"

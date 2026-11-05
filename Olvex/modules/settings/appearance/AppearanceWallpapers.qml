@@ -1,5 +1,3 @@
-
-
 import ".."
 import "../ui"
 import "../components"
@@ -24,12 +22,13 @@ ColumnLayout {
     Component.onCompleted: {
         revealAnim.start();
         Wallpapers.ensureCatalog();
-        if (Wallpapers.isVideoPath(Wallpapers.actualCurrent))
+        if (Wallpapers.isVideoPath(Wallpapers.actualCurrent)) {
             root.wallpaperMode = "live";
-        else if (GlobalConfig.background?.liveWallpaper?.enabled && Wallpapers.liveEntryObjects?.length > 0)
+        } else if (GlobalConfig.background && GlobalConfig.background.liveWallpaper && GlobalConfig.background.liveWallpaper.enabled && Wallpapers.liveEntryObjects && Wallpapers.liveEntryObjects.length > 0) {
             root.wallpaperMode = "live";
-        else
+        } else {
             root.wallpaperMode = "static";
+        }
     }
 
     ParallelAnimation {
@@ -49,9 +48,9 @@ ColumnLayout {
         return 0;
     }
 
-    function setWallpaperMode(mode: string): void {
+    function setWallpaperMode(mode) {
         root.wallpaperMode = mode === "live" ? "live" : "static";
-        if (GlobalConfig.background?.liveWallpaper)
+        if (GlobalConfig.background && GlobalConfig.background.liveWallpaper)
             GlobalConfig.background.liveWallpaper.enabled = root.wallpaperMode === "live";
         Wallpapers.ensureCatalog();
     }
@@ -74,47 +73,130 @@ ColumnLayout {
             }
         }
 
-        SettingRow {
-            title: qsTr("Source")
-            description: qsTr("Static images or live video backgrounds")
-            Segmented {
-                id: sourceSeg
-                minSegmentWidth: 88
-                model: [{
-                        label: qsTr("Static")
-                    }, {
-                        label: qsTr("Live")
-                    }]
-                currentIndex: root.wallpaperMode === "live" ? 1 : 0
-                onSelected: i => root.setWallpaperMode(i === 1 ? "live" : "static")
-            }
-        }
-        
-        SettingRow {
-            title: qsTr("Turn off live wallpaper audio")
-            description: qsTr("Silence sound from the video wallpaper")
-            visible: root.wallpaperMode === "live"
-            StyledSwitch {
-                checked: GlobalConfig.background.liveWallpaper?.muted ?? true
-                onToggled: {
-                    if (GlobalConfig.background?.liveWallpaper)
-                        GlobalConfig.background.liveWallpaper.muted = checked;
-                    GlobalConfig.save();
+        // Unified Wallpaper Type & Grid Card
+        StyledRect {
+            id: wallpaperPickerCard
+            Layout.fillWidth: true
+            implicitWidth: parent ? parent.width : 0
+            width: parent ? parent.width : implicitWidth
+
+            // Group position flags for Section.qml connected stack
+            property bool isFirstInGroup: false
+            property bool isLastInGroup: false
+            property bool isSingleInGroup: false
+
+            readonly property real topR: (isSingleInGroup || isFirstInGroup) ? 22 : 6
+            readonly property real bottomR: (isSingleInGroup || isLastInGroup) ? 22 : 6
+            topLeftRadius: topR
+            topRightRadius: topR
+            bottomLeftRadius: bottomR
+            bottomRightRadius: bottomR
+
+            color: Colours.palette.m3surfaceContainerHigh
+            border.width: 0
+
+            implicitHeight: cardContent.implicitHeight + 28
+
+            ColumnLayout {
+                id: cardContent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 14
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                spacing: 12
+
+                // Header: Professional title + description + segmented selector
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 16
+
+                    Column {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        StyledText {
+                            width: parent.width
+                            text: qsTr("Wallpaper Type")
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: -0.1
+                            color: Colours.palette.m3onSurface
+                            textPointSize: Tokens.font.size.normal
+                        }
+
+                        StyledText {
+                            width: parent.width
+                            text: qsTr("Static images or live video backgrounds")
+                            color: Colours.palette.m3onSurfaceVariant
+                            font.weight: Font.Normal
+                            font.letterSpacing: 0.1
+                            textPointSize: Tokens.font.size.small
+                        }
+                    }
+
+                    Segmented {
+                        id: sourceSeg
+                        minSegmentWidth: 88
+                        model: [{
+                                label: qsTr("Static")
+                            }, {
+                                label: qsTr("Live")
+                            }]
+                        currentIndex: root.wallpaperMode === "live" ? 1 : 0
+                        onSelected: i => root.setWallpaperMode(i === 1 ? "live" : "static")
+                    }
                 }
-            }
-        }
 
-        Item {
-            width: parent.width
-            height: wallGrid.implicitHeight
+                // Live wallpaper mute toggle (only visible in live mode)
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: root.wallpaperMode === "live"
+                    spacing: 16
 
-            WallpaperGrid {
-                id: wallGrid
-                anchors.fill: parent
-                session: root.session
-                mode: root.wallpaperMode
-                columnsCount: 5
-                visibleRows: 3
+                    Column {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        StyledText {
+                            width: parent.width
+                            text: qsTr("Turn off live wallpaper audio")
+                            font.weight: Font.DemiBold
+                            color: Colours.palette.m3onSurface
+                            textPointSize: Tokens.font.size.normal
+                        }
+
+                        StyledText {
+                            width: parent.width
+                            text: qsTr("Silence sound from the video wallpaper")
+                            color: Colours.palette.m3onSurfaceVariant
+                            textPointSize: Tokens.font.size.small
+                        }
+                    }
+
+                    StyledSwitch {
+                        checked: (GlobalConfig.background && GlobalConfig.background.liveWallpaper && GlobalConfig.background.liveWallpaper.muted !== undefined)
+                                 ? GlobalConfig.background.liveWallpaper.muted
+                                 : true
+                        onToggled: {
+                            if (GlobalConfig.background && GlobalConfig.background.liveWallpaper) {
+                                GlobalConfig.background.liveWallpaper.muted = checked;
+                                GlobalConfig.save();
+                            }
+                        }
+                    }
+                }
+
+                // Integrated Wallpaper Thumbnail Grid
+                WallpaperGrid {
+                    id: wallGrid
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: implicitHeight
+                    session: root.session
+                    mode: root.wallpaperMode
+                    columnsCount: 5
+                    visibleRows: 3
+                }
             }
         }
         
@@ -143,10 +225,12 @@ ColumnLayout {
             description: qsTr("Visual effect used to swap wallpapers")
             OptionPicker {
                 model: root.transitionTypes
-                currentIndex: root.idxOf(root.transitionTypes, GlobalConfig.background.wallpaperTransition?.type || "random")
+                currentIndex: root.idxOf(root.transitionTypes, (GlobalConfig.background.wallpaperTransition && GlobalConfig.background.wallpaperTransition.type) ? GlobalConfig.background.wallpaperTransition.type : "random")
                 onSelected: i => {
-                    GlobalConfig.background.wallpaperTransition.type = root.transitionTypes[i];
-                    GlobalConfig.save();
+                    if (GlobalConfig.background && GlobalConfig.background.wallpaperTransition) {
+                        GlobalConfig.background.wallpaperTransition.type = root.transitionTypes[i];
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -155,13 +239,15 @@ ColumnLayout {
             title: qsTr("Duration")
             description: qsTr("How long the transition lasts (ms)")
             CustomSpinBox {
-                value: GlobalConfig.background.wallpaperTransition?.duration ?? 1000
+                value: (GlobalConfig.background.wallpaperTransition && GlobalConfig.background.wallpaperTransition.duration !== undefined) ? GlobalConfig.background.wallpaperTransition.duration : 1000
                 min: 200
                 max: 3000
                 step: 100
                 onValueModified: v => {
-                    GlobalConfig.background.wallpaperTransition.duration = v;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background && GlobalConfig.background.wallpaperTransition) {
+                        GlobalConfig.background.wallpaperTransition.duration = v;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -171,13 +257,15 @@ ColumnLayout {
             description: qsTr("Softness of the transition boundary")
             divider: false
             StyledSlider {
-                width: 220
+                width: 260
                 from: 0
                 to: 0.3
-                value: GlobalConfig.background.wallpaperTransition?.edgeSmoothness ?? 0.1
+                value: (GlobalConfig.background.wallpaperTransition && GlobalConfig.background.wallpaperTransition.edgeSmoothness !== undefined) ? GlobalConfig.background.wallpaperTransition.edgeSmoothness : 0.1
                 onMoved: {
-                    GlobalConfig.background.wallpaperTransition.edgeSmoothness = value;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background && GlobalConfig.background.wallpaperTransition) {
+                        GlobalConfig.background.wallpaperTransition.edgeSmoothness = value;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -193,10 +281,12 @@ ColumnLayout {
             title: qsTr("Auto-cycle wallpapers")
             description: qsTr("Switch on a schedule")
             StyledSwitch {
-                checked: GlobalConfig.background.wallpaperCycling?.enabled ?? false
+                checked: (GlobalConfig.background.wallpaperCycling && GlobalConfig.background.wallpaperCycling.enabled !== undefined) ? GlobalConfig.background.wallpaperCycling.enabled : false
                 onToggled: {
-                    GlobalConfig.background.wallpaperCycling.enabled = checked;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background && GlobalConfig.background.wallpaperCycling) {
+                        GlobalConfig.background.wallpaperCycling.enabled = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -205,13 +295,15 @@ ColumnLayout {
             title: qsTr("Interval")
             description: qsTr("Seconds between changes")
             CustomSpinBox {
-                value: GlobalConfig.background.wallpaperCycling?.intervalSeconds ?? 300
+                value: (GlobalConfig.background.wallpaperCycling && GlobalConfig.background.wallpaperCycling.intervalSeconds !== undefined) ? GlobalConfig.background.wallpaperCycling.intervalSeconds : 300
                 min: 30
                 max: 3600
                 step: 30
                 onValueModified: v => {
-                    GlobalConfig.background.wallpaperCycling.intervalSeconds = v;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background && GlobalConfig.background.wallpaperCycling) {
+                        GlobalConfig.background.wallpaperCycling.intervalSeconds = v;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -220,10 +312,12 @@ ColumnLayout {
             title: qsTr("Shuffle order")
             description: qsTr("Randomize the sequence")
             StyledSwitch {
-                checked: GlobalConfig.background.wallpaperCycling?.shuffle ?? true
+                checked: (GlobalConfig.background.wallpaperCycling && GlobalConfig.background.wallpaperCycling.shuffle !== undefined) ? GlobalConfig.background.wallpaperCycling.shuffle : true
                 onToggled: {
-                    GlobalConfig.background.wallpaperCycling.shuffle = checked;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background && GlobalConfig.background.wallpaperCycling) {
+                        GlobalConfig.background.wallpaperCycling.shuffle = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -233,10 +327,12 @@ ColumnLayout {
             description: qsTr("Stop cycling when an app is fullscreen")
             divider: false
             StyledSwitch {
-                checked: GlobalConfig.background.wallpaperCycling?.pauseOnFullscreen ?? true
+                checked: (GlobalConfig.background.wallpaperCycling && GlobalConfig.background.wallpaperCycling.pauseOnFullscreen !== undefined) ? GlobalConfig.background.wallpaperCycling.pauseOnFullscreen : true
                 onToggled: {
-                    GlobalConfig.background.wallpaperCycling.pauseOnFullscreen = checked;
-                    GlobalConfig.save();
+                    if (GlobalConfig.background && GlobalConfig.background.wallpaperCycling) {
+                        GlobalConfig.background.wallpaperCycling.pauseOnFullscreen = checked;
+                        GlobalConfig.save();
+                    }
                 }
             }
         }
@@ -252,9 +348,9 @@ ColumnLayout {
             title: qsTr("Show desktop clock")
             description: qsTr("Draw the time over the wallpaper")
             StyledSwitch {
-                checked: GlobalConfig.background?.desktopClock?.enabled ?? false
+                checked: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.enabled !== undefined) ? GlobalConfig.background.desktopClock.enabled : false
                 onToggled: {
-                    if (GlobalConfig.background?.desktopClock) {
+                    if (GlobalConfig.background && GlobalConfig.background.desktopClock) {
                         GlobalConfig.background.desktopClock.enabled = checked;
                         GlobalConfig.save();
                     }
@@ -267,9 +363,9 @@ ColumnLayout {
             description: qsTr("Where the clock is anchored")
             OptionPicker {
                 model: root.clockPositions
-                currentIndex: root.idxOf(root.clockPositions, GlobalConfig.background?.desktopClock?.position || "bottom-right")
+                currentIndex: root.idxOf(root.clockPositions, (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.position) ? GlobalConfig.background.desktopClock.position : "bottom-right")
                 onSelected: i => {
-                    if (GlobalConfig.background?.desktopClock) {
+                    if (GlobalConfig.background && GlobalConfig.background.desktopClock) {
                         GlobalConfig.background.desktopClock.position = root.clockPositions[i];
                         GlobalConfig.save();
                     }
@@ -281,12 +377,12 @@ ColumnLayout {
             title: qsTr("Scale")
             description: qsTr("Size of the clock text")
             StyledSlider {
-                width: 220
+                width: 260
                 from: 0.5
                 to: 3.0
-                value: GlobalConfig.background?.desktopClock?.scale ?? 1.0
+                value: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.scale !== undefined) ? GlobalConfig.background.desktopClock.scale : 1.0
                 onMoved: {
-                    if (GlobalConfig.background?.desktopClock) {
+                    if (GlobalConfig.background && GlobalConfig.background.desktopClock) {
                         GlobalConfig.background.desktopClock.scale = value;
                         GlobalConfig.save();
                     }
@@ -299,9 +395,9 @@ ColumnLayout {
             description: qsTr("Force dark text instead of light")
             divider: false
             StyledSwitch {
-                checked: GlobalConfig.background?.desktopClock?.invertColors ?? false
+                checked: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.invertColors !== undefined) ? GlobalConfig.background.desktopClock.invertColors : false
                 onToggled: {
-                    if (GlobalConfig.background?.desktopClock) {
+                    if (GlobalConfig.background && GlobalConfig.background.desktopClock) {
                         GlobalConfig.background.desktopClock.invertColors = checked;
                         GlobalConfig.save();
                     }
@@ -333,8 +429,8 @@ ColumnLayout {
 
     Section {
         Layout.fillWidth: true
-        title: qsTr("Wallpaper Source")
-        description: qsTr("Directory containing your static wallpapers")
+        title: qsTr("Wallpaper Directory")
+        description: qsTr("Folder containing your static wallpapers")
         icon: "folder"
 
         SettingRow {

@@ -188,12 +188,24 @@ Item {
     }
 
     readonly property real targetY: {
-        const belowY = currentY + startH + Tokens.spacing.small;
-        const aboveY = currentY - targetH - Tokens.spacing.small;
         const maxOverlayH = root.overlayParent ? root.overlayParent.height : 1080;
-        return root.menuOnTop 
-            ? (aboveY < 16 ? belowY : aboveY)
-            : ((belowY + targetH > maxOverlayH - 16) ? aboveY : belowY);
+        const bottomLimit = maxOverlayH - 16;
+
+        if (root.menuOnTop) {
+            const aboveY = currentY + startH - targetH;
+            if (aboveY >= 16) return aboveY;
+        }
+
+        // Natural position: align top of menu with button top
+        const naturalY = currentY;
+        const naturalBottom = naturalY + targetH;
+        const deficit = naturalBottom - bottomLimit;
+
+        // Only move up as much as needed to make enough space below
+        if (deficit > 0) {
+            return Math.max(16, naturalY - deficit);
+        }
+        return Math.max(16, naturalY);
     }
 
     // ── Static Button (Placeholder in Layout) ──
@@ -205,11 +217,11 @@ Item {
         radius: height / 2
         color: Colours.palette.m3primary
         opacity: (root.expanded || closeGrace.running) ? 0 : 1
-        visible: opacity > 0
+        visible: opacity > 0.01
 
         StateLayer {
             radius: parent.radius
-            color: Colours.palette.m3surface
+            color: Colours.palette.m3onPrimary
             enabled: !root.expanded && !closeGrace.running
             onClicked: {
                 closeGrace.stop();
@@ -238,8 +250,8 @@ Item {
                     anchors.centerIn: parent
                     implicitWidth: 18
                     implicitHeight: 15
-                    topColour: Colours.palette.m3surface
-                    bottomColour: Colours.palette.m3surface
+                    topColour: Colours.palette.m3onPrimary
+                    bottomColour: Colours.palette.m3onPrimary
                 }
 
                 Text {
@@ -257,7 +269,7 @@ Item {
                         }
                         return "\uf31a";
                     }
-                    color: Colours.palette.m3surface
+                    color: Colours.palette.m3onPrimary
                     font.family: Tokens.font.family.mono
                     font.pixelSize: 16
                     renderType: Text.QtRendering
@@ -270,7 +282,7 @@ Item {
                 Layout.preferredWidth: Math.min(implicitWidth, 150)
                 Layout.alignment: Qt.AlignVCenter
                 text: root.displayName(faceRow.currentItem)
-                color: Colours.palette.m3surface
+                color: Colours.palette.m3onPrimary
                 textPointSize: Tokens.font.size.small
                 font.weight: Font.Medium
                 elide: Text.ElideRight
@@ -280,10 +292,12 @@ Item {
             MaterialIcon {
                 Layout.alignment: Qt.AlignVCenter
                 text: "expand_more"
-                color: Colours.palette.m3surface
+                color: Colours.palette.m3onPrimary
                 iconPointSize: Tokens.font.size.normal
-                opacity: 0.85
+                opacity: 0.9
                 verticalAlignment: Text.AlignVCenter
+                rotation: (root.expanded || root.morphState === "open") ? 180 : 0
+                Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             }
         }
     }
@@ -295,12 +309,37 @@ Item {
         anchors.fill: parent
         z: 9998
         visible: root.expanded
+        hoverEnabled: true
+        preventStealing: true
+        acceptedButtons: Qt.AllButtons
         onClicked: {
             root.expanded = false;
             root.morphState = "closed";
             closeGrace.restart();
         }
         onWheel: event => event.accepted = true
+        onPressed: event => event.accepted = true
+        onReleased: event => event.accepted = true
+        onDoubleClicked: event => event.accepted = true
+    }
+
+    // M3 Ambient Elevation Shadow
+    Elevation {
+        parent: root.overlayParent
+        z: 9998
+        visible: morphContainer.visible
+        x: morphContainer.x
+        y: morphContainer.y
+        width: morphContainer.width
+        height: morphContainer.height
+        radius: morphContainer.radius
+        level: root.morphState === "open" ? 2 : 0
+        color: Qt.alpha(Colours.palette.m3shadow, Colours.light ? 0.22 : 0.45)
+        blur: 18
+        offset.y: 4
+        spread: 0
+        opacity: root.morphState === "open" ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
     }
 
     // True M3 Expressive Shared Element Container Morph
@@ -333,15 +372,22 @@ Item {
         color: root.morphState === "open" ? (Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright) : Colours.palette.m3primary
         Behavior on color { ColorAnimation { duration: root.morphDuration; easing: root.morphEasing } }
 
+        border.width: 0
+
         // ── Outgoing Button Face (Fades out smoothly when opening) ──
         Item {
             anchors.top: parent.top
             anchors.left: parent.left
             width: root.startW
             height: root.startH
-            opacity: root.morphState === "open" ? 0 : 1
-            visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+            opacity: root.morphState === "open" ? 0.0 : 1.0
+            visible: opacity > 0.01
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.morphState === "open" ? 110 : 180
+                    easing.type: root.morphState === "open" ? Easing.OutQuad : Easing.OutCubic
+                }
+            }
 
             RowLayout {
                 anchors.centerIn: parent
@@ -357,8 +403,8 @@ Item {
                         anchors.centerIn: parent
                         implicitWidth: 18
                         implicitHeight: 15
-                        topColour: Colours.palette.m3surface
-                        bottomColour: Colours.palette.m3surface
+                        topColour: Colours.palette.m3onPrimary
+                        bottomColour: Colours.palette.m3onPrimary
                     }
 
                     Text {
@@ -376,7 +422,7 @@ Item {
                             }
                             return "\uf31a";
                         }
-                        color: Colours.palette.m3surface
+                        color: Colours.palette.m3onPrimary
                         font.family: Tokens.font.family.mono
                         font.pixelSize: 16
                         renderType: Text.QtRendering
@@ -389,7 +435,7 @@ Item {
                     Layout.preferredWidth: Math.min(implicitWidth, 150)
                     Layout.alignment: Qt.AlignVCenter
                     text: root.displayName(faceRow.currentItem)
-                    color: Colours.palette.m3surface
+                    color: Colours.palette.m3onPrimary
                     textPointSize: Tokens.font.size.small
                     font.weight: Font.Medium
                     elide: Text.ElideRight
@@ -397,11 +443,16 @@ Item {
                 }
 
                 MaterialIcon {
+                    id: morphChevron
                     Layout.alignment: Qt.AlignVCenter
                     text: "expand_more"
-                    color: Colours.palette.m3surface
+                    color: Colours.palette.m3onPrimary
                     iconPointSize: Tokens.font.size.normal
+                    opacity: root.morphState === "open" ? 0.0 : 0.9
                     verticalAlignment: Text.AlignVCenter
+                    rotation: root.morphState === "open" ? 180 : 0
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                    Behavior on rotation { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                 }
             }
         }
@@ -415,11 +466,11 @@ Item {
             width: root.targetW - Tokens.padding.normal * 2
             height: root.targetH - Tokens.padding.normal * 2
             opacity: root.morphState === "open" ? 1 : 0
-            visible: opacity > 0
+            visible: opacity > 0.01
             Behavior on opacity {
                 NumberAnimation {
-                    duration: root.morphState === "open" ? 220 : 100
-                    easing.type: Easing.OutCubic
+                    duration: root.morphState === "open" ? 220 : 110
+                    easing.type: root.morphState === "open" ? Easing.OutCubic : Easing.OutQuad
                 }
             }
 

@@ -112,8 +112,8 @@ Item {
     
     ParallelAnimation {
         id: cascadeIn
-        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens?.anim?.durations?.slow ?? 400; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "opacity"; to: 1.0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "y"; to: 0; duration: Tokens.anim.durations.slow; easing.type: Easing.OutCubic }
     }
 
     implicitHeight: (col ? col.implicitHeight : 0) + Tokens.padding.large * 2
@@ -128,52 +128,120 @@ Item {
         anchors.topMargin: Tokens.padding.large
         spacing: Tokens.spacing.large
 
-        SettingRow {
-            Layout.fillWidth: true
-            title: qsTr("Microphone")
-            description: qsTr("Master input level and mute")
-            divider: true
-            
-            Row {
-                spacing: Tokens.spacing.normal
-                StyledSwitch {
-                    anchors.verticalCenter: parent.verticalCenter
-                    checked: !Audio.sourceMuted
-                    onToggled: {
-                        if (Audio.source?.audio)
-                            Audio.source.audio.muted = !checked;
+        Section {
+            title: qsTr("Master Input")
+            description: qsTr("Main recording level and microphone mute")
+            icon: "mic"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: qsTr("Microphone")
+                description: Audio.sourceMuted ? qsTr("Muted") : qsTr("Input sensitivity at %1%").arg(Math.round(Audio.sourceVolume * 100))
+                
+                Row {
+                    spacing: Tokens.spacing.normal
+
+                    StyledSwitch {
+                        anchors.verticalCenter: parent.verticalCenter
+                        checked: !Audio.sourceMuted
+                        onToggled: {
+                            if (Audio.source && Audio.source.audio)
+                                Audio.source.audio.muted = !checked;
+                        }
                     }
-                }
-                StyledSlider {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 200
-                    from: 0
-                    to: Math.max(1, GlobalConfig.services.maxVolume || 1)
-                    value: Audio.sourceVolume
-                    onMoved: Audio.setSourceVolume(value)
+
+                    StyledSlider {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 200
+                        from: 0
+                        to: Math.max(1, GlobalConfig.services.maxVolume || 1)
+                        value: Audio.sourceVolume
+                        valueAsPercent: true
+                        onMoved: Audio.setSourceVolume(value)
+                    }
                 }
             }
         }
 
-        Column {
+        Section {
             Layout.fillWidth: true
-            spacing: 0
+            title: qsTr("Input Devices")
+            description: qsTr("Select active microphone or line-in source")
+            icon: "mic"
+            accentColor: Colours.palette.m3secondary
 
             Repeater {
                 model: root.inputDevicesList
 
-                delegate: DeviceRow {
+                delegate: SettingRow {
+                    id: inDevRow
                     required property var modelData
+                    required property int index
+                    showIconBackground: false
 
-                    name: modelData.name
-                    status: modelData.active ? qsTr("Active") : (modelData.description || qsTr("Available"))
-                    icon: modelData.icon
-                    active: modelData.active
+                    title: modelData.name
+                    description: modelData.active ? qsTr("Active input source") : (modelData.description || qsTr("Available"))
+                    icon: modelData.icon || "mic"
+                    clickable: true
+
+                    customIcon: Component {
+                        MaterialIcon {
+                            text: modelData.icon || "mic"
+                            color: modelData.active ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                            iconPointSize: Tokens.font.size.large
+                            fill: modelData.active ? 1 : 0
+                        }
+                    }
+
                     onClicked: {
                         if (modelData.node)
                             Audio.setAudioSource(modelData.node);
                         else
                             Audio.setAudioInputPort(modelData.sourceName, modelData.portName);
+                    }
+
+                    StyledRect {
+                        implicitWidth: devPillRow.implicitWidth + Tokens.padding.normal * 2
+                        implicitHeight: 28
+                        radius: Tokens.rounding.full
+                        color: modelData.active ? Colours.palette.m3primaryContainer : Colours.palette.m3surfaceContainerHighest
+
+                        Behavior on color { CAnim {} }
+
+                        Row {
+                            id: devPillRow
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.extraSmall
+
+                            MaterialIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "check"
+                                iconPointSize: Tokens.font.size.small
+                                color: Colours.palette.m3onPrimaryContainer
+                                visible: modelData.active
+                            }
+
+                            StyledText {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.active ? qsTr("Active") : qsTr("Select")
+                                color: modelData.active ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                                font.weight: modelData.active ? Font.DemiBold : Font.Normal
+                                font.letterSpacing: 0.15
+                                textPointSize: Tokens.font.size.small
+                            }
+                        }
+
+                        StateLayer {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            onClicked: {
+                                if (modelData.node)
+                                    Audio.setAudioSource(modelData.node);
+                                else
+                                    Audio.setAudioInputPort(modelData.sourceName, modelData.portName);
+                            }
+                        }
                     }
                 }
             }
