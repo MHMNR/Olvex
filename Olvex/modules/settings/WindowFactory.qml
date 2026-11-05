@@ -38,14 +38,12 @@ Singleton {
                     destroy();
             }
 
-            // Track content size; allow slight resize for bento density
+            // Track content size
             implicitWidth: cc.implicitWidth
             implicitHeight: cc.implicitHeight
 
             minimumSize.width: 900
             minimumSize.height: 620
-            maximumSize.width: Math.max(cc.implicitWidth * 1.25, 1600)
-            maximumSize.height: Math.max(cc.implicitHeight * 1.15, 1200)
 
             title: {
                 const id = cc.currentId || cc.active || "";
