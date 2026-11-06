@@ -1186,52 +1186,48 @@ Item {
                                                     anchors.margins: 16
                                                     spacing: Tokens.spacing.small
 
-                                                    // Cursor Previews Grid
-                                                    RowLayout {
+                                                    // Cursor Previews Strip
+                                                    StyledRect {
                                                         Layout.fillWidth: true
-                                                        Layout.preferredHeight: 48
-                                                        Layout.alignment: Qt.AlignHCenter
-                                                        spacing: Tokens.spacing.normal
+                                                        Layout.preferredHeight: 68
+                                                        radius: Tokens.rounding.small
+                                                        color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 1)
+                                                        border.width: 0
+                                                        border.color: "transparent"
 
-                                                        Repeater {
-                                                            model: root.cursorPreviewNames
+                                                        RowLayout {
+                                                            anchors.centerIn: parent
+                                                            spacing: 10
 
-                                                            delegate: Item {
-                                                                required property string modelData
-                                                                required property int index
+                                                            Repeater {
+                                                                model: (cardDelegate.modelData.previews && cardDelegate.modelData.previews.length > 0)
+                                                                    ? cardDelegate.modelData.previews.slice(0, 4)
+                                                                    : []
 
-                                                                Layout.preferredWidth: 32
-                                                                Layout.preferredHeight: 32
-                                                                Layout.alignment: Qt.AlignVCenter
+                                                                delegate: Item {
+                                                                    required property string modelData
+                                                                    Layout.preferredWidth: 28
+                                                                    Layout.preferredHeight: 28
 
-                                                                Image {
-                                                                    id: cursorImg
-                                                                    anchors.centerIn: parent
-                                                                    width: 24
-                                                                    height: 24
-                                                                    sourceSize.width: 24
-                                                                    sourceSize.height: 24
-                                                                    fillMode: Image.PreserveAspectFit
-                                                                    smooth: true
-                                                                    mipmap: true
-                                                                    asynchronous: true
-                                                                    cache: true
-                                                                    source: {
-                                                                        const p = modelData.startsWith("/")
-                                                                            ? modelData
-                                                                            : root.getCursorPreviewPath(cardDelegate.modelData.path, modelData);
-                                                                        return p ? "image://icon/" + p : "";
-                                                                    }
-
-                                                                    onStatusChanged: {
-                                                                        if (status === Image.Error && !modelData.startsWith("/")) {
-                                                                            const altPath = root.findAlternativeCursorPath(cardDelegate.modelData.path, modelData);
-                                                                            if (altPath) {
-                                                                                source = "image://icon/" + altPath;
-                                                                            }
-                                                                        }
+                                                                    Image {
+                                                                        anchors.centerIn: parent
+                                                                        width: 26
+                                                                        height: 26
+                                                                        source: modelData.startsWith("/") ? ("file://" + modelData) : modelData
+                                                                        sourceSize.width: 32
+                                                                        sourceSize.height: 32
+                                                                        fillMode: Image.PreserveAspectFit
+                                                                        smooth: true
+                                                                        mipmap: true
                                                                     }
                                                                 }
+                                                            }
+
+                                                            MaterialIcon {
+                                                                visible: !cardDelegate.modelData.previews || cardDelegate.modelData.previews.length === 0
+                                                                text: "mouse"
+                                                                iconPointSize: 24
+                                                                color: Colours.palette.m3onSurfaceVariant
                                                             }
                                                         }
                                                     }
@@ -1256,11 +1252,25 @@ Item {
                                                                 elide: Text.ElideRight
                                                             }
 
-                                                            MaterialIcon {
+                                                            // Active M3 shape badge with M3 checkmark beside the title
+                                                            Item {
                                                                 visible: cardDelegate.isSelected
-                                                                text: "check_circle"
-                                                                color: Colours.palette.m3primary
-                                                                iconPointSize: 16
+                                                                Layout.preferredWidth: 18
+                                                                Layout.preferredHeight: 18
+                                                                Layout.alignment: Qt.AlignVCenter
+
+                                                                MaterialShape {
+                                                                    anchors.fill: parent
+                                                                    shape: MaterialShape.Cookie12Sided
+                                                                    color: Colours.palette.m3primary
+                                                                }
+
+                                                                MaterialIcon {
+                                                                    anchors.centerIn: parent
+                                                                    text: "check"
+                                                                    iconPointSize: 11
+                                                                    color: Colours.palette.m3onPrimary
+                                                                }
                                                             }
                                                         }
 
