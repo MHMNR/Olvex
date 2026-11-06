@@ -8,6 +8,7 @@ import qs.components.misc
 import qs.services
 import qs.utils
 import qs.modules.settings
+import "cheatsheet"
 
 Scope {
     id: root
@@ -191,6 +192,28 @@ Scope {
         }
     }
 
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "help"
+        description: "Toggle keyboard shortcuts help"
+        onPressed: {
+            if (!root.shouldTrigger("help")) return;
+            CheatsheetFactory.toggle();
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "cheatsheet"
+        description: "Toggle keyboard shortcuts help"
+        onPressed: {
+            if (!root.shouldTrigger("cheatsheet")) return;
+            CheatsheetFactory.toggle();
+        }
+    }
+
     IpcHandler {
         function toggle(drawer: string) {
             if (drawer === "session") drawer = "powermenu";
@@ -273,6 +296,32 @@ Scope {
         }
         function get(): string {
             return Icons.currentTheme;
+        }
+    }
+
+    IpcHandler {
+        target: "help"
+        function toggle() {
+            CheatsheetFactory.toggle();
+        }
+        function open() {
+            CheatsheetFactory.open();
+        }
+        function close() {
+            CheatsheetFactory.close();
+        }
+    }
+
+    IpcHandler {
+        target: "cheatsheet"
+        function toggle() {
+            CheatsheetFactory.toggle();
+        }
+        function open() {
+            CheatsheetFactory.open();
+        }
+        function close() {
+            CheatsheetFactory.close();
         }
     }
 

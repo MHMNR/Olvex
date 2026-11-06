@@ -12,6 +12,11 @@ Singleton {
     property bool launcherInterrupted: false
     property bool shellMotionActive: false
     property bool areaPickerActive: false
+    property bool cheatsheetActive: false
+
+    function toggleCheatsheet() {
+        cheatsheetActive = !cheatsheetActive;
+    }
 
     signal chargingRippleTriggered()
 

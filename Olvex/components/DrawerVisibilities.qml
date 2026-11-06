@@ -14,6 +14,8 @@ QtObject {
     property bool notificationcenter: false
     property bool secondaryPanel: false
     property bool osk: false
+    property bool help: false
+    property bool cheatsheet: false
 
     // Persistent properties (saved to disk)
     property alias isOskDocked: persistent.isOskDocked

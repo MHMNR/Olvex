@@ -206,7 +206,7 @@ Singleton {
         const a = (arg || "").toLowerCase();
         const k = (key || "").toLowerCase();
 
-        if (d === "global" || a.includes("olvex") || a.includes("drawer") || a.includes("sidebar")) {
+        if (d === "global" || a.includes("olvex") || a.includes("drawer") || a.includes("sidebar") || a.includes("help") || a.includes("cheatsheet")) {
             return "olvex";
         }
         if (k.startsWith("xf86") || a.includes("brightness") || a.includes("volume") || a.includes("wpctl") || a.includes("playerctl") || a.includes("pamixer")) {
@@ -384,6 +384,7 @@ Singleton {
 
         // ── 6. Olvex Shell Drawers & Toggles ──
         if (aLow.startsWith("olvex:") || cmdLow.startsWith("olvex")) {
+            if (aLow === "olvex:help" || cmdLow.includes("help") || cmdLow.includes("cheatsheet")) return qsTr("Keyboard Shortcuts Help");
             if (aLow === "olvex:sidebar") return qsTr("Toggle Shell Sidebar");
             if (aLow === "olvex:clearnotifs") return qsTr("Clear All Notifications");
             if (aLow === "olvex:showall") return qsTr("Toggle All Shell Drawers");
