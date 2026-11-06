@@ -517,9 +517,10 @@ Item {
 
             Item { Layout.fillWidth: true }
 
-RowLayout {
+        RowLayout {
             spacing: Tokens.spacing.small
             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+            visible: root.currentTab === 0
 
             // Expanding "Open Folder" button
             StyledRect {
