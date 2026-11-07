@@ -57,6 +57,15 @@ hl.window_rule({
     opaque = false,
 })
 
+-- Olvex Shortcuts glass blur override
+hl.window_rule({
+    match = { class = "org.quickshell", title = "Olvex Shortcuts.*" },
+    float = true,
+    center = true,
+    pin = true,
+    opaque = false,
+})
+
 -- Olvex Display Safety Confirmation Modal
 hl.window_rule({
     match = { class = "org.quickshell", title = "Confirm Display Settings.*" },

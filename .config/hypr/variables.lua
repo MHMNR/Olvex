@@ -52,7 +52,7 @@ return {
     volumeStep                 = 10,
     volumeMax                  = 100,
     cursorTheme = "Bibata-Modern-Classic",
-    cursorSize = 28,
+    cursorSize = 24,
     sleepGestureCmd            = "systemctl suspend-then-hibernate",
 
     ------------------
@@ -141,6 +141,7 @@ return {
     kbRestoreLock              = "SUPER + ALT + L",
     kbSleep                    = "SUPER + SHIFT + L",
     kbWallpapers               = "SUPER + W",
+    kbHelp                     = { "SUPER + slash", "SUPER + question" },
 
     -- Clipboard and emoji picker
     kbClipboard                = "SUPER + V",

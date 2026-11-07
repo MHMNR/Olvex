@@ -64,6 +64,7 @@ create_bind(vars.kbShowSidebar, hl.dsp.global("olvex:sidebar"))
 create_bind(vars.kbClearNotifs, hl.dsp.global("olvex:clearNotifs"), locked)
 create_bind(vars.kbShowPanels, hl.dsp.global("olvex:showall"))
 create_bind(vars.kbWallpapers, hl.dsp.global("olvex:wallpapers"))
+create_bind(vars.kbHelp, hl.dsp.global("olvex:help"))
 create_bind(vars.kbLock, hl.dsp.global("olvex:lock"))
 
 -- Restore lock
@@ -219,3 +220,6 @@ create_bind(
         " -a 'Shell' -A 'Test1=I got it!' -A 'Test2=Another action'"
     )
 )
+
+-- Custom Keybinding via Olvex
+hl.bind("SUPER + j", hl.dsp.exec_cmd("xed"))

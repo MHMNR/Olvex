@@ -18,7 +18,9 @@ Singleton {
     }
 
     function open() {
-        if (currentInstance) return;
+        if (currentInstance) {
+            close();
+        }
         currentInstance = windowComponent.createObject(dummy);
     }
 
@@ -48,10 +50,10 @@ Singleton {
                 isReady = true;
             }
 
-            implicitWidth: 840
-            implicitHeight: 640
-            minimumSize.width: 720
-            minimumSize.height: 480
+            implicitWidth: 880
+            implicitHeight: 660
+            minimumSize.width: 760
+            minimumSize.height: 520
 
             onVisibleChanged: {
                 if (isReady && !visible) {
