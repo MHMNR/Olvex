@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Olvex.Config
 import qs.services
 import qs.components
@@ -18,6 +19,28 @@ Item {
     property string searchQuery: ""
     property bool isProgrammaticScroll: false
 
+    // ── Dynamic Shortcuts Discovery ──
+    property var dynamicSectionsData: null
+    readonly property var sectionsData: (dynamicSectionsData && dynamicSectionsData.length > 0) ? dynamicSectionsData : fallbackSectionsData
+
+    Process {
+        id: shortcutsProc
+        command: ["python3", Qt.resolvedUrl("shortcuts_parser.py").toString().replace(/^file:\/\//, "")]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const parsed = JSON.parse(text);
+                    if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+                        root.dynamicSectionsData = parsed;
+                    }
+                } catch (e) {
+                    console.warn("Failed to parse dynamic shortcuts JSON:", e);
+                }
+            }
+        }
+    }
+
     Shortcut {
         sequence: "Escape"
         onActivated: root.closeRequested()
@@ -33,8 +56,8 @@ Item {
         }
     }
 
-    // ── Full Comprehensive System Registry (Exact Hyprland & Olvex Binds) ──
-    readonly property var sectionsData: [
+    // ── Safe Fallback Baseline System Registry ──
+    readonly property var fallbackSectionsData: [
         {
             id: "olvex",
             title: qsTr("Olvex Shell"),
@@ -162,8 +185,9 @@ Item {
 
     function selectCategoryByIndex(idx) {
         idx = Math.max(0, Math.min(categoryList.length - 1, idx));
+        root.activeCategory = categoryList[idx].id;
         if (categorySegmented) categorySegmented.currentIndex = idx;
-        scrollToCategory(categoryList[idx].id);
+        scrollAnimTo(0);
     }
 
     property var sectionItemMap: ({})
@@ -219,7 +243,9 @@ Item {
         const groups = getFilteredGroups();
         let total = 0;
         for (let i = 0; i < groups.length; i++) {
-            total += groups[i].items.length;
+            if (root.activeCategory === "all" || root.activeCategory === groups[i].id) {
+                total += groups[i].items.length;
+            }
         }
         return total;
     }
@@ -549,158 +575,154 @@ Item {
                     flickable: bentoFlickable
                 }
 
-                onContentYChanged: {
-                    if (root.isProgrammaticScroll || contentY <= 15) {
-                        if (contentY <= 15 && !root.isProgrammaticScroll) {
-                            root.activeCategory = "all";
-                        }
-                        return;
-                    }
-                    const groups = root.getFilteredGroups();
-                    let currentActive = "all";
-                    for (let i = groups.length - 1; i >= 0; i--) {
-                        const it = root.sectionItemMap[groups[i].id];
-                        if (it && it.y <= contentY + 40) {
-                            currentActive = groups[i].id;
-                            break;
-                        }
-                    }
-                    if (root.activeCategory !== currentActive) {
-                        root.activeCategory = currentActive;
-                        if (categorySegmented) {
-                            categorySegmented.currentIndex = root.activeCategoryIdx;
-                        }
-                    }
-                }
-
                 ColumnLayout {
                     id: groupsColumn
                     width: bentoFlickable.width - (bentoFlickable.showScrollBar ? 14 : 0)
-                    spacing: 20
+                    spacing: 16
 
                     Repeater {
                         model: root.getFilteredGroups()
 
-                        delegate: ColumnLayout {
-                            id: secGroup
+                        delegate: Item {
+                            id: secGroupWrapper
                             required property var modelData
 
+                            readonly property bool isCategoryMatch: (root.activeCategory === "all") || (root.activeCategory === modelData.id)
+
                             Layout.fillWidth: true
-                            spacing: 4
+                            Layout.preferredHeight: isCategoryMatch ? secContent.implicitHeight : 0
+                            clip: true
+                            opacity: isCategoryMatch ? 1.0 : 0.0
+                            visible: opacity > 0.005 || Layout.preferredHeight > 1
 
-                            Component.onCompleted: {
-                                root.sectionItemMap[secGroup.modelData.id] = secGroup;
-                            }
-                            Component.onDestruction: {
-                                delete root.sectionItemMap[secGroup.modelData.id];
-                            }
-
-                            // Clean Minimal Category Heading
-                            StyledText {
-                                Layout.topMargin: 4
-                                Layout.bottomMargin: 2
-                                text: secGroup.modelData.title.toUpperCase()
-                                font.weight: Font.DemiBold
-                                font.letterSpacing: 1.2
-                                textPointSize: 9
-                                color: Colours.palette.m3primary
-                                opacity: 0.90
+                            Behavior on Layout.preferredHeight {
+                                NumberAnimation {
+                                    duration: 260
+                                    easing.type: Easing.OutCubic
+                                }
                             }
 
-                            // 2-Column Clean Rows Grid
-                            GridLayout {
-                                Layout.fillWidth: true
-                                columns: 2
-                                columnSpacing: 14
-                                rowSpacing: 2
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 220
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
 
-                                Repeater {
-                                    model: secGroup.modelData.items
+                            ColumnLayout {
+                                id: secContent
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                spacing: 4
 
-                                    delegate: StyledRect {
-                                        id: rowItem
-                                        required property var modelData
-                                        required property int index
+                                // Clean Minimal Category Heading
+                                StyledText {
+                                    Layout.topMargin: 4
+                                    Layout.bottomMargin: 2
+                                    text: secGroupWrapper.modelData.title.toUpperCase()
+                                    font.weight: Font.DemiBold
+                                    font.letterSpacing: 1.2
+                                    textPointSize: 9
+                                    color: Colours.palette.m3primary
+                                    opacity: 0.90
+                                }
 
-                                        Layout.fillWidth: true
-                                        implicitHeight: 32
-                                        radius: 6
+                                // 2-Column Clean Rows Grid
+                                GridLayout {
+                                    Layout.fillWidth: true
+                                    columns: 2
+                                    columnSpacing: 14
+                                    rowSpacing: 2
 
-                                        color: rowMouse.containsMouse
-                                            ? Qt.alpha(Colours.palette.m3onSurface, 0.05)
-                                            : "transparent"
+                                    Repeater {
+                                        model: secGroupWrapper.modelData.items
 
-                                        Behavior on color { CAnim {} }
+                                        delegate: StyledRect {
+                                            id: rowItem
+                                            required property var modelData
+                                            required property int index
 
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 8
-                                            anchors.rightMargin: 8
-                                            spacing: 8
+                                            Layout.fillWidth: true
+                                            implicitHeight: 32
+                                            radius: 6
 
-                                            // Action Title (Single Clean Line)
-                                            StyledText {
-                                                Layout.fillWidth: true
-                                                text: rowItem.modelData.title
-                                                font.weight: Font.Normal
-                                                textPointSize: 10.5
-                                                color: Colours.palette.m3onSurface
-                                                elide: Text.ElideRight
-                                            }
+                                            color: rowMouse.containsMouse
+                                                ? Qt.alpha(Colours.palette.m3onSurface, 0.05)
+                                                : "transparent"
 
-                                            // Minimal Chiclet Keycaps
+                                            Behavior on color { CAnim {} }
+
                                             RowLayout {
-                                                spacing: 3
-                                                Layout.alignment: Qt.AlignVCenter
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 8
+                                                anchors.rightMargin: 8
+                                                spacing: 8
 
-                                                Repeater {
-                                                    model: root.getAllKeys(rowItem.modelData)
+                                                // Action Title (Single Clean Line)
+                                                StyledText {
+                                                    Layout.fillWidth: true
+                                                    text: rowItem.modelData.title
+                                                    font.weight: Font.Normal
+                                                    textPointSize: 10.5
+                                                    color: Colours.palette.m3onSurface
+                                                    elide: Text.ElideRight
+                                                }
 
-                                                    delegate: RowLayout {
-                                                        id: keyItemDelegate
-                                                        required property var modelData
-                                                        required property int index
-                                                        readonly property int totalCount: root.getAllKeys(rowItem.modelData).length
-                                                        spacing: 3
+                                                // Minimal Chiclet Keycaps
+                                                RowLayout {
+                                                    spacing: 3
+                                                    Layout.alignment: Qt.AlignVCenter
 
-                                                        StyledRect {
-                                                            implicitHeight: 20
-                                                            implicitWidth: Math.max(20, keyLabel.implicitWidth + 8)
-                                                            radius: 4
-                                                            color: keyItemDelegate.modelData.isTrigger
-                                                                ? Colours.palette.m3surfaceContainerHighest
-                                                                : Colours.palette.m3surfaceContainerHigh
-                                                            border.width: 1
-                                                            border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
+                                                    Repeater {
+                                                        model: root.getAllKeys(rowItem.modelData)
 
-                                                            StyledText {
-                                                                id: keyLabel
-                                                                anchors.centerIn: parent
-                                                                text: keyItemDelegate.modelData.text
-                                                                color: Colours.palette.m3onSurface
-                                                                font.family: Tokens.font.family.mono || "monospace"
-                                                                font.weight: Font.Medium
-                                                                textPointSize: 8.5
+                                                        delegate: RowLayout {
+                                                            id: keyItemDelegate
+                                                            required property var modelData
+                                                            required property int index
+                                                            readonly property int totalCount: root.getAllKeys(rowItem.modelData).length
+                                                            spacing: 3
+
+                                                            StyledRect {
+                                                                implicitHeight: 20
+                                                                implicitWidth: Math.max(20, keyLabel.implicitWidth + 8)
+                                                                radius: 4
+                                                                color: keyItemDelegate.modelData.isTrigger
+                                                                    ? Colours.palette.m3surfaceContainerHighest
+                                                                    : Colours.palette.m3surfaceContainerHigh
+                                                                border.width: 1
+                                                                border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
+
+                                                                StyledText {
+                                                                    id: keyLabel
+                                                                    anchors.centerIn: parent
+                                                                    text: keyItemDelegate.modelData.text
+                                                                    color: Colours.palette.m3onSurface
+                                                                    font.family: Tokens.font.family.mono || "monospace"
+                                                                    font.weight: Font.Medium
+                                                                    textPointSize: 8.5
+                                                                }
                                                             }
-                                                        }
 
-                                                        // Subtle '+' separator
-                                                        StyledText {
-                                                            visible: keyItemDelegate.index < keyItemDelegate.totalCount - 1
-                                                            text: "+"
-                                                            font.weight: Font.Medium
-                                                            textPointSize: 8
-                                                            color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.35)
+                                                            // Subtle '+' separator
+                                                            StyledText {
+                                                                visible: keyItemDelegate.index < keyItemDelegate.totalCount - 1
+                                                                text: "+"
+                                                                font.weight: Font.Medium
+                                                                textPointSize: 8
+                                                                color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.35)
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
-                                        }
 
-                                        MouseArea {
-                                            id: rowMouse
-                                            anchors.fill: parent
-                                            hoverEnabled: true
+                                            MouseArea {
+                                                id: rowMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                            }
                                         }
                                     }
                                 }

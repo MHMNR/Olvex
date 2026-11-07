@@ -52,8 +52,8 @@ Singleton {
 
             implicitWidth: 880
             implicitHeight: 660
-            minimumSize.width: 760
-            minimumSize.height: 520
+            minimumSize.width: 680
+            minimumSize.height: 500
 
             onVisibleChanged: {
                 if (isReady && !visible) {

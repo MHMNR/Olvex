@@ -122,23 +122,28 @@ Item {
                     readonly property string label: root.labelOf(modelData)
                     readonly property string icon: root.iconOf(modelData)
                     readonly property bool isDisabled: root.isDisabled(modelData)
+                    readonly property real slotWidth: width
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.minimumWidth: root.resolvedSegmentWidth - root.inset
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: root.resolvedSegmentWidth - root.inset
                     opacity: isDisabled ? 0.35 : 1.0
 
-                    Row {
+                    RowLayout {
+                        id: rowContainer
                         anchors.centerIn: parent
-                        spacing: Tokens.spacing.extraSmall
+                        width: Math.min(implicitWidth, cell.width - 4)
+                        spacing: cell.slotWidth < 90 ? 3 : (cell.slotWidth < 115 ? 4 : (Tokens.spacing.extraSmall || 6))
 
                         MaterialIcon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: !!cell.icon
+                            id: iconItem
+                            Layout.alignment: Qt.AlignVCenter
+                            visible: !!cell.icon && (cell.slotWidth >= 65 || cell.label.length === 0)
                             text: cell.icon
                             fill: cell.active ? 1 : 0
                             color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-                            iconPointSize: Tokens.font.size.normal
+                            iconPointSize: cell.slotWidth < 95 ? (Tokens.font.size.smaller - 1) : (cell.slotWidth < 120 ? Tokens.font.size.smaller : (Tokens.font.size.normal || 16))
 
                             Behavior on color {
                                 CAnim {}
@@ -146,13 +151,16 @@ Item {
                         }
 
                         StyledText {
-                            anchors.verticalCenter: parent.verticalCenter
+                            id: labelItem
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: Math.max(16, cell.width - (iconItem.visible ? iconItem.width + rowContainer.spacing : 0) - 6)
                             text: cell.label
                             font.weight: cell.active ? Font.DemiBold : Font.Normal
                             font.letterSpacing: 0.15
                             color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-                            textPointSize: Tokens.font.size.smaller
-                            elide: Text.ElideNone
+                            textPointSize: cell.slotWidth < 90 ? (Tokens.font.size.smallest || 9) : (cell.slotWidth < 115 ? (Tokens.font.size.smaller - 0.5) : (Tokens.font.size.smaller || 10.5))
+                            elide: Text.ElideRight
 
                             Behavior on color {
                                 CAnim {}
