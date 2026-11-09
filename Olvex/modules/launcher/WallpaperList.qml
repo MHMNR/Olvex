@@ -81,7 +81,7 @@ Item {
                 id: sliderSwitch
 
                 height: 40
-                implicitWidth: 184
+                implicitWidth: 148
                 radius: height / 2
                 color: Colours.palette.m3secondaryContainer
 
@@ -116,28 +116,13 @@ Item {
                         width: sliderSwitch.segW
                         height: parent.height
 
-                        Row {
+                        StyledText {
                             anchors.centerIn: parent
-                            spacing: Tokens.spacing.extraSmall || 6
-
-                            MaterialIcon {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "image"
-                                scale: !sliderSwitch.isLive ? 1.12 : 1.0
-                                iconPointSize: Tokens.font.size.normal || 14
-                                color: !sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
-                                Behavior on color { CAnim {} }
-                                Behavior on scale { Anim {} }
-                            }
-
-                            StyledText {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: qsTr("Static")
-                                textPointSize: Tokens.font.size.smaller || 12
-                                font.weight: !sliderSwitch.isLive ? Font.DemiBold : Font.Normal
-                                color: !sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
-                                Behavior on color { CAnim {} }
-                            }
+                            text: qsTr("Static")
+                            textPointSize: Tokens.font.size.smaller || 12
+                            font.weight: !sliderSwitch.isLive ? Font.DemiBold : Font.Normal
+                            color: !sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                            Behavior on color { CAnim {} }
                         }
 
                         StateLayer {
@@ -153,28 +138,13 @@ Item {
                         width: sliderSwitch.segW
                         height: parent.height
 
-                        Row {
+                        StyledText {
                             anchors.centerIn: parent
-                            spacing: Tokens.spacing.extraSmall || 6
-
-                            MaterialIcon {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "movie"
-                                scale: sliderSwitch.isLive ? 1.12 : 1.0
-                                iconPointSize: Tokens.font.size.normal || 14
-                                color: sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
-                                Behavior on color { CAnim {} }
-                                Behavior on scale { Anim {} }
-                            }
-
-                            StyledText {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: qsTr("Live")
-                                textPointSize: Tokens.font.size.smaller || 12
-                                font.weight: sliderSwitch.isLive ? Font.DemiBold : Font.Normal
-                                color: sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
-                                Behavior on color { CAnim {} }
-                            }
+                            text: qsTr("Live")
+                            textPointSize: Tokens.font.size.smaller || 12
+                            font.weight: sliderSwitch.isLive ? Font.DemiBold : Font.Normal
+                            color: sliderSwitch.isLive ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
+                            Behavior on color { CAnim {} }
                         }
 
                         StateLayer {

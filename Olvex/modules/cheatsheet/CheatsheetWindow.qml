@@ -168,12 +168,12 @@ Item {
     ]
 
     readonly property var categoryList: [
-        { id: "all", title: qsTr("All"), icon: "grid_view" },
-        { id: "olvex", title: qsTr("Shell"), icon: "desktop_windows" },
-        { id: "window", title: qsTr("Windows"), icon: "crop_square" },
-        { id: "workspace", title: qsTr("Workspaces"), icon: "view_carousel" },
-        { id: "apps", title: qsTr("Apps"), icon: "launch" },
-        { id: "media", title: qsTr("Media"), icon: "tune" }
+        { id: "all", title: qsTr("All") },
+        { id: "olvex", title: qsTr("Shell") },
+        { id: "window", title: qsTr("Windows") },
+        { id: "workspace", title: qsTr("Workspaces") },
+        { id: "apps", title: qsTr("Apps") },
+        { id: "media", title: qsTr("Media") }
     ]
 
     readonly property int activeCategoryIdx: {
@@ -533,12 +533,12 @@ Item {
                 anchors.topMargin: 4
                 anchors.bottomMargin: 4
                 model: [
-                    { label: qsTr("All"), icon: "grid_view" },
-                    { label: qsTr("Shell"), icon: "desktop_windows" },
-                    { label: qsTr("Windows"), icon: "crop_square" },
-                    { label: qsTr("Workspaces"), icon: "view_carousel" },
-                    { label: qsTr("Apps"), icon: "launch" },
-                    { label: qsTr("Media"), icon: "tune" }
+                    { label: qsTr("All") },
+                    { label: qsTr("Shell") },
+                    { label: qsTr("Windows") },
+                    { label: qsTr("Workspaces") },
+                    { label: qsTr("Apps") },
+                    { label: qsTr("Media") }
                 ]
                 currentIndex: root.activeCategoryIdx
                 onSelected: index => {

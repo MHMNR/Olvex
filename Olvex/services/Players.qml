@@ -262,10 +262,13 @@ Singleton {
                 return root.sanitizeArtUrl(art);
         }
 
-        const url = meta?.["xesam:url"] ?? "";
-        if (url.startsWith("https://www.youtube.com/watch") || url.startsWith("http://www.youtube.com/watch")) {
-            const id = url.match(/[?&]v=([\w-]{11})/)?.[1];
-            return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
+        const url = String(meta?.["xesam:url"] ?? "");
+        if (url) {
+            // Match youtube.com (www, music, m, shorts, embed) and youtu.be
+            const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([\w-]{11})/i);
+            if (ytMatch && ytMatch[1]) {
+                return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+            }
         }
         return "";
     }
