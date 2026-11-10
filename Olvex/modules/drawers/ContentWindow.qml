@@ -12,6 +12,7 @@ import qs.components.containers
 import qs.modules.bar
 import qs.services
 import QtCore
+import "../setup"
 import "../qspanel/cards" as Cards
 
 StyledWindow {
@@ -459,8 +460,8 @@ StyledWindow {
         property var pinnedApps: []
     }
 
-    // Entrance Animation State
-    readonly property bool isVisible: !LockState.locked
+    // Entrance Animation State (suppressed during lock screen and initial setup wizard)
+    readonly property bool isVisible: !LockState.locked && !SetupFactory.active
 
     Item {
         id: revealContainer

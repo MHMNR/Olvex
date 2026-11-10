@@ -521,7 +521,7 @@ Singleton {
     }
 
     function reloadHyprRules() {
-        const namespaces = ["olvex-drawers", "quickshell:osk"];
+        const namespaces = ["olvex-drawers", "quickshell:osk", "olvex-setup-wizard"];
         const messages = [];
         const shouldBlur = transparencyEnabled && transparencyBlur;
         const ignoreAlpha = transparencyEnabled ? Math.max(0.1, transparencyBase * 0.7) : 1.0;

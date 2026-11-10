@@ -79,7 +79,7 @@ Item {
 
         anchors.fill: parent
         radius: height / 2
-        color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+        color: Colours.light ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : Qt.alpha(Colours.palette.m3onSurface, 0.14)
 
         // Sliding primary pill
         StyledRect {
@@ -142,7 +142,7 @@ Item {
                             visible: !!cell.icon && (cell.slotWidth >= 65 || cell.label.length === 0)
                             text: cell.icon
                             fill: cell.active ? 1 : 0
-                            color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                            color: cell.active ? Colours.palette.m3onPrimary : (Colours.light ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.85))
                             iconPointSize: cell.slotWidth < 95 ? (Tokens.font.size.smaller - 1) : (cell.slotWidth < 120 ? Tokens.font.size.smaller : (Tokens.font.size.normal || 16))
 
                             Behavior on color {
@@ -156,9 +156,9 @@ Item {
                             Layout.fillWidth: true
                             Layout.maximumWidth: Math.max(16, cell.width - (iconItem.visible ? iconItem.width + rowContainer.spacing : 0) - 6)
                             text: cell.label
-                            font.weight: cell.active ? Font.DemiBold : Font.Normal
+                            font.weight: cell.active ? Font.DemiBold : Font.Medium
                             font.letterSpacing: 0.15
-                            color: cell.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                            color: cell.active ? Colours.palette.m3onPrimary : (Colours.light ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.85))
                             textPointSize: cell.slotWidth < 90 ? (Tokens.font.size.smallest || 9) : (cell.slotWidth < 115 ? (Tokens.font.size.smaller - 0.5) : (Tokens.font.size.smaller || 10.5))
                             elide: Text.ElideRight
 

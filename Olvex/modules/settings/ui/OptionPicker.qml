@@ -10,6 +10,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
+import Olvex
 import Olvex.Config
 import qs.services
 import qs.utils
@@ -43,6 +44,17 @@ Item {
     }
 
     signal selected(int index)
+    signal notInstalledClicked(var item)
+
+    function handleNotInstalled(itemData) {
+        root.notInstalledClicked(itemData);
+        const name = root.displayName(itemData);
+        const pkg = (itemData && itemData.pkg) ? itemData.pkg : String(itemData.id || name).toLowerCase();
+        const cmd = pkg.includes("-bin") ? `yay -S ${pkg}` : `sudo pacman -S ${pkg}`;
+        if (typeof Toaster !== "undefined" && Toaster.toast) {
+            Toaster.toast(qsTr("%1 is not installed").arg(name), qsTr("%1 is not installed · %2").arg(name).arg(cmd), "cloud_download", Toast.Warning);
+        }
+    }
 
     readonly property int count: model ? model.length : 0
     readonly property real rowHeight: 36
@@ -135,6 +147,11 @@ Item {
         return root.displayName(model[i]);
     }
 
+    property real freezeX: 0
+    property real freezeY: 0
+    property real freezeW: 0
+    property real freezeH: 0
+
     function closePicker() {
         if (!root.expanded && root.morphState === "closed") return;
 
@@ -151,6 +168,10 @@ Item {
     }
 
     function openPicker() {
+        root.freezeX = root.currentX;
+        root.freezeY = root.currentY;
+        root.freezeW = root.startW;
+        root.freezeH = root.startH;
         closeGrace.stop();
         root.searchQuery = "";
         root.expanded = true;
@@ -211,27 +232,35 @@ Item {
 
     readonly property real targetX: {
         const maxOverlayW = root.overlayParent ? root.overlayParent.width : 1920;
-        // Shift left gently (~12-16px) to organically wrap and center around source button
-        const idealX = Math.round(currentX - Math.max(0, (targetW - startW) * 0.25));
+        const refX = (root.freezeW > 0) ? root.freezeX : currentX;
+        const refW = (root.freezeW > 0) ? root.freezeW : startW;
+        const rightAlignedX = refX + refW - targetW;
+
+        // If in right half (e.g. SettingRow), lock right edge to button right edge
+        if (refX > maxOverlayW * 0.45) {
+            return Math.max(8, Math.min(rightAlignedX, maxOverlayW - targetW - 8));
+        }
+
+        const idealX = Math.round(refX - Math.max(0, (targetW - refW) * 0.25));
         if (idealX + targetW <= maxOverlayW - 8) {
             return Math.max(8, idealX);
         }
-        // Near right edge (e.g. SettingRow)
-        const rightAlignedX = currentX + startW - targetW;
         return Math.max(8, Math.min(rightAlignedX, maxOverlayW - targetW - 8));
     }
 
     readonly property real targetY: {
         const maxOverlayH = root.overlayParent ? root.overlayParent.height : 1080;
         const bottomLimit = maxOverlayH - 8;
+        const refY = (root.freezeH > 0) ? root.freezeY : currentY;
+        const refH = (root.freezeH > 0) ? root.freezeH : startH;
 
         if (root.menuOnTop) {
-            const aboveY = currentY + startH - targetH;
+            const aboveY = refY + refH - targetH;
             if (aboveY >= 8) return aboveY;
         }
 
         // Natural position: align top of menu with button top
-        const naturalY = currentY;
+        const naturalY = refY;
         const naturalBottom = naturalY + targetH;
         const deficit = naturalBottom - bottomLimit;
 
@@ -388,10 +417,10 @@ Item {
         }
 
         // M3 Physics Bounds - Smooth Emphasized Deceleration Curve
-        x: root.morphState === "open" ? root.targetX : root.currentX
-        y: root.morphState === "open" ? root.targetY : root.currentY
-        width: root.morphState === "open" ? root.targetW : root.startW
-        height: root.morphState === "open" ? root.targetH : root.startH
+        x: root.morphState === "open" ? root.targetX : ((root.freezeW > 0) ? root.freezeX : root.currentX)
+        y: root.morphState === "open" ? root.targetY : ((root.freezeH > 0) ? root.freezeY : root.currentY)
+        width: root.morphState === "open" ? root.targetW : ((root.freezeW > 0) ? root.freezeW : root.startW)
+        height: root.morphState === "open" ? root.targetH : ((root.freezeH > 0) ? root.freezeH : root.startH)
         radius: root.morphState === "open" ? Tokens.rounding.normal : (root.startH / 2)
 
         Behavior on x { Anim { type: Anim.DefaultSpatial } }
@@ -607,10 +636,13 @@ Item {
                         const s = (origModelData === undefined || origModelData === null) ? "" : String(origModelData);
                         return s.length > 0 && s === row.label;
                     }
+                    readonly property bool isInstalled: (origModelData && typeof origModelData === "object" && ("installed" in origModelData)) ? Boolean(origModelData.installed) : true
 
                     width: list.width
                     implicitHeight: root.rowHeight
                     height: implicitHeight
+                    opacity: row.isInstalled ? 1.0 : 0.45
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
 
                     // Applied indicator marker - EXACTLY list.width, NEVER resizes
                     Rectangle {
@@ -693,12 +725,22 @@ Item {
                                 }
                             }
                         }
+
+                        MaterialIcon {
+                            visible: !row.isInstalled
+                            Layout.alignment: Qt.AlignVCenter
+                            text: "cloud_download"
+                            iconPointSize: 14
+                            color: row.active ? Colours.palette.m3surface : Colours.palette.m3onSurfaceVariant
+                            opacity: 0.75
+                        }
                     }
 
                     MouseArea {
                         id: itemHover
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: row.isInstalled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onContainsMouseChanged: {
                             if (containsMouse) {
                                 clearHoverTimer.stop();
@@ -713,7 +755,13 @@ Item {
                                 list.hoveredIndex = row.index;
                             }
                         }
-                        onClicked: root.pick(row.originalIndex)
+                        onClicked: {
+                            if (!row.isInstalled) {
+                                root.handleNotInstalled(row.origModelData);
+                                return;
+                            }
+                            root.pick(row.originalIndex);
+                        }
                     }
                 }
             }

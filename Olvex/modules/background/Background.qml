@@ -7,6 +7,7 @@ import "../olvex" as Olvex
 import qs.components
 import qs.components.containers
 import qs.services
+import "../setup"
 
 Variants {
     model: Screens.screens.filter(s => GlobalConfig.forScreen(s.name).background.enabled)
@@ -73,7 +74,7 @@ Variants {
             id: clockLoader
 
             asynchronous: true
-            active: Config.background.desktopClock.enabled
+            active: Config.background.desktopClock.enabled && !SetupFactory.active
 
             anchors.margins: Tokens.padding.large * 2
             anchors.leftMargin: Tokens.padding.large * 2 + Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.smaller, ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})) ? ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0}) : ({thickness:0,rounding:0,minThickness:0,floating:false,smoothing:0,clampedThickness:0})).thickness)

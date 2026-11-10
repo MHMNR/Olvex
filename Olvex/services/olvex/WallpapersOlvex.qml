@@ -463,6 +463,9 @@ Searcher {
         root.clearPreviewAccentCache();
         _forceNextAccentRefresh = true;
 
+        // Kill third-party background wallpaper services so Olvex owns wallpaper rendering cleanly
+        Quickshell.execDetached(["sh", "-c", "pkill -x swww-daemon 2>/dev/null; pkill -x swww 2>/dev/null; pkill -x hyprpaper 2>/dev/null; pkill -x mpvpaper 2>/dev/null; pkill -x wpaperd 2>/dev/null; pkill -x swaybg 2>/dev/null; pkill -x feh 2>/dev/null; pkill -x nitrogen 2>/dev/null; true"]);
+
         actualCurrent = path;
         persistCurrentPath(path);
         root.applyWallpaperToDisplays(path);

@@ -66,6 +66,14 @@ hl.window_rule({
     opaque = false,
 })
 
+-- Olvex first-run Setup wizard
+hl.window_rule({
+    match = { class = "org.quickshell", title = "Olvex Setup.*" },
+    float = true,
+    center = true,
+    opaque = false,
+})
+
 -- Olvex Display Safety Confirmation Modal
 hl.window_rule({
     match = { class = "org.quickshell", title = "Confirm Display Settings.*" },
@@ -239,5 +247,5 @@ hl.layer_rule({ match = { namespace = "launcher" }, animation = "popin 80%", blu
 
 -- Olvex Shell
 hl.layer_rule({ match = { namespace = "olvex-(border-exclusion|area-picker)" }, no_anim = true })
-hl.layer_rule({ match = { namespace = "olvex-(drawers|background)" }, animation = "fade" })
-hl.layer_rule({ match = { namespace = "olvex-drawers" }, blur = true, ignore_alpha = 0.3 })
+hl.layer_rule({ match = { namespace = "olvex-(drawers|background|setup-wizard)" }, animation = "fade" })
+hl.layer_rule({ match = { namespace = "olvex-(drawers|setup-wizard)" }, blur = true, ignore_alpha = 0.3 })

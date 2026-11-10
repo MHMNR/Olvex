@@ -9,6 +9,7 @@ import qs.services
 import qs.utils
 import qs.modules.settings
 import "cheatsheet"
+import "setup"
 
 Scope {
     id: root
@@ -18,6 +19,7 @@ Scope {
     property var lastPressed: ({})
 
     function shouldTrigger(name) {
+        if (SetupFactory.active) return false;
         if (name === "launcherInterrupt") return true;
         const now = Date.now();
         const last = lastPressed[name] || 0;
@@ -111,9 +113,14 @@ Scope {
             }
         }
         onReleased: {
+            if (SetupFactory.active) {
+                root.launcherKeyPressed = false;
+                Visibilities.launcherInterrupted = false;
+                return;
+            }
             if (root.launcherKeyPressed) {
                 Qt.callLater(() => {
-                    if (!Visibilities.launcherInterrupted && !root.hasFullscreen) {
+                    if (!Visibilities.launcherInterrupted && !root.hasFullscreen && !SetupFactory.active) {
                         const visibilities = Visibilities.getForActive();
                         visibilities.launcher = !visibilities.launcher;
                     }
@@ -216,6 +223,7 @@ Scope {
 
     IpcHandler {
         function toggle(drawer: string) {
+            if (SetupFactory.active) return;
             if (drawer === "session") drawer = "powermenu";
             if (list().split("\n").includes(drawer)) {
                 if (root.hasFullscreen && ["launcher", "powermenu", "dashboard"].includes(drawer))
@@ -233,6 +241,7 @@ Scope {
         }
 
         function openWallpapers() {
+            if (SetupFactory.active) return;
             const visibilities = Visibilities.getForActive();
             visibilities.launcherSearchText = `${Config.launcher.actionPrefix}wallpaper `;
             visibilities.launcher = true;
@@ -243,6 +252,7 @@ Scope {
 
     IpcHandler {
         function open(page: string, section: string) {
+            if (SetupFactory.active) return;
             const props = {};
             if (page) props.active = page;
             if (section) props.activeSection = section;
@@ -299,12 +309,28 @@ Scope {
         }
     }
 
+    // Setup wizard test entry (UI preview only; backend sockets are disconnected).
+    IpcHandler {
+        target: "setup"
+        function toggle() {
+            SetupFactory.toggle();
+        }
+        function open() {
+            SetupFactory.open();
+        }
+        function close() {
+            SetupFactory.close();
+        }
+    }
+
     IpcHandler {
         target: "help"
         function toggle() {
+            if (SetupFactory.active) return;
             CheatsheetFactory.toggle();
         }
         function open() {
+            if (SetupFactory.active) return;
             CheatsheetFactory.open();
         }
         function close() {
@@ -315,9 +341,11 @@ Scope {
     IpcHandler {
         target: "cheatsheet"
         function toggle() {
+            if (SetupFactory.active) return;
             CheatsheetFactory.toggle();
         }
         function open() {
+            if (SetupFactory.active) return;
             CheatsheetFactory.open();
         }
         function close() {

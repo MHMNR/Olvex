@@ -20,6 +20,7 @@ import qs.modules.powermenu as Session
 import qs.modules.qspanel as Utilities
 import qs.modules.bar.popouts as BarPopouts
 import qs.modules.qspanel.toasts as Toasts
+import qs.modules.setup
 import Quickshell.Widgets
 import qs.modules.launcher.services as LauncherServices
 import qs.utils
@@ -612,6 +613,7 @@ Item {
 
     Toasts.Toasts {
         id: toasts
+        active: !SetupFactory.active
 
         // Float above secondary panel / screen bottom in bottom-center
         anchors.horizontalCenter: parent.horizontalCenter

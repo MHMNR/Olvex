@@ -7,11 +7,13 @@ import QtQuick
 import Quickshell
 import qs.components
 import qs.services
+import "../setup"
 
 Singleton {
     id: root
 
     function create(parent, props) {
+        if (SetupFactory.active) return;
         settingsWindow.createObject(parent || dummy, props || {});
     }
 

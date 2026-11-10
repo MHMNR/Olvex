@@ -9,6 +9,7 @@ Item {
     id: root
 
     readonly property int spacing: 8
+    property bool active: true
     property bool flag
 
     function shouldShowToast(toast: Toast): bool {
@@ -40,6 +41,8 @@ Item {
 
         model: ScriptModel {
             values: {
+                if (!root.active)
+                    return [];
                 const toasts = [];
                 let count = 0;
                 for (const toast of Toaster.toasts) {

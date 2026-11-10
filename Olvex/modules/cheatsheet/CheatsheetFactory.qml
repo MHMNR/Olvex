@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import qs.services
+import "../setup"
 
 Singleton {
     id: root
@@ -10,6 +11,7 @@ Singleton {
     property var currentInstance: null
 
     function toggle() {
+        if (SetupFactory.active) return;
         if (currentInstance) {
             close();
         } else {
@@ -18,6 +20,7 @@ Singleton {
     }
 
     function open() {
+        if (SetupFactory.active) return;
         if (currentInstance) {
             close();
         }

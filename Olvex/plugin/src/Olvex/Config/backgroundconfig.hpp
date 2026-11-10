@@ -62,21 +62,6 @@ public:
         , m_shadow(new DesktopClockShadow(this)) {}
 };
 
-class BackgroundVisualiser : public ConfigObject {
-    Q_OBJECT
-    QML_ANONYMOUS
-
-    CONFIG_PROPERTY(bool, enabled, false)
-    CONFIG_PROPERTY(bool, autoHide, true)
-    CONFIG_PROPERTY(bool, blur, false)
-    CONFIG_PROPERTY(qreal, rounding, 1)
-    CONFIG_PROPERTY(qreal, spacing, 1)
-
-public:
-    explicit BackgroundVisualiser(QObject* parent = nullptr)
-        : ConfigObject(parent) {}
-};
-
 class WallpaperTransitionConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
@@ -116,7 +101,6 @@ class BackgroundConfig : public ConfigObject {
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(WallpaperTransitionConfig, wallpaperTransition)
     CONFIG_SUBOBJECT(WallpaperCyclingConfig, wallpaperCycling)
-    CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
 
 public:
     explicit BackgroundConfig(QObject* parent = nullptr)
@@ -124,8 +108,7 @@ public:
         , m_liveWallpaper(new LiveWallpaperConfig(this))
         , m_desktopClock(new DesktopClock(this))
         , m_wallpaperTransition(new WallpaperTransitionConfig(this))
-        , m_wallpaperCycling(new WallpaperCyclingConfig(this))
-        , m_visualiser(new BackgroundVisualiser(this)) {}
+        , m_wallpaperCycling(new WallpaperCyclingConfig(this)) {}
 };
 
 } // namespace olvex::config

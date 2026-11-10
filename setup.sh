@@ -758,6 +758,19 @@ deploy_system_configurations() {
         cp -r "${SCRIPT_DIR}/.git" "${TARGET_LOCAL}/" 2>/dev/null || true
     fi
     log_success "Olvex shell core deployed."
+
+    log_info "Deploying default wallpapers to ${HOME}/Pictures/Wallpapers..."
+    mkdir -p "${HOME}/Pictures/Wallpapers"
+    local wp_source=""
+    if [[ -d "${SCRIPT_DIR}/Olvex/assets/Wallpapers" ]]; then
+        wp_source="${SCRIPT_DIR}/Olvex/assets/Wallpapers"
+    elif [[ -d "${TARGET_LOCAL}/assets/Wallpapers" ]]; then
+        wp_source="${TARGET_LOCAL}/assets/Wallpapers"
+    fi
+    if [[ -n "$wp_source" ]]; then
+        cp -r "${wp_source}"/* "${HOME}/Pictures/Wallpapers/" 2>/dev/null || true
+        log_success "Default wallpapers deployed to ${HOME}/Pictures/Wallpapers."
+    fi
 }
 
 save_install_configuration() {
@@ -1232,6 +1245,9 @@ build_and_install_mode() {
     mkdir -p "$TARGET_BIN"
     mkdir -p "${HOME}/.config/olvex/monitors"
     mkdir -p "${HOME}/Pictures/Wallpapers"
+    if [[ -d "${source_dir}/assets/Wallpapers" ]]; then
+        cp -r "${source_dir}/assets/Wallpapers"/* "${HOME}/Pictures/Wallpapers/" 2>/dev/null || true
+    fi
     touch -a "${HOME}/.config/olvex/hypr-vars.conf" "${HOME}/.config/olvex/hypr-user.conf"
 
     cd "$build_dir"

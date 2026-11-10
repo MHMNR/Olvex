@@ -21,11 +21,14 @@ StyledRect {
     property string description: ""
     property string icon: ""
     property Component customIcon: null
+    property var keys: []
     property bool clickable: false
     property bool divider: false // Deprecated: connected stack uses gap spacing instead of hairline divider
 
     // Clean neutral variant for description text — follows M3 specification
-    property color descriptionColor: Colours.palette.m3onSurfaceVariant
+    property color descriptionColor: Colours.light
+        ? Qt.alpha(Colours.palette.m3onSurface, 0.76)
+        : Colours.palette.m3onSurfaceVariant
 
     // Optional icon background tint (defaults to primaryContainer, set transparent for clean borderless icon)
     property bool showIconBackground: true
@@ -61,10 +64,18 @@ StyledRect {
     Behavior on bottomLeftRadius { enabled: root.isReady; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
     Behavior on bottomRightRadius { enabled: root.isReady; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
+    property color customCardColor: "transparent"
+    property color customCardHoverColor: "transparent"
+
     border.width: 0
-    color: (clickArea.containsMouse && (root.clickable || root.hasSwitch) && root.enabled)
-           ? Colours.palette.m3surfaceContainerHighest
-           : Colours.palette.m3surfaceContainerHigh
+    border.color: "transparent"
+    color: {
+        const isHovered = clickArea.containsMouse && (root.clickable || root.hasSwitch) && root.enabled;
+        if (root.customCardColor !== "" && root.customCardColor !== "transparent" && root.customCardColor !== "#00000000") {
+            return isHovered ? (root.customCardHoverColor !== "" && root.customCardHoverColor !== "transparent" ? root.customCardHoverColor : root.customCardColor) : root.customCardColor;
+        }
+        return isHovered ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 3) : Colours.layer(Colours.palette.m3surfaceContainer, 2);
+    }
 
     Behavior on color { CAnim {} }
 
@@ -118,17 +129,75 @@ StyledRect {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 2
 
-        StyledText {
+        RowLayout {
             width: parent.width
-            text: root.title
-            wrapMode: Text.WordWrap
-            maximumLineCount: 2
-            font.weight: Font.DemiBold
-            font.letterSpacing: -0.1
-            lineHeight: 1.25
-            lineHeightMode: Text.ProportionalHeight
-            color: Colours.palette.m3onSurface
-            textPointSize: Tokens.font.size.normal
+            spacing: 8
+
+            StyledText {
+                text: root.title
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
+                font.weight: Font.DemiBold
+                font.letterSpacing: -0.1
+                lineHeight: 1.25
+                lineHeightMode: Text.ProportionalHeight
+                color: Colours.palette.m3onSurface
+                textPointSize: Tokens.font.size.normal
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            RowLayout {
+                visible: root.keys && root.keys.length > 0
+                spacing: 3
+                Layout.alignment: Qt.AlignVCenter
+
+                Repeater {
+                    model: root.keys
+
+                    delegate: RowLayout {
+                        id: keyItem
+                        required property var modelData
+                        required property int index
+                        readonly property int totalCount: root.keys.length
+                        spacing: 3
+
+                        StyledRect {
+                            implicitHeight: 22
+                            implicitWidth: Math.max(22, keyLabel.implicitWidth + 12)
+                            radius: 6
+                            color: keyItem.modelData.isTrigger
+                                ? Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.20 : 0.22)
+                                : (Colours.light ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : Qt.alpha(Colours.palette.m3primary, 0.14))
+                            border.width: 0
+                            border.color: "transparent"
+
+                            StyledText {
+                                id: keyLabel
+                                anchors.centerIn: parent
+                                text: keyItem.modelData.text
+                                color: keyItem.modelData.isTrigger
+                                    ? Colours.palette.m3primary
+                                    : Colours.palette.m3onSurface
+                                font.family: Tokens.font.family.mono || "monospace"
+                                font.weight: Font.DemiBold
+                                textPointSize: 9
+                            }
+                        }
+
+                        StyledText {
+                            visible: keyItem.index < keyItem.totalCount - 1
+                            text: "+"
+                            color: Colours.light ? Qt.alpha(Colours.palette.m3onSurface, 0.5) : Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.5)
+                            font.weight: Font.DemiBold
+                            textPointSize: 8
+                        }
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
         StyledText {
