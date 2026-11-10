@@ -2,6 +2,7 @@ import QtQuick
 import Olvex
 import Olvex.Config
 import qs.components
+import qs.components.controls as Controls
 import qs.components.effects
 import qs.services
 import qs.utils
@@ -33,6 +34,12 @@ Item {
             if (v)
                 v.launcher = !v.launcher;
         }
+    }
+
+    Controls.Tooltip {
+        target: mouseArea
+        side: Controls.Tooltip.Right
+        text: qsTr("Launcher")
     }
 
     readonly property color fgColor: root.isLauncherOpen 

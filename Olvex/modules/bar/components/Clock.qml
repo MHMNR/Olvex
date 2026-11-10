@@ -2,6 +2,7 @@
 import QtQuick
 import Olvex.Config
 import qs.components
+import qs.components.controls as Controls
 import qs.services
 
 StyledRect {
@@ -29,6 +30,12 @@ StyledRect {
                 visibilities.dashboard = !visibilities.dashboard;
             }
         }
+    }
+
+    Controls.Tooltip {
+        target: hoverArea
+        side: Controls.Tooltip.Right
+        text: Time.format("dddd, MMMM d, yyyy")
     }
 
     Column {

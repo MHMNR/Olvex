@@ -6,6 +6,7 @@ import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Olvex.Config
 import qs.components
+import qs.components.controls as Controls
 import qs.components.icons
 import qs.services
 import qs.utils
@@ -16,6 +17,28 @@ StyledRect {
     property color colour: Colours.light ? Colours.palette.m3onSurface : Colours.palette.m3secondary
     readonly property real iconSize: 20
     readonly property alias items: iconColumn
+
+    property Item activeHoveredItem: null
+    property string activeTooltipText: ""
+
+    Timer {
+        id: clearActiveHoverTimer
+        interval: 180
+        onTriggered: {
+            root.activeHoveredItem = null;
+            root.activeTooltipText = "";
+        }
+    }
+
+    function setHoveredItem(item, text) {
+        if (item) {
+            clearActiveHoverTimer.stop();
+            activeHoveredItem = item;
+            activeTooltipText = text;
+        } else {
+            clearActiveHoverTimer.restart();
+        }
+    }
 
     readonly property var netSpeedConfig: GlobalConfig.bar?.netSpeed ?? null
     readonly property bool netSpeedEnabled: netSpeedConfig?.enabled ?? true
@@ -162,9 +185,39 @@ StyledRect {
             name: "network"
             active: Config.bar.status.showNetwork && (Nmcli.hasWifiHw || Nmcli.hasEthernetHw)
 
-            sourceComponent: Loader {
-                active: true
-                sourceComponent: (Nmcli.hasEthernetHw && !!Nmcli.activeEthernet) ? ethIconComp : wifiIconComp
+            sourceComponent: Item {
+                id: netWrap
+                implicitWidth: root.iconSize
+                implicitHeight: root.iconSize
+
+                Loader {
+                    anchors.centerIn: parent
+                    active: true
+                    sourceComponent: (Nmcli.hasEthernetHw && !!Nmcli.activeEthernet) ? ethIconComp : wifiIconComp
+                }
+
+                readonly property string tooltipStr: {
+                    if (Nmcli.hasEthernetHw && Nmcli.activeEthernet && Nmcli.activeEthernet.connected) {
+                        const name = Nmcli.activeEthernet.connection || qsTr("Ethernet");
+                        const ip = Nmcli.currentIp;
+                        return ip ? `${name}\n${ip}` : name;
+                    }
+                    if (Nmcli.wifiEnabled && Nmcli.active && Nmcli.active.ssid) {
+                        const name = Nmcli.active.ssid;
+                        const ip = Nmcli.currentIp;
+                        return ip ? `${name}\n${ip}` : name;
+                    }
+                    return Nmcli.wifiEnabled ? qsTr("Wi-Fi: Disconnected") : qsTr("Wi-Fi: Disabled");
+                }
+
+                MouseArea {
+                    id: netMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                    onEntered: root.setHoveredItem(netWrap, netWrap.tooltipStr)
+                    onExited: root.setHoveredItem(null, "")
+                }
 
                 Component {
                     id: ethIconComp
@@ -210,13 +263,31 @@ StyledRect {
                 readonly property bool hasConnectedDevices: connectedDevices.length > 0
 
                 // Bluetooth icon (shown when no devices connected)
-                BluetoothLottieIcon {
+                Item {
+                    id: btWrap
                     Layout.alignment: Qt.AlignHCenter
                     visible: !btCol.hasConnectedDevices
-                    size: root.iconSize
-                    connected: (Bluetooth.defaultAdapter?.enabled ?? false) // qmllint disable unresolved-type
-                    color: root.colour
-                    disabledColor: Qt.alpha(root.colour, 0.42)
+                    implicitWidth: root.iconSize
+                    implicitHeight: root.iconSize
+
+                    BluetoothLottieIcon {
+                        anchors.centerIn: parent
+                        size: root.iconSize
+                        connected: (Bluetooth.defaultAdapter?.enabled ?? false) // qmllint disable unresolved-type
+                        color: root.colour
+                        disabledColor: Qt.alpha(root.colour, 0.42)
+                    }
+
+                    readonly property string tooltipStr: (Bluetooth.defaultAdapter?.enabled ?? false) ? qsTr("Bluetooth: On (No devices)") : qsTr("Bluetooth: Off") // qmllint disable unresolved-type
+
+                    MouseArea {
+                        id: btMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.NoButton
+                        onEntered: root.setHoveredItem(btWrap, btWrap.tooltipStr)
+                        onExited: root.setHoveredItem(null, "")
+                    }
                 }
 
                 // Connected bluetooth devices (unified icon + battery ring)
@@ -225,15 +296,39 @@ StyledRect {
                         values: btCol.connectedDevices
                     }
 
-                    BluetoothDeviceBatteryIcon {
-                        id: device
+                    Item {
+                        id: devWrap
                         required property BluetoothDevice modelData
                         Layout.alignment: Qt.AlignHCenter
-                        device: modelData
-                        size: root.iconSize
-                        color: Colours.light ? Colours.palette.m3primary : root.colour
-                        trackColor: Qt.alpha(root.colour, 0.20)
-                        lowBatteryColor: Colours.palette.m3error
+                        implicitWidth: root.iconSize
+                        implicitHeight: root.iconSize
+
+                        BluetoothDeviceBatteryIcon {
+                            anchors.centerIn: parent
+                            device: devWrap.modelData
+                            size: root.iconSize
+                            color: Colours.light ? Colours.palette.m3primary : root.colour
+                            trackColor: Qt.alpha(root.colour, 0.20)
+                            lowBatteryColor: Colours.palette.m3error
+                        }
+
+                        readonly property string tooltipStr: {
+                            const d = devWrap.modelData;
+                            const name = d.name || qsTr("Bluetooth Device");
+                            if (d.batteryAvailable && d.battery >= 0) {
+                                return `${name} (${Math.round(d.battery * 100)}%)`;
+                            }
+                            return name;
+                        }
+
+                        MouseArea {
+                            id: devMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.NoButton
+                            onEntered: root.setHoveredItem(devWrap, devWrap.tooltipStr)
+                            onExited: root.setHoveredItem(null, "")
+                        }
                     }
                 }
             }
@@ -248,47 +343,98 @@ StyledRect {
             name: "battery"
             active: Config.bar.status.showBattery && UPower.displayDevice.isLaptopBattery
 
-            sourceComponent: Loader {
-                active: true
-                sourceComponent: {
-                    if (!UPower.displayDevice.isLaptopBattery)
-                        return nonLaptopBattery;
-                    return laptopBattery;
-                }
+            sourceComponent: Item {
+                id: batWrap
+                implicitWidth: root.iconSize
+                implicitHeight: root.iconSize
 
-                Component {
-                    id: laptopBattery
-                    BatteryLottieIcon {
-                        size: root.iconSize
-                        level: UPower.displayDevice.percentage
-                        charging: [UPowerDeviceState.Charging, UPowerDeviceState.FullyCharged, UPowerDeviceState.PendingCharge].includes(UPower.displayDevice.state)
-                        color: !UPower.onBattery || UPower.displayDevice.percentage > 0.2 ? root.colour : Colours.palette.m3error
+                Loader {
+                    anchors.centerIn: parent
+                    active: true
+                    sourceComponent: {
+                        if (!UPower.displayDevice.isLaptopBattery)
+                            return nonLaptopBattery;
+                        return laptopBattery;
                     }
-                }
 
-                Component {
-                    id: nonLaptopBattery
-                    Item {
-                        implicitWidth: root.iconSize
-                        implicitHeight: root.iconSize
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            animate: true
-                            text: {
-                                if (PowerProfiles.profile === PowerProfile.PowerSaver)
-                                    return "energy_savings_leaf";
-                                if (PowerProfiles.profile === PowerProfile.Performance)
-                                    return "rocket_launch";
-                                return "balance";
+                    Component {
+                        id: laptopBattery
+                        BatteryLottieIcon {
+                            size: root.iconSize
+                            level: UPower.displayDevice.percentage
+                            charging: [UPowerDeviceState.Charging, UPowerDeviceState.FullyCharged, UPowerDeviceState.PendingCharge].includes(UPower.displayDevice.state)
+                            color: !UPower.onBattery || UPower.displayDevice.percentage > 0.2 ? root.colour : Colours.palette.m3error
+                        }
+                    }
+
+                    Component {
+                        id: nonLaptopBattery
+                        Item {
+                            implicitWidth: root.iconSize
+                            implicitHeight: root.iconSize
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                animate: true
+                                text: {
+                                    if (PowerProfiles.profile === PowerProfile.PowerSaver)
+                                        return "energy_savings_leaf";
+                                    if (PowerProfiles.profile === PowerProfile.Performance)
+                                        return "rocket_launch";
+                                    return "balance";
+                                }
+                                color: root.colour
+                                fill: 1
+                                iconPointSize: 16
                             }
-                            color: root.colour
-                            fill: 1
-                            iconPointSize: 16
                         }
                     }
                 }
+
+                readonly property string tooltipStr: {
+                    const dev = UPower.displayDevice;
+                    const pct = Math.round((dev.percentage ?? 0) * 100);
+                    if (!dev.isLaptopBattery)
+                        return qsTr("Battery: %1%").arg(pct);
+
+                    function formatSeconds(s) {
+                        if (!s || s <= 0) return "";
+                        const hr = Math.floor(s / 3600);
+                        const min = Math.floor((s % 3600) / 60);
+                        if (hr > 0) return `${hr}h ${min}m`;
+                        return `${min}m`;
+                    }
+
+                    const isCharging = [UPowerDeviceState.Charging, UPowerDeviceState.FullyCharged, UPowerDeviceState.PendingCharge].includes(dev.state);
+                    if (isCharging) {
+                        if (dev.state === UPowerDeviceState.FullyCharged || pct >= 100)
+                            return qsTr("Battery: 100% (Fully charged)");
+                        const timeFull = formatSeconds(dev.timeToFull);
+                        return timeFull ? qsTr("Battery: %1% (Charging, %2 left)").arg(pct).arg(timeFull) : qsTr("Battery: %1% (Charging)").arg(pct);
+                    } else {
+                        const timeEmpty = formatSeconds(dev.timeToEmpty);
+                        return timeEmpty ? qsTr("Battery: %1% (%2 remaining)").arg(pct).arg(timeEmpty) : qsTr("Battery: %1%").arg(pct);
+                    }
+                }
+
+                MouseArea {
+                    id: batMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                    onEntered: root.setHoveredItem(batWrap, batWrap.tooltipStr)
+                    onExited: root.setHoveredItem(null, "")
+                }
             }
         }
+    }
+
+    // Single unified sliding tooltip for all Status Icons
+    Controls.Tooltip {
+        id: statusSlidingTooltip
+        target: root.activeHoveredItem || root
+        side: Controls.Tooltip.Right
+        text: root.activeTooltipText
+        tooltipVisible: root.activeHoveredItem !== null && root.activeTooltipText !== ""
     }
 
     component WrappedLoader: Loader {

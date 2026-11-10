@@ -71,10 +71,10 @@ StyledRect {
     border.color: "transparent"
     color: {
         const isHovered = clickArea.containsMouse && (root.clickable || root.hasSwitch) && root.enabled;
-        if (root.customCardColor !== "" && root.customCardColor !== "transparent" && root.customCardColor !== "#00000000") {
-            return isHovered ? (root.customCardHoverColor !== "" && root.customCardHoverColor !== "transparent" ? root.customCardHoverColor : root.customCardColor) : root.customCardColor;
+        if (root.customCardColor.a > 0) {
+            return (isHovered && root.customCardHoverColor.a > 0) ? root.customCardHoverColor : root.customCardColor;
         }
-        return isHovered ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 3) : Colours.layer(Colours.palette.m3surfaceContainer, 2);
+        return isHovered ? Colours.palette.m3surfaceContainerHighest : Colours.palette.m3surfaceContainerHigh;
     }
 
     Behavior on color { CAnim {} }

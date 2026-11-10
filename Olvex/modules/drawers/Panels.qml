@@ -1858,6 +1858,95 @@ Item {
                     }
                 }
             }
+
+            // ── Smooth Sliding & Morphing Dock Tooltip ───────────────────────────────
+            StyledRect {
+                id: dockTooltip
+                readonly property Item hoveredTarget: pinnedState.hoveredAppIcon
+                readonly property string targetTitle: {
+                    if (!hoveredTarget) return "";
+                    if (hoveredTarget.entry) {
+                        return hoveredTarget.entry.name || hoveredTarget.appId || "";
+                    }
+                    return hoveredTarget.appId || "";
+                }
+
+                visible: root.secondaryPanelVisible && hoveredTarget !== null && !pinnedState.isDragging && targetTitle !== ""
+                opacity: visible ? 1.0 : 0.0
+
+                readonly property real targetWidth: dockTooltipLabel.implicitWidth + (Tokens.padding.normal * 2)
+                readonly property real targetHeight: 28
+
+                width: targetWidth
+                height: targetHeight
+                implicitWidth: targetWidth
+                implicitHeight: targetHeight
+                radius: Tokens.rounding.small
+                color: Colours.palette.m3surfaceContainerHighest
+                border.width: 0
+                clip: true
+
+                // Center above the active hovered icon in secondaryPanel coordinates using targetWidth
+                x: hoveredTarget ? Math.round(hoveredTarget.mapToItem(secondaryPanel, 0, 0).x + (hoveredTarget.width - targetWidth) / 2) : x
+                y: hoveredTarget ? Math.round(hoveredTarget.mapToItem(secondaryPanel, 0, 0).y - targetHeight - 8) : y
+                z: 100
+
+                StyledText {
+                    id: dockTooltipLabel
+                    anchors.centerIn: parent
+                    text: dockTooltip.targetTitle
+                    color: Colours.palette.m3onSurface
+                    font.weight: Font.Medium
+                    textPointSize: Tokens.font.size.small
+                }
+
+                Behavior on x {
+                    enabled: dockTooltip.opacity > 0.01
+                    SpringAnimation {
+                        spring: 7.5
+                        damping: 0.78
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+
+                Behavior on y {
+                    enabled: dockTooltip.opacity > 0.01
+                    SpringAnimation {
+                        spring: 7.5
+                        damping: 0.78
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+
+                Behavior on width {
+                    enabled: dockTooltip.opacity > 0.01
+                    SpringAnimation {
+                        spring: 7.5
+                        damping: 0.78
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+
+                Behavior on height {
+                    enabled: dockTooltip.opacity > 0.01
+                    SpringAnimation {
+                        spring: 7.5
+                        damping: 0.78
+                        mass: 1.0
+                        epsilon: 0.005
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 120
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
         }
     }
 

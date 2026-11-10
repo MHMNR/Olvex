@@ -31,6 +31,13 @@ Singleton {
     property var pendingConnection: null
     property var wirelessDeviceDetails: null
     property var ethernetDeviceDetails: null
+    readonly property string currentIp: {
+        if (ethernetConnected && ethernetDeviceDetails && ethernetDeviceDetails.ipAddress)
+            return ethernetDeviceDetails.ipAddress;
+        if (wirelessDeviceDetails && wirelessDeviceDetails.ipAddress)
+            return wirelessDeviceDetails.ipAddress;
+        return "";
+    }
     property var ethernetDevices: []
     readonly property var activeEthernet: ethernetDevices.find(d => d.connected) ?? null
     readonly property bool ethernetConnected: Boolean(activeEthernet && activeEthernet.connected)
