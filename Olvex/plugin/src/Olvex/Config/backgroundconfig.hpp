@@ -50,8 +50,13 @@ class DesktopClock : public ConfigObject {
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(qreal, scale, 1.02459716796875)
+    CONFIG_PROPERTY(QString, placementStrategy, QStringLiteral("fixed")) // "fixed", "leastBusy", "mostBusy"
     CONFIG_PROPERTY(QString, position, QStringLiteral("bottom-right"))
     CONFIG_PROPERTY(bool, invertColors, false)
+    CONFIG_PROPERTY(bool, adaptiveTextColor, true)
+    CONFIG_PROPERTY(qreal, autoX, 0.0)
+    CONFIG_PROPERTY(qreal, autoY, 0.0)
+    CONFIG_PROPERTY(bool, dominantIsDark, true)
     CONFIG_SUBOBJECT(DesktopClockBackground, background)
     CONFIG_SUBOBJECT(DesktopClockShadow, shadow)
 

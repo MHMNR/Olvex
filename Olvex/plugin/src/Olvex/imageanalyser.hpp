@@ -53,6 +53,14 @@ public:
     Q_INVOKABLE QColor playButtonFill(const QColor& primary, bool isLight = false) const;
     Q_INVOKABLE QColor playIconOnFill(bool isLight, const QColor& fill) const;
 
+    // Asynchronously find least or most busy region for desktop widgets (clock, etc.)
+    // Supports 4-side padding (left, top, right, bottom) to respect screen exclusion zones
+    Q_INVOKABLE void findRegion(const QString& imagePath, int screenWidth, int screenHeight,
+                                int regionWidth, int regionHeight,
+                                int leftPadding, int topPadding,
+                                int rightPadding, int bottomPadding,
+                                bool busiest = false);
+
 signals:
     void sourceChanged();
     void sourceItemChanged();
@@ -62,6 +70,7 @@ signals:
     void luminanceChanged();
     void runningChanged();
     void finished(const QColor& dominantColour, qreal luminance);
+    void regionFound(int x, int y, int centerX, int centerY, const QColor& dominantColor, qreal luminance, bool isDark);
 
 private:
     using AnalyseResult = QPair<QColor, qreal>;

@@ -76,6 +76,7 @@ Item {
                     case "fonts": return "AppearanceFonts.qml";
                     case "shape": return "AppearanceShape.qml";
                     case "motion": return "AppearanceMotion.qml";
+                    case "clock": return "AppearanceClock.qml";
                     case "wallpapers": return "AppearanceWallpapers.qml";
                     case "lockscreen": return "AppearanceLockscreen.qml";
                     default: return "AppearanceTheme.qml";

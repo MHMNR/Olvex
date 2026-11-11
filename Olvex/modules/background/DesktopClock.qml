@@ -17,11 +17,14 @@ Item {
     readonly property bool blurEnabled: bgEnabled && Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.blur) && !GameMode.enabled
     readonly property bool shadowEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow && Config.background.desktopClock.shadow.enabled)
     readonly property bool invertColors: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.invertColors)
-    readonly property bool useLightSet: Colours.light ? !invertColors : invertColors
+    readonly property bool adaptiveColor: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.adaptiveTextColor)
+    readonly property bool dominantIsDark: (Config.background && Config.background.desktopClock && Config.background.desktopClock.dominantIsDark !== undefined) ? Config.background.desktopClock.dominantIsDark : !Colours.light
+
+    readonly property bool useLightSet: adaptiveColor ? !dominantIsDark : (Colours.light ? !invertColors : invertColors)
     readonly property color safePrimary: useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary
     readonly property color safeSecondary: useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary
     readonly property color safeTertiary: useLightSet ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary
-    readonly property color safeOnSurface: Colours.palette.m3onSurface
+    readonly property color safeOnSurface: useLightSet ? Colours.palette.m3surfaceContainerLowest : Colours.palette.m3onSurface
 
     implicitWidth: Math.round(layout.implicitWidth + (Tokens.padding.large * 4 * root.clockScale))
     implicitHeight: Math.round(layout.implicitHeight + (Tokens.padding.large * 2.5 * root.clockScale))
@@ -41,12 +44,13 @@ Item {
                     sourceRect: Qt.rect(root.absX, root.absY, root.width, root.height)
                     live: false
                     recursive: false
+                    hideSource: false
                 }
                 maskSource: backgroundPlate
                 maskEnabled: true
                 blurEnabled: true
-                blur: 1
-                blurMax: 64
+                blur: 0.8
+                blurMax: 32
                 autoPaddingEnabled: false
             }
         }

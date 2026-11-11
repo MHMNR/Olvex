@@ -16,6 +16,7 @@ SettingsMasterList {
         { id: "fonts", label: qsTr("Fonts"), icon: "font_download" },
         { id: "shape", label: qsTr("Shape & Spacing"), icon: "rounded_corner" },
         { id: "motion", label: qsTr("Motion"), icon: "animation" },
+        { id: "clock", label: qsTr("Clock"), icon: "schedule" },
         { id: "wallpapers", label: qsTr("Wallpapers"), icon: "wallpaper" },
         { id: "lockscreen", label: qsTr("Lockscreen"), icon: "lock" }
     ]
