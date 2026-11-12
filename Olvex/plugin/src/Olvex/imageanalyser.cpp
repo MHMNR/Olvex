@@ -7,6 +7,7 @@
 #include <QImageReader>
 #include <qloggingcategory.h>
 #include <qquickwindow.h>
+#include <QThread>
 #include <QUrl>
 
 Q_LOGGING_CATEGORY(lcImageAnalyser, "olvex.imageanalyser", QtInfoMsg)
@@ -562,6 +563,23 @@ void ImageAnalyser::findRegion(const QString& imagePath, int screenWidth, int sc
     QFuture<RegionResult> future = QtConcurrent::run([path, targetScreenWidth, targetScreenHeight,
                                                       targetRegionWidth, targetRegionHeight,
                                                       padL, padT, padR, padB, busiest]() -> RegionResult {
+        // Lower thread priority during heavy computation so UI/render thread is never starved
+        QThread *curThread = QThread::currentThread();
+        const QThread::Priority rawPriority = curThread ? curThread->priority() : QThread::NormalPriority;
+        const QThread::Priority origPriority = (rawPriority == QThread::InheritPriority) ? QThread::NormalPriority : rawPriority;
+        if (curThread) {
+            curThread->setPriority(QThread::LowPriority);
+        }
+        struct PriorityRestorer {
+            QThread *t;
+            QThread::Priority p;
+            ~PriorityRestorer() {
+                if (t) {
+                    t->setPriority(p);
+                }
+            }
+        } restorer{curThread, origPriority};
+
         RegionResult result;
         QImageReader reader(path);
         if (!reader.canRead()) {

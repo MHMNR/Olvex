@@ -63,8 +63,8 @@ Item {
             radius: Math.round(Tokens.rounding.large * root.clockScale)
             opacity: Config.background && Config.background.desktopClock && Config.background.desktopClock.background ? Config.background.desktopClock.background.opacity : 0.7
             color: Colours.palette.m3surfaceContainerLow
-            border.color: Colours.palette.m3outlineVariant
-            border.width: 1
+            border.color: "transparent"
+            border.width: 0
 
             layer.enabled: root.blurEnabled || (root.bgEnabled && root.shadowEnabled)
             layer.effect: MultiEffect {

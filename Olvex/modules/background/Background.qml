@@ -194,6 +194,10 @@ Variants {
                     }
                 }
             }
+
+            // Bake into GPU texture while sliding — eliminates expensive shader re-render per frame
+            layer.enabled: Boolean(clockYAnim.running || clockXAnim.running || clockTranslateAnim.running)
+            layer.smooth: true
             
             state: isAutoPlacement ? "" : (win.contentItem.Config.background && win.contentItem.Config.background.desktopClock ? win.contentItem.Config.background.desktopClock.position : "middle-center")
             states: [

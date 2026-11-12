@@ -363,10 +363,25 @@ Searcher {
         }
     }
 
+    Timer {
+        id: staggerPaletteTimer
+        interval: 130
+        repeat: false
+        property string pendingPayload: ""
+        onTriggered: {
+            if (pendingPayload.length > 0) {
+                root.colorsGenerated(pendingPayload, false);
+                themeAppsProc.running = true;
+                pendingPayload = "";
+            }
+        }
+    }
+
     Connections {
         target: WallpaperEngine
         function onPaletteReady(jsonPayload: string, isPreview: bool): void {
             if (isPreview) {
+                staggerPaletteTimer.stop();
                 root._lastPreviewData = jsonPayload;
                 root.colorsGenerated(jsonPayload, true);
             } else {
@@ -374,8 +389,8 @@ Searcher {
                 if (root._lastRefreshPath)
                     root.persistColourSource(root._lastRefreshPath);
                 root.persistSchemePayload(jsonPayload);
-                root.colorsGenerated(jsonPayload, false);
-                themeAppsProc.running = true;
+                staggerPaletteTimer.pendingPayload = jsonPayload;
+                staggerPaletteTimer.restart();
             }
         }
         function onErrorOccurred(msg: string): void {
@@ -498,7 +513,8 @@ Searcher {
             && root._lastPreviewData;
         if (canHandoffPreview) {
             console.log(`[Wallpapers] Handing off preview colors for ${path}`);
-            root.colorsGenerated(root._lastPreviewData, false);
+            staggerPaletteTimer.pendingPayload = root._lastPreviewData;
+            staggerPaletteTimer.restart();
             return;
         }
 
