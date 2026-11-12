@@ -23,7 +23,7 @@ Item {
     property bool hovered: false
 
     // Safe inset — pills/thumbs never kiss card radius (clip lives here)
-    readonly property int inset: Tokens.spacing.normal + 4 // ~14–16
+    readonly property int inset: (root.kind === "sound" || root.kind === "power") ? 0 : 4
     clip: true
 
     // Shared motion helpers
@@ -95,8 +95,10 @@ Item {
             case "network":
                 return cNetwork;
             case "notifications":
+            case "notifs":
                 return cNotifs;
             case "bar":
+            case "taskbar":
                 return cBar;
             case "panels":
                 return cPanels;
@@ -172,116 +174,80 @@ Item {
     Component {
         id: cAppearance
 
-        // Dense palette stage — fills tall narrow hero, not empty void
         Item {
-            // Soft overlapping color orbs (alive mid-stage)
+            anchors.fill: parent
+
+            // Upper-right overlapping color circles (Image 1)
             Item {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.verticalCenterOffset: -6
-                width: Math.min(parent.width * 0.92, 120)
-                height: width * 0.72
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                width: 150
+                height: 150
 
-                Repeater {
-                    model: [{
-                            c: Colours.palette.m3primary,
-                            x: 0.08,
-                            y: 0.12,
-                            s: 0.55
-                        }, {
-                            c: Colours.palette.m3tertiary,
-                            x: 0.42,
-                            y: 0.0,
-                            s: 0.48
-                        }, {
-                            c: Colours.palette.m3secondary,
-                            x: 0.28,
-                            y: 0.38,
-                            s: 0.5
-                        }, {
-                            c: Colours.palette.m3primaryContainer,
-                            x: 0.55,
-                            y: 0.35,
-                            s: 0.42
-                        }]
+                // Circle 1: cyan
+                Rectangle {
+                    x: 6
+                    y: 20
+                    width: 90
+                    height: 90
+                    radius: 45
+                    color: "#74b9cc"
+                    opacity: root.hovered ? 0.85 : 0.70
+                    antialiasing: true
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
 
-                    delegate: Rectangle {
-                        required property var modelData
-                        required property int index
+                // Circle 2: lavender
+                Rectangle {
+                    x: 48
+                    y: 6
+                    width: 84
+                    height: 84
+                    radius: 42
+                    color: "#b09ccc"
+                    opacity: root.hovered ? 0.85 : 0.70
+                    antialiasing: true
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
 
-                        x: parent.width * modelData.x
-                        y: parent.height * modelData.y + (root.hovered ? -3 - index : 0)
-                        width: parent.width * modelData.s
-                        height: width
-                        radius: width / 2
-                        color: modelData.c
-                        opacity: root.hovered ? 0.95 : 0.82
-                        antialiasing: true
+                // Circle 3: deep teal
+                Rectangle {
+                    x: 74
+                    y: 56
+                    width: 68
+                    height: 68
+                    radius: 34
+                    color: "#1c5c68"
+                    opacity: root.hovered ? 0.90 : 0.80
+                    antialiasing: true
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
+                }
 
-                        Behavior on y {
-                            Anim {
-                                type: Anim.DefaultSpatial
-                                duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
-                            }
-                        }
-                        Behavior on opacity {
-                            Anim {
-                                type: Anim.FastEffects
-                            }
-                        }
-                    }
+                // Circle 4: grey / slate overlay
+                Rectangle {
+                    x: 30
+                    y: 68
+                    width: 70
+                    height: 70
+                    radius: 35
+                    color: "#a4b8bf"
+                    opacity: root.hovered ? 0.90 : 0.80
+                    antialiasing: true
+                    Behavior on opacity { Anim { type: Anim.FastEffects } }
                 }
             }
 
-            // Type sample + swatch row — bottom density
-            Column {
-                anchors.left: parent.left
+            // Bottom-right standalone "Aa"
+            StyledText {
                 anchors.right: parent.right
+                anchors.rightMargin: 4
                 anchors.bottom: parent.bottom
-                spacing: 8
-
-                StyledText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Aa"
-                    font.family: Tokens.font.family.sans
-                    font.weight: Font.Medium
-                    color: Colours.palette.m3onSurface
-                    textPointSize: Tokens.font.size.extraLarge
-                    opacity: 0.85
-                }
-
-                Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 6
-
-                    Repeater {
-                        model: [Colours.palette.m3primary, Colours.palette.m3tertiary, Colours.palette.m3secondary, Colours.palette.m3primaryContainer]
-
-                        delegate: Rectangle {
-                            required property var modelData
-                            required property int index
-
-                            width: 16
-                            height: 16
-                            radius: width / 2
-                            color: modelData
-                            border.width: index === 0 ? 1.5 : 0
-                            border.color: Colours.palette.m3onSurface
-                            antialiasing: true
-
-                            transform: Translate {
-                                y: root.hovered ? -2 - index * 0.5 : 0
-
-                                Behavior on y {
-                                    Anim {
-                                        type: Anim.DefaultSpatial
-                                        duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                text: "Aa"
+                font.family: Tokens.font.family.sans
+                font.weight: Font.Normal
+                color: Colours.palette.m3onSurface
+                textPointSize: 34
             }
         }
     }
@@ -696,44 +662,29 @@ Item {
     Component {
         id: cSound
 
-        Row {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
-            height: parent.height
+        Item {
+            anchors.fill: parent
 
-            Repeater {
-                model: [0.4, 0.75, 0.5, 0.95, 0.65, 0.85, 0.55]
+            Item {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                width: 38
+                height: 38
 
-                delegate: Rectangle {
-                    required property var modelData
-                    required property int index
+                CircularProgress {
+                    anchors.fill: parent
+                    value: (typeof Audio !== "undefined" && Audio.volume !== undefined) ? Audio.volume : 0.65
+                    strokeWidth: 4
+                    fgColour: root.accent
+                    bgColour: Qt.alpha(root.accent, 0.20)
+                }
 
-                    width: root.hovered ? 6 : 5
-                    radius: width / 2
-                    // Hover: bars pump taller with slight stagger
-                    // Cap height so bars never clip top of short tile preview
-                    height: modelData * Math.min(parent.height * 0.65, 32)
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: root.accent
-                    opacity: root.hovered ? (0.55 + modelData * 0.45) : (0.4 + modelData * 0.4)
-
-                    Behavior on height {
-                        Anim {
-                            type: Anim.DefaultSpatial
-                            duration: Tokens.anim.durations.expressiveDefaultSpatial + index * 18
-                        }
-                    }
-                    Behavior on width {
-                        Anim {
-                            type: Anim.DefaultSpatial
-                        }
-                    }
-                    Behavior on opacity {
-                        Anim {
-                            type: Anim.FastEffects
-                        }
-                    }
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    text: "volume_up"
+                    fill: 1
+                    iconPointSize: 16
+                    color: Colours.palette.m3onSurface
                 }
             }
         }
@@ -742,55 +693,31 @@ Item {
     Component {
         id: cNetwork
 
-        // Signal arcs + status pill
         Item {
-            // Signal strength bars
+            anchors.fill: parent
+
             Row {
                 anchors.right: parent.right
-                anchors.rightMargin: 2
-                anchors.top: parent.top
-                anchors.topMargin: 2
-                spacing: 3
-                height: 22
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4
 
                 Repeater {
-                    model: [0.35, 0.55, 0.75, 1.0]
+                    model: [14, 22, 30, 40]
 
                     delegate: Rectangle {
                         required property var modelData
                         required property int index
 
-                        width: 4
-                        radius: 2
-                        height: parent.height * modelData
-                        anchors.bottom: parent.bottom
-                        color: root.accent
-                        opacity: root.hovered ? (0.45 + modelData * 0.55) : (0.3 + modelData * 0.45)
+                        anchors.bottom: parent ? parent.bottom : undefined
+                        width: 5
+                        height: modelData
+                        radius: 2.5
+                        color: index < 3 ? root.accent : Qt.alpha(Colours.palette.m3onSurface, 0.16)
+                        opacity: root.hovered ? 1.0 : (index < 3 ? 0.90 : 1.0)
 
-                        Behavior on opacity {
-                            Anim {
-                                type: Anim.FastEffects
-                            }
-                        }
-                        Behavior on height {
-                            Anim {
-                                type: Anim.DefaultSpatial
-                                duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
-                            }
-                        }
+                        Behavior on opacity { Anim { type: Anim.FastEffects } }
                     }
                 }
-            }
-
-            PreviewPill {
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                icon: "wifi"
-                label: qsTr("Wi‑Fi")
-                fg: root.accent
-                bg: Qt.alpha(root.accent, 0.16)
-                maxLabelW: 40
-                maxWidth: parent.width
             }
         }
     }
@@ -798,67 +725,70 @@ Item {
     Component {
         id: cNotifs
 
-        Column {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: root.hovered ? 7 : 5
+        Item {
+            anchors.fill: parent
 
-            Behavior on spacing {
-                Anim {
-                    type: Anim.DefaultSpatial
+            // Stacked floating toast notifications (Reference 2nd Pic)
+            Item {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                width: 92
+                height: 38
+
+                // Background dimmed toast
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    width: 74
+                    height: 26
+                    radius: 9
+                    color: Qt.alpha(Colours.palette.m3onSurface, 0.10)
                 }
-            }
 
-            Repeater {
-                model: 2
+                // Foreground active toast card
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 4
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    width: 84
+                    height: 30
+                    radius: 10
+                    color: Qt.alpha(root.accent, root.hovered ? 0.35 : 0.25)
 
-                delegate: Rectangle {
-                    required property int index
-
-                    width: Math.min(parent.width > 0 ? parent.width : 88, 88)
-                    height: 20
-                    radius: Tokens.rounding.small
-                    color: Qt.alpha(Colours.palette.m3onSurface, index === 0 ? (root.hovered ? 0.14 : 0.1) : (root.hovered ? 0.1 : 0.07))
-                    opacity: 1
-                    // No y-lift — clips against CardPreview top
-                    Behavior on color {
-                        CAnim {}
-                    }
-                    Behavior on opacity {
-                        Anim {
-                            type: Anim.FastEffects
-                        }
-                    }
+                    Behavior on color { CAnim {} }
 
                     Row {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 6
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 5
+                        anchors.fill: parent
+                        anchors.margins: 5
+                        spacing: 6
 
+                        // Avatar / icon dot
                         Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
-                            width: root.hovered ? 11 : 10
-                            height: width
-                            radius: width / 2
-                            color: root.accent
+                            width: 14
+                            height: 14
+                            radius: 7
+                            color: Qt.alpha(Colours.palette.m3onSurface, 0.65)
                         }
 
+                        // Message lines
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 2
+                            spacing: 3
 
                             Rectangle {
-                                width: 48
-                                height: 3
-                                radius: 1.5
-                                color: Qt.alpha(Colours.palette.m3onSurface, 0.45)
+                                width: 40
+                                height: 3.5
+                                radius: 1.75
+                                color: Qt.alpha(Colours.palette.m3onSurface, 0.85)
                             }
+
                             Rectangle {
-                                width: 32
+                                width: 24
                                 height: 3
                                 radius: 1.5
-                                color: Qt.alpha(Colours.palette.m3onSurface, 0.25)
+                                color: Qt.alpha(Colours.palette.m3onSurface, 0.40)
                             }
                         }
                     }
@@ -870,66 +800,34 @@ Item {
     Component {
         id: cBar
 
-        Rectangle {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(parent.width, 100)
-            height: 28
-            radius: height / 2
-            color: Qt.alpha(Colours.palette.m3onSurface, root.hovered ? 0.12 : 0.08)
-            // Lift only
-            transform: Translate {
-                y: root.hovered ? -2 : 0
-
-                Behavior on y {
-                    Anim {
-                        type: Anim.DefaultSpatial
-                    }
-                }
-            }
-
-            Behavior on color {
-                CAnim {}
-            }
-
-            Row {
-                anchors.left: parent.left
-                anchors.leftMargin: 8
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 5
-
-                Repeater {
-                    model: 3
-
-                    delegate: Rectangle {
-                        required property int index
-
-                        width: 10
-                        height: 10
-                        radius: 5
-                        color: index === 0 ? root.accent : Qt.alpha(Colours.palette.m3onSurface, 0.3)
-                        opacity: root.hovered && index === 0 ? 1 : (index === 0 ? 0.95 : 0.85)
-
-                        Behavior on opacity {
-                            Anim {
-                                type: Anim.FastEffects
-                            }
-                        }
-                    }
-                }
-            }
+        Item {
+            anchors.fill: parent
 
             Rectangle {
                 anchors.right: parent.right
-                anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
-                width: 22
-                height: 10
-                radius: 5
-                color: Qt.alpha(root.accent, root.hovered ? 0.65 : 0.45)
+                height: 36
+                width: 158
+                radius: 18
+                color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, root.hovered ? 0.78 : 0.58)
 
-                Behavior on color {
-                    CAnim {}
+                Behavior on color { CAnim {} }
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Repeater {
+                        model: ["#74b9cc", "#b09ccc", "#9fb0b6", "#445a61", "#445a61"]
+
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: 22
+                            height: 22
+                            radius: 6
+                            color: modelData
+                        }
+                    }
                 }
             }
         }
@@ -938,78 +836,25 @@ Item {
     Component {
         id: cPanels
 
-        Grid {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            columns: 2
-            columnSpacing: root.hovered ? 7 : 5
-            rowSpacing: root.hovered ? 7 : 5
+        Item {
+            anchors.fill: parent
 
-            Behavior on columnSpacing {
-                Anim {
-                    type: Anim.DefaultSpatial
-                }
-            }
-            Behavior on rowSpacing {
-                Anim {
-                    type: Anim.DefaultSpatial
-                }
-            }
+            Grid {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                columns: 2
+                spacing: 4
 
-            Repeater {
-                model: [{
-                        i: "apps",
-                        a: true
-                    }, {
-                        i: "dashboard",
-                        a: false
-                    }, {
-                        i: "view_sidebar",
-                        a: false
-                    }, {
-                        i: "tune",
-                        a: false
-                    }]
+                Repeater {
+                    model: 4
 
-                delegate: Rectangle {
-                    required property var modelData
-                    required property int index
-
-                    width: root.hovered ? 28 : 26
-                    height: width
-                    radius: Tokens.rounding.small
-                    color: modelData.a ? Qt.alpha(root.accent, root.hovered ? 0.32 : 0.2) : Qt.alpha(Colours.palette.m3onSurface, 0.08)
-                    transformOrigin: Item.Center
-                    antialiasing: true
-                    // Lift active cell only
-                    transform: Translate {
-                        y: root.hovered && modelData.a ? -2 : 0
-
-                        Behavior on y {
-                            Anim {
-                                type: Anim.DefaultSpatial
-                                duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
-                            }
-                        }
-                    }
-
-                    Behavior on width {
-                        Anim {
-                            type: Anim.DefaultSpatial
-                            duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
-                        }
-                    }
-                    Behavior on color {
-                        CAnim {}
-                    }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: modelData.i
-                        fill: modelData.a ? 1 : 0
-                        color: modelData.a ? root.accent : Colours.palette.m3onSurfaceVariant
-                        iconPointSize: Tokens.font.size.smaller
-                        antialiasing: true
+                    delegate: Rectangle {
+                        required property int index
+                        width: 15
+                        height: 15
+                        radius: 4.5
+                        color: index === 0 ? root.accent : Qt.alpha(root.accent, 0.32)
                     }
                 }
             }
@@ -1020,62 +865,27 @@ Item {
         id: cPower
 
         Item {
+            anchors.fill: parent
+
             Item {
-                id: ring
+                anchors.left: parent.left
+                anchors.top: parent.top
+                width: 38
+                height: 38
 
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: 44
-                height: 44
-                readonly property real pct: root.hovered ? 0.86 : 0.72
-                // No scale on ring — animate fill only (crisp + no clip)
-
-                Shape {
+                CircularProgress {
                     anchors.fill: parent
-                    preferredRendererType: Shape.CurveRenderer
-
-                    ShapePath {
-                        strokeWidth: root.hovered ? 4.5 : 4
-                        strokeColor: Qt.alpha(Colours.palette.m3onSurface, 0.12)
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        PathAngleArc {
-                            centerX: 22
-                            centerY: 22
-                            radiusX: 17
-                            radiusY: 17
-                            startAngle: -90
-                            sweepAngle: 360
-                        }
-                    }
-                    ShapePath {
-                        strokeWidth: root.hovered ? 4.5 : 4
-                        strokeColor: root.accent
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        PathAngleArc {
-                            centerX: 22
-                            centerY: 22
-                            radiusX: 17
-                            radiusY: 17
-                            startAngle: -90
-                            sweepAngle: 360 * ring.pct
-
-                            Behavior on sweepAngle {
-                                Anim {
-                                    type: Anim.DefaultSpatial
-                                }
-                            }
-                        }
-                    }
+                    value: (typeof Battery !== "undefined" && Battery.percent !== undefined) ? (Battery.percent / 100.0) : 0.72
+                    strokeWidth: 4
+                    fgColour: root.accent
+                    bgColour: Qt.alpha(root.accent, 0.20)
                 }
 
-                StyledText {
+                MaterialIcon {
                     anchors.centerIn: parent
-                    text: Math.round(ring.pct * 100) + "%"
-                    font.family: Tokens.font.family.mono
-                    font.weight: Font.Normal
-                    textPointSize: Tokens.font.size.smaller
+                    text: "battery_charging_full"
+                    fill: 1
+                    iconPointSize: 16
                     color: Colours.palette.m3onSurface
                 }
             }
@@ -1132,26 +942,26 @@ Item {
 
                 PreviewPill {
                     anchors.right: parent.right
-                    icon: "computer"
+                    icon: ""
                     label: {
-                        const n = SysInfo.osName || qsTr("Linux");
-                        if (n.length > 10)
+                        const n = SysInfo.osName || qsTr("Arch Linux");
+                        if (n.length > 14)
                             return n.split(" ")[0] || n;
                         return n;
                     }
                     fg: Colours.palette.m3onSurfaceVariant
-                    bg: Qt.alpha(Colours.palette.m3onSurface, 0.1)
-                    maxLabelW: 72
+                    bg: Qt.alpha(Colours.palette.m3onSurface, 0.10)
+                    maxLabelW: 110
                     maxWidth: parent.width
                 }
 
                 PreviewPill {
                     anchors.right: parent.right
-                    icon: "desktop_windows"
+                    icon: ""
                     label: SysInfo.wm || "Hyprland"
                     fg: Colours.palette.m3onSurfaceVariant
-                    bg: Qt.alpha(Colours.palette.m3onSurface, 0.1)
-                    maxLabelW: 72
+                    bg: Qt.alpha(Colours.palette.m3onSurface, 0.10)
+                    maxLabelW: 110
                     maxWidth: parent.width
                 }
             }
@@ -1211,63 +1021,65 @@ Item {
     Component {
         id: cSystem
 
-        // Compact meters — no width growth / no thumb overflow (was top-clipping on hover)
-        Column {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 10
-            width: Math.min(parent.width, 80)
+        Item {
+            anchors.fill: parent
 
-            Repeater {
-                model: [0.7, 0.4, 0.85]
+            Column {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 7
+                width: 148
 
-                delegate: Item {
-                    required property var modelData
-                    required property int index
+                Repeater {
+                    model: [0.70, 0.45, 0.85]
 
-                    width: parent.width
-                    height: 8
+                    delegate: Item {
+                        required property var modelData
+                        required property int index
 
-                    readonly property real fill: root.hovered ? Math.min(1, modelData + 0.1) : modelData
-
-                    // Track
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
                         width: parent.width
-                        height: 4
-                        radius: 2
-                        color: Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                        height: 14
 
+                        readonly property real fill: root.hovered ? Math.min(1, modelData + 0.05) : modelData
+
+                        // Track background
                         Rectangle {
-                            width: parent.width * parent.parent.fill
-                            height: parent.height
-                            radius: parent.radius
-                            color: root.accent
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width
+                            height: 4
+                            radius: 2
+                            color: Qt.alpha(Colours.palette.m3onSurface, 0.14)
 
-                            Behavior on width {
+                            // Active filled track
+                            Rectangle {
+                                width: parent.width * parent.parent.fill
+                                height: parent.height
+                                radius: parent.radius
+                                color: root.accent
+
+                                Behavior on width {
+                                    Anim {
+                                        type: Anim.DefaultSpatial
+                                        duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
+                                    }
+                                }
+                            }
+                        }
+
+                        // Circular slider thumb dot
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            x: Math.max(0, Math.min(parent.width - width, parent.width * parent.fill - width / 2))
+                            width: 12
+                            height: 12
+                            radius: 6
+                            color: Colours.palette.m3onSurface
+
+                            Behavior on x {
                                 Anim {
                                     type: Anim.DefaultSpatial
                                     duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
                                 }
-                            }
-                        }
-                    }
-
-                    // Thumb stays inside parent height (8) — no 10px circle overflow
-                    Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        x: Math.max(0, Math.min(parent.width - width, parent.width * parent.fill - width / 2))
-                        width: 8
-                        height: 8
-                        radius: 4
-                        color: root.accent
-                        border.width: 1.5
-                        border.color: Colours.palette.m3surfaceContainer
-
-                        Behavior on x {
-                            Anim {
-                                type: Anim.DefaultSpatial
-                                duration: Tokens.anim.durations.expressiveDefaultSpatial + index * root.staggerMs
                             }
                         }
                     }

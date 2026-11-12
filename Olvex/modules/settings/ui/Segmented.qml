@@ -159,7 +159,7 @@ Item {
                             font.weight: cell.active ? Font.DemiBold : Font.Medium
                             font.letterSpacing: 0.15
                             color: cell.active ? Colours.palette.m3onPrimary : (Colours.light ? Colours.palette.m3onSurface : Qt.alpha(Colours.palette.m3onSurface, 0.85))
-                            textPointSize: cell.slotWidth < 90 ? (Tokens.font.size.smallest || 9) : (cell.slotWidth < 115 ? (Tokens.font.size.smaller - 0.5) : (Tokens.font.size.smaller || 10.5))
+                            textPointSize: cell.slotWidth < 68 ? Tokens.font.size.smaller : Tokens.font.size.small
                             elide: Text.ElideRight
 
                             Behavior on color {

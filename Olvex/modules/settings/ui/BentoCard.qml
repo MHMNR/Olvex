@@ -32,13 +32,21 @@ Item {
     // (`true && undefined` → undefined → "Unable to assign to bool")
     readonly property bool hovered: !root.animsFrozen && !!(hover && hover.containsMouse)
 
-    readonly property int contentPad: (typeof Tokens !== "undefined" && Tokens && Tokens.padding) ? Tokens.padding.large : 16
-    readonly property int iconSize: root.tall ? 44 : 36
-    // Tall heroes: preview owns most of the card (alive stage). Short: right strip.
+    readonly property int contentPad: 15
+    readonly property int iconSize: root.tall ? 44 : 32
+    // Preview zone widths tailored to domain preview content
     readonly property int previewW: {
-        if (root.tall)
-            return Math.round(width * (root.kind === "wallpaper" ? 0.62 : 0.48));
-        return Math.max(112, Math.min(Math.round(width * 0.42), 128));
+        if (root.kind === "appearance")
+            return Math.round(width * 0.58);
+        if (root.kind === "taskbar" || root.kind === "bar" || root.kind === "system" || root.kind === "about")
+            return Math.min(Math.round(width * 0.52), 196);
+        if (root.kind === "notifications")
+            return Math.min(Math.round(width * 0.55), 140);
+        if (root.kind === "panels")
+            return 76;
+        if (root.kind === "network")
+            return 80;
+        return 90;
     }
 
     property real enterOpacity: 0
@@ -70,7 +78,7 @@ Item {
         id: card
 
         anchors.fill: parent
-        radius: Tokens.rounding.large
+        radius: 26
         color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
         // Clip card chrome only — inner content uses its own safe insets
         clip: true
@@ -156,31 +164,33 @@ Item {
             anchors.fill: parent
             anchors.margins: root.contentPad
 
-            // Preview zone — right, fully inset so pills never kiss the card edge
+            // Preview zone — right (or top-left for sound/power meters)
             CardPreview {
                 id: preview
 
                 z: 0
-                anchors.right: parent.right
+                anchors.left: (root.kind === "sound" || root.kind === "power") ? parent.left : undefined
+                anchors.right: (root.kind === "sound" || root.kind === "power") ? undefined : parent.right
                 anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: root.previewW
+                anchors.bottom: (root.kind === "sound" || root.kind === "power") ? undefined : parent.bottom
+                width: (root.kind === "sound" || root.kind === "power") ? 38 : root.previewW
+                height: (root.kind === "sound" || root.kind === "power") ? 38 : undefined
                 kind: root.kind
                 accent: root.accent
                 hovered: root.hovered
                 visible: true
             }
 
-            // Icon chip — top-left, fixed M3 container (no hover radius morph)
+            // Circular icon chip — top-left (hidden on sound/power which have top progress ring)
             Rectangle {
                 id: plate
 
+                visible: root.kind !== "sound" && root.kind !== "power"
                 z: 2
-                width: root.iconSize
-                height: root.iconSize
-                radius: Tokens.rounding.normal
-                // Refined accent container badge
-                color: Qt.alpha(root.accent, 0.12)
+                width: 32
+                height: 32
+                radius: 16
+                color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
 
                 anchors.left: parent.left
                 anchors.top: parent.top
@@ -190,46 +200,28 @@ Item {
                     text: root.icon
                     fill: 1
                     color: root.accent
-                    iconPointSize: root.tall ? Tokens.font.size.large : Tokens.font.size.larger
+                    iconPointSize: 16
                 }
             }
 
-            // Soft ambient blob behind preview — subtle depth, not dominant wash
-            Rectangle {
-                visible: root.tall && root.kind !== "wallpaper"
-                z: 0
-                anchors.right: parent.right
-                anchors.rightMargin: -root.contentPad * 0.3
-                anchors.verticalCenter: parent.verticalCenter
-                width: root.previewW * 1.05
-                height: width * 0.70
-                radius: width / 2
-                rotation: -12
-                color: Qt.alpha(root.accent, root.hovered ? 0.05 : 0.025)
-                opacity: 0.75
-
-                Behavior on color {
-                    enabled: !root.animsFrozen
-                    CAnim {}
-                }
-            }
-
-            // Labels — bottom-left. Icon is 36/44 + short tiles leave ≥8px gap.
+            // Labels — bottom-left
             Column {
                 id: labels
+
+                readonly property bool fullWidthLabels: root.kind === "sound" || root.kind === "power" || root.kind === "notifications" || root.kind === "panels"
 
                 z: 2
                 spacing: 2
                 anchors.left: parent.left
-                anchors.right: preview.left
-                anchors.rightMargin: Tokens.spacing.normal
+                anchors.right: (fullWidthLabels || root.kind === "appearance") ? parent.right : preview.left
+                anchors.rightMargin: root.kind === "appearance" ? 72 : (fullWidthLabels ? 0 : Tokens.spacing.normal)
                 anchors.bottom: parent.bottom
 
                 StyledText {
                     width: parent.width
                     text: root.title
                     elide: Text.ElideRight
-                    font.weight: Font.Normal
+                    font.weight: Font.Medium
                     font.letterSpacing: -0.1
                     lineHeight: 1.15
                     lineHeightMode: Text.ProportionalHeight
@@ -244,7 +236,7 @@ Item {
                     elide: Text.ElideRight
                     color: Colours.palette.m3onSurfaceVariant
                     font.weight: Font.Normal
-                    font.letterSpacing: 0.15
+                    font.letterSpacing: 0.1
                     lineHeight: 1.25
                     lineHeightMode: Text.ProportionalHeight
                     textPointSize: Tokens.font.size.small

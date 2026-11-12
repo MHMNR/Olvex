@@ -12,22 +12,23 @@ QtObject {
     // Bento category registry. Paths relative to modules/controlcenter/
     // accentRole: key on Colours.palette
     // Grid: 6 cols. Dual look heroes with asymmetric widths (true bento).
-    //   r0–1: Appearance w6h2
-    //   r2:   Network w3h1 | Sound w3h1
-    //   r3:   Taskbar w2h1 | Notifs w2h1 | Panels w2h1
-    //   r4:   Power w2h1   | System w2h1 | About w2h1
+    // Bento 4-column Bento Grid matching Reference Design:
+    //   Row 0: Appearance (col 0, span 2, row 0, span 2) | Network (col 2, span 2, row 0, span 1)
+    //   Row 1: Appearance (continues)                     | Sound (col 2, span 1) | Power (col 3, span 1)
+    //   Row 2: Taskbar (col 0, span 2, row 2, span 1)    | Notifications (col 2, span 1) | Panels (col 3, span 1)
+    //   Row 3: System (col 0, span 2, row 3, span 1)     | About (col 2, span 2, row 3, span 1)
     readonly property var categories: [
         {
             id: "appearance",
             label: "appearance",
             icon: "palette",
             title: "Appearance",
-            sub: "Theme, colors & fonts",
+            sub: "Theme, colors and fonts",
             accentRole: "m3tertiary",
             kind: "appearance",
             c: 0,
             r: 0,
-            w: 6,
+            w: 2,
             h: 2,
             component: "appearance/AppearancePage.qml"
         },
@@ -36,12 +37,12 @@ QtObject {
             label: "network",
             icon: "wifi",
             title: "Network",
-            sub: "Wi‑Fi and Bluetooth",
+            sub: (typeof Network !== "undefined" && Network.wifiSsid) ? Network.wifiSsid : "Home_WiFi_5G",
             accentRole: "m3primary",
             kind: "network",
-            c: 0,
-            r: 2,
-            w: 3,
+            c: 2,
+            r: 0,
+            w: 2,
             h: 1,
             component: "network/NetworkPage.qml"
         },
@@ -50,25 +51,39 @@ QtObject {
             label: "sound",
             icon: "volume_up",
             title: "Sound",
-            sub: "Audio and inputs",
+            sub: (typeof Audio !== "undefined" && Audio.sinkName) ? Audio.sinkName : "Headphones",
             accentRole: "m3secondary",
             kind: "sound",
-            c: 3,
-            r: 2,
-            w: 3,
+            c: 2,
+            r: 1,
+            w: 1,
             h: 1,
             component: "sound/SoundPage.qml"
+        },
+        {
+            id: "power",
+            label: "power",
+            icon: "battery_charging_full",
+            title: "Power",
+            sub: "72%, balanced",
+            accentRole: "m3primary",
+            kind: "power",
+            c: 3,
+            r: 1,
+            w: 1,
+            h: 1,
+            component: "power/PowerPage.qml"
         },
         {
             id: "taskbar",
             label: "taskbar",
             icon: "dock",
             title: "Taskbar",
-            sub: "Bottom dock & items",
+            sub: "Bottom dock and items",
             accentRole: "m3primary",
             kind: "taskbar",
             c: 0,
-            r: 3,
+            r: 2,
             w: 2,
             h: 1,
             component: "taskbar/TaskbarPage.qml"
@@ -79,52 +94,38 @@ QtObject {
             icon: "notifications",
             title: "Notifications",
             sub: "Do not disturb",
-            accentRole: "m3primary",
-            kind: "notifs",
+            accentRole: "m3secondary",
+            kind: "notifications",
             c: 2,
-            r: 3,
-            w: 2,
+            r: 2,
+            w: 1,
             h: 1,
             component: "notifications/NotificationsPage.qml"
         },
         {
             id: "panels",
             label: "panels",
-            icon: "dashboard_customize",
+            icon: "grid_view",
             title: "Panels",
-            sub: "Layout & behavior",
-            accentRole: "m3secondary",
+            sub: "Layout",
+            accentRole: "m3primary",
             kind: "panels",
-            c: 4,
-            r: 3,
-            w: 2,
+            c: 3,
+            r: 2,
+            w: 1,
             h: 1,
             component: "panels/PanelsPage.qml"
-        },
-        {
-            id: "power",
-            label: "power",
-            icon: "battery_charging_full",
-            title: "Power",
-            sub: "Sleep & idle",
-            accentRole: "m3secondary",
-            kind: "power",
-            c: 0,
-            r: 4,
-            w: 2,
-            h: 1,
-            component: "power/PowerPage.qml"
         },
         {
             id: "system",
             label: "system",
             icon: "tune",
             title: "System",
-            sub: "Displays, clock & apps",
+            sub: "Displays, clock and apps",
             accentRole: "m3primary",
             kind: "system",
-            c: 2,
-            r: 4,
+            c: 0,
+            r: 3,
             w: 2,
             h: 1,
             component: "system/SystemPage.qml"
@@ -134,11 +135,11 @@ QtObject {
             label: "about",
             icon: "deployed_code",
             title: "About Olvex",
-            sub: "Version, system info and links",
+            sub: "Version and links",
             accentRole: "m3primary",
             kind: "about",
-            c: 4,
-            r: 4,
+            c: 2,
+            r: 3,
             w: 2,
             h: 1,
             component: "about/AboutPage.qml"

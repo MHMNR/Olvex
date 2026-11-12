@@ -52,9 +52,9 @@ Item {
             searchInput.focus = false;
     }
 
-    // Floating default size: spacious bento (1160x880)
-    implicitWidth: root.floating ? 1160 : screen.height * Tokens.sizes.settings.heightMult * Tokens.sizes.settings.ratio
-    implicitHeight: root.floating ? 880 : screen.height * Tokens.sizes.settings.heightMult
+    // Floating default size: balanced bento
+    implicitWidth: root.floating ? 1020 : screen.height * Tokens.sizes.settings.heightMult * Tokens.sizes.settings.ratio
+    implicitHeight: root.floating ? 736 : screen.height * Tokens.sizes.settings.heightMult
 
     // ── surface: glass transparency seamlessly clipped by Hyprland window rounding ──
     StyledRect {
@@ -87,7 +87,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 76
+            height: 64
             z: 130
 
             readonly property var activeCat: PaneRegistry.getById(session.currentId || session.pageId)
@@ -99,7 +99,7 @@ Item {
                 id: homeHeader
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Tokens.padding.large * 2
+                anchors.leftMargin: 18
                 implicitWidth: homeHeaderRow.implicitWidth
                 implicitHeight: homeHeaderRow.implicitHeight
                 opacity: !topbar.inSubpage ? 1.0 : 0.0
@@ -136,7 +136,7 @@ Item {
                 id: pageHeader
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Tokens.padding.large * 2
+                anchors.leftMargin: 18
                 implicitWidth: pageHeaderRow.implicitWidth
                 implicitHeight: pageHeaderRow.implicitHeight
                 opacity: topbar.inSubpage ? 1.0 : 0.0
@@ -152,12 +152,12 @@ Item {
 
                     // Back Button (M3 Circle Button with StateLayer)
                     StyledRect {
-                        implicitWidth: 36
-                        implicitHeight: 36
+                        implicitWidth: 42
+                        implicitHeight: 42
                         radius: Tokens.rounding.full
                         color: backMouse.pressed
-                            ? Qt.alpha(Colours.palette.m3onSurface, 0.18)
-                            : (backMouse.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.14) : Qt.alpha(Colours.palette.m3onSurface, 0.09))
+                            ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+                            : (backMouse.containsMouse ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 3) : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2))
                         border.width: 0
                         border.color: "transparent"
 
@@ -195,10 +195,10 @@ Item {
             RowLayout {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.rightMargin: Tokens.padding.large * 2
+                anchors.rightMargin: 18
                 spacing: Tokens.spacing.normal
 
-                // ── Expandable Search Pill (Circle 46px → 320px input field) ──
+                // ── Expandable Search Pill (Circle 42px → 320px input field) ──
                 StyledRect {
                     id: searchPill
 
@@ -206,14 +206,14 @@ Item {
                     property int selectedIndex: 0
                     readonly property bool searchActive: searchExpanded || (searchInput && (searchInput.text.length > 0 || searchInput.activeFocus))
 
-                    implicitWidth: searchActive ? 320 : 46
-                    implicitHeight: 46
+                    implicitWidth: searchActive ? 320 : 42
+                    implicitHeight: 42
                     radius: Tokens.rounding.full
                     clip: true
 
-                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
+                    color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+                    border.width: 0
+                    border.color: "transparent"
 
                     Behavior on implicitWidth { Anim { type: Anim.DefaultSpatial } }
                     Behavior on color { CAnim {} }
@@ -239,7 +239,7 @@ Item {
                         id: searchIcon
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
-                        anchors.leftMargin: searchPill.searchActive ? 14 : Math.round((46 - searchIcon.implicitWidth) / 2)
+                        anchors.leftMargin: searchPill.searchActive ? 14 : Math.round((42 - searchIcon.implicitWidth) / 2)
                         text: "search"
                         fill: 1
                         iconPointSize: searchPill.searchActive ? Tokens.font.size.large : Tokens.font.size.larger
@@ -403,11 +403,11 @@ Item {
                 // 2. Light/Dark Toggle
                 StyledRect {
                     implicitWidth: modeRow.implicitWidth + Tokens.padding.large * 2
-                    implicitHeight: 46
+                    implicitHeight: 42
                     radius: Tokens.rounding.full
-                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
+                    color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+                    border.width: 0
+                    border.color: "transparent"
 
                     Row {
                         id: modeRow
@@ -447,12 +447,12 @@ Item {
 
                 // 3. Close Button
                 StyledRect {
-                    implicitWidth: 46
-                    implicitHeight: 46
+                    implicitWidth: 42
+                    implicitHeight: 42
                     radius: Tokens.rounding.full
-                    color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.22)
+                    color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+                    border.width: 0
+                    border.color: "transparent"
                     visible: root.floating
 
                     MaterialIcon {
@@ -623,7 +623,7 @@ Item {
                 anchors.fill: parent
                 clip: true
                 contentWidth: width
-                contentHeight: bento.height + Tokens.padding.large * 3
+                contentHeight: bento.height + bento.y + 18
                 interactive: !stack.transformActive && !stack.pageOpen
                 layer.enabled: false
                 visible: stack.homeOpacity > 0.001
@@ -633,14 +633,40 @@ Item {
                     id: bento
 
                     visible: true
-                    x: Tokens.padding.large * 2
-                    y: Tokens.padding.large * 1.2
-                    width: parent.width - Tokens.padding.large * 4
-                    readonly property real gap: Tokens.spacing.large
-                    // Short tile height — room for icon (36) + gap + title/subtitle without overlap
-                    readonly property real rowH: 126
-                    readonly property real u: (width - 5 * gap) / 6
-                    height: 5 * rowH + 4 * gap
+                    x: 18
+                    y: 12
+                    width: parent.width - 36
+                    readonly property real gap: 12
+                    readonly property real rowH: home.height > 200 ? Math.max(108, Math.floor((home.height - 12 - 18 - 3 * gap) / 4)) : 127
+                    height: 4 * rowH + 3 * gap
+
+                    readonly property real halfW: (width - gap) / 2
+                    readonly property real quarterW: (halfW - gap) / 2
+
+                    function cardX(cat) {
+                        const c = cat.c ?? 0;
+                        if (c === 0) return 0;
+                        if (c === 2) return halfW + gap;
+                        // c === 3
+                        return halfW + gap + quarterW + gap;
+                    }
+
+                    function cardY(cat) {
+                        const r = cat.r ?? 0;
+                        return r * (rowH + gap);
+                    }
+
+                    function cardWidth(cat) {
+                        const w = cat.w ?? 1;
+                        if (w === 2) return halfW;
+                        return quarterW;
+                    }
+
+                    function cardHeight(cat) {
+                        const h = cat.h ?? 1;
+                        if (h === 2) return 2 * rowH + gap;
+                        return rowH;
+                    }
 
                     Repeater {
                         model: PaneRegistry.categories
@@ -651,10 +677,10 @@ Item {
                             required property var modelData
                             required property int index
 
-                            x: modelData.c * (bento.u + bento.gap)
-                            y: modelData.r * (bento.rowH + bento.gap)
-                            width: modelData.w * bento.u + (modelData.w - 1) * bento.gap
-                            height: modelData.h * bento.rowH + (modelData.h - 1) * bento.gap
+                            x: bento.cardX(modelData)
+                            y: bento.cardY(modelData)
+                            width: bento.cardWidth(modelData)
+                            height: bento.cardHeight(modelData)
                             index: index
                             icon: modelData.icon
                             title: modelData.title
@@ -793,7 +819,7 @@ Item {
             anchors.top: topbar.bottom
             anchors.topMargin: -8
             anchors.right: parent.right
-            anchors.rightMargin: Tokens.padding.large * 2
+            anchors.rightMargin: 18
             z: 120
             visible: opacity > 0.001
             opacity: (searchInput && searchInput.text.trim().length > 0 && searchPill.searchActive) ? 1.0 : 0.0

@@ -44,8 +44,8 @@ Singleton {
             implicitWidth: cc.implicitWidth
             implicitHeight: cc.implicitHeight
 
-            minimumSize.width: 900
-            minimumSize.height: 620
+            minimumSize.width: 940
+            minimumSize.height: 676
 
             title: {
                 const id = cc.currentId || cc.active || "";
