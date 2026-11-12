@@ -4,6 +4,7 @@ pkg_check_modules(Qalculate IMPORTED_TARGET libqalculate REQUIRED)
 pkg_check_modules(Pipewire IMPORTED_TARGET libpipewire-0.3 REQUIRED)
 pkg_check_modules(Aubio IMPORTED_TARGET aubio REQUIRED)
 pkg_check_modules(Udev IMPORTED_TARGET libudev REQUIRED)
+pkg_check_modules(Abseil IMPORTED_TARGET absl_flat_hash_map absl_strings REQUIRED)
 pkg_check_modules(Cava IMPORTED_TARGET libcava QUIET)
 if(NOT Cava_FOUND)
     pkg_check_modules(Cava IMPORTED_TARGET cava REQUIRED)
@@ -57,6 +58,13 @@ target_precompile_headers(olvex-pch INTERFACE
     <qpointer.h>
 )
 
+file(GLOB_RECURSE MCU_SOURCES mcu/*.cc)
+add_library(olvex-mcu STATIC ${MCU_SOURCES})
+target_include_directories(olvex-mcu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(olvex-mcu PUBLIC PkgConfig::Abseil)
+target_compile_options(olvex-mcu PRIVATE -w)
+set_target_properties(olvex-mcu PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 qml_module(olvex
     URI Olvex
     SOURCES
@@ -69,6 +77,7 @@ qml_module(olvex
         toaster.hpp toaster.cpp
         imageanalyser.hpp imageanalyser.cpp
         keybindmanager.hpp keybindmanager.cpp
+        wallpaperengine.hpp wallpaperengine.cpp
     LIBRARIES
         Qt::Gui
         Qt::Quick
@@ -76,6 +85,7 @@ qml_module(olvex
         Qt::Sql
         Qt::Network
         PkgConfig::Qalculate
+        olvex-mcu
 )
 
 add_subdirectory(Components)

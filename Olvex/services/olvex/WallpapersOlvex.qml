@@ -184,6 +184,7 @@ Searcher {
     property string _lastPreviewData: ""
     property string _lastCurrentData: ""
     property string _committedColourSource: ""
+    property string _lastWrittenPath: ""
     property bool _pathFileLoaded: false
     property bool _colourSourceFileLoaded: false
     property bool _schemeFileLoaded: false
@@ -193,14 +194,38 @@ Searcher {
     readonly property string _jsonPipe: `python3 -c "import sys,re; data=sys.stdin.read(); m=re.search(r'\\\\{.*\\\\}',data,re.S); print(m.group(0)) if m else sys.exit(1)"`
 
     function markPathFileReady(loaded: string): void {
-        root.actualCurrent = loaded;
+        const clean = (loaded || "").trim();
         root._pathFileLoaded = true;
-        if (root.isVideoPath(loaded))
-            root.queueThumbnail(loaded, true);
-        if (!root._bootstrapDone)
+        if (root.isVideoPath(clean))
+            root.queueThumbnail(clean, true);
+
+        if (!root._bootstrapDone) {
+            root.actualCurrent = clean;
             root.scheduleBootstrap();
-        else if (loaded !== root._lastBootstrapPath)
-            root.onBootstrapPathChanged(loaded);
+            root.previewColourLock = false;
+            return;
+        }
+
+        // Break cyclic feedback loop: if path.txt content matches our current wallpaper
+        // or what we just wrote/set, ignore this change event.
+        if (clean === root.actualCurrent || clean === root._lastWrittenPath || clean === root._lastBootstrapPath) {
+            root._lastBootstrapPath = clean;
+            return;
+        }
+
+        // If an internal wallpaper change is actively in flight or debounced,
+        // ignore stale notifications from prior transitions.
+        if (applyWallpaperDebounceTimer.running && root.actualCurrent) {
+            console.log(`[Wallpapers] Stale path.txt update (${clean}) ignored while applying ${root.actualCurrent}`);
+            return;
+        }
+
+        // Legitimate external wallpaper change (e.g. from terminal CLI)
+        console.log(`[Wallpapers] External wallpaper change detected: ${clean}`);
+        root.actualCurrent = clean;
+        root._lastBootstrapPath = clean;
+        root._lastWrittenPath = clean;
+        root.onBootstrapPathChanged(clean);
         root.previewColourLock = false;
     }
 
@@ -308,18 +333,62 @@ Searcher {
             root.requestAccentRefresh(path, false);
         }
 
-        root.applyWallpaperToDisplays(path);
+        root.applyWallpaperToDisplays(path, true);
     }
 
-    function applyWallpaperToDisplays(path: string): void {
+    Timer {
+        id: applyWallpaperDebounceTimer
+        interval: 250
+        repeat: false
+        onTriggered: root.executeApplyWallpaper(root.actualCurrent)
+    }
+
+    Process {
+        id: applyWallpaperProc
+        property string targetPath: ""
+        onExited: function(exitCode) {
+            if (exitCode !== 0)
+                console.log("[Wallpapers] applyWallpaperProc exited with code", exitCode);
+        }
+    }
+
+    function applyWallpaperToDisplays(path: string, immediate): void {
+        if (!path || root.isVideoPath(path))
+            return;
+        if (Boolean(immediate)) {
+            applyWallpaperDebounceTimer.stop();
+            root.executeApplyWallpaper(path);
+        } else {
+            applyWallpaperDebounceTimer.restart();
+        }
+    }
+
+    Connections {
+        target: WallpaperEngine
+        function onPaletteReady(jsonPayload: string, isPreview: bool): void {
+            if (isPreview) {
+                root._lastPreviewData = jsonPayload;
+                root.colorsGenerated(jsonPayload, true);
+            } else {
+                root._lastCurrentData = jsonPayload;
+                if (root._lastRefreshPath)
+                    root.persistColourSource(root._lastRefreshPath);
+                root.persistSchemePayload(jsonPayload);
+                root.colorsGenerated(jsonPayload, false);
+                themeAppsProc.running = true;
+            }
+        }
+        function onErrorOccurred(msg: string): void {
+            console.log("[Wallpapers] WallpaperEngine error:", msg);
+        }
+    }
+
+    function executeApplyWallpaper(path: string): void {
         if (!path || root.isVideoPath(path))
             return;
         const escaped = path.replace(/'/g, "'\\''");
-        const smartFlags = smartArg.join(" ");
-        const schemeFlags = schemeModeArg.join(" ");
-        const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot").replace(/'/g, "'\\''");
         Quickshell.execDetached(["bash", "-lc",
-            `if command -v olvex >/dev/null 2>&1; then olvex wallpaper -f '${escaped}' --variant '${variant}' ${smartFlags} ${schemeFlags}; elif command -v swww >/dev/null 2>&1; then swww img '${escaped}' --transition-type fade --transition-step 20 --transition-fps 60; fi`]);
+            `if command -v swww >/dev/null 2>&1; then swww img '${escaped}' --transition-type fade --transition-step 20 --transition-fps 60; fi`]);
     }
 
     function persistSchemePayload(payload: string): void {
@@ -407,17 +476,17 @@ Searcher {
         }
 
         const cleanPath = sourcePath.replace(/^file:\/\//, "");
+        const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot");
+        const forceMode = (GlobalConfig.appearance.themeMode === "light" || GlobalConfig.appearance.themeMode === "dark") ? GlobalConfig.appearance.themeMode : "";
+        const noSmart = !GlobalConfig.services.smartScheme;
 
         if (isPreview) {
             root._lastPreviewWallPath = path;
             root._lastPreviewPath = sourcePath;
             root._lastPreviewData = "";
             pendingPreviewColourPath = "";
-            getPreviewColoursProc.running = false;
-            getPreviewColoursProc.targetWallPath = path;
-            getPreviewColoursProc.command = wallPaletteCommand(cleanPath, true);
-            getPreviewColoursProc.running = true;
-            console.log(`[Wallpapers] M3 accent preview: ${getPreviewColoursProc.command.join(" ")}`);
+            console.log(`[Wallpapers] Native M3 accent preview for: ${cleanPath}`);
+            WallpaperEngine.previewWallpaper(cleanPath, variant, noSmart, forceMode);
             return;
         }
 
@@ -426,8 +495,7 @@ Searcher {
         const canHandoffPreview = !forceRefresh
             && path === root._lastPreviewWallPath
             && sourcePath === root._lastPreviewPath
-            && root._lastPreviewData
-            && !getPreviewColoursProc.running;
+            && root._lastPreviewData;
         if (canHandoffPreview) {
             console.log(`[Wallpapers] Handing off preview colors for ${path}`);
             root.colorsGenerated(root._lastPreviewData, false);
@@ -435,11 +503,8 @@ Searcher {
         }
 
         pendingCurrentColourPath = "";
-        getCurrentColoursProc.running = false;
-        getCurrentColoursProc.targetSourcePath = sourcePath;
-        getCurrentColoursProc.command = root.dynamicPaletteCommand(cleanPath);
-        getCurrentColoursProc.running = true;
-        console.log(`[Wallpapers] M3 accent refresh: ${getCurrentColoursProc.command.join(" ")}`);
+        console.log(`[Wallpapers] Native M3 accent refresh for: ${cleanPath}`);
+        WallpaperEngine.setWallpaper(cleanPath, variant, noSmart, forceMode);
     }
 
 
@@ -467,14 +532,22 @@ Searcher {
         Quickshell.execDetached(["sh", "-c", "pkill -x swww-daemon 2>/dev/null; pkill -x swww 2>/dev/null; pkill -x hyprpaper 2>/dev/null; pkill -x mpvpaper 2>/dev/null; pkill -x wpaperd 2>/dev/null; pkill -x swaybg 2>/dev/null; pkill -x feh 2>/dev/null; pkill -x nitrogen 2>/dev/null; true"]);
 
         actualCurrent = path;
+        _lastBootstrapPath = path;
+        _lastWrittenPath = path;
         persistCurrentPath(path);
         root.applyWallpaperToDisplays(path);
         requestAccentRefresh(path, false);
     }
 
     function persistCurrentPath(path: string): void {
-        persistProc.command = ["bash", "-lc", `mkdir -p "$(dirname '${currentNamePath.replace(/'/g, "'\\''")}')" && printf '%s' '${path.replace(/'/g, "'\\''")}' > '${currentNamePath.replace(/'/g, "'\\''")}'` ];
-        persistProc.running = true;
+        _lastWrittenPath = path;
+        _lastBootstrapPath = path;
+        if (typeof CUtils !== "undefined" && typeof CUtils.writeTextFile === "function") {
+            CUtils.writeTextFile(currentNamePath, path);
+        } else {
+            persistProc.command = ["bash", "-lc", `mkdir -p "$(dirname '${currentNamePath.replace(/'/g, "'\\''")}')" && printf '%s' '${path.replace(/'/g, "'\\''")}' > '${currentNamePath.replace(/'/g, "'\\''")}'` ];
+            persistProc.running = true;
+        }
     }
 
     function getMonitorWallpaper(monitorName: string): string {

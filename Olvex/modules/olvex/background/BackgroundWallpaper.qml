@@ -178,9 +178,12 @@ Item {
         debug(`finishTransition after flip showingPrimary=${showingPrimary} current=${imageSourceUrl(currentImage)} next=${imageSourceUrl(nextImage)}`);
 
         if (pendingWallpaper) {
+            const nextPending = pendingWallpaper;
             pendingWallpaper = "";
-            debug(`flushing pending wallpaper ${source}`);
-            Qt.callLater(() => root.handleSourceChange());
+            if (encodeFileUrl(nextPending) !== imageSourceUrl(currentImage)) {
+                debug(`flushing pending wallpaper ${nextPending}`);
+                Qt.callLater(() => root.handleSourceChange());
+            }
         }
     }
 

@@ -3,3 +3,5 @@ build/
 __pycache__/
 .cache/
 .DS_Store
+Olvex/plugin/src/Olvex/mcu/
+Olvex/plugin/src/Olvex/cpp
