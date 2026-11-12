@@ -65,26 +65,8 @@ QtObject {
     property color term14: "#ffd1c0"
     property color term15: "#ffffff"
 
-    // Smooth transitions when wallpaper changes
-    Behavior on m3primary { ColorAnimation { duration: 100 } }
-    Behavior on m3primaryContainer { ColorAnimation { duration: 100 } }
-    Behavior on m3secondaryContainer { ColorAnimation { duration: 100 } }
-    Behavior on m3tertiary { ColorAnimation { duration: 100 } }
-    Behavior on m3tertiaryContainer { ColorAnimation { duration: 100 } }
-    Behavior on m3error { ColorAnimation { duration: 100 } }
-    Behavior on m3errorContainer { ColorAnimation { duration: 100 } }
-    Behavior on m3surface { ColorAnimation { duration: 100 } }
-    Behavior on m3surfaceVariant { ColorAnimation { duration: 100 } }
-    Behavior on m3surfaceContainerLow { ColorAnimation { duration: 100 } }
-    Behavior on m3surfaceContainer { ColorAnimation { duration: 100 } }
-    Behavior on m3surfaceContainerHigh { ColorAnimation { duration: 100 } }
-    Behavior on m3surfaceContainerHighest { ColorAnimation { duration: 100 } }
-    Behavior on m3outline { ColorAnimation { duration: 100 } }
-    Behavior on m3outlineVariant { ColorAnimation { duration: 100 } }
-    Behavior on m3surfaceTint { ColorAnimation { duration: 100 } }
-    Behavior on m3success { ColorAnimation { duration: 100 } }
-    Behavior on m3successContainer { ColorAnimation { duration: 100 } }
-
+    // Atomic updates here: leaf StyledRect/StyledText/MaterialIcon CAnim handles the single-pass transition
+    // without re-evaluating JS colour math on every frame.
     function applyScheme(scheme) {
         return M3ColorMapper.applySchemeToPalette(root, scheme);
     }

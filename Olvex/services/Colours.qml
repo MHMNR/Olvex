@@ -15,6 +15,11 @@ Singleton {
     // ── Palette ─────────────────────────────────────
     signal themePaletteUpdated
     property bool themeTransitioning: false
+    property bool _settingMode: false
+    property bool _pendingConfigSave: false
+    property bool _hasInitialPalette: false
+    property string _lastHyprBatchKey: ""
+    property string _lastPortalSignature: ""
 
     M3ExpressivePalette {
         id: bootPalette
@@ -70,10 +75,13 @@ Singleton {
     onTransparencyBlurChanged: root.requestReloadHyprRules()
     onTransparencyBlurRadiusChanged: root.requestReloadHyprRules()
     onTransparencyBlurPassesChanged: root.requestReloadHyprRules()
-    onLightChanged: root.syncActiveTransparency()
+    onLightChanged: {
+        if (root.syncActiveTransparency(root._settingMode) && root._settingMode)
+            root._pendingConfigSave = true;
+    }
 
-    function syncActiveTransparency() {
-        if (!GlobalConfig.appearance || !GlobalConfig.appearance.transparency) return;
+    function syncActiveTransparency(skipSave) {
+        if (!GlobalConfig.appearance || !GlobalConfig.appearance.transparency) return false;
         const t = GlobalConfig.appearance.transparency;
         const targetBase = root.light
             ? ((t.baseLight !== undefined && t.baseLight > 0) ? t.baseLight : t.base)
@@ -90,9 +98,10 @@ Singleton {
             t.layers = targetLayers;
             changed = true;
         }
-        if (changed) {
+        if (changed && !skipSave) {
             GlobalConfig.save();
         }
+        return changed;
     }
 
     function setBlurRadius(radius) {
@@ -425,17 +434,21 @@ Singleton {
         console.log(`[Colours] Wallpaper palette (${isPreview ? "preview" : "current"})`);
         if (!isPreview) {
             root._lastIngestedData = normalizedData;
-            root.themeTransitioning = true;
+            const isInitialApply = !root._hasInitialPalette;
+            if (isInitialApply)
+                root.themeTransitioning = true;
             if (!bootPalette.applyScheme(scheme))
                 console.log("[Colours] bootPalette applyScheme failed");
             else {
+                root._hasInitialPalette = true;
                 bootSchemeMode = scheme.mode ?? "dark";
                 bootSchemeName = scheme.name ?? "dynamic";
                 bootSchemeFlavour = scheme.flavour ?? "default";
                 root.themePaletteUpdated();
                 console.log(`[Colours] bootPalette primary now ${bootPalette.m3primary} (scheme: ${bootSchemeName} ${bootSchemeFlavour})`);
             }
-            Qt.callLater(() => { root.themeTransitioning = false; });
+            if (isInitialApply)
+                Qt.callLater(() => { root.themeTransitioning = false; });
         }
     }
 
@@ -461,30 +474,61 @@ Singleton {
     }
 
     function setMode(mode) {
-        // Launcher actions call setMode without writing themeMode first.
-        // Keep config in sync so schemeModeArg / configLight bind correctly.
-        if (mode === "light" || mode === "dark" || mode === "auto") {
-            if (mode === "light" || mode === "dark") {
-                bootSchemeMode = mode;
+        if (root._settingMode)
+            return;
+        root._settingMode = true;
+        root._pendingConfigSave = false;
+        try {
+            const isValidMode = (mode === "light" || mode === "dark" || mode === "auto");
+            if (root.schemeName === "dynamic" && isValidMode) {
+                const fastPayload = Wallpapers.tryFastModeSwitch(mode);
+                if (fastPayload) {
+                    root._lastIngestedData = "";
+                    root.ingestWallpaperColors(fastPayload, false);
+                    let needSave = root._pendingConfigSave;
+                    if (GlobalConfig.appearance.themeMode !== mode) {
+                        GlobalConfig.appearance.themeMode = mode;
+                        needSave = true;
+                    }
+                    if (root.syncActiveTransparency(true))
+                        needSave = true;
+                    if (needSave)
+                        GlobalConfig.save();
+                    return;
+                }
             }
-            if (GlobalConfig.appearance.themeMode !== mode) {
-                GlobalConfig.appearance.themeMode = mode;
-                GlobalConfig.save();
+
+            if (isValidMode) {
+                if (mode === "light" || mode === "dark") {
+                    bootSchemeMode = mode;
+                }
+                let needSave = root._pendingConfigSave;
+                if (GlobalConfig.appearance.themeMode !== mode) {
+                    GlobalConfig.appearance.themeMode = mode;
+                    needSave = true;
+                }
+                if (root.syncActiveTransparency(true))
+                    needSave = true;
+                if (needSave)
+                    GlobalConfig.save();
+                root._lastIngestedData = "";
+                root.themePaletteUpdated();
             }
-            root._lastIngestedData = "";
-            root.themePaletteUpdated();
-        }
-        // Extract owns palette quality:
-        //   auto  → smart mode+variant from wallpaper
-        //   light/dark → --scheme-mode + smart variant (same quality as auto-dark)
-        // Do NOT scheme-set -v here — that forced expressive and nuked dark.
-        if (root.schemeName === "dynamic") {
-            root.refreshThemePalette();
-        } else {
-            let resolvedMode = mode;
-            if (resolvedMode === "auto") resolvedMode = "dark"; // Default to dark for static schemes on auto
-            schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-m", resolvedMode];
-            schemeSetProc.running = true;
+            // Extract owns palette quality:
+            //   auto  → smart mode+variant from wallpaper
+            //   light/dark → --scheme-mode + smart variant (same quality as auto-dark)
+            // Do NOT scheme-set -v here — that forced expressive and nuked dark.
+            if (root.schemeName === "dynamic") {
+                root.refreshThemePalette();
+            } else {
+                let resolvedMode = mode;
+                if (resolvedMode === "auto") resolvedMode = "dark"; // Default to dark for static schemes on auto
+                schemeSetProc.command = ["olvex", "scheme", "set", "--notify", "-m", resolvedMode];
+                schemeSetProc.running = true;
+            }
+        } finally {
+            root._pendingConfigSave = false;
+            root._settingMode = false;
         }
     }
 
@@ -537,6 +581,10 @@ Singleton {
             const passes = Math.max(1, Math.min(5, transparencyBlurPasses));
             messages.push(`eval hl.config({ decoration = { blur = { size = ${size}, passes = ${passes} } } })`);
         }
+        const batchKey = messages.join("\n");
+        if (batchKey === root._lastHyprBatchKey)
+            return;
+        root._lastHyprBatchKey = batchKey;
         Hypr.extras.batchMessage(messages);
     }
 
@@ -564,9 +612,16 @@ Singleton {
     Connections {
         target: GlobalConfig.appearance
         function onThemeModeChanged() {
+            if (root._settingMode)
+                return;
             if (root.schemeName === "dynamic") {
-                root.refreshThemePalette();
-                themeSchemePoll.kick();
+                const fastPayload = Wallpapers.tryFastModeSwitch(GlobalConfig.appearance.themeMode);
+                if (fastPayload) {
+                    root._lastIngestedData = "";
+                    root.ingestWallpaperColors(fastPayload, false);
+                } else {
+                    root.refreshThemePalette();
+                }
             } else {
                 let resolvedMode = GlobalConfig.appearance.themeMode;
                 if (resolvedMode === "auto") resolvedMode = "dark";
@@ -605,7 +660,7 @@ Singleton {
 
     Timer {
         id: portalThemeDebounceTimer
-        interval: 300
+        interval: 450
         repeat: false
         onTriggered: root._doSyncSystemPortalTheme()
     }
@@ -617,7 +672,11 @@ Singleton {
     function _doSyncSystemPortalTheme() {
         const mode = light ? "light" : "dark";
         const gtkTheme = light ? "adw-gtk3" : "adw-gtk3-dark";
-        const cmd = `gsettings set org.gnome.desktop.interface color-scheme 'prefer-${mode}' && gsettings set org.gnome.desktop.interface gtk-theme '${gtkTheme}' && dconf write /org/gnome/desktop/interface/color-scheme "'prefer-${mode}'" && dconf write /org/gnome/desktop/interface/gtk-theme "'${gtkTheme}'"`;
+        const signature = `${mode}|${gtkTheme}`;
+        if (signature === root._lastPortalSignature)
+            return;
+        root._lastPortalSignature = signature;
+        const cmd = `gsettings set org.gnome.desktop.interface color-scheme 'prefer-${mode}' && gsettings set org.gnome.desktop.interface gtk-theme '${gtkTheme}'`;
         portalThemeSyncProc.command = ["bash", "-c", cmd];
         portalThemeSyncProc.running = true;
     }

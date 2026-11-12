@@ -90,6 +90,10 @@ QtObject {
         Olvex.WallpapersOlvex.forceAccentRefresh(path, isPreview);
     }
 
+    function tryFastModeSwitch(mode: string): string {
+        return Olvex.WallpapersOlvex.tryFastModeSwitch(mode);
+    }
+
     function dynamicPaletteCommand(cleanPath: string): list<string> {
         return Olvex.WallpapersOlvex.dynamicPaletteCommand(cleanPath);
     }

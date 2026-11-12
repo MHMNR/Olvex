@@ -5,12 +5,16 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLoggingCategory>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QStandardPaths>
+#include <QThreadPool>
 #include <QtConcurrent/QtConcurrent>
 #include <fcntl.h>
 #include <unistd.h>
@@ -76,7 +80,105 @@ Hct darkenHct(const Hct& c, double amount) {
     return Hct(c.get_hue(), c.get_chroma() - diff / 5.0, c.get_tone() - diff);
 }
 
+struct SeedCacheEntry {
+    qint64 size = -1;
+    qint64 mtimeMs = -1;
+    Argb seed = 0xFF6750A4;
+    double avgTone = 0.0;
+};
+
+QMutex& seedCacheMutex() {
+    static QMutex mutex;
+    return mutex;
+}
+
+QHash<QString, SeedCacheEntry>& seedCacheMap() {
+    static QHash<QString, SeedCacheEntry> map;
+    return map;
+}
+
+bool tryExtractSeed(const QString& imagePath, Argb& outSeed, double& outAvgTone, bool populateIfMissing) {
+    QFileInfo imgFi(imagePath);
+    if (!imgFi.exists() || !imgFi.isFile()) {
+        return false;
+    }
+
+    const qint64 fSize = imgFi.size();
+    const qint64 fMtime = imgFi.lastModified().toMSecsSinceEpoch();
+
+    {
+        QMutexLocker lock(&seedCacheMutex());
+        const auto it = seedCacheMap().constFind(imagePath);
+        if (it != seedCacheMap().constEnd() && it->size == fSize && it->mtimeMs == fMtime) {
+            outSeed = it->seed;
+            outAvgTone = it->avgTone;
+            return true;
+        }
+    }
+
+    if (!populateIfMissing) {
+        return false;
+    }
+
+    QImageReader reader(imagePath);
+    reader.setAutoTransform(true);
+    reader.setScaledSize(QSize(128, 128));
+    QImage thumb = reader.read().convertToFormat(QImage::Format_ARGB32);
+    if (thumb.isNull()) {
+        return false;
+    }
+
+    std::vector<Argb> pixels;
+    pixels.reserve(static_cast<size_t>(thumb.width()) * static_cast<size_t>(thumb.height()));
+    double totalTone = 0.0;
+
+    for (int y = 0; y < thumb.height(); ++y) {
+        const auto* line = reinterpret_cast<const uint32_t*>(thumb.constScanLine(y));
+        for (int x = 0; x < thumb.width(); ++x) {
+            uint32_t p = line[x];
+            pixels.push_back(p);
+            double r = (p >> 16) & 0xFF;
+            double g = (p >> 8) & 0xFF;
+            double b = p & 0xFF;
+            totalTone += (0.299 * r + 0.587 * g + 0.114 * b) * (100.0 / 255.0);
+        }
+    }
+
+    if (pixels.empty()) {
+        return false;
+    }
+
+    outAvgTone = totalTone / static_cast<double>(pixels.size());
+    auto quantizeResult = QuantizeCelebi(pixels, 128);
+    auto ranked = RankedSuggestions(quantizeResult.color_to_count);
+    outSeed = ranked.empty() ? 0xFF6750A4 : ranked[0];
+
+    {
+        QMutexLocker lock(&seedCacheMutex());
+        auto& map = seedCacheMap();
+        if (map.size() >= 64) {
+            map.clear();
+        }
+        SeedCacheEntry entry;
+        entry.size = fSize;
+        entry.mtimeMs = fMtime;
+        entry.seed = outSeed;
+        entry.avgTone = outAvgTone;
+        map.insert(imagePath, entry);
+    }
+
+    return true;
+}
+
 bool writeTextAtomic(const QString& path, const QString& content) {
+    const QByteArray bytes = content.toUtf8();
+    QFile existing(path);
+    if (existing.exists() && existing.size() == bytes.size() && existing.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (existing.readAll() == bytes) {
+            return true;
+        }
+    }
+
     QFileInfo fi(path);
     QDir().mkpath(fi.absolutePath());
     QString tmpPath = path + QStringLiteral(".tmp.%1").arg(QDateTime::currentMSecsSinceEpoch());
@@ -84,7 +186,7 @@ bool writeTextAtomic(const QString& path, const QString& content) {
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
         return false;
     }
-    file.write(content.toUtf8());
+    file.write(bytes);
     file.close();
     QFile::remove(path);
     return file.rename(path);
@@ -93,6 +195,10 @@ bool writeTextAtomic(const QString& path, const QString& content) {
 bool updateSymlink(const QString& linkPath, const QString& target) {
     QFileInfo fi(linkPath);
     QDir().mkpath(fi.absolutePath());
+    QFileInfo currentLink(linkPath);
+    if (currentLink.isSymLink() && currentLink.symLinkTarget() == target) {
+        return true;
+    }
     QFile::remove(linkPath);
     return QFile::link(target, linkPath);
 }
@@ -103,6 +209,11 @@ WallpaperEngine::WallpaperEngine(QObject* parent)
     : QObject(parent) {
     connect(&m_watcher, &QFutureWatcher<WallpaperResult>::finished,
             this, &WallpaperEngine::onProcessingFinished);
+
+    m_persistTimer.setSingleShot(true);
+    m_persistTimer.setInterval(350);
+    connect(&m_persistTimer, &QTimer::timeout,
+            this, &WallpaperEngine::flushDeferredPersist);
 
     m_currentWallpaper = currentWallpaperSync();
 }
@@ -150,7 +261,113 @@ QString WallpaperEngine::generatePaletteSync(const QString& path, const QString&
     return QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
 }
 
+QString WallpaperEngine::switchModeFast(const QString& path, const QString& variant, bool noSmart, const QString& forceMode) {
+    const QString clean = sanitizePath(path);
+    if (clean.isEmpty()) {
+        return QString();
+    }
+
+    const QString hash = computeHash(clean);
+    const QString thumbPath = QDir::homePath() + QStringLiteral("/.cache/olvex/wallpapers/%1/thumbnail.jpg").arg(hash);
+    const QString schemeImgPath = QFile::exists(thumbPath) ? thumbPath : clean;
+
+    Argb cachedSeed = 0;
+    double cachedTone = 0.0;
+    if (!tryExtractSeed(schemeImgPath, cachedSeed, cachedTone, false)) {
+        return QString();
+    }
+
+    QString mode;
+    QString actualVariant;
+    QJsonObject schemeObj = generateScheme(schemeImgPath, variant, noSmart, forceMode, mode, actualVariant);
+    if (schemeObj.isEmpty()) {
+        return QString();
+    }
+
+    QJsonObject root;
+    root[QStringLiteral("name")] = QStringLiteral("dynamic");
+    root[QStringLiteral("flavour")] = QStringLiteral("default");
+    root[QStringLiteral("mode")] = mode;
+    root[QStringLiteral("variant")] = actualVariant;
+    root[QStringLiteral("colours")] = schemeObj;
+
+    const QString compactJson = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact));
+    const QString indentedJson = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Indented));
+
+    m_deferredPersist.cleanPath = clean;
+    m_deferredPersist.thumbPath = thumbPath;
+    m_deferredPersist.indentedJson = indentedJson;
+    m_deferredPersist.schemeObj = schemeObj;
+    m_deferredPersist.active = true;
+    m_persistTimer.start();
+
+    if (m_currentWallpaper != clean) {
+        m_currentWallpaper = clean;
+        emit currentWallpaperChanged(m_currentWallpaper);
+    }
+
+    return compactJson;
+}
+
+void WallpaperEngine::warmSeedCache(const QString& path) {
+    const QString clean = sanitizePath(path);
+    if (clean.isEmpty()) {
+        return;
+    }
+    QFileInfo fi(clean);
+    if (!fi.exists() || !fi.isFile()) {
+        return;
+    }
+
+    const QString hash = computeHash(clean);
+    const QString thumbDir = QDir::homePath() + QStringLiteral("/.cache/olvex/wallpapers/%1").arg(hash);
+    const QString thumbPath = thumbDir + QStringLiteral("/thumbnail.jpg");
+    const QString schemeImgPath = QFile::exists(thumbPath) ? thumbPath : clean;
+
+    Argb seed = 0;
+    double avgTone = 0.0;
+    if (tryExtractSeed(schemeImgPath, seed, avgTone, false)) {
+        return;
+    }
+
+    QThreadPool::globalInstance()->start([clean, thumbDir, thumbPath]() {
+        QFileInfo thumbFi(thumbPath);
+        if (!thumbFi.exists() || thumbFi.size() == 0) {
+            QDir().mkpath(thumbDir);
+            QImageReader reader(clean);
+            reader.setAutoTransform(true);
+            reader.setScaledSize(QSize(128, 128));
+            QImage thumb = reader.read();
+            if (!thumb.isNull()) {
+                thumb.save(thumbPath, "JPEG", 85);
+            }
+        }
+        const QString imgPath = QFile::exists(thumbPath) ? thumbPath : clean;
+        Argb bgSeed = 0;
+        double bgTone = 0.0;
+        tryExtractSeed(imgPath, bgSeed, bgTone, true);
+    });
+}
+
+void WallpaperEngine::flushDeferredPersist() {
+    if (!m_deferredPersist.active) {
+        return;
+    }
+    const DeferredPersist p = m_deferredPersist;
+    m_deferredPersist.active = false;
+
+    QThreadPool::globalInstance()->start([p]() {
+        updateSymlinksAndFiles(p.cleanPath, p.thumbPath, p.indentedJson);
+        applyHyprlandScheme(p.schemeObj);
+        applyTerminalSequences(p.schemeObj);
+    });
+}
+
 void WallpaperEngine::startProcessing(const QString& path, const QString& variant, bool noSmart, const QString& forceMode, bool isPreview) {
+    if (!isPreview) {
+        m_persistTimer.stop();
+        m_deferredPersist.active = false;
+    }
     if (m_isBusy) {
         m_pendingPath = path;
         m_pendingVariant = variant;
@@ -257,32 +474,12 @@ WallpaperResult WallpaperEngine::processWallpaper(const QString& path, const QSt
 }
 
 QJsonObject WallpaperEngine::generateScheme(const QString& imagePath, const QString& variant, bool noSmart, const QString& forceMode, QString& outMode, QString& outVariant) {
-    QImageReader reader(imagePath);
-    reader.setAutoTransform(true);
-    reader.setScaledSize(QSize(128, 128));
-    QImage thumb = reader.read().convertToFormat(QImage::Format_ARGB32);
-    if (thumb.isNull()) {
+    Argb seed = 0xFF6750A4;
+    double avgTone = 0.0;
+    if (!tryExtractSeed(imagePath, seed, avgTone, true)) {
         return QJsonObject();
     }
 
-    std::vector<Argb> pixels;
-    pixels.reserve(static_cast<size_t>(thumb.width()) * static_cast<size_t>(thumb.height()));
-    double totalTone = 0.0;
-
-    for (int y = 0; y < thumb.height(); ++y) {
-        const auto* line = reinterpret_cast<const uint32_t*>(thumb.constScanLine(y));
-        for (int x = 0; x < thumb.width(); ++x) {
-            uint32_t p = line[x];
-            pixels.push_back(p);
-            // Quick luminance tone estimate
-            double r = (p >> 16) & 0xFF;
-            double g = (p >> 8) & 0xFF;
-            double b = p & 0xFF;
-            totalTone += (0.299 * r + 0.587 * g + 0.114 * b) * (100.0 / 255.0);
-        }
-    }
-
-    double avgTone = totalTone / static_cast<double>(pixels.size());
     bool isDark = true;
     if (forceMode == QLatin1String("light")) {
         isDark = false;
@@ -292,10 +489,6 @@ QJsonObject WallpaperEngine::generateScheme(const QString& imagePath, const QStr
         isDark = (avgTone <= 60.0);
     }
     outMode = isDark ? QStringLiteral("dark") : QStringLiteral("light");
-
-    auto quantizeResult = QuantizeCelebi(pixels, 128);
-    auto ranked = RankedSuggestions(quantizeResult.color_to_count);
-    Argb seed = ranked.empty() ? 0xFF6750A4 : ranked[0];
 
     Hct seedHct(seed);
     seedHct = FixIfDisliked(seedHct);

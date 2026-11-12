@@ -89,8 +89,6 @@ ColumnLayout {
                 currentIndex: root.modeIndex()
                 onSelected: i => {
                     const next = ["light", "dark", "auto"][i];
-                    GlobalConfig.appearance.themeMode = next;
-                    GlobalConfig.save();
                     Colours.setMode(next);
                 }
             }
@@ -120,8 +118,6 @@ ColumnLayout {
                     
                     if (m.modes && !m.modes.includes(GlobalConfig.appearance.themeMode)) {
                         const next = m.modes.includes("dark") ? "dark" : (m.modes[0] || "dark");
-                        GlobalConfig.appearance.themeMode = next;
-                        GlobalConfig.save();
                         Colours.setMode(next);
                     }
                 }

@@ -438,8 +438,6 @@ Item {
                         color: Colours.palette.m3primary
                         onClicked: {
                             const next = Colours.light ? "dark" : "light";
-                            GlobalConfig.appearance.themeMode = next;
-                            GlobalConfig.save();
                             Colours.setMode(next);
                         }
                     }

@@ -195,11 +195,7 @@ def apply_htop(colours: dict[str, str]) -> None:
 
 def sync_papirus_colors(hex_color: str) -> None:
     """Sync Papirus folder icon colors using hue/saturation analysis"""
-    try:
-        result = subprocess.run(["which", "papirus-folders"], capture_output=True, check=False)
-        if result.returncode != 0:
-            return
-    except Exception:
+    if shutil.which("papirus-folders") is None:
         return
 
     papirus_paths = [
@@ -316,11 +312,7 @@ def apply_gtk(colours: dict[str, str], mode: str, icon_theme: str | None = None)
         gtk_theme = "adw-gtk3" if has_adw_gtk else "Adwaita"
         prefer_dark_val = "0"
 
-    # 1. Update dconf settings for GNOME / GTK & XDG Desktop Portal
-    subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/gtk-theme", f"'{gtk_theme}'"])
-    subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/color-scheme", f"'prefer-{mode}'"])
-
-    # 2. Update gsettings directly so portals and active apps notice immediately
+    # 1. Update gsettings (also updates dconf backend) so portals and active apps notice immediately
     subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", f"prefer-{mode}"])
     subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", gtk_theme])
 
@@ -346,7 +338,6 @@ def apply_gtk(colours: dict[str, str], mode: str, icon_theme: str | None = None)
         except Exception:
             icon_theme = None
     gtk_icon_theme = icon_theme if icon_theme else "Adwaita"
-    subprocess.run(["dconf", "write", "/org/gnome/desktop/interface/icon-theme", f"'{gtk_icon_theme}'"])
     subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", gtk_icon_theme])
 
     settings_content = f"""[Settings]
@@ -385,6 +376,8 @@ def apply_warp(colours: dict[str, str], mode: str) -> None:
 def apply_chromium(colours: dict[str, str]) -> None:
     surface_hex = colours["surface"]
     theme_color = f"#{surface_hex}"
+    target_obj = {"BrowserThemeColor": theme_color, "BrowserColorScheme": "device"}
+    payload = json.dumps(target_obj)
     browsers = [
         ("chromium", Path("/etc/chromium/policies/managed")),
         ("brave", Path("/etc/brave/policies/managed")),
@@ -400,10 +393,19 @@ def apply_chromium(colours: dict[str, str]) -> None:
             print(f"Unable to create {policy_dir} directory")
             continue
 
+        policy_file = policy_dir / "olvex.json"
+        try:
+            if policy_file.is_file():
+                existing_text = policy_file.read_text()
+                if existing_text == payload or json.loads(existing_text) == target_obj:
+                    continue
+        except (OSError, json.JSONDecodeError):
+            pass
+
         # Use tee instead of atomic_write cause we need sudo
         subprocess.run(
-            ["sudo", "-n", "tee", str(policy_dir / "olvex.json")],
-            input=json.dumps({"BrowserThemeColor": theme_color, "BrowserColorScheme": "device"}),
+            ["sudo", "-n", "tee", str(policy_file)],
+            input=payload,
             text=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

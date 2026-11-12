@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QTimer>
 #include <qqmlintegration.h>
 
 namespace olvex {
@@ -40,6 +41,9 @@ public:
                                      bool noSmart = false, const QString& forceMode = QString());
     Q_INVOKABLE QString generatePaletteSync(const QString& path, const QString& variant = QStringLiteral("tonalspot"),
                                            bool noSmart = false, const QString& forceMode = QString());
+    Q_INVOKABLE QString switchModeFast(const QString& path, const QString& variant = QStringLiteral("tonalspot"),
+                                       bool noSmart = false, const QString& forceMode = QString());
+    Q_INVOKABLE void warmSeedCache(const QString& path);
     Q_INVOKABLE QString getThumbnailPath(const QString& path);
     Q_INVOKABLE QString currentWallpaperSync() const;
 
@@ -52,8 +56,17 @@ signals:
 
 private slots:
     void onProcessingFinished();
+    void flushDeferredPersist();
 
 private:
+    struct DeferredPersist {
+        QString cleanPath;
+        QString thumbPath;
+        QString indentedJson;
+        QJsonObject schemeObj;
+        bool active = false;
+    };
+
     void startProcessing(const QString& path, const QString& variant, bool noSmart, const QString& forceMode, bool isPreview);
     static WallpaperResult processWallpaper(const QString& path, const QString& variant, bool noSmart, const QString& forceMode, bool isPreview);
     static QJsonObject generateScheme(const QString& imagePath, const QString& variant, bool noSmart, const QString& forceMode, QString& outMode, QString& outVariant);
@@ -73,6 +86,8 @@ private:
     bool m_hasPending = false;
 
     QFutureWatcher<WallpaperResult> m_watcher;
+    QTimer m_persistTimer;
+    DeferredPersist m_deferredPersist;
 };
 
 } // namespace olvex

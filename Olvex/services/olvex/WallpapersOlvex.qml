@@ -327,6 +327,8 @@ Searcher {
 
         if (root.applyPersistedScheme(sourcePath)) {
             console.log("[Wallpapers] Startup: restored persisted scheme for", sourcePath);
+            warmSeedTimer.sourcePath = sourcePath;
+            warmSeedTimer.restart();
         } else {
             console.log("[Wallpapers] Startup: live extract for", sourcePath);
             root._forceNextAccentRefresh = true;
@@ -364,6 +366,19 @@ Searcher {
     }
 
     Timer {
+        id: warmSeedTimer
+        interval: 800
+        repeat: false
+        property string sourcePath: ""
+        onTriggered: {
+            if (sourcePath.length > 0 && typeof WallpaperEngine.warmSeedCache === "function") {
+                WallpaperEngine.warmSeedCache(sourcePath.replace(/^file:\/\//, ""));
+            }
+            sourcePath = "";
+        }
+    }
+
+    Timer {
         id: staggerPaletteTimer
         interval: 130
         repeat: false
@@ -371,7 +386,6 @@ Searcher {
         onTriggered: {
             if (pendingPayload.length > 0) {
                 root.colorsGenerated(pendingPayload, false);
-                themeAppsProc.running = true;
                 pendingPayload = "";
             }
         }
@@ -388,7 +402,6 @@ Searcher {
                 root._lastCurrentData = jsonPayload;
                 if (root._lastRefreshPath)
                     root.persistColourSource(root._lastRefreshPath);
-                root.persistSchemePayload(jsonPayload);
                 staggerPaletteTimer.pendingPayload = jsonPayload;
                 staggerPaletteTimer.restart();
             }
@@ -442,7 +455,11 @@ Searcher {
     function persistColourSource(sourcePath: string): void {
         if (!sourcePath)
             return;
+        if (root._committedColourSource === sourcePath && typeof CUtils !== "undefined" && typeof CUtils.fileExists === "function" && CUtils.fileExists(root.colourSourceCachePath))
+            return;
         root._committedColourSource = sourcePath;
+        if (typeof CUtils !== "undefined" && typeof CUtils.writeTextFile === "function" && CUtils.writeTextFile(root.colourSourceCachePath, sourcePath))
+            return;
         const escaped = sourcePath.replace(/'/g, "'\\''");
         const dir = root.colourSourceCachePath.replace(/\/[^/]+$/, "");
         colourSourcePersistProc.command = ["bash", "-lc",
@@ -461,6 +478,30 @@ Searcher {
     function forceAccentRefresh(path: string, isPreview: bool): void {
         root._forceNextAccentRefresh = true;
         root.requestAccentRefresh(path, isPreview);
+    }
+
+    function tryFastModeSwitch(mode: string): string {
+        if (Colours.schemeName !== "dynamic")
+            return "";
+        if (typeof WallpaperEngine.switchModeFast !== "function")
+            return "";
+        const path = actualCurrent || current;
+        if (!path)
+            return "";
+        const sourcePath = colourSourcePath(path);
+        if (!sourcePath)
+            return "";
+        const cleanPath = sourcePath.replace(/^file:\/\//, "");
+        const variant = (GlobalConfig.appearance.schemeVariant || "tonalspot");
+        const forceMode = (mode === "light" || mode === "dark") ? mode : "";
+        const noSmart = !GlobalConfig.services.smartScheme;
+        const rawPayload = WallpaperEngine.switchModeFast(cleanPath, variant, noSmart, forceMode);
+        if (!rawPayload)
+            return "";
+        const payload = root.normalizePalettePayload(rawPayload);
+        root._lastRefreshPath = sourcePath;
+        root._lastCurrentData = payload;
+        return payload;
     }
 
     function requestAccentRefresh(path: string, isPreview: bool): void {
@@ -843,10 +884,7 @@ Searcher {
                 root._lastCurrentData = payload;
                 if (getCurrentColoursProc.targetSourcePath)
                     root.persistColourSource(getCurrentColoursProc.targetSourcePath);
-                root.persistSchemePayload(payload);
                 root.colorsGenerated(payload, false);
-                // Theme apps asynchronously after UI colours are applied
-                themeAppsProc.running = true;
             }
         }
 
@@ -861,10 +899,5 @@ Searcher {
             if (exitCode !== 0)
                 console.log("[Wallpapers] wallpaper palette extract failed, exit:", exitCode);
         }
-    }
-
-    Process {
-        id: themeAppsProc
-        command: ["bash", "-lc", "olvex scheme set --notify >/dev/null 2>&1 || true"]
     }
 }
