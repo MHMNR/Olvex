@@ -619,6 +619,7 @@ run_preflight_and_verification() {
         thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin adw-gtk-theme xdg-desktop-portal-gtk
         tumbler ffmpegthumbnailer gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb polkit-gnome wtype
         gnome-keyring trash-cli gammastep geoclue
+        fastfetch qps cloudflare-warp-bin
     )
 
     local all_required_pkgs=("${base_pkgs[@]}")
@@ -1083,7 +1084,49 @@ universal_permission_sweep() {
     log_success "Permissions restored successfully."
 }
 
+setup_warp_service() {
+    if ! command -v warp-cli &>/dev/null; then
+        log_warn "warp-cli not found; skipping Cloudflare WARP service setup."
+        return 0
+    fi
+
+    log_info "Enabling and starting warp-svc.service..."
+    if ! sudo systemctl enable --now warp-svc.service; then
+        log_warn "Failed to enable/start warp-svc.service."
+        return 0
+    fi
+
+    log_info "Waiting for warp-svc daemon to become ready..."
+    local ready=0
+    local i
+    for i in $(seq 1 30); do
+        if warp-cli --accept-tos status >/dev/null 2>&1; then
+            ready=1
+            break
+        fi
+        sleep 1
+    done
+
+    if [ "$ready" -ne 1 ]; then
+        log_warn "warp-svc is not responding yet. Check later: journalctl -u warp-svc -e"
+        return 0
+    fi
+
+    if warp-cli --accept-tos registration show >/dev/null 2>&1; then
+        log_success "Cloudflare WARP device already registered."
+    else
+        log_info "Registering new Cloudflare WARP device..."
+        if warp-cli --accept-tos registration new 2>/dev/null || warp-cli --accept-tos register 2>/dev/null; then
+            log_success "Cloudflare WARP registered."
+        else
+            log_warn "Cloudflare WARP registration failed (run 'warp-cli --accept-tos registration new' later)."
+        fi
+    fi
+}
+
 apply_post_install_actions() {
+    setup_warp_service
+
     # Shell prompt
     if [ "$CONF_SET_FISH" = true ] && command -v fish &>/dev/null; then
         if [[ "$(basename "${SHELL:-bash}")" != "fish" ]]; then
