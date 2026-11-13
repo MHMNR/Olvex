@@ -88,173 +88,90 @@ Item {
         anchors.right: parent.right
         spacing: Tokens.spacing ? Tokens.spacing.large : 16
 
-        // ── Hero Monitor Identity Card ──────────────────────────────────────
+        // ── Hero Monitor Identity Card (connected bottom of Display Arrangement group) ──
         StyledRect {
             width: parent.width
-            implicitHeight: heroContent.implicitHeight + (Tokens.padding ? Tokens.padding.large : 16) * 2
-            radius: Tokens.rounding ? Tokens.rounding.large : 16
-            color: Colours.palette.m3surfaceContainerHighest
+            implicitHeight: Math.max(68, heroContent.implicitHeight + 24)
+            topLeftRadius: 6
+            topRightRadius: 6
+            bottomLeftRadius: 22
+            bottomRightRadius: 22
+            color: Colours.palette.m3surfaceContainerHigh
             border.width: 0
 
             RowLayout {
                 id: heroContent
                 anchors.fill: parent
-                anchors.margins: Tokens.padding ? Tokens.padding.large : 16
-                spacing: Tokens.spacing ? Tokens.spacing.large : 16
+                anchors.leftMargin: 18
+                anchors.rightMargin: 16
+                anchors.topMargin: 12
+                anchors.bottomMargin: 12
+                spacing: 14
 
-                // Device Icon Squircle
-                StyledRect {
-                    Layout.preferredWidth: 48
-                    Layout.preferredHeight: 48
-                    Layout.alignment: Qt.AlignVCenter
-                    radius: Tokens.rounding ? Tokens.rounding.normal : 12
-                    color: (root.monitor && !root.monitor.disabled)
-                           ? Colours.palette.m3primaryContainer
-                           : Colours.palette.m3surfaceContainerHigh
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: root.monitor && root.monitor.name.startsWith("eDP") ? "laptop" : "desktop_windows"
-                        fill: 1
-                        color: (root.monitor && !root.monitor.disabled) ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
-                        iconPointSize: Tokens.font ? Tokens.font.size.large : 20
-                    }
-                }
-
-                // Details & Badges
+                // Clean 2-Line M3 Identity
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 5
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 2
 
                     RowLayout {
                         spacing: 8
                         Layout.fillWidth: true
 
                         StyledText {
-                            text: root.monitor ? root.monitor.name : qsTr("Display")
-                            font.weight: Font.Bold
-                            textPointSize: Tokens.font ? Tokens.font.size.large : 16
+                            text: root.monitor
+                                  ? (root.monitor.name.startsWith("eDP") ? qsTr("Built-in Display") : root.monitor.name)
+                                  : qsTr("Display")
+                            font.weight: Font.Medium
+                            textPointSize: Tokens.font ? Tokens.font.size.normal : 14
                             color: Colours.palette.m3onSurface
                         }
 
-                        // Friendly tag
+                        // Primary indicator (relevant in multi-monitor setups)
                         StyledRect {
-                            implicitWidth: tagText.implicitWidth + 12
-                            implicitHeight: 22
+                            visible: root.isCurrentPrimary && root.allMonitors && root.allMonitors.length > 1
+                            implicitWidth: primaryText.implicitWidth + 12
+                            implicitHeight: 20
                             radius: Tokens.rounding ? Tokens.rounding.full : 999
-                            color: Qt.alpha(Colours.palette.m3secondary, 0.22)
+                            color: Qt.alpha(Colours.palette.m3primary, 0.16)
 
                             StyledText {
-                                id: tagText
+                                id: primaryText
                                 anchors.centerIn: parent
-                                text: root.monitor && root.monitor.name.startsWith("eDP") ? qsTr("Built-in Screen") : qsTr("External Display")
-                                textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 2
-                                font.weight: Font.Medium
-                                color: Colours.palette.m3secondary
+                                text: qsTr("Primary")
+                                textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 1
+                                font.weight: Font.DemiBold
+                                color: Colours.palette.m3primary
                             }
                         }
                     }
 
-                    // Description / Make & Model
+                    // Connector + clean panel name (strips raw EDID hex like 0x1521)
                     StyledText {
-                        text: root.monitor && root.monitor.description
-                              ? root.monitor.description
-                              : (root.monitor ? `${root.monitor.make} ${root.monitor.model}` : "")
-                        textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
+                        text: {
+                            if (!root.monitor) return "";
+                            const conn = root.monitor.name || "";
+                            if (root.monitor.disabled)
+                                return conn ? `${conn} · ${qsTr("Disabled")}` : qsTr("Disabled");
+                            const rawDesc = root.monitor.description || `${root.monitor.make || ""} ${root.monitor.model || ""}`.trim();
+                            const cleanDesc = rawDesc.replace(/\s+0x[0-9a-fA-F]+$/, "").trim();
+                            if (conn && cleanDesc && cleanDesc !== conn)
+                                return `${conn} · ${cleanDesc}`;
+                            return conn || cleanDesc;
+                        }
+                        textPointSize: Tokens.font ? Tokens.font.size.small : 12
                         color: Colours.palette.m3onSurfaceVariant
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                     }
-
-                    // Metadata Specs Row (Inline with bullet separators)
-                    RowLayout {
-                        spacing: 8
-                        Layout.topMargin: 2
-
-                        // Primary Tag
-                        RowLayout {
-                            visible: root.isCurrentPrimary
-                            spacing: 8
-
-                            StyledText {
-                                text: qsTr("★ Primary")
-                                textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                                font.weight: Font.Bold
-                                color: Colours.palette.m3primary
-                            }
-
-                            StyledText {
-                                text: "•"
-                                font.weight: Font.Bold
-                                textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                                color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.4)
-                            }
-                        }
-
-                        // Resolution & Refresh Rate
-                        StyledText {
-                            visible: !!root.monitor
-                            text: root.monitor ? `${root.monitor.width}×${root.monitor.height} @ ${Math.round(root.monitor.refreshRate || 60)}Hz` : ""
-                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                            font.weight: Font.Medium
-                            color: Colours.palette.m3onSurfaceVariant
-                        }
-
-                        // Bullet
-                        StyledText {
-                            visible: !!root.monitor
-                            text: "•"
-                            font.weight: Font.Bold
-                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                            color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.4)
-                        }
-
-                        // Scale
-                        StyledText {
-                            visible: !!root.monitor
-                            text: root.monitor ? `${Math.round((root.monitor.scale || 1.0) * 100)}% Scale` : ""
-                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                            font.weight: Font.Medium
-                            color: Colours.palette.m3onSurfaceVariant
-                        }
-
-                        // Bullet
-                        StyledText {
-                            visible: !!root.monitor
-                            text: "•"
-                            font.weight: Font.Bold
-                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                            color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.4)
-                        }
-
-                        // Active / Disabled Status
-                        StyledText {
-                            text: (root.monitor && !root.monitor.disabled) ? qsTr("Active") : qsTr("Disabled")
-                            textPointSize: Tokens.font ? Tokens.font.size.smaller : 11
-                            font.weight: Font.Medium
-                            color: (root.monitor && !root.monitor.disabled) ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                        }
-                    }
                 }
 
-                // Master Toggle on Right
-                ColumnLayout {
+                // Trailing Switch (M3 standard: no redundant label underneath)
+                StyledSwitch {
                     Layout.alignment: Qt.AlignVCenter
-                    spacing: 4
-
-                    StyledSwitch {
-                        Layout.alignment: Qt.AlignHCenter
-                        checked: root.monitor ? !root.monitor.disabled : true
-                        onToggled: {
-                            root.updateField("disabled", !checked);
-                        }
-                    }
-
-                    StyledText {
-                        text: qsTr("Use Display")
-                        color: Colours.palette.m3onSurfaceVariant
-                        textPointSize: (Tokens.font ? Tokens.font.size.smaller : 11) - 2
-                        Layout.alignment: Qt.AlignHCenter
+                    checked: root.monitor ? !root.monitor.disabled : true
+                    onToggled: {
+                        root.updateField("disabled", !checked);
                     }
                 }
             }

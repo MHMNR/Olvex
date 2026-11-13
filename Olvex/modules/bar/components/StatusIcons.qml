@@ -20,6 +20,13 @@ StyledRect {
 
     property Item activeHoveredItem: null
     property string activeTooltipText: ""
+    property bool tooltipDelayElapsed: false
+
+    Timer {
+        id: tooltipDelayTimer
+        interval: 500
+        onTriggered: root.tooltipDelayElapsed = true
+    }
 
     Timer {
         id: clearActiveHoverTimer
@@ -27,6 +34,7 @@ StyledRect {
         onTriggered: {
             root.activeHoveredItem = null;
             root.activeTooltipText = "";
+            root.tooltipDelayElapsed = false;
         }
     }
 
@@ -35,7 +43,10 @@ StyledRect {
             clearActiveHoverTimer.stop();
             activeHoveredItem = item;
             activeTooltipText = text;
+            if (!tooltipDelayElapsed && !tooltipDelayTimer.running)
+                tooltipDelayTimer.start();
         } else {
+            tooltipDelayTimer.stop();
             clearActiveHoverTimer.restart();
         }
     }
@@ -134,10 +145,16 @@ StyledRect {
                 }
 
                 Item {
+                    id: numlockWrap
                     Layout.topMargin: Hypr.capsLock && Hypr.numLock ? iconColumn.spacing : 0
 
                     implicitWidth: numlockIcon.implicitWidth
                     implicitHeight: Hypr.numLock ? numlockIcon.implicitHeight : 0
+                    readonly property string tooltipStr: Hypr.numLock ? qsTr("Num Lock: On") : qsTr("Num Lock: Off")
+                    onTooltipStrChanged: {
+                        if (root.activeHoveredItem === numlockWrap)
+                            root.activeTooltipText = tooltipStr;
+                    }
 
                     MaterialIcon {
                         id: numlockIcon
@@ -157,6 +174,15 @@ StyledRect {
                         Behavior on scale {
                             Anim {}
                         }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.NoButton
+                        enabled: Hypr.numLock
+                        onEntered: root.setHoveredItem(numlockWrap, numlockWrap.tooltipStr)
+                        onExited: root.setHoveredItem(null, "")
                     }
 
                     Behavior on implicitHeight {
@@ -434,7 +460,7 @@ StyledRect {
         target: root.activeHoveredItem || root
         side: Controls.Tooltip.Right
         text: root.activeTooltipText
-        tooltipVisible: root.activeHoveredItem !== null && root.activeTooltipText !== ""
+        tooltipVisible: root.tooltipDelayElapsed && root.activeHoveredItem !== null && root.activeTooltipText !== ""
     }
 
     component WrappedLoader: Loader {

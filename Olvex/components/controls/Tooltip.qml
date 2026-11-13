@@ -50,13 +50,22 @@ Popup {
         // Use target size so destination position is centered for the morphed geometry
         const tooltipWidth = root.targetWidth;
         const tooltipHeight = root.targetHeight;
-        const spacing = (GlobalConfig.appearance && GlobalConfig.appearance.spacing) ? GlobalConfig.appearance.spacing.small : 8;
+        const spacing = 5;
 
         let newX = 0;
         let newY = 0;
 
         if (root.side === Tooltip.Right) {
-            newX = targetPos.x + target.width + spacing;
+            let barRight = 0;
+            let anc = root.target;
+            while (anc) {
+                if (anc.isOlvexBar) {
+                    barRight = anc.mapToItem(parent, anc.width, 0).x;
+                    break;
+                }
+                anc = anc.parent;
+            }
+            newX = Math.max(targetPos.x + target.width, barRight) + spacing;
             newY = targetCenterY - tooltipHeight / 2;
         } else if (root.side === Tooltip.Left) {
             newX = targetPos.x - tooltipWidth - spacing;
@@ -198,20 +207,38 @@ Popup {
     }
 
     enter: Transition {
-        Anim {
-            property: "opacity"
-            from: 0
-            to: 1
-            type: Anim.FastSpatial
+        ParallelAnimation {
+            Anim {
+                property: "opacity"
+                from: 0
+                to: 1
+                type: Anim.FastSpatial
+            }
+            Anim {
+                target: tooltipRect
+                property: "scale"
+                from: 0.86
+                to: 1.0
+                type: Anim.ExpressiveFastSpatial
+            }
         }
     }
 
     exit: Transition {
-        Anim {
-            property: "opacity"
-            from: 1
-            to: 0
-            type: Anim.FastSpatial
+        ParallelAnimation {
+            Anim {
+                property: "opacity"
+                from: 1
+                to: 0
+                type: Anim.FastSpatial
+            }
+            Anim {
+                target: tooltipRect
+                property: "scale"
+                from: 1.0
+                to: 0.9
+                type: Anim.FastSpatial
+            }
         }
     }
 
@@ -219,7 +246,8 @@ Popup {
         id: tooltipRect
 
         anchors.fill: parent
-        color: Colours.palette.m3surfaceContainerHighest
+        transformOrigin: root.side === Tooltip.Right ? Item.Left : (root.side === Tooltip.Left ? Item.Right : (root.side === Tooltip.Bottom ? Item.Top : Item.Bottom))
+        color: Colours.tileSurface
         radius: GlobalConfig.appearance.rounding.small
         antialiasing: true
         border.width: 0

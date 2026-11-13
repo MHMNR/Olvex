@@ -137,6 +137,13 @@ Item {
     property string contextMenuAppId: ""
     property bool contextMenuVisible: false
     property bool contextMenuCanAnimateMove: false
+    property real contextMenuMorphStartX: 0
+    property real contextMenuMorphStartY: 0
+    property real contextMenuMorphStartW: 80
+    property real contextMenuMorphStartH: 28
+    property real contextMenuMorphStartR: 8
+    property string contextMenuMorphTitle: ""
+    property Item contextMenuSourceItem: null
     property real contextMenuX: 0
     property real contextMenuY: 0
     property var contextMenuWindows: []  // List of running windows for this app
@@ -151,7 +158,14 @@ Item {
     readonly property int contextMenuIconCell: 20
     readonly property int contextMenuCloseCell: 24
 
+    property real lastContextMenuHideMs: 0
+
     function showContextMenu(appId, sourceItem) {
+        // Same physical click that just dismissed the menu via the backdrop (press passes through
+        // to the icon) must not re-open it. Any later click re-opens interactively, even mid-collapse.
+        if (!contextMenuVisible && contextMenuAppId === appId && (Date.now() - lastContextMenuHideMs) < 80)
+            return;
+
         // If same menu already open, toggle close
         if (contextMenuVisible && contextMenuAppId === appId) {
             hideContextMenu();
@@ -160,9 +174,36 @@ Item {
 
         const isSwitching = contextMenuVisible && menuContainer.opacity > 0.8;
         contextMenuCanAnimateMove = isSwitching;
+        contextMenuSourceItem = sourceItem;
 
         // Cancel any pending fade-out timer to allow smooth morphing
         menuFadeOutTimer.stop();
+        menuContainer.closing = false;
+        menuContainer.settling = false;
+
+        // Capture active tooltip rect to morph seamlessly between tooltip <-> context menu
+        if (!isSwitching && dockTooltip.visible && dockTooltip.opacity > 0.05) {
+            const tipPos = dockTooltip.mapToItem(root, 0, 0);
+            contextMenuMorphStartX = tipPos.x;
+            contextMenuMorphStartY = tipPos.y;
+            contextMenuMorphStartW = dockTooltip.width;
+            contextMenuMorphStartH = dockTooltip.height;
+            contextMenuMorphStartR = dockTooltip.radius;
+            contextMenuMorphTitle = dockTooltip.targetTitle;
+        } else if (sourceItem && !(menuContainer.visible && !contextMenuVisible)) {
+            // (skipped when re-opening mid-collapse: the card is in flight, keep its morph rect)
+            const entry = getCachedEntry(appId);
+            const tipTitle = entry ? (entry.name || appId) : appId;
+            const srcPos = sourceItem.mapToItem(root, 0, 0);
+            const tipW = Math.max(48, tipTitle.length * 7.5 + Tokens.padding.normal * 2);
+            const tipH = 28;
+            contextMenuMorphStartX = Math.round(srcPos.x + (sourceItem.width - tipW) / 2);
+            contextMenuMorphStartY = Math.round(srcPos.y - tipH - 8);
+            contextMenuMorphStartW = tipW;
+            contextMenuMorphStartH = tipH;
+            contextMenuMorphStartR = Tokens.rounding.small;
+            contextMenuMorphTitle = tipTitle;
+        }
 
         // Collect all windows for this app
         const toplevels = Hypr.toplevels?.values ?? [];
@@ -200,12 +241,47 @@ Item {
         contextMenuVisible = true;
     }
 
-    function hideContextMenu() {
+    function hideContextMenu(pointerInRoot) {
+        if (!contextMenuVisible)
+            return;
+
+        if (contextMenuSourceItem && contextMenuSourceItem.parent) {
+            const hitTarget = contextMenuSourceItem.parent;
+            let checkX = -9999;
+            let checkY = -9999;
+            if (pointerInRoot !== undefined && pointerInRoot !== null) {
+                const pt = hitTarget.mapFromItem(root, pointerInRoot.x, pointerInRoot.y);
+                checkX = pt.x;
+                checkY = pt.y;
+            } else if (backdropArea.containsMouse || backdropArea.lastRootX >= 0) {
+                const rx = backdropArea.containsMouse ? backdropArea.mapToItem(root, backdropArea.mouseX, backdropArea.mouseY).x : backdropArea.lastRootX;
+                const ry = backdropArea.containsMouse ? backdropArea.mapToItem(root, backdropArea.mouseX, backdropArea.mouseY).y : backdropArea.lastRootY;
+                const pt = hitTarget.mapFromItem(root, rx, ry);
+                checkX = pt.x;
+                checkY = pt.y;
+            }
+            if (checkX >= -8 && checkX <= hitTarget.width + 8 && checkY >= -8 && checkY <= hitTarget.height + 8) {
+                clearPinnedHoverTimer.stop();
+                dockTooltip.suppressNextFadeIn = true;
+                pinnedState.hoveredAppIcon = hitTarget;
+                // Morph target = the tooltip's real, live rect (bindings re-evaluate synchronously),
+                // so the hand-off to dockTooltip lands pixel-exact with no jump.
+                const tp = dockTooltip.mapToItem(root, 0, 0);
+                contextMenuMorphStartX = Math.round(tp.x);
+                contextMenuMorphStartY = Math.round(tp.y);
+                contextMenuMorphStartW = dockTooltip.targetWidth;
+                contextMenuMorphStartH = dockTooltip.targetHeight;
+                contextMenuMorphStartR = Tokens.rounding.small;
+                contextMenuMorphTitle = dockTooltip.targetTitle;
+            }
+        }
+
+        lastContextMenuHideMs = Date.now();
+        menuContainer.closing = true;
         contextMenuVisible = false;
         contextMenuCanAnimateMove = false;
         clearContextMenuHoverTimer.stop();
         contextMenuHoveredItem = null;
-        // Delay clearing the data so animation can complete
         menuFadeOutTimer.restart();
     }
 
@@ -471,13 +547,15 @@ Item {
         }
     }
 
-    // Timer to clear menu data after fade-out animation completes
+    // Timer to clear menu data after morph-out animation completes
     Timer {
         id: menuFadeOutTimer
-        interval: 300  // Match the opacity animation duration
+        interval: 380
         onTriggered: {
+            menuContainer.closing = false;
             contextMenuAppId = "";
             contextMenuWindows = [];
+            contextMenuSourceItem = null;
         }
     }
 
@@ -488,7 +566,7 @@ Item {
         if (visibilities.powermenu)
             return false;
         // Force panel visible when context menu or overflow flyout is open/animating (suppress autohide)
-        if (contextMenuVisible || overflowFlyoutVisible || (overflowFlyoutContainer && overflowFlyoutContainer.isMorphAnimating))
+        if (contextMenuVisible || menuContainer.isMorphAnimating || overflowFlyoutVisible || (overflowFlyoutContainer && overflowFlyoutContainer.isMorphAnimating))
             return true;
         if (visibilities.osk && visibilities.isOskDocked) {
             return visibilities.secondaryPanel;
@@ -1862,7 +1940,33 @@ Item {
             // ── Smooth Sliding & Morphing Dock Tooltip ───────────────────────────────
             StyledRect {
                 id: dockTooltip
+                property bool suppressNextFadeIn: false
+                property bool delayElapsed: false
                 readonly property Item hoveredTarget: pinnedState.hoveredAppIcon
+                Timer {
+                    id: dockTooltipDelayTimer
+                    interval: 500
+                    onTriggered: dockTooltip.delayElapsed = true
+                }
+                onHoveredTargetChanged: {
+                    if (hoveredTarget) {
+                        if (suppressNextFadeIn || menuContainer.settling || menuContainer.isMorphAnimating || delayElapsed) {
+                            dockTooltipDelayTimer.stop();
+                            delayElapsed = true;
+                        } else {
+                            dockTooltipDelayTimer.restart();
+                        }
+                    } else {
+                        dockTooltipDelayTimer.stop();
+                        delayElapsed = false;
+                    }
+                }
+                onSuppressNextFadeInChanged: {
+                    if (suppressNextFadeIn && hoveredTarget) {
+                        dockTooltipDelayTimer.stop();
+                        delayElapsed = true;
+                    }
+                }
                 readonly property string targetTitle: {
                     if (!hoveredTarget) return "";
                     if (hoveredTarget.entry) {
@@ -1871,8 +1975,11 @@ Item {
                     return hoveredTarget.appId || "";
                 }
 
-                visible: root.secondaryPanelVisible && hoveredTarget !== null && !pinnedState.isDragging && targetTitle !== ""
-                opacity: visible ? 1.0 : 0.0
+                readonly property bool shouldShow: root.secondaryPanelVisible && hoveredTarget !== null && delayElapsed && !pinnedState.isDragging && targetTitle !== "" && !root.contextMenuVisible && !menuContainer.isMorphAnimating
+                visible: !root.contextMenuVisible && !menuContainer.isMorphAnimating && (shouldShow || opacity > 0.01)
+                opacity: shouldShow ? 1.0 : 0.0
+                transformOrigin: Item.Bottom
+                scale: shouldShow ? 1.0 : 0.86
 
                 readonly property real targetWidth: dockTooltipLabel.implicitWidth + (Tokens.padding.normal * 2)
                 readonly property real targetHeight: 28
@@ -1882,13 +1989,13 @@ Item {
                 implicitWidth: targetWidth
                 implicitHeight: targetHeight
                 radius: Tokens.rounding.small
-                color: Colours.palette.m3surfaceContainerHighest
+                color: Colours.tileSurface
                 border.width: 0
                 clip: true
 
                 // Center above the active hovered icon in secondaryPanel coordinates using targetWidth
                 x: hoveredTarget ? Math.round(hoveredTarget.mapToItem(secondaryPanel, 0, 0).x + (hoveredTarget.width - targetWidth) / 2) : x
-                y: hoveredTarget ? Math.round(hoveredTarget.mapToItem(secondaryPanel, 0, 0).y - targetHeight - 8) : y
+                y: hoveredTarget ? Math.round(Math.min(0, dockContainer.y) - targetHeight - 5) : y
                 z: 100
 
                 StyledText {
@@ -1941,9 +2048,23 @@ Item {
                 }
 
                 Behavior on opacity {
+                    enabled: !dockTooltip.suppressNextFadeIn && !menuContainer.settling && !menuContainer.isMorphAnimating
                     NumberAnimation {
-                        duration: 120
+                        duration: 140
                         easing.type: Easing.OutCubic
+                    }
+                }
+                Behavior on scale {
+                    enabled: !dockTooltip.suppressNextFadeIn && !menuContainer.settling && !menuContainer.isMorphAnimating
+                    Anim {
+                        type: Anim.ExpressiveFastSpatial
+                    }
+                }
+                onVisibleChanged: {
+                    if (visible && suppressNextFadeIn) {
+                        Qt.callLater(() => { suppressNextFadeIn = false; });
+                    } else if (!visible && !menuContainer.isMorphAnimating && !root.contextMenuVisible) {
+                        suppressNextFadeIn = false;
                     }
                 }
             }
@@ -2521,74 +2642,232 @@ Item {
 
     // Global backdrop to close menu when clicking outside (at root level to cover entire screen)
     MouseArea {
+        id: backdropArea
+        property real lastRootX: -1
+        property real lastRootY: -1
         visible: root.contextMenuVisible
         anchors.fill: parent
         z: 9999
+        hoverEnabled: true
         acceptedButtons: Qt.AllButtons
+        onPositionChanged: mouse => {
+            const p = backdropArea.mapToItem(root, mouse.x, mouse.y);
+            lastRootX = p.x;
+            lastRootY = p.y;
+        }
         onPressed: mouse => {
-            root.hideContextMenu();
+            root.hideContextMenu(backdropArea.mapToItem(root, mouse.x, mouse.y));
             mouse.accepted = false;
         }
-        onClicked: root.hideContextMenu()
+        onClicked: mouse => root.hideContextMenu(backdropArea.mapToItem(root, mouse.x, mouse.y))
     }
 
-    // Menu card — positioned at root level above the panel
-    Elevation {
+    // Menu card — positioned at root level above the panel (morphs directly between tooltip <-> context menu)
+    Item {
         id: menuContainer
-        x: root.contextMenuX
-        y: secondaryPanel.y - implicitHeight - 8
-        radius: Tokens.rounding.normal
-        level: 2
+
+        property real radius: root.contextMenuMorphStartR
+
+        readonly property int _winCount: root.contextMenuWindows ? root.contextMenuWindows.length : 0
+        readonly property bool _hasHeader: root.contextMenuMorphTitle !== ""
+        readonly property int _totalItems: (_hasHeader ? 1 : 0) + _winCount + 2
+        readonly property real _computedMenuH: (_hasHeader ? 28 : 0) + (_winCount + 2) * root.contextMenuRowHeight + Math.max(0, _totalItems - 1) * 2 + Tokens.padding.normal * 2
+        readonly property real targetMenuHeight: Math.min(Math.max(_computedMenuH, menuCol.implicitHeight + Tokens.padding.normal * 2), 350)
+        readonly property real targetMenuY: secondaryPanel.y - targetMenuHeight - 8
+        readonly property bool isMorphAnimating: closing || menuExpandTransition.running || menuCollapseTransition.running
+        // True from the instant close is requested until the collapse transition ends,
+        // so dockTooltip never flashes in before the morph actually starts.
+        property bool closing: false
+        // Short overlap window after the collapse ends: dockTooltip is already visible
+        // underneath while this card (pixel-identical) stays on top, then it is removed.
+        // Same idea as MediaMorphOverlay's instant, overlapped swap with the bar pill.
+        property bool settling: false
+
+        Timer {
+            id: settleTimer
+            interval: 16
+            onTriggered: menuContainer.settling = false
+        }
+
+        Connections {
+            target: menuCollapseTransition
+            function onRunningChanged() {
+                if (!menuCollapseTransition.running) {
+                    // Only a *completed* close hands off to the tooltip; an interrupted
+                    // collapse (menu re-opened mid-flight) must not.
+                    menuContainer.settling = !root.contextMenuVisible && pinnedState.hoveredAppIcon !== null;
+                    if (menuContainer.settling)
+                        settleTimer.restart();
+                    menuContainer.closing = false;
+                }
+            }
+        }
+
         z: 10000
-        visible: root.contextMenuVisible || opacity > 0
-
-        implicitWidth: root.contextMenuWidth
-        implicitHeight: Math.min(menuCol.implicitHeight + Tokens.padding.normal * 2, 350)
-
-        scale: root.contextMenuVisible ? 1 : 0.85
+        visible: root.contextMenuVisible || isMorphAnimating || settling
         transformOrigin: Item.Bottom
-        opacity: root.contextMenuVisible ? 1 : 0
 
-        readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
+        x: root.contextMenuMorphStartX
+        y: root.contextMenuMorphStartY
+        width: root.contextMenuMorphStartW
+        height: root.contextMenuMorphStartH
+        opacity: 0
 
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 300
-                easing.type: Easing.OutCubic
+        state: root.contextMenuVisible ? "expanded" : "collapsed"
+
+        states: [
+            State {
+                name: "expanded"
+                PropertyChanges {
+                    target: menuContainer
+                    x: root.contextMenuX
+                    y: menuContainer.targetMenuY
+                    width: root.contextMenuWidth
+                    height: menuContainer.targetMenuHeight
+                    radius: Tokens.rounding.normal
+                    opacity: 1.0
+                }
+                PropertyChanges {
+                    target: menuSurface
+                    color: Colours.tileSurface
+                }
+                PropertyChanges {
+                    target: menuTooltipGhost
+                    opacity: 0.0
+                }
+                PropertyChanges {
+                    target: menuScroll
+                    opacity: 1.0
+                }
+            },
+            State {
+                name: "collapsed"
+                PropertyChanges {
+                    target: menuContainer
+                    x: root.contextMenuMorphStartX
+                    y: root.contextMenuMorphStartY
+                    width: root.contextMenuMorphStartW
+                    height: root.contextMenuMorphStartH
+                    radius: root.contextMenuMorphStartR
+                    opacity: pinnedState.hoveredAppIcon !== null ? 1.0 : 0.0
+                }
+                PropertyChanges {
+                    target: menuSurface
+                    color: Colours.tileSurface
+                }
+                PropertyChanges {
+                    target: menuTooltipGhost
+                    opacity: 1.0
+                }
+                PropertyChanges {
+                    target: menuScroll
+                    opacity: 0.0
+                }
             }
-        }
+        ]
 
-        Behavior on scale {
-            NumberAnimation {
-                duration: 250
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: menuContainer.m3Emphasized
+        transitions: [
+            Transition {
+                id: menuExpandTransition
+                from: "collapsed"; to: "expanded"
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: menuContainer
+                        properties: "x,y,width,height,radius"
+                        duration: 340
+                        easing: Tokens.anim.expressiveDefaultSpatial
+                    }
+                    ColorAnimation {
+                        target: menuSurface
+                        properties: "color"
+                        duration: 280
+                    }
+                    NumberAnimation {
+                        target: menuContainer
+                        property: "opacity"
+                        to: 1.0
+                        duration: 80
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        target: menuTooltipGhost
+                        property: "opacity"
+                        duration: 90
+                        easing.type: Easing.OutCubic
+                    }
+                    SequentialAnimation {
+                        PauseAnimation { duration: 70 }
+                        NumberAnimation {
+                            target: menuScroll
+                            property: "opacity"
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
+            },
+            Transition {
+                id: menuCollapseTransition
+                from: "expanded"; to: "collapsed"
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: menuContainer
+                        properties: "x,y,width,height,radius"
+                        duration: 320
+                        easing: Tokens.anim.expressiveDefaultSpatial
+                    }
+                    ColorAnimation {
+                        target: menuSurface
+                        properties: "color"
+                        duration: 280
+                    }
+                    NumberAnimation {
+                        target: menuScroll
+                        property: "opacity"
+                        duration: 80
+                        easing.type: Easing.InQuad
+                    }
+                    SequentialAnimation {
+                        PauseAnimation { duration: 80 }
+                        NumberAnimation {
+                            target: menuTooltipGhost
+                            property: "opacity"
+                            duration: 190
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    SequentialAnimation {
+                        PauseAnimation { duration: 220 }
+                        NumberAnimation {
+                            target: menuContainer
+                            property: "opacity"
+                            duration: 100
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
             }
-        }
-
-        Behavior on x {
-            enabled: root.contextMenuCanAnimateMove
-            NumberAnimation {
-                duration: 250
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: menuContainer.m3Emphasized
-            }
-        }
-
-        Behavior on y {
-            enabled: root.contextMenuCanAnimateMove
-            NumberAnimation {
-                duration: 250
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: menuContainer.m3Emphasized
-            }
-        }
+        ]
 
         StyledRect {
+            id: menuSurface
             anchors.fill: parent
             radius: parent.radius
-            color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
+            color: Colours.tileSurface
             clip: true
+
+            // Outgoing/incoming tooltip label ghost during morph phase
+            StyledText {
+                id: menuTooltipGhost
+                anchors.centerIn: parent
+                text: root.contextMenuMorphTitle
+                color: Colours.palette.m3onSurface
+                font.weight: Font.Medium
+                textPointSize: Tokens.font.size.small
+                visible: opacity > 0.01
+                opacity: 0.0
+                z: 2
+            }
 
             // Sliding hover highlight marker
             StyledRect {
@@ -2630,8 +2909,13 @@ Item {
             }
 
             QCtls.ScrollView {
-                anchors.fill: parent
+                id: menuScroll
+                width: root.contextMenuWidth
+                height: menuContainer.targetMenuHeight
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
                 clip: true
+                opacity: 1.0
                 QCtls.ScrollBar.vertical.policy: QCtls.ScrollBar.AsNeeded
                 QCtls.ScrollBar.horizontal.visible: false
 
@@ -2647,6 +2931,36 @@ Item {
 
                     readonly property var m3Emphasized: [0.2, 0.0, 0.0, 1.0, 1, 1]
 
+                    // App name header at top of context menu
+                    Item {
+                        Layout.fillWidth: true
+                        implicitHeight: 28
+                        visible: root.contextMenuMorphTitle !== ""
+
+                        StyledText {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            text: root.contextMenuMorphTitle
+                            textPointSize: Tokens.font.size.small
+                            font.weight: Font.DemiBold
+                            color: Colours.palette.m3onSurface
+                            elide: Text.ElideRight
+                        }
+
+                        StyledRect {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.leftMargin: 6
+                            anchors.rightMargin: 6
+                            height: 1
+                            color: Qt.alpha(Colours.palette.m3outlineVariant, 0.35)
+                        }
+                    }
+
                     // Running windows (if any)
                     Repeater {
                         model: root.contextMenuWindows ?? []
@@ -2660,8 +2974,8 @@ Item {
                             Layout.fillWidth: true
                             implicitHeight: root.contextMenuRowHeight
 
-                            opacity: root.contextMenuVisible && visible ? 1 : 0
-                            scale: root.contextMenuVisible && visible ? 1 : 0.95
+                            opacity: visible ? 1 : 0
+                            scale: visible ? 1 : 0.95
                             transformOrigin: Item.Top
                             visible: true
 
@@ -2838,8 +3152,8 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: root.contextMenuRowHeight
 
-                        opacity: root.contextMenuVisible ? 1 : 0
-                        scale: root.contextMenuVisible ? 1 : 0.95
+                        opacity: 1
+                        scale: 1
                         transformOrigin: Item.Top
 
                         radius: Tokens.rounding.small
@@ -2948,8 +3262,8 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: root.contextMenuRowHeight
 
-                        opacity: root.contextMenuVisible ? 1 : 0
-                        scale: root.contextMenuVisible ? 1 : 0.95
+                        opacity: 1
+                        scale: 1
                         transformOrigin: Item.Top
 
                         radius: Tokens.rounding.small

@@ -15,6 +15,7 @@ Item {
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
     required property var safeBorder
+    readonly property bool isOlvexBar: true
     property var mediaMorph
     property var notificationMorph
     property var audioBrightnessMorph

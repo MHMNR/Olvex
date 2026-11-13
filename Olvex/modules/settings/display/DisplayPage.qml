@@ -24,6 +24,7 @@ Item {
     property string currentTab: "display" // "display", "workspaces", "profiles"
     property bool useDescription: DisplayManager.useDescription
     property bool hasUnsavedChanges: false
+    property bool canvasExpanded: false
 
     // Identify overlay instance (lazy loaded on demand only)
     Loader {
@@ -142,37 +143,7 @@ Item {
         anchors.margins: Tokens.padding ? Tokens.padding.normal : 12
         spacing: Tokens.spacing ? Tokens.spacing.normal : 12
 
-        // ── 1. Top Section: Visual Multi-Monitor Stage / Canvas ─
-        DisplayCanvas {
-            id: displayCanvas
-            Layout.fillWidth: true
-            Layout.preferredHeight: isFullscreen ? pageLayout.height : Math.min(320, Math.max(220, root.height * 0.35))
-            Layout.fillHeight: isFullscreen
-            monitors: root.draftMonitors
-            selectedIndex: root.selectedIndex
-            draftWorkspaces: root.draftWorkspaces
-
-            Behavior on Layout.preferredHeight {
-                Anim {
-                    type: Anim.Emphasized
-                }
-            }
-
-            onSelectMonitor: (idx) => {
-                root.selectedIndex = idx;
-            }
-
-            onMonitorsUpdated: (newMonitors) => {
-                root.draftMonitors = newMonitors;
-                root.hasUnsavedChanges = true;
-            }
-
-            onAutoAlignRequested: (align) => {
-                root.autoAlign(align);
-            }
-        }
-
-        // ── 2. Middle Section: Sub-Category Tabs (Segmented) ────
+        // ── 1. Top Section: Sub-Category Tabs (Segmented) ───────
         Item {
             visible: opacity > 0.01
             opacity: displayCanvas.isFullscreen ? 0 : 1
@@ -216,16 +187,16 @@ Item {
             }
         }
 
-        // ── 3. Bottom Section: Scrollable Inspector Content ─────
+        // ── 2. Middle Section: Scrollable Content (Arrangement + Inspector) ─
         StyledFlickable {
             id: displayFlick
-            visible: opacity > 0.01
-            opacity: displayCanvas.isFullscreen ? 0 : 1
+
             Layout.fillWidth: true
-            Layout.fillHeight: !displayCanvas.isFullscreen
+            Layout.fillHeight: true
+            interactive: !displayCanvas.isFullscreen
             clip: true
             contentWidth: width
-            contentHeight: activeTabItem.implicitHeight + 40
+            contentHeight: displayCanvas.isFullscreen ? height : (flickCol.implicitHeight + 40)
 
             Connections {
                 target: root
@@ -234,16 +205,175 @@ Item {
                 }
             }
 
-            Behavior on opacity { Anim { type: Anim.FastEffects } }
-
-            Item {
-                id: activeTabItem
-                width: parent.width
-                implicitHeight: {
-                    if (root.currentTab === "display") return displayControls.implicitHeight;
-                    if (root.currentTab === "workspaces") return workspacesTabLoader.item ? workspacesTabLoader.item.implicitHeight : 300;
-                    return profilesTabLoader.item ? profilesTabLoader.item.implicitHeight : 300;
+            Connections {
+                target: displayCanvas
+                function onIsFullscreenChanged() {
+                    if (displayCanvas.isFullscreen)
+                        displayFlick.contentY = 0;
                 }
+            }
+
+            Column {
+                id: flickCol
+
+                width: displayFlick.width
+                spacing: root.currentTab === "display" ? 3 : (Tokens.spacing ? Tokens.spacing.normal : 12)
+
+                // Collapsible Display Arrangement Row Card (Display Properties tab only)
+                StyledClippingRect {
+                    id: canvasCard
+
+                    readonly property int headerH: 64
+                    readonly property int expandedCanvasH: Math.min(320, Math.max(220, root.height * 0.35))
+
+                    visible: root.currentTab === "display" || displayCanvas.isFullscreen
+                    width: parent.width
+                    height: displayCanvas.isFullscreen
+                        ? displayFlick.height
+                        : (root.canvasExpanded ? (headerH + expandedCanvasH + 12) : headerH)
+                    topLeftRadius: displayCanvas.isFullscreen ? 16 : 22
+                    topRightRadius: displayCanvas.isFullscreen ? 16 : 22
+                    bottomLeftRadius: displayCanvas.isFullscreen ? 16 : (root.currentTab === "display" ? 6 : 22)
+                    bottomRightRadius: displayCanvas.isFullscreen ? 16 : (root.currentTab === "display" ? 6 : 22)
+                    color: Colours.palette.m3surfaceContainerHigh
+                    border.width: 0
+                    border.color: "transparent"
+                    clip: true
+
+                    Behavior on height {
+                        Anim {
+                            type: Anim.Emphasized
+                        }
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 0
+
+                        // Clickable Row Header
+                        Item {
+                            id: canvasHeader
+
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: displayCanvas.isFullscreen ? 0 : canvasCard.headerH
+                            visible: opacity > 0.01
+                            opacity: displayCanvas.isFullscreen ? 0 : 1
+                            clip: true
+
+                            Behavior on opacity { Anim { type: Anim.FastEffects } }
+                            Behavior on Layout.preferredHeight { Anim { type: Anim.Emphasized } }
+
+                            StateLayer {
+                                anchors.fill: parent
+                                radius: 22
+                                color: Colours.palette.m3onSurface
+                                onClicked: root.canvasExpanded = !root.canvasExpanded
+                            }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 18
+                                anchors.rightMargin: 16
+                                spacing: 14
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    spacing: 2
+
+                                    StyledText {
+                                        Layout.fillWidth: true
+                                        text: qsTr("Display Arrangement")
+                                        textPointSize: Tokens.font.size.normal
+                                        font.weight: Font.Medium
+                                        color: Colours.palette.m3onSurface
+                                        elide: Text.ElideRight
+                                    }
+
+                                    StyledText {
+                                        Layout.fillWidth: true
+                                        text: {
+                                            const count = root.draftMonitors ? root.draftMonitors.length : 0;
+                                            const action = root.canvasExpanded ? qsTr("Click to collapse layout") : qsTr("Click to arrange & preview displays");
+                                            return count === 1
+                                                ? qsTr("1 display · %1").arg(action)
+                                                : qsTr("%1 displays · %2").arg(count).arg(action);
+                                        }
+                                        textPointSize: Tokens.font.size.small
+                                        color: Colours.palette.m3onSurfaceVariant
+                                        elide: Text.ElideRight
+                                    }
+                                }
+
+                                MaterialIcon {
+                                    Layout.alignment: Qt.AlignVCenter
+                                    text: "expand_more"
+                                    color: Colours.palette.m3onSurfaceVariant
+                                    iconPointSize: 22
+                                    rotation: root.canvasExpanded ? 180 : 0
+
+                                    Behavior on rotation {
+                                        Anim {
+                                            type: Anim.FastSpatial
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Expandable Canvas Container
+                        Item {
+                            id: displayCanvasContainer
+
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.leftMargin: displayCanvas.isFullscreen ? 0 : 12
+                            Layout.rightMargin: displayCanvas.isFullscreen ? 0 : 12
+                            Layout.bottomMargin: displayCanvas.isFullscreen ? 0 : 12
+                            visible: opacity > 0.01
+                            opacity: (root.canvasExpanded || displayCanvas.isFullscreen) ? 1 : 0
+                            clip: true
+
+                            Behavior on opacity {
+                                Anim {
+                                    type: Anim.FastEffects
+                                }
+                            }
+
+                            DisplayCanvas {
+                                id: displayCanvas
+
+                                anchors.fill: parent
+                                monitors: root.draftMonitors
+                                selectedIndex: root.selectedIndex
+                                draftWorkspaces: root.draftWorkspaces
+
+                                onSelectMonitor: (idx) => {
+                                    root.selectedIndex = idx;
+                                }
+
+                                onMonitorsUpdated: (newMonitors) => {
+                                    root.draftMonitors = newMonitors;
+                                    root.hasUnsavedChanges = true;
+                                }
+
+                                onAutoAlignRequested: (align) => {
+                                    root.autoAlign(align);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Item {
+                    id: activeTabItem
+                    visible: !displayCanvas.isFullscreen
+                    width: parent.width
+                    implicitHeight: {
+                        if (root.currentTab === "display") return displayControls.implicitHeight;
+                        if (root.currentTab === "workspaces") return workspacesTabLoader.item ? workspacesTabLoader.item.implicitHeight : 300;
+                        return profilesTabLoader.item ? profilesTabLoader.item.implicitHeight : 300;
+                    }
 
                 // Tab 1: Display Properties Controls
                 DisplayControls {
@@ -334,6 +464,7 @@ Item {
                         }
                     }
                 }
+            }
             }
         }
 
