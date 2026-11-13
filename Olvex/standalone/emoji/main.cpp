@@ -509,16 +509,27 @@ public:
         saveSettings();
         emit recentEmojisChanged();
 
-        // Copy to Qt clipboard (both Clipboard and Selection)
-        if (QClipboard *cb = QGuiApplication::clipboard()) {
-            cb->setText(emojiText, QClipboard::Clipboard);
-            cb->setText(emojiText, QClipboard::Selection);
+        // Run wl-copy with /dev/null stdio so QProcess doesn't hang waiting for
+        // wl-copy's forked daemon to close pipes; parent exits in ~6ms once
+        // Wayland selection is claimed.
+        QProcess wlCopy;
+        wlCopy.setStandardInputFile(QProcess::nullDevice());
+        wlCopy.setStandardOutputFile(QProcess::nullDevice());
+        wlCopy.setStandardErrorFile(QProcess::nullDevice());
+        wlCopy.start(QStringLiteral("wl-copy"), QStringList() << QStringLiteral("--") << emojiText);
+        const bool wlCopyOk = wlCopy.waitForStarted(500)
+            && wlCopy.waitForFinished(1500)
+            && wlCopy.exitStatus() == QProcess::NormalExit
+            && wlCopy.exitCode() == 0;
+
+        if (!wlCopyOk) {
+            if (QClipboard *cb = QGuiApplication::clipboard()) {
+                cb->setText(emojiText, QClipboard::Clipboard);
+                cb->setText(emojiText, QClipboard::Selection);
+            }
         }
 
-        // Also run wl-copy detached so Wayland retains clipboard even after process exits
-        QProcess::startDetached(QStringLiteral("wl-copy"), QStringList() << QStringLiteral("--") << emojiText);
-
-        // Immediate graceful quit
+        // Immediate graceful quit after clipboard handoff is complete
         QTimer::singleShot(30, qApp, &QCoreApplication::quit);
     }
 
