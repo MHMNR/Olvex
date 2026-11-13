@@ -94,40 +94,29 @@ Item {
             readonly property color activeAccent: activeCat ? PaneRegistry.accentFor(activeCat) : Colours.palette.m3primary
             readonly property bool inSubpage: session.currentId !== "" || (session.pageId !== "" && !stack.returning)
 
-            // Home Header (Settings icon + Title)
+            // Home Header (Title only)
             Item {
                 id: homeHeader
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: 18
-                implicitWidth: homeHeaderRow.implicitWidth
-                implicitHeight: homeHeaderRow.implicitHeight
+                implicitWidth: homeHeaderTitle.implicitWidth
+                implicitHeight: homeHeaderTitle.implicitHeight
                 opacity: !topbar.inSubpage ? 1.0 : 0.0
                 visible: opacity > 0.001
                 enabled: !topbar.inSubpage
 
                 Behavior on opacity { Anim { type: Anim.FastEffects } }
 
-                RowLayout {
-                    id: homeHeaderRow
+                // title-large shell chrome — regular face
+                StyledText {
+                    id: homeHeaderTitle
                     anchors.centerIn: parent
-                    spacing: Tokens.spacing.normal
-
-                    MaterialIcon {
-                        text: "settings"
-                        fill: 1
-                        color: Colours.palette.m3primary
-                        iconPointSize: Tokens.font.size.large
-                    }
-
-                    // title-large shell chrome — regular face
-                    StyledText {
-                        text: qsTr("Settings")
-                        font.weight: Font.Normal
-                        font.letterSpacing: -0.15
-                        color: Colours.palette.m3onSurface
-                        textPointSize: Tokens.font.size.large
-                    }
+                    text: qsTr("Settings")
+                    font.weight: Font.Normal
+                    font.letterSpacing: -0.15
+                    color: Colours.palette.m3onSurface
+                    textPointSize: Tokens.font.size.large
                 }
             }
 
@@ -682,7 +671,7 @@ Item {
                             index: index
                             icon: modelData.icon
                             title: modelData.title
-                            subtitle: modelData.sub
+                            subtitle: PaneRegistry.subtitleFor(modelData)
                             accent: PaneRegistry.accentFor(modelData)
                             kind: modelData.kind ?? ""
                             tall: (modelData.h ?? 1) >= 2

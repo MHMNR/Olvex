@@ -23,7 +23,7 @@ Item {
     property bool hovered: false
 
     // Safe inset — pills/thumbs never kiss card radius (clip lives here)
-    readonly property int inset: (root.kind === "sound" || root.kind === "power") ? 0 : 4
+    readonly property int inset: 4
     clip: true
 
     // Shared motion helpers
@@ -80,7 +80,7 @@ Item {
 
         anchors.fill: parent
         anchors.margins: root.inset
-        active: root.kind !== "" && root.width > 8
+        active: root.kind !== "" && root.kind !== "sound" && root.kind !== "power" && root.width > 8
         asynchronous: true
         sourceComponent: {
             switch (root.kind) {
@@ -90,8 +90,6 @@ Item {
                 return cDisplay;
             case "wallpaper":
                 return cWallpaper;
-            case "sound":
-                return cSound;
             case "network":
                 return cNetwork;
             case "notifications":
@@ -102,8 +100,6 @@ Item {
                 return cBar;
             case "panels":
                 return cPanels;
-            case "power":
-                return cPower;
             case "lock":
                 return cLock;
             case "about":
@@ -128,12 +124,13 @@ Item {
         property int stagger: 0
         // Cap to parent width when available so dual rows never overflow
         property real maxWidth: parent && parent.width > 0 ? parent.width : 200
+        readonly property color effectiveFg: root.hovered ? Colours.palette.m3onPrimary : pill.fg
 
         readonly property real contentW: row.implicitWidth + Tokens.padding.normal * 2
         implicitWidth: Math.min(contentW, maxWidth, maxLabelW + (icon !== "" ? 22 : 0) + Tokens.padding.normal * 2)
         implicitHeight: 22
         radius: height / 2
-        color: root.hovered ? Qt.alpha(pill.fg, 0.18) : pill.bg
+        color: root.hovered ? Qt.alpha(Colours.palette.m3onPrimary, 0.18) : pill.bg
         clip: false
         antialiasing: true
         smooth: true
@@ -154,19 +151,27 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pill.icon
                 fill: 1
-                color: pill.fg
+                color: pill.effectiveFg
                 iconPointSize: Tokens.font.size.smaller
+
+                Behavior on color {
+                    CAnim {}
+                }
             }
 
             StyledText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: pill.label
-                color: pill.fg
+                color: pill.effectiveFg
                 font.weight: Font.Normal
                 font.letterSpacing: 0.1
                 textPointSize: Tokens.font.size.small
                 elide: Text.ElideRight
                 width: Math.min(implicitWidth, pill.maxLabelW)
+
+                Behavior on color {
+                    CAnim {}
+                }
             }
         }
     }
@@ -246,8 +251,12 @@ Item {
                 text: "Aa"
                 font.family: Tokens.font.family.sans
                 font.weight: Font.Normal
-                color: Colours.palette.m3onSurface
+                color: root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                 textPointSize: 34
+
+                Behavior on color {
+                    CAnim {}
+                }
             }
         }
     }
@@ -712,9 +721,12 @@ Item {
                         width: 5
                         height: modelData
                         radius: 2.5
-                        color: index < 3 ? root.accent : Qt.alpha(Colours.palette.m3onSurface, 0.16)
+                        color: index < 3
+                            ? (root.hovered ? Colours.palette.m3onPrimary : root.accent)
+                            : Qt.alpha(root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface, root.hovered ? 0.30 : 0.16)
                         opacity: root.hovered ? 1.0 : (index < 3 ? 0.90 : 1.0)
 
+                        Behavior on color { CAnim {} }
                         Behavior on opacity { Anim { type: Anim.FastEffects } }
                     }
                 }
@@ -742,7 +754,9 @@ Item {
                     width: 74
                     height: 26
                     radius: 9
-                    color: Qt.alpha(Colours.palette.m3onSurface, 0.10)
+                    color: Qt.alpha(root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface, 0.12)
+
+                    Behavior on color { CAnim {} }
                 }
 
                 // Foreground active toast card
@@ -754,7 +768,7 @@ Item {
                     width: 84
                     height: 30
                     radius: 10
-                    color: Qt.alpha(root.accent, root.hovered ? 0.35 : 0.25)
+                    color: root.hovered ? Qt.alpha(Colours.palette.m3onPrimary, 0.22) : Qt.alpha(root.accent, 0.25)
 
                     Behavior on color { CAnim {} }
 
@@ -769,7 +783,9 @@ Item {
                             width: 14
                             height: 14
                             radius: 7
-                            color: Qt.alpha(Colours.palette.m3onSurface, 0.65)
+                            color: Qt.alpha(root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface, 0.65)
+
+                            Behavior on color { CAnim {} }
                         }
 
                         // Message lines
@@ -781,14 +797,18 @@ Item {
                                 width: 40
                                 height: 3.5
                                 radius: 1.75
-                                color: Qt.alpha(Colours.palette.m3onSurface, 0.85)
+                                color: Qt.alpha(root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface, 0.85)
+
+                                Behavior on color { CAnim {} }
                             }
 
                             Rectangle {
                                 width: 24
                                 height: 3
                                 radius: 1.5
-                                color: Qt.alpha(Colours.palette.m3onSurface, 0.40)
+                                color: Qt.alpha(root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface, 0.45)
+
+                                Behavior on color { CAnim {} }
                             }
                         }
                     }
@@ -851,10 +871,14 @@ Item {
 
                     delegate: Rectangle {
                         required property int index
+                        readonly property color fg: root.hovered ? Colours.palette.m3onPrimary : root.accent
+
                         width: 15
                         height: 15
                         radius: 4.5
-                        color: index === 0 ? root.accent : Qt.alpha(root.accent, 0.32)
+                        color: index === 0 ? fg : Qt.alpha(fg, 0.35)
+
+                        Behavior on color { CAnim {} }
                     }
                 }
             }
@@ -1048,14 +1072,18 @@ Item {
                             width: parent.width
                             height: 4
                             radius: 2
-                            color: Qt.alpha(Colours.palette.m3onSurface, 0.14)
+                            color: Qt.alpha(root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface, root.hovered ? 0.26 : 0.14)
+
+                            Behavior on color { CAnim {} }
 
                             // Active filled track
                             Rectangle {
                                 width: parent.width * parent.parent.fill
                                 height: parent.height
                                 radius: parent.radius
-                                color: root.accent
+                                color: root.hovered ? Colours.palette.m3onPrimary : root.accent
+
+                                Behavior on color { CAnim {} }
 
                                 Behavior on width {
                                     Anim {
@@ -1073,7 +1101,9 @@ Item {
                             width: 12
                             height: 12
                             radius: 6
-                            color: Colours.palette.m3onSurface
+                            color: root.hovered ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
+
+                            Behavior on color { CAnim {} }
 
                             Behavior on x {
                                 Anim {

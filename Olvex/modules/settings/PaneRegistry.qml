@@ -4,7 +4,9 @@ import "../../components"
 import "../../components/controls"
 import "../../components/containers"
 import QtQuick
+import Quickshell.Services.UPower
 import qs.services
+import qs.utils
 
 QtObject {
     id: root
@@ -37,7 +39,7 @@ QtObject {
             label: "network",
             icon: "wifi",
             title: "Network",
-            sub: (typeof Network !== "undefined" && Network.wifiSsid) ? Network.wifiSsid : "Home_WiFi_5G",
+            sub: "Wi-Fi & Ethernet",
             accentRole: "m3primary",
             kind: "network",
             c: 2,
@@ -51,7 +53,7 @@ QtObject {
             label: "sound",
             icon: "volume_up",
             title: "Sound",
-            sub: (typeof Audio !== "undefined" && Audio.sinkName) ? Audio.sinkName : "Headphones",
+            sub: "Output & volume",
             accentRole: "m3secondary",
             kind: "sound",
             c: 2,
@@ -65,7 +67,7 @@ QtObject {
             label: "power",
             icon: "battery_charging_full",
             title: "Power",
-            sub: "72%, balanced",
+            sub: "Battery & power profile",
             accentRole: "m3primary",
             kind: "power",
             c: 3,
@@ -135,7 +137,7 @@ QtObject {
             label: "about",
             icon: "deployed_code",
             title: "About Olvex",
-            sub: "Version and links",
+            sub: "Version & system info",
             accentRole: "m3primary",
             kind: "about",
             c: 2,
@@ -145,6 +147,55 @@ QtObject {
             component: "about/AboutPage.qml"
         }
     ]
+
+    function subtitleFor(cat) {
+        if (!cat)
+            return "";
+        switch (cat.id) {
+        case "network":
+            if (typeof Network !== "undefined") {
+                if (Network.active && Network.active.ssid)
+                    return Network.active.ssid;
+                if (Network.ethernetConnected)
+                    return (Network.activeEthernet && (Network.activeEthernet.connection || Network.activeEthernet.interface)) || qsTr("Ethernet");
+                return Network.wifiEnabled ? qsTr("Disconnected") : qsTr("Wi-Fi off");
+            }
+            return cat.sub || "";
+        case "sound":
+            if (typeof Audio !== "undefined") {
+                const sinkName = Audio.sink ? (Audio.sink.description || Audio.sink.name || qsTr("Audio output")) : qsTr("No output");
+                const volPct = Math.round((Audio.volume || 0) * 100);
+                return Audio.muted ? qsTr("Muted · %1").arg(sinkName) : qsTr("%1% · %2").arg(volPct).arg(sinkName);
+            }
+            return cat.sub || "";
+        case "power":
+            if (typeof UPower !== "undefined") {
+                const hasBatt = !!(UPower.displayDevice && UPower.displayDevice.isPresent);
+                let prof = qsTr("Balanced");
+                if (typeof PowerProfiles !== "undefined") {
+                    if (PowerProfiles.profile === PowerProfile.PowerSaver)
+                        prof = qsTr("Power saver");
+                    else if (PowerProfiles.profile === PowerProfile.Performance)
+                        prof = qsTr("Performance");
+                }
+                if (hasBatt) {
+                    const pct = Math.round(UPower.displayDevice.percentage * 100);
+                    return !UPower.onBattery ? qsTr("%1% · Charging").arg(pct) : qsTr("%1% · %2").arg(pct).arg(prof);
+                }
+                return qsTr("%1 mode").arg(prof);
+            }
+            return cat.sub || "";
+        case "about":
+            if (typeof Version !== "undefined") {
+                const ver = Version.versionString || ("v" + Version.version);
+                const detail = Version.commit ? Version.commit : (typeof SysInfo !== "undefined" ? SysInfo.kernelFormatted : "");
+                return detail ? (ver + " · " + detail) : ver;
+            }
+            return cat.sub || "";
+        default:
+            return cat.sub || "";
+        }
+    }
 
     readonly property int count: categories.length
 
