@@ -700,12 +700,6 @@ void WallpaperEngine::applyHyprlandScheme(const QJsonObject& colours) {
 
     const QString userPath = QDir::homePath() + QStringLiteral("/.config/hypr/scheme/current.lua");
     writeTextAtomic(userPath, lua);
-
-    // Rule 9: Mandatory two-way sync with Github/.config/hypr
-    const QString repoPath = QStringLiteral("/home/abm/Projects/QS-Config/Github/.config/hypr/scheme/current.lua");
-    if (QFileInfo::exists(QStringLiteral("/home/abm/Projects/QS-Config/Github/.config/hypr"))) {
-        writeTextAtomic(repoPath, lua);
-    }
 }
 
 void WallpaperEngine::applyTerminalSequences(const QJsonObject& colours) {
