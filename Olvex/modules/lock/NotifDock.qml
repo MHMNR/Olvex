@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.components.containers
@@ -16,32 +17,55 @@ ColumnLayout {
     required property var lock
 
     anchors.fill: parent
-    anchors.margins: Tokens.padding.large
+    anchors.margins: 14
 
-    spacing: Tokens.spacing.smaller
+    spacing: 8
 
-    // ── Header row ──────────────────────────────────────────────────────────
-    RowLayout {
+    // ── Signature M3 Header Pill ─────────────────────────────────────────────
+    StyledRect {
         Layout.fillWidth: true
-        Layout.bottomMargin: Tokens.spacing.smaller
+        Layout.preferredHeight: 34
+        radius: Tokens.rounding.small
+        color: Colours.tileFill
 
-        StyledText {
-            Layout.fillWidth: true
-            text: qsTr("NOTIFICATIONS")
-            color: Qt.alpha(Colours.palette.m3outline, 0.6)
-            font.family: Tokens.font.family.mono
-            textPointSize: Tokens.font.size.smaller
-            font.weight: 600
-        }
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 10
+            anchors.rightMargin: 8
+            spacing: 8
 
-        // Status dot
-        Rectangle {
-            implicitWidth:  8
-            implicitHeight: 8
-            radius: 4
-            color: Notifs.list.length > 0 ? Colours.palette.m3secondary : Qt.alpha(Colours.palette.m3outline, 0.4)
+            Rectangle {
+                Layout.preferredWidth: 3
+                Layout.fillHeight: true
+                Layout.topMargin: 7
+                Layout.bottomMargin: 7
+                radius: 1.5
+                color: Colours.palette.m3primary
+            }
 
-            Behavior on color { ColorAnimation { duration: 300 } }
+            StyledText {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                text: qsTr("Notifications")
+                color: Colours.palette.m3onSurface
+                textPointSize: Tokens.font.size.normal
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            StyledText {
+                Layout.alignment: Qt.AlignVCenter
+                text: GlobalConfig.lock.hideNotifs
+                    ? qsTr("Hidden")
+                    : (Notifs.notClosed.length > 0 ? qsTr("%1 new").arg(Notifs.notClosed.length) : qsTr("Clear"))
+                color: Notifs.notClosed.length > 0 && !GlobalConfig.lock.hideNotifs
+                    ? Colours.palette.m3primary
+                    : Colours.palette.m3onSurfaceVariant
+                font.family: Tokens.font.family.mono
+                textPointSize: Tokens.font.size.smaller - 2
+                font.weight: Font.Bold
+            }
         }
     }
 
@@ -56,37 +80,48 @@ ColumnLayout {
 
         Loader {
             asynchronous: true
-            anchors.centerIn: parent
+            anchors.fill: parent
             active: opacity > 0
-            opacity: Notifs.list.length > 0 && !GlobalConfig.lock.hideNotifs ? 0 : 1
+            opacity: Notifs.notClosed.length > 0 && !GlobalConfig.lock.hideNotifs ? 0 : 1
 
-            sourceComponent: ColumnLayout {
-                spacing: Tokens.spacing.large
-                Layout.alignment: Qt.AlignHCenter
+            sourceComponent: StyledRect {
+                radius: Tokens.rounding.small
+                color: Colours.tileFill
 
-                Image {
-                    Layout.alignment: Qt.AlignHCenter
-                    source: Paths.absolutePath("root:/assets/bone.png")
-                    fillMode: Image.PreserveAspectFit
-                    sourceSize.width: 112
-                    sourceSize.height: 112
-                    Layout.preferredWidth: 112
-                    Layout.preferredHeight: 112
+                ColumnLayout {
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - 24, 240)
+                    spacing: 8
 
-                    layer.enabled: true
-                    layer.effect: Colouriser {
-                        colorizationColor: Colours.palette.m3outlineVariant
-                        opacity: 0.4
+                    MaterialShape {
+                        Layout.alignment: Qt.AlignHCenter
+                        implicitSize: 64
+                        shape: MaterialShape.Cookie12Sided
+                        color: Qt.alpha(Colours.palette.m3primary, 0.16)
+
+                        Image {
+                            anchors.centerIn: parent
+                            source: Paths.absolutePath("root:/assets/bone.png")
+                            fillMode: Image.PreserveAspectFit
+                            sourceSize.width: 28
+                            sourceSize.height: 28
+                            width: 28
+                            height: 28
+
+                            layer.enabled: true
+                            layer.effect: Colouriser {
+                                colorizationColor: Colours.palette.m3primary
+                            }
+                        }
                     }
-                }
 
-                StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: GlobalConfig.lock.hideNotifs ? qsTr("Unlock for Notifications") : qsTr("Systems clear")
-                    color: Qt.alpha(Colours.palette.m3outlineVariant, 0.4)
-                    textPointSize: Tokens.font.size.large
-                    font.family: Tokens.font.family.mono
-                    font.weight: 500
+                    StyledText {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: GlobalConfig.lock.hideNotifs ? qsTr("Notifications hidden") : qsTr("All caught up")
+                        color: Colours.palette.m3onSurface
+                        textPointSize: Tokens.font.size.normal
+                        font.weight: Font.DemiBold
+                    }
                 }
             }
 

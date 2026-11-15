@@ -12,7 +12,7 @@ Item {
     property real overrideDayCycle: -1.0
     property real overrideMoonPhase: -1.0
 
-    readonly property bool shaderReady: fx.status === ShaderEffect.Compiled
+    readonly property bool shaderReady: fx.status !== ShaderEffect.Error
     readonly property real elapsed: clock.elapsed
     readonly property real targetCycle: root.overrideDayCycle >= 0.0 ? root.overrideDayCycle : Weather.dayCycle
     property real continuousCycle: targetCycle

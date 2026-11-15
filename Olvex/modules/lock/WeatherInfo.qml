@@ -1,191 +1,196 @@
-
 import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
 import qs.components
 import qs.services
+import "../dashboard/dash"
 
-ColumnLayout {
+Item {
     id: root
 
     required property int rootHeight
 
     anchors.fill: parent
-    anchors.margins: Tokens.padding.large
-    spacing: Tokens.spacing.normal
 
-    // ── Header Bar ───────────────────────────────────────────────────────────
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: 8
+    readonly property string cityLabel: {
+        const raw = Weather.city || qsTr("Weather");
+        return raw.replace(/\S+/g, function (word) {
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        });
+    }
 
-        StyledRect {
-            implicitWidth: 24
-            implicitHeight: 24
-            radius: Tokens.rounding.small
-            color: Qt.alpha(Colours.palette.m3primary, 0.15)
+    readonly property string detailLine: {
+        if (!Weather.hasData)
+            return qsTr("Loading…");
+        const parts = [];
+        if (Weather.description)
+            parts.push(Weather.description);
+        if (Weather.feelsLike)
+            parts.push(qsTr("feels %1").arg(Weather.feelsLike));
+        return parts.join(" · ");
+    }
 
-            MaterialIcon {
-                anchors.centerIn: parent
-                text: Weather.icon || "cloud"
-                color: Colours.palette.m3primary
-                iconPointSize: 14
-            }
-        }
+    Component.onCompleted: Weather.reload()
 
-        StyledText {
-            Layout.fillWidth: true
-            text: (Weather.city || qsTr("WEATHER")).toUpperCase()
-            color: Colours.palette.m3outline
-            font.family: Tokens.font.family.mono
-            textPointSize: Tokens.font.size.smaller
-            font.weight: Font.Bold
-            font.letterSpacing: 1
-            elide: Text.ElideRight
+    // Live animated sky/weather shader background (clipped cleanly to card rounding)
+    StyledClippingRect {
+        anchors.fill: parent
+        z: 0
+        radius: Tokens.rounding.large
+        color: "transparent"
+        clip: true
+
+        WeatherBg {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: Math.round(parent.height * 1.75)
+            bgOpacity: Colours.light ? 0.55 : 0.82
+            active: LockState.locked
         }
     }
 
-    // ── Hero Temperature Row ──────────────────────────────────────────────────
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: Tokens.spacing.large
+    ColumnLayout {
+        z: 1
+        anchors.fill: parent
+        anchors.margins: 12
+        spacing: 6
 
-        StyledText {
-            text: Weather.temp || "27°C"
-            color: Colours.palette.m3onSurface
-            textPointSize: 36
-            font.weight: Font.Black
+        // ── Signature M3 Header Pill (matches Dashboard SmallWeather) ────────
+        StyledRect {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 30
+            radius: Tokens.rounding.small
+            color: Colours.tileFill
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 8
+                spacing: 8
+
+                Rectangle {
+                    Layout.preferredWidth: 3
+                    Layout.fillHeight: true
+                    Layout.topMargin: 6
+                    Layout.bottomMargin: 6
+                    radius: 1.5
+                    color: Colours.palette.m3primary
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    text: root.cityLabel
+                    color: Colours.palette.m3onSurface
+                    textPointSize: Tokens.font.size.normal
+                    font.weight: Font.DemiBold
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                }
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 4
+
+                    MaterialIcon {
+                        text: Weather.icon
+                        color: Colours.palette.m3primary
+                        iconPointSize: 13
+                    }
+
+                    StyledText {
+                        text: Weather.todayHighLow
+                        color: Colours.palette.m3onSurfaceVariant
+                        font.family: Tokens.font.family.mono
+                        textPointSize: Tokens.font.size.smaller - 2
+                        font.weight: Font.Bold
+                    }
+                }
+            }
         }
 
+        // ── Open-Sky Hero Area (left temp/detail, right sky left completely open) ──
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.leftMargin: 2
             spacing: 2
 
+            Item { Layout.fillHeight: true }
+
             StyledText {
-                text: Weather.description || qsTr("Overcast")
-                color: Colours.palette.m3onSurface
-                textPointSize: Tokens.font.size.normal
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
+                Layout.fillWidth: true
+                text: Weather.hasData ? Weather.temp : "--°"
+                textPointSize: Tokens.font.size.extraLarge
+                font.weight: Font.Black
+                font.family: Tokens.font.family.mono
+                color: Colours.palette.m3primary
             }
 
             StyledText {
-                text: Weather.todayHighLow ? `${Weather.todayHighLow} • Feels ${Weather.feelsLike}` : qsTr("Feels like %1").arg(Weather.feelsLike || Weather.temp || "27°C")
-                color: Colours.palette.m3outline
-                textPointSize: Tokens.font.size.smaller
+                Layout.fillWidth: true
+                text: root.detailLine
+                textPointSize: Tokens.font.size.smaller - 1
+                font.weight: Font.Medium
+                color: Colours.palette.m3onSurface
+                opacity: 0.92
                 elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            Item { Layout.fillHeight: true }
+        }
+
+        // ── Compact Bottom Stats Row (keeps upper/right sky clear for Moon/Sun) ──
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            HeroStat {
+                icon: "water_drop"
+                value: `${Weather.humidity}%`
+            }
+
+            HeroStat {
+                icon: "air"
+                value: Weather.windLabel
+            }
+
+            HeroStat {
+                icon: Weather.isDay ? "wb_twilight" : "wb_sunny"
+                value: Weather.isDay ? Weather.sunset : Weather.sunrise
             }
         }
     }
 
-    // ── Enriched 4-Chip Info Grid (Humidity, Wind, Sunrise, Sunset) ─────────
-    GridLayout {
+    component HeroStat: StyledRect {
+        id: stat
+
+        required property string icon
+        required property string value
+
         Layout.fillWidth: true
-        columns: 2
-        columnSpacing: 8
-        rowSpacing: 6
+        implicitHeight: 22
+        radius: Tokens.rounding.small
+        color: Colours.tileFill
 
-        // Humidity Chip
-        StyledRect {
-            Layout.fillWidth: true
-            implicitHeight: 26
-            radius: Tokens.rounding.small
-            color: Qt.alpha(Colours.palette.m3tertiary, 0.12)
+        RowLayout {
+            anchors.centerIn: parent
+            spacing: 4
 
-            RowLayout {
-                anchors.centerIn: parent
-                spacing: 4
-
-                MaterialIcon {
-                    text: "water_drop"
-                    color: Colours.palette.m3tertiary
-                    iconPointSize: 11
-                }
-
-                StyledText {
-                    text: `${Weather.humidity}%`
-                    color: Colours.palette.m3tertiary
-                    textPointSize: Tokens.font.size.smaller - 1
-                    font.weight: Font.Bold
-                }
+            MaterialIcon {
+                text: stat.icon
+                iconPointSize: 12
+                color: Colours.palette.m3primary
             }
-        }
 
-        // Wind Chip
-        StyledRect {
-            Layout.fillWidth: true
-            implicitHeight: 26
-            radius: Tokens.rounding.small
-            color: Qt.alpha(Colours.palette.m3secondary, 0.12)
-
-            RowLayout {
-                anchors.centerIn: parent
-                spacing: 4
-
-                MaterialIcon {
-                    text: "air"
-                    color: Colours.palette.m3secondary
-                    iconPointSize: 11
-                }
-
-                StyledText {
-                    text: Weather.windLabel || "12 km/h"
-                    color: Colours.palette.m3secondary
-                    textPointSize: Tokens.font.size.smaller - 1
-                    font.weight: Font.Bold
-                }
-            }
-        }
-
-        // Sunrise Chip
-        StyledRect {
-            Layout.fillWidth: true
-            implicitHeight: 26
-            radius: Tokens.rounding.small
-            color: Qt.alpha(Colours.palette.m3primary, 0.12)
-
-            RowLayout {
-                anchors.centerIn: parent
-                spacing: 4
-
-                MaterialIcon {
-                    text: "wb_sunny"
-                    color: Colours.palette.m3primary
-                    iconPointSize: 11
-                }
-
-                StyledText {
-                    text: Weather.sunrise || "5:45 AM"
-                    color: Colours.palette.m3primary
-                    textPointSize: Tokens.font.size.smaller - 1
-                    font.weight: Font.Bold
-                }
-            }
-        }
-
-        // Sunset Chip
-        StyledRect {
-            Layout.fillWidth: true
-            implicitHeight: 26
-            radius: Tokens.rounding.small
-            color: Qt.alpha(Colours.palette.m3secondary, 0.12)
-
-            RowLayout {
-                anchors.centerIn: parent
-                spacing: 4
-
-                MaterialIcon {
-                    text: "nights_stay"
-                    color: Colours.palette.m3secondary
-                    iconPointSize: 11
-                }
-
-                StyledText {
-                    text: Weather.sunset || "6:35 PM"
-                    color: Colours.palette.m3secondary
-                    textPointSize: Tokens.font.size.smaller - 1
-                    font.weight: Font.Bold
-                }
+            StyledText {
+                text: stat.value
+                textPointSize: Tokens.font.size.smaller - 2
+                font.family: Tokens.font.family.mono
+                font.weight: Font.DemiBold
+                color: Colours.palette.m3onSurface
             }
         }
     }

@@ -227,9 +227,11 @@ Singleton {
         path: `${Paths.state}/notifs.json`
         onLoaded: {
             const data = JSON.parse(text());
+            const loadedList = [];
             for (const notif of data)
-                root.list.push(notifComp.createObject(root, notif));
-            root.list.sort((a, b) => b.time - a.time);
+                loadedList.push(notifComp.createObject(root, notif));
+            loadedList.sort((a, b) => b.time - a.time);
+            root.list = loadedList;
             root.loaded = true;
         }
         onLoadFailed: err => {

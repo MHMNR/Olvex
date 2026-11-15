@@ -8,10 +8,10 @@ Singleton {
     id: root
 
     property alias enabled: clock.enabled
-    readonly property date date: clock.date
-    readonly property int hours: clock.hours
-    readonly property int minutes: clock.minutes
-    readonly property int seconds: clock.seconds
+    readonly property date date: clock.date ?? new Date()
+    readonly property int hours: clock.hours ?? 0
+    readonly property int minutes: clock.minutes ?? 0
+    readonly property int seconds: clock.seconds ?? 0
 
     readonly property string timeStr: format(GlobalConfig.services.useTwelveHourClock ? "hh:mm:A" : "hh:mm")
     readonly property var timeComponents: timeStr.split(":")
@@ -20,7 +20,7 @@ Singleton {
     readonly property string amPmStr: timeComponents && timeComponents[2] !== undefined ? timeComponents[2] : ""
 
     function format(fmt: string): string {
-        return Qt.formatDateTime(clock.date, fmt);
+        return Qt.formatDateTime(root.date, fmt) ?? "";
     }
 
     property int secondsRefCount: 0

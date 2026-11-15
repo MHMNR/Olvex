@@ -2,6 +2,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Widgets
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.components.containers
@@ -134,37 +135,35 @@ Item {
             sourceComponent: ColumnLayout {
                 spacing: Tokens.spacing.small
 
-                StyledRect {
+                MaterialShape {
                     Layout.alignment: Qt.AlignHCenter
-                    implicitWidth: 48
-                    implicitHeight: 48
-                    radius: Tokens.rounding.normal
-                    color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, Colours.light ? 0.8 : 0.45)
+                    implicitSize: 64
+                    shape: MaterialShape.Cookie12Sided
+                    color: Qt.alpha(Colours.palette.m3primary, 0.16)
 
-                    MaterialIcon {
+                    Image {
                         anchors.centerIn: parent
-                        text: "notifications_off"
-                        color: Colours.palette.m3onSurfaceVariant
-                        iconPointSize: Tokens.font.size.large
+                        source: Paths.absolutePath("root:/assets/bone.png")
+                        fillMode: Image.PreserveAspectFit
+                        sourceSize.width: 28
+                        sourceSize.height: 28
+                        width: 28
+                        height: 28
+
+                        layer.enabled: true
+                        layer.effect: Colouriser {
+                            colorizationColor: Colours.palette.m3primary
+                        }
                     }
                 }
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("All clear")
+                    text: qsTr("All caught up")
                     color: Colours.palette.m3onSurface
                     textPointSize: Tokens.font.size.normal
                     font.weight: Font.DemiBold
-                }
-
-                StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    text: qsTr("New alerts land here")
-                    color: Colours.palette.m3onSurfaceVariant
-                    textPointSize: Tokens.font.size.small
-                    opacity: 1.0
                 }
             }
 

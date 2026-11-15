@@ -45,7 +45,7 @@ RowLayout {
         // other 5 cards pay zero cost for it.
         property int elevationLevel: 0
         property real slideOffset: 0
-        property bool showBorder: true
+        property bool showBorder: false
 
         radius: Tokens.rounding.large
 

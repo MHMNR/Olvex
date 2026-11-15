@@ -1,4 +1,3 @@
-
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Services.UPower
@@ -11,158 +10,178 @@ ColumnLayout {
     id: root
 
     anchors.fill: parent
-    anchors.margins: Tokens.padding.large
-    spacing: Tokens.spacing.normal
+    anchors.margins: 14
+    spacing: 8
 
-    // ── Header Chip ───────────────────────────────────────────────────────────
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: 8
-
-        StyledRect {
-            implicitWidth: 24
-            implicitHeight: 24
-            color: Qt.alpha(Colours.palette.m3primary, 0.15)
-            radius: Tokens.rounding.small
-
-            MaterialIcon {
-                anchors.centerIn: parent
-                text: "computer"
-                color: Colours.palette.m3primary
-                iconPointSize: 14
-            }
-        }
-
-        StyledText {
-            Layout.fillWidth: true
-            text: (SysInfo.osPrettyName || SysInfo.osName || qsTr("CACHYOS")).toUpperCase()
-            color: Colours.palette.m3outline
-            font.family: Tokens.font.family.mono
-            textPointSize: Tokens.font.size.smaller
-            font.weight: Font.Bold
-            font.letterSpacing: 1
-            elide: Text.ElideRight
-        }
+    readonly property string osTitle: {
+        const raw = SysInfo.osPrettyName || SysInfo.osName || qsTr("Arch Linux");
+        return raw;
     }
 
-    // ── Grid Stats List ───────────────────────────────────────────────────────
-    ColumnLayout {
+    // ── Signature M3 Header Pill ─────────────────────────────────────────────
+    StyledRect {
         Layout.fillWidth: true
-        spacing: 6
+        Layout.preferredHeight: 32
+        radius: Tokens.rounding.small
+        color: Colours.tileFill
 
-        // WM Row
         RowLayout {
-            Layout.fillWidth: true
+            anchors.fill: parent
+            anchors.leftMargin: 10
+            anchors.rightMargin: 8
+            spacing: 8
 
-            RowLayout {
-                spacing: 6
-                MaterialIcon {
-                    text: "desktop_windows"
-                    color: Colours.palette.m3primary
-                    iconPointSize: 14
-                }
-                StyledText {
-                    text: "WM"
-                    color: Colours.palette.m3outline
-                    textPointSize: Tokens.font.size.small
-                    font.weight: Font.Medium
-                }
+            Rectangle {
+                Layout.preferredWidth: 3
+                Layout.fillHeight: true
+                Layout.topMargin: 7
+                Layout.bottomMargin: 7
+                radius: 1.5
+                color: Colours.palette.m3secondary
             }
-
-            Item { Layout.fillWidth: true }
 
             StyledText {
-                text: SysInfo.wm || "Hyprland"
-                color: Colours.palette.m3primary
-                textPointSize: Tokens.font.size.small
-                font.weight: Font.Bold
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                text: root.osTitle
+                color: Colours.palette.m3onSurface
+                textPointSize: Tokens.font.size.normal
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+                maximumLineCount: 1
             }
-        }
-
-        // User Row
-        RowLayout {
-            Layout.fillWidth: true
 
             RowLayout {
-                spacing: 6
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 4
+
                 MaterialIcon {
                     text: "person"
                     color: Colours.palette.m3secondary
-                    iconPointSize: 14
+                    iconPointSize: 12
                 }
+
                 StyledText {
-                    text: "User"
-                    color: Colours.palette.m3outline
-                    textPointSize: Tokens.font.size.small
-                    font.weight: Font.Medium
+                    text: SysInfo.user
+                    color: Colours.palette.m3onSurfaceVariant
+                    font.family: Tokens.font.family.mono
+                    textPointSize: Tokens.font.size.smaller - 2
+                    font.weight: Font.Bold
                 }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            StyledText {
-                text: SysInfo.user || "abm"
-                color: Colours.palette.m3secondary
-                textPointSize: Tokens.font.size.small
-                font.weight: Font.Bold
             }
         }
+    }
 
-        // Uptime Row
-        RowLayout {
-            Layout.fillWidth: true
+    // ── 2x2 Expressive Tonal Bento Grid ──────────────────────────────────────
+    GridLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        columns: 2
+        columnSpacing: 8
+        rowSpacing: 6
 
-            RowLayout {
-                spacing: 6
-                MaterialIcon {
-                    text: "schedule"
-                    color: Colours.palette.m3tertiary
-                    iconPointSize: 14
-                }
-                StyledText {
-                    text: "Uptime"
-                    color: Colours.palette.m3outline
-                    textPointSize: Tokens.font.size.small
-                    font.weight: Font.Medium
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            StyledText {
-                text: SysInfo.uptime || "4h 26m"
-                color: Colours.palette.m3tertiary
-                textPointSize: Tokens.font.size.small
-                font.weight: Font.Bold
-            }
+        InfoTile {
+            icon: "desktop_windows"
+            label: qsTr("WM")
+            value: SysInfo.wm || "Hyprland"
+            accent: Colours.palette.m3primary
         }
 
-        // Battery / Power Row
-        RowLayout {
-            Layout.fillWidth: true
+        InfoTile {
+            icon: "terminal"
+            label: qsTr("SHELL")
+            value: SysInfo.shell || "Fish"
+            accent: Colours.palette.m3secondary
+        }
 
-            RowLayout {
-                spacing: 6
+        InfoTile {
+            icon: "schedule"
+            label: qsTr("UPTIME")
+            value: SysInfo.uptime || "0m"
+            accent: Colours.palette.m3tertiary
+            monoValue: true
+        }
+
+        InfoTile {
+            icon: {
+                if (!UPower.displayDevice || !UPower.displayDevice.isLaptopBattery)
+                    return "bolt";
+                const p = Math.round(UPower.displayDevice.percentage * 100);
+                if (UPower.displayDevice.state === UPowerDeviceState.Charging)
+                    return "battery_charging_full";
+                if (p >= 90) return "battery_full";
+                if (p >= 60) return "battery_5_bar";
+                if (p >= 30) return "battery_3_bar";
+                return "battery_alert";
+            }
+            label: qsTr("POWER")
+            value: UPower.displayDevice && UPower.displayDevice.isLaptopBattery
+                ? `${Math.round(UPower.displayDevice.percentage * 100)}%`
+                : qsTr("AC")
+            accent: Colours.palette.m3primary
+            monoValue: true
+        }
+    }
+
+    component InfoTile: StyledRect {
+        id: tile
+
+        required property string icon
+        required property string label
+        required property string value
+        required property color accent
+        property bool monoValue: false
+
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        radius: Tokens.rounding.small
+        color: Colours.tileFill
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            spacing: 8
+
+            StyledRect {
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: 26
+                implicitHeight: 26
+                radius: Tokens.rounding.small
+                color: Qt.alpha(tile.accent, 0.16)
+
                 MaterialIcon {
-                    text: UPower.displayDevice && UPower.displayDevice.state === UPowerDeviceState.Charging ? "battery_charging_full" : "battery_full"
-                    color: Colours.palette.m3primary
+                    anchors.centerIn: parent
+                    text: tile.icon
+                    color: tile.accent
                     iconPointSize: 14
-                }
-                StyledText {
-                    text: "Power"
-                    color: Colours.palette.m3outline
-                    textPointSize: Tokens.font.size.small
-                    font.weight: Font.Medium
                 }
             }
 
-            Item { Layout.fillWidth: true }
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 0
 
-            StyledText {
-                text: UPower.displayDevice ? (UPower.displayDevice.state === UPowerDeviceState.Charging ? `${Math.round(UPower.displayDevice.percentage * 100)}% ⚡` : `${Math.round(UPower.displayDevice.percentage * 100)}%`) : "AC Power"
-                color: Colours.palette.m3primary
-                textPointSize: Tokens.font.size.small
-                font.weight: Font.Bold
+                StyledText {
+                    text: tile.label
+                    color: Colours.palette.m3onSurfaceVariant
+                    font.family: Tokens.font.family.mono
+                    textPointSize: 8
+                    font.weight: Font.Bold
+                    font.letterSpacing: 0.6
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: tile.value
+                    color: Colours.palette.m3onSurface
+                    font.family: tile.monoValue ? Tokens.font.family.mono : Tokens.font.family.sans
+                    textPointSize: Tokens.font.size.smaller
+                    font.weight: Font.Bold
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                }
             }
         }
     }

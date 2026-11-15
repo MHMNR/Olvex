@@ -10,8 +10,8 @@ ColumnLayout {
     id: root
 
     anchors.fill: parent
-    anchors.margins: Tokens.padding.large
-    spacing: Tokens.spacing.normal
+    anchors.margins: 14
+    spacing: 8
 
     property bool activePoll: false
     Timer {
@@ -20,7 +20,6 @@ ColumnLayout {
         onTriggered: root.activePoll = true
     }
 
-    // ── Hidden Ref to trigger service ────────────────────────────────────────
     Item {
         visible: false
         Ref {
@@ -29,230 +28,237 @@ ColumnLayout {
         }
     }
 
-    // ── Header ───────────────────────────────────────────────────────────────
-    RowLayout {
+    // ── Signature M3 Header Pill ─────────────────────────────────────────────
+    StyledRect {
         Layout.fillWidth: true
-        spacing: 8
+        Layout.preferredHeight: 34
+        radius: Tokens.rounding.small
+        color: Colours.tileFill
 
-        StyledRect {
-            implicitWidth: 24
-            implicitHeight: 24
-            radius: Tokens.rounding.small
-            color: Qt.alpha(Colours.palette.m3primary, 0.15)
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 10
+            anchors.rightMargin: 8
+            spacing: 8
 
-            MaterialIcon {
-                anchors.centerIn: parent
-                text: "analytics"
+            Rectangle {
+                Layout.preferredWidth: 3
+                Layout.fillHeight: true
+                Layout.topMargin: 7
+                Layout.bottomMargin: 7
+                radius: 1.5
                 color: Colours.palette.m3primary
-                iconPointSize: 14
             }
-        }
 
-        StyledText {
-            Layout.fillWidth: true
-            text: qsTr("SYSTEM RESOURCES")
-            color: Colours.palette.m3outline
-            font.family: Tokens.font.family.mono
-            textPointSize: Tokens.font.size.smaller
-            font.weight: Font.Bold
-            font.letterSpacing: 1
+            StyledText {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                text: qsTr("System Resources")
+                color: Colours.palette.m3onSurface
+                textPointSize: Tokens.font.size.normal
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 3
+
+                MaterialIcon {
+                    text: "device_thermostat"
+                    color: (SystemUsage.cpuTemp || 0) > 80 ? Colours.palette.m3error : Colours.palette.m3tertiary
+                    iconPointSize: 13
+                }
+
+                StyledText {
+                    text: `${Math.round(SystemUsage.cpuTemp || 0)}°C`
+                    color: Colours.palette.m3onSurfaceVariant
+                    font.family: Tokens.font.family.mono
+                    textPointSize: Tokens.font.size.smaller - 2
+                    font.weight: Font.Bold
+                }
+            }
         }
     }
 
-    // ── Concentric Progress Rings (Guaranteed 1:1 Proper Circles) ─────────────
+    // ── Concentric M3 Progress Rings (Zero borders, built-in track arcs) ────
     Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
         Item {
             id: gaugeCanvas
-            width: Math.min(parent.width, 210)
+            width: Math.min(parent.width, parent.height, 176)
             height: width
             anchors.centerIn: parent
 
-            // ── Background Tracks (1:1 Perfect Circles: radius = width / 2) ──
-            Rectangle {
-                anchors.centerIn: parent
-                width: 210; height: 210
-                radius: 105
-                color: "transparent"
-                border.width: 8
-                border.color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: 165; height: 165
-                radius: 82.5
-                color: "transparent"
-                border.width: 8
-                border.color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-            }
-            Rectangle {
-                anchors.centerIn: parent
-                width: 120; height: 120
-                radius: 60
-                color: "transparent"
-                border.width: 8
-                border.color: Qt.alpha(Colours.palette.m3onSurface, 0.08)
-            }
-
-            // ── Active M3 Progress Rings ──────────────────────────────────────
             CircularProgress {
                 id: ramRing
                 anchors.centerIn: parent
-                width: 210; height: 210
+                width: parent.width
+                height: parent.height
                 value: SystemUsage.memPerc
                 padding: 0
-                strokeWidth: 8
+                strokeWidth: 9
                 fgColour: Colours.palette.m3primary
-                bgColour: "transparent"
+                bgColour: Qt.alpha(Colours.palette.m3primary, 0.14)
                 Behavior on value { Anim { type: Anim.StandardLarge } }
             }
 
             CircularProgress {
                 id: cpuRing
                 anchors.centerIn: parent
-                width: 165; height: 165
+                width: parent.width - 34
+                height: parent.height - 34
                 value: SystemUsage.cpuPerc
                 padding: 0
-                strokeWidth: 8
+                strokeWidth: 9
                 fgColour: Colours.palette.m3secondary
-                bgColour: "transparent"
+                bgColour: Qt.alpha(Colours.palette.m3secondary, 0.14)
                 Behavior on value { Anim { type: Anim.StandardLarge } }
             }
 
             CircularProgress {
                 id: dskRing
                 anchors.centerIn: parent
-                width: 120; height: 120
+                width: parent.width - 68
+                height: parent.height - 68
                 value: SystemUsage.storagePerc
                 padding: 0
-                strokeWidth: 8
+                strokeWidth: 9
                 fgColour: Colours.palette.m3tertiary
-                bgColour: "transparent"
+                bgColour: Qt.alpha(Colours.palette.m3tertiary, 0.14)
                 Behavior on value { Anim { type: Anim.StandardLarge } }
             }
 
-            // ── Center Typographic Reading ───────────────────────────────────
-            ColumnLayout {
+            // ── Center Tonal Hero Hub ────────────────────────────────────────
+            StyledRect {
                 anchors.centerIn: parent
-                spacing: 2
+                width: parent.width - 102
+                height: width
+                radius: width / 2
+                color: Colours.tileFill
 
-                RowLayout {
-                    spacing: 6
+                ColumnLayout {
+                    anchors.centerIn: parent
+                    spacing: 0
+
                     StyledText {
-                        text: "RAM"
-                        color: ramRing.fgColour
-                        font.family: Tokens.font.family.mono
-                        textPointSize: 10
-                        font.bold: true
-                    }
-                    StyledText {
-                        text: ((SystemUsage.memPerc || 0) * 100).toFixed(0) + "%"
+                        Layout.alignment: Qt.AlignHCenter
+                        text: `${Math.round((SystemUsage.cpuPerc || 0) * 100)}%`
                         color: Colours.palette.m3onSurface
                         font.family: Tokens.font.family.mono
-                        textPointSize: 10
-                        font.bold: true
+                        textPointSize: Tokens.font.size.normal
+                        font.weight: Font.Black
                     }
-                }
-                RowLayout {
-                    spacing: 6
+
                     StyledText {
-                        text: "CPU"
-                        color: cpuRing.fgColour
+                        Layout.alignment: Qt.AlignHCenter
+                        text: qsTr("CPU")
+                        color: Colours.palette.m3secondary
                         font.family: Tokens.font.family.mono
-                        textPointSize: 10
-                        font.bold: true
-                    }
-                    StyledText {
-                        text: ((SystemUsage.cpuPerc || 0) * 100).toFixed(0) + "%"
-                        color: Colours.palette.m3onSurface
-                        font.family: Tokens.font.family.mono
-                        textPointSize: 10
-                        font.bold: true
-                    }
-                }
-                RowLayout {
-                    spacing: 6
-                    StyledText {
-                        text: "DSK"
-                        color: dskRing.fgColour
-                        font.family: Tokens.font.family.mono
-                        textPointSize: 10
-                        font.bold: true
-                    }
-                    StyledText {
-                        text: ((SystemUsage.storagePerc || 0) * 100).toFixed(0) + "%"
-                        color: Colours.palette.m3onSurface
-                        font.family: Tokens.font.family.mono
-                        textPointSize: 10
-                        font.bold: true
+                        textPointSize: 8
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.8
                     }
                 }
             }
         }
     }
 
-    // ── Bottom Status Row ───────────────────────────────────────────────────
+    // ── Bottom 3 Color-Coded Telemetry Cards (RAM / CPU / DISK) ─────────────
     RowLayout {
         Layout.fillWidth: true
-        Layout.bottomMargin: Tokens.padding.small
+        spacing: 8
 
-        ColumnLayout {
-            spacing: 2
-            MaterialIcon {
-                Layout.alignment: Qt.AlignHCenter
-                text: "memory"
-                color: Colours.palette.m3primary
-                iconPointSize: 18
-            }
-            StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: "ACTIVE"
-                color: Colours.palette.m3outline
-                font.family: Tokens.font.family.mono
-                textPointSize: 8
-                font.bold: true
-            }
+        MetricTile {
+            label: qsTr("RAM")
+            value: `${Math.round((SystemUsage.memPerc || 0) * 100)}%`
+            subValue: SystemUsage.memTotal > 0
+                ? `${((SystemUsage.memUsed || 0) / (1024 * 1024)).toFixed(1)}G`
+                : "--"
+            accent: Colours.palette.m3primary
         }
 
-        Item { Layout.fillWidth: true }
-
-        ColumnLayout {
-            spacing: 2
-            MaterialIcon {
-                Layout.alignment: Qt.AlignHCenter
-                text: "thermostat"
-                color: Colours.palette.m3secondary
-                iconPointSize: 18
-            }
-            StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: Math.round(SystemUsage.cpuTemp) + "°C"
-                color: Colours.palette.m3outline
-                font.family: Tokens.font.family.mono
-                textPointSize: 8
-                font.bold: true
-            }
+        MetricTile {
+            label: qsTr("CPU")
+            value: `${Math.round((SystemUsage.cpuPerc || 0) * 100)}%`
+            subValue: `${Math.round(SystemUsage.cpuTemp || 0)}°C`
+            accent: Colours.palette.m3secondary
         }
 
-        Item { Layout.fillWidth: true }
+        MetricTile {
+            label: qsTr("DISK")
+            value: `${Math.round((SystemUsage.storagePerc || 0) * 100)}%`
+            subValue: qsTr("used")
+            accent: Colours.palette.m3tertiary
+        }
+    }
 
-        ColumnLayout {
-            spacing: 2
-            MaterialIcon {
-                Layout.alignment: Qt.AlignHCenter
-                text: "security"
-                color: Colours.palette.m3tertiary
-                iconPointSize: 18
+    component MetricTile: StyledRect {
+        id: metric
+
+        required property string label
+        required property string value
+        required property string subValue
+        required property color accent
+
+        Layout.fillWidth: true
+        implicitHeight: 50
+        radius: Tokens.rounding.small
+        color: Colours.tileFill
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            spacing: 7
+
+            Rectangle {
+                Layout.preferredWidth: 3
+                Layout.fillHeight: true
+                Layout.topMargin: 10
+                Layout.bottomMargin: 10
+                radius: 1.5
+                color: metric.accent
             }
-            StyledText {
-                Layout.alignment: Qt.AlignHCenter
-                text: "SECURE"
-                color: Colours.palette.m3outline
-                font.family: Tokens.font.family.mono
-                textPointSize: 8
-                font.bold: true
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 0
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    StyledText {
+                        text: metric.label
+                        color: metric.accent
+                        font.family: Tokens.font.family.mono
+                        textPointSize: 8
+                        font.weight: Font.Bold
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    StyledText {
+                        text: metric.subValue
+                        color: Colours.palette.m3onSurfaceVariant
+                        font.family: Tokens.font.family.mono
+                        textPointSize: 8
+                        font.weight: Font.Medium
+                    }
+                }
+
+                StyledText {
+                    text: metric.value
+                    color: Colours.palette.m3onSurface
+                    font.family: Tokens.font.family.mono
+                    textPointSize: Tokens.font.size.small
+                    font.weight: Font.Black
+                }
             }
         }
     }
