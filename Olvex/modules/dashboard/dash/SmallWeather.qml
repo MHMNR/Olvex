@@ -3,6 +3,8 @@ import QtQuick
 import QtQuick.Layouts
 import Olvex.Config
 import qs.components
+import qs.components.controls
+import qs.modules.settings
 import qs.services
 
 Item {
@@ -47,7 +49,7 @@ Item {
     WeatherBg {
         anchors.fill: parent
         z: 0
-        bgOpacity: 0.2
+        bgOpacity: Colours.light ? 0.38 : 0.50
         active: root.dashboardActive
     }
 
@@ -87,16 +89,64 @@ Item {
                     font.weight: Font.DemiBold
                     elide: Text.ElideRight
                     maximumLineCount: 1
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            WindowFactory.create(null, {
+                                currentId: "panels",
+                                activeSection: "dashboard"
+                            });
+                            PaneRegistry.flashHighlight("weather_location", "dashboard", "panels", "Weather location", "Weather location", "weather_location");
+                        }
+                    }
                 }
 
-                MaterialIcon {
+                StyledRect {
+                    id: refreshBtn
+                    property bool minHold: false
+                    readonly property bool isRefreshing: Weather.loading || minHold
+
                     Layout.alignment: Qt.AlignVCenter
-                    text: Weather.hasData ? Weather.icon : "cloud_sync"
-                    font.family: Tokens.font.family.material
-                    iconPointSize: Tokens.font.size.small
-                    color: Colours.palette.m3secondary
-                    fill: 1
-                    animate: Weather.hasData
+                    Layout.preferredWidth: 26
+                    Layout.preferredHeight: 26
+                    radius: Tokens.rounding.full
+                    border.width: 0
+                    color: Colours.tileFillElevated
+
+                    Timer {
+                        id: minHoldTimer
+                        interval: 650
+                        onTriggered: refreshBtn.minHold = false
+                    }
+
+                    StateLayer {
+                        radius: parent.radius
+                        color: Colours.palette.m3onSurface
+                        onClicked: {
+                            refreshBtn.minHold = true;
+                            minHoldTimer.restart();
+                            Weather.forceReload();
+                        }
+                    }
+
+                    MaterialIcon {
+                        visible: !refreshBtn.isRefreshing
+                        anchors.centerIn: parent
+                        text: "refresh"
+                        font.family: Tokens.font.family.material
+                        iconPointSize: Tokens.font.size.small
+                        color: Colours.palette.m3onSurfaceVariant
+                    }
+
+                    LoadingIndicator {
+                        visible: refreshBtn.isRefreshing
+                        animated: refreshBtn.isRefreshing
+                        anchors.centerIn: parent
+                        implicitSize: 18
+                        color: Colours.palette.m3primary
+                    }
                 }
             }
         }

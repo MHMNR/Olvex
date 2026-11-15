@@ -15,6 +15,7 @@ Singleton {
     property var cc
     property list<var> forecast
     property list<var> hourlyForecast
+    property bool loading: false
 
     readonly property string icon: cc ? Icons.getWeatherIcon(cc.weatherCode) : "cloud_alert"
     readonly property string description: cc?.weatherDesc ?? qsTr("No weather")
@@ -24,8 +25,54 @@ Singleton {
     readonly property real windSpeed: cc?.windSpeed ?? 0
     readonly property string sunrise: cc ? Qt.formatDateTime(new Date(cc.sunrise), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
     readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
+    property real nowMs: Date.now()
+
+    Timer {
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: root.nowMs = Date.now()
+    }
+
+    onCcChanged: root.nowMs = Date.now()
+
     readonly property bool hasData: root.cc != null
-    readonly property bool isDay: root.cc?.isDay ?? true
+    readonly property bool isDay: {
+        if (cc && cc.sunrise && cc.sunset) {
+            const sr = new Date(cc.sunrise).getTime();
+            const ss = new Date(cc.sunset).getTime();
+            if (!isNaN(sr) && !isNaN(ss) && ss > sr)
+                return root.nowMs >= sr && root.nowMs <= ss;
+        }
+        return root.cc?.isDay ?? true;
+    }
+    function dayCycleForTime(ms: real): real {
+        if (!cc || !cc.sunrise || !cc.sunset)
+            return isDay ? 0.38 : 1.50;
+        const sr = new Date(cc.sunrise).getTime();
+        const ss = new Date(cc.sunset).getTime();
+        if (isNaN(sr) || isNaN(ss) || ss <= sr)
+            return isDay ? 0.38 : 1.50;
+        const dayLen = ss - sr;
+        const nightLen = Math.max(1, 86400000 - dayLen);
+        let t = ms;
+        while (t < sr)
+            t += 86400000;
+        while (t >= sr + 86400000)
+            t -= 86400000;
+        if (t <= ss)
+            return (t - sr) / dayLen;
+        return 1.0 + (t - ss) / nightLen;
+    }
+
+    readonly property real dayCycle: dayCycleForTime(root.nowMs)
+    readonly property real sunProgress: (dayCycle <= 1.0) ? dayCycle : -1.0
+    readonly property real moonPhase: {
+        const synodicMs = 2551442861.0; // 29.53058867 days
+        const epochMs = 947182440000.0; // 2000-01-06 18:14 UTC New Moon
+        const diff = root.nowMs - epochMs;
+        return (((diff % synodicMs) + synodicMs) % synodicMs) / synodicMs;
+    }
     readonly property real visualKind: root.visualKindFromCode(root.cc?.weatherCode, root.isDay)
 
     function visualKindFromCode(code, isDay: bool): real {
@@ -150,6 +197,28 @@ Singleton {
         }, tryGeojs);
     }
 
+    function forceReload(): void {
+        loading = true;
+        const configLocation = GlobalConfig.services.weatherLocation;
+        if (configLocation) {
+            if (configLocation.indexOf(",") !== -1 && !isNaN(parseFloat(configLocation.split(",")[0]))) {
+                if (loc === configLocation)
+                    fetchWeatherData();
+                else
+                    loc = configLocation;
+                fetchCityFromCoords(configLocation);
+            } else {
+                fetchCoordsFromCity(configLocation);
+            }
+        } else if (loc && loc.indexOf(",") !== -1) {
+            fetchWeatherData();
+        } else if (CUtils.fileExists("/usr/lib/geoclue-2.0/demos/where-am-i")) {
+            geoclueProcess.running = true;
+        } else {
+            fetchCoordsFromIp();
+        }
+    }
+
     function reload(): void {
         const configLocation = GlobalConfig.services.weatherLocation;
 
@@ -232,59 +301,69 @@ Singleton {
 
     function fetchWeatherData(): void {
         const url = getWeatherUrl();
-        if (url === "")
+        if (url === "") {
+            loading = false;
             return;
+        }
 
+        loading = true;
         Requests.get(url, text => {
-            const json = JSON.parse(text);
-            if (!json.current || !json.daily)
-                return;
+            try {
+                const json = JSON.parse(text);
+                if (!json.current || !json.daily)
+                    return;
 
-            cc = {
-                weatherCode: json.current.weather_code,
-                weatherDesc: getWeatherCondition(json.current.weather_code),
-                tempC: Math.round(json.current.temperature_2m),
-                tempF: Math.round(toFahrenheit(json.current.temperature_2m)),
-                feelsLikeC: Math.round(json.current.apparent_temperature),
-                feelsLikeF: Math.round(toFahrenheit(json.current.apparent_temperature)),
-                humidity: json.current.relative_humidity_2m,
-                windSpeed: json.current.wind_speed_10m,
-                isDay: json.current.is_day,
-                sunrise: json.daily.sunrise[0].replace("T", " "),
-                sunset: json.daily.sunset[0].replace("T", " ")
-            };
+                cc = {
+                    weatherCode: json.current.weather_code,
+                    weatherDesc: getWeatherCondition(json.current.weather_code),
+                    tempC: Math.round(json.current.temperature_2m),
+                    tempF: Math.round(toFahrenheit(json.current.temperature_2m)),
+                    feelsLikeC: Math.round(json.current.apparent_temperature),
+                    feelsLikeF: Math.round(toFahrenheit(json.current.apparent_temperature)),
+                    humidity: json.current.relative_humidity_2m,
+                    windSpeed: json.current.wind_speed_10m,
+                    isDay: json.current.is_day,
+                    sunrise: json.daily.sunrise[0].replace("T", " "),
+                    sunset: json.daily.sunset[0].replace("T", " ")
+                };
 
-            const forecastList = [];
-            for (let i = 0; i < json.daily.time.length; i++)
-                forecastList.push({
-                    date: json.daily.time[i].replace(/-/g, "/"),
-                    maxTempC: Math.round(json.daily.temperature_2m_max[i]),
-                    maxTempF: Math.round(toFahrenheit(json.daily.temperature_2m_max[i])),
-                    minTempC: Math.round(json.daily.temperature_2m_min[i]),
-                    minTempF: Math.round(toFahrenheit(json.daily.temperature_2m_min[i])),
-                    weatherCode: json.daily.weather_code[i],
-                    icon: Icons.getWeatherIcon(json.daily.weather_code[i])
-                });
-            forecast = forecastList;
+                const forecastList = [];
+                for (let i = 0; i < json.daily.time.length; i++)
+                    forecastList.push({
+                        date: json.daily.time[i].replace(/-/g, "/"),
+                        maxTempC: Math.round(json.daily.temperature_2m_max[i]),
+                        maxTempF: Math.round(toFahrenheit(json.daily.temperature_2m_max[i])),
+                        minTempC: Math.round(json.daily.temperature_2m_min[i]),
+                        minTempF: Math.round(toFahrenheit(json.daily.temperature_2m_min[i])),
+                        weatherCode: json.daily.weather_code[i],
+                        icon: Icons.getWeatherIcon(json.daily.weather_code[i])
+                    });
+                forecast = forecastList;
 
-            const hourlyList = [];
-            const now = new Date();
-            for (let i = 0; i < json.hourly.time.length; i++) {
-                const time = new Date(json.hourly.time[i].replace("T", " "));
+                const hourlyList = [];
+                const now = new Date();
+                for (let i = 0; i < json.hourly.time.length; i++) {
+                    const time = new Date(json.hourly.time[i].replace("T", " "));
 
-                if (time < now)
-                    continue;
+                    if (time < now)
+                        continue;
 
-                hourlyList.push({
-                    timestamp: json.hourly.time[i],
-                    hour: time.getHours(),
-                    tempC: Math.round(json.hourly.temperature_2m[i]),
-                    tempF: Math.round(toFahrenheit(json.hourly.temperature_2m[i])),
-                    weatherCode: json.hourly.weather_code[i],
-                    icon: Icons.getWeatherIcon(json.hourly.weather_code[i])
-                });
+                    hourlyList.push({
+                        timestamp: json.hourly.time[i],
+                        hour: time.getHours(),
+                        tempC: Math.round(json.hourly.temperature_2m[i]),
+                        tempF: Math.round(toFahrenheit(json.hourly.temperature_2m[i])),
+                        weatherCode: json.hourly.weather_code[i],
+                        icon: Icons.getWeatherIcon(json.hourly.weather_code[i])
+                    });
+                }
+                hourlyForecast = hourlyList;
+                timer.restart();
+            } finally {
+                loading = false;
             }
-            hourlyForecast = hourlyList;
+        }, () => {
+            loading = false;
         });
     }
 
