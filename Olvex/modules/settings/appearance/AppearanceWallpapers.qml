@@ -1174,9 +1174,9 @@ Item {
                         title: qsTr("Auto cycle")
                         description: qsTr("Switch wallpaper periodically")
                         StyledSwitch {
-                            checked: GlobalConfig.background.cycle.enabled
+                            checked: GlobalConfig.background.wallpaperCycling.enabled
                             onToggled: {
-                                GlobalConfig.background.cycle.enabled = checked;
+                                GlobalConfig.background.wallpaperCycling.enabled = checked;
                                 GlobalConfig.save();
                             }
                         }
@@ -1186,12 +1186,12 @@ Item {
                         title: qsTr("Cycle interval")
                         description: qsTr("Time between wallpaper changes (minutes)")
                         CustomSpinBox {
-                            value: GlobalConfig.background.cycle.interval || 30
+                            value: Math.max(1, Math.round((GlobalConfig.background.wallpaperCycling.intervalSeconds || 300) / 60))
                             min: 1
                             max: 1440
                             step: 5
                             onValueModified: v => {
-                                GlobalConfig.background.cycle.interval = v;
+                                GlobalConfig.background.wallpaperCycling.intervalSeconds = v * 60;
                                 GlobalConfig.save();
                             }
                         }
@@ -1201,22 +1201,22 @@ Item {
                         title: qsTr("Shuffle")
                         description: qsTr("Pick wallpapers in random order")
                         StyledSwitch {
-                            checked: GlobalConfig.background.cycle.shuffle
+                            checked: GlobalConfig.background.wallpaperCycling.shuffle
                             onToggled: {
-                                GlobalConfig.background.cycle.shuffle = checked;
+                                GlobalConfig.background.wallpaperCycling.shuffle = checked;
                                 GlobalConfig.save();
                             }
                         }
                     }
 
                     SettingRow {
-                        title: qsTr("Cross-monitor match")
-                        description: qsTr("Synchronize wallpaper theme across all screens")
+                        title: qsTr("Pause on fullscreen")
+                        description: qsTr("Pause automatic wallpaper cycling while a fullscreen app is active")
                         divider: false
                         StyledSwitch {
-                            checked: GlobalConfig.background.cycle.crossMonitorMatch
+                            checked: GlobalConfig.background.wallpaperCycling.pauseOnFullscreen
                             onToggled: {
-                                GlobalConfig.background.cycle.crossMonitorMatch = checked;
+                                GlobalConfig.background.wallpaperCycling.pauseOnFullscreen = checked;
                                 GlobalConfig.save();
                             }
                         }

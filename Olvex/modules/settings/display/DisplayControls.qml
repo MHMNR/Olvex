@@ -22,6 +22,7 @@ Item {
     signal setAsPrimaryRequested()
 
     readonly property bool isCurrentPrimary: !!(root.monitor && root.monitor.isPrimary)
+    readonly property var brightnessMonitor: (root.monitor && root.monitor.name) ? Brightness.getMonitor(root.monitor.name) : null
 
     implicitWidth: parent ? parent.width : 500
     implicitHeight: mainCol.implicitHeight
@@ -484,6 +485,27 @@ Item {
                 title: qsTr("Power, Color & Advanced")
                 icon: "tune"
                 accentColor: Colours.palette.m3primary
+
+                // Display Backlight Brightness
+                SettingRow {
+                    visible: !!root.brightnessMonitor
+                    title: qsTr("Display Brightness")
+                    description: root.brightnessMonitor
+                        ? qsTr("Hardware backlight / DDC level: %1%").arg(Math.round((root.brightnessMonitor.brightness || 0) * 100))
+                        : ""
+
+                    StyledSlider {
+                        implicitWidth: 220
+                        from: 0.05
+                        to: 1.0
+                        stepSize: 0.01
+                        value: root.brightnessMonitor ? root.brightnessMonitor.brightness : 1.0
+                        onMoved: {
+                            if (root.brightnessMonitor)
+                                root.brightnessMonitor.setBrightness(value);
+                        }
+                    }
+                }
 
                 // Screen Power (DPMS)
                 SettingRow {

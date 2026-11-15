@@ -1471,7 +1471,33 @@ QtObject {
             breadcrumb: "Settings › System › Displays",
             icon: "desktop_windows",
             accentRole: "m3primary",
-            keywords: "display monitor screen resolution refresh rate hz scale scaling 4k 1440p 1080p hdmi dp output"
+            keywords: "display monitor screen resolution refresh rate hz scale scaling 4k 1440p 1080p hdmi dp output brightness backlight"
+        },
+
+        // ── Input Devices ──
+        {
+            id: "system_input_mouse",
+            pageId: "system",
+            sectionId: "input",
+            rowTitle: "Pointer sensitivity",
+            title: "Mouse & Touchpad Settings",
+            sub: "Pointer speed, acceleration profile, tap-to-click, natural scroll, keyboard layout",
+            breadcrumb: "Settings › System › Input Devices",
+            icon: "mouse",
+            accentRole: "m3primary",
+            keywords: "mouse touchpad sensitivity acceleration flat adaptive natural scroll left handed tap click palm typing keyboard layout repeat rate delay numlock",
+            isOption: true
+        },
+        {
+            id: "system_input",
+            pageId: "system",
+            sectionId: "input",
+            title: "Input Devices (Mouse, Touchpad & Keyboard)",
+            sub: "Pointer speed, touchpad gestures, keyboard layout and repeat timing",
+            breadcrumb: "Settings › System › Input Devices",
+            icon: "mouse",
+            accentRole: "m3primary",
+            keywords: "input mouse touchpad keyboard sensitivity accel natural scroll tap click repeat rate layout numlock"
         },
 
         // ── Clock ──
@@ -1523,7 +1549,46 @@ QtObject {
             breadcrumb: "Settings › System › Clock",
             icon: "schedule",
             accentRole: "m3primary",
-            keywords: "clock time date 24h 12h seconds calendar timezone format hour minute am pm"
+            keywords: "clock time date 24h 12h seconds calendar timezone format hour minute am pm ntp sync language locale"
+        },
+
+        // ── Default Apps ──
+        {
+            id: "system_defaults",
+            pageId: "system",
+            sectionId: "defaults",
+            title: "Default Applications",
+            sub: "Default web browser, file manager, terminal, editor, video and image apps",
+            breadcrumb: "Settings › System › Default Apps",
+            icon: "apps",
+            accentRole: "m3primary",
+            keywords: "default apps applications browser file manager terminal editor video image xdg mime"
+        },
+
+        // ── Startup Apps ──
+        {
+            id: "system_startup",
+            pageId: "system",
+            sectionId: "startup",
+            title: "Startup & Autostart Apps",
+            sub: "Manage applications launched automatically on login",
+            breadcrumb: "Settings › System › Startup Apps",
+            icon: "rocket_launch",
+            accentRole: "m3primary",
+            keywords: "startup autostart login launch exec desktop background apps"
+        },
+
+        // ── Privacy & Clipboard ──
+        {
+            id: "system_privacy",
+            pageId: "system",
+            sectionId: "privacy",
+            title: "Privacy & Clipboard",
+            sub: "Clipboard history recording, clear cliphist, thumbnail cache and trash",
+            breadcrumb: "Settings › System › Privacy & Clipboard",
+            icon: "shield",
+            accentRole: "m3primary",
+            keywords: "privacy clipboard cliphist history wipe clear cache thumbnails trash"
         },
 
         // ── Keybindings ──

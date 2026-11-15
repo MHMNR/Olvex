@@ -76,5 +76,7 @@ require("hyprland.gestures")
 require("hyprland.keybinds")
 
 -- User configs
+maybe_create(home .. "/.config/olvex/hypr-input.lua", "-- Managed by Olvex Input Settings\n")
+pcall(require, "hypr-input")
 maybe_create(home .. "/.config/olvex/hypr-user.lua", "-- Custom user Hyprland config\n")
 pcall(require, "hypr-user")

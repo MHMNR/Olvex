@@ -29,6 +29,9 @@ Item {
 
     property string currentTz: ""
     property var timezones: []
+    property bool ntpEnabled: true
+    property string currentLocale: ""
+    property var locales: []
     
     Process {
         id: tzListProc
@@ -57,13 +60,82 @@ Item {
     
     Process {
         id: tzSetProc
-        onExited: {
+        onExited: (exitCode) => {
             if (exitCode === 0) {
                 tzProc.running = true;
             } else {
                 Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "critical", qsTr("Timezone Error"), qsTr("Invalid timezone or permission denied.")]);
                 tzProc.running = true;
             }
+        }
+    }
+
+    Process {
+        id: ntpProc
+        running: true
+        command: ["bash", "-c", "timedatectl show --property=NTP --value"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = (text || "").trim().toLowerCase();
+                if (v === "yes" || v === "true" || v === "1")
+                    root.ntpEnabled = true;
+                else if (v === "no" || v === "false" || v === "0")
+                    root.ntpEnabled = false;
+            }
+        }
+    }
+
+    Process {
+        id: ntpSetProc
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "critical", qsTr("Time Sync Error"), qsTr("Could not change automatic NTP time sync.")]);
+            ntpProc.running = true;
+        }
+    }
+
+    Process {
+        id: manualTimeSetProc
+        onExited: (exitCode) => {
+            if (exitCode === 0)
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", qsTr("Date & Time Updated"), qsTr("System clock updated successfully.")]);
+            else
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "critical", qsTr("Date & Time Error"), qsTr("Use YYYY-MM-DD HH:MM:SS format or check permissions.")]);
+        }
+    }
+
+    Process {
+        id: localeListProc
+        running: true
+        command: ["bash", "-c", "localectl list-locales 2>/dev/null || locale -a 2>/dev/null"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim() !== "")
+                    root.locales = text.trim().split("\n").map(s => s.trim()).filter(s => s.length > 0);
+            }
+        }
+    }
+
+    Process {
+        id: localeProc
+        running: true
+        command: ["bash", "-c", "localectl status 2>/dev/null | sed -n 's/.*LANG=\\([^ ]*\\).*/\\1/p'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim() !== "")
+                    root.currentLocale = text.trim().split("\n")[0];
+            }
+        }
+    }
+
+    Process {
+        id: localeSetProc
+        onExited: (exitCode) => {
+            if (exitCode === 0)
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", qsTr("Language & Locale"), qsTr("System locale updated. Re-login may be required for all apps.")]);
+            else
+                Quickshell.execDetached(["notify-send", "-a", "olvex-shell", "-u", "critical", qsTr("Locale Error"), qsTr("Could not set system locale.")]);
+            localeProc.running = true;
         }
     }
     
@@ -128,6 +200,69 @@ Item {
                         if (tzPicker.model && tzPicker.model[i]) {
                             tzSetProc.command = ["timedatectl", "set-timezone", tzPicker.model[i]];
                             tzSetProc.running = true;
+                        }
+                    }
+                }
+            }
+
+            SettingRow {
+                title: qsTr("Automatic time sync (NTP)")
+                description: qsTr("Synchronize system date and time automatically over the network")
+                StyledSwitch {
+                    checked: root.ntpEnabled
+                    onToggled: {
+                        root.ntpEnabled = checked;
+                        ntpSetProc.command = ["timedatectl", "set-ntp", checked ? "true" : "false"];
+                        ntpSetProc.running = true;
+                    }
+                }
+            }
+
+            SettingRow {
+                visible: !root.ntpEnabled
+                title: qsTr("Manual date & time")
+                description: qsTr("Format: YYYY-MM-DD HH:MM:SS")
+                RowLayout {
+                    spacing: Tokens.spacing.small
+                    StyledTextField {
+                        id: manualTimeField
+                        implicitWidth: 190
+                        placeholderText: "2026-11-15 23:30:00"
+                    }
+                    TextButton {
+                        text: qsTr("Apply")
+                        type: TextButton.Tonal
+                        onClicked: {
+                            const val = manualTimeField.text.trim();
+                            if (val.length > 0) {
+                                manualTimeSetProc.command = ["timedatectl", "set-time", val];
+                                manualTimeSetProc.running = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Section {
+            Layout.fillWidth: true
+            title: qsTr("Language & Locale")
+            description: qsTr("System locale for formatting, numbers, and applications")
+            icon: "translate"
+            accentColor: Colours.palette.m3secondary
+
+            SettingRow {
+                title: qsTr("System locale")
+                description: root.currentLocale ? qsTr("Active: %1").arg(root.currentLocale) : qsTr("Select system language and regional locale")
+                OptionPicker {
+                    id: localePicker
+                    menuMaxHeight: 340
+                    model: root.locales
+                    currentIndex: root.idxOf(localePicker.model, root.currentLocale)
+                    onSelected: i => {
+                        if (localePicker.model && localePicker.model[i]) {
+                            localeSetProc.command = ["localectl", "set-locale", "LANG=" + localePicker.model[i]];
+                            localeSetProc.running = true;
                         }
                     }
                 }
