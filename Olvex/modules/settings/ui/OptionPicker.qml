@@ -417,10 +417,10 @@ Item {
         }
 
         // M3 Physics Bounds - Smooth Emphasized Deceleration Curve
-        x: root.morphState === "open" ? root.targetX : ((root.freezeW > 0) ? root.freezeX : root.currentX)
-        y: root.morphState === "open" ? root.targetY : ((root.freezeH > 0) ? root.freezeY : root.currentY)
-        width: root.morphState === "open" ? root.targetW : ((root.freezeW > 0) ? root.freezeW : root.startW)
-        height: root.morphState === "open" ? root.targetH : ((root.freezeH > 0) ? root.freezeH : root.startH)
+        x: root.morphState === "open" ? root.targetX : root.currentX
+        y: root.morphState === "open" ? root.targetY : root.currentY
+        width: root.morphState === "open" ? root.targetW : root.startW
+        height: root.morphState === "open" ? root.targetH : root.startH
         radius: root.morphState === "open" ? Tokens.rounding.normal : (root.startH / 2)
 
         Behavior on x { Anim { type: Anim.DefaultSpatial } }

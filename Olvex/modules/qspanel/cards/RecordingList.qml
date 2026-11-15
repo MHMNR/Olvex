@@ -219,7 +219,7 @@ ColumnLayout {
                                     onClicked: {
                                         root.visibilities.qspanel = false;
                                         root.visibilities.notificationcenter = false;
-                                        Quickshell.execDetached(["app2unit", "--", ...Config.general.apps.playback, recording.modelData.path]);
+                                        Quickshell.execDetached(["app2unit", "--", ...GlobalConfig.general.apps.playback, recording.modelData.path]);
                                     }
                                 }
                                 IconButton {
@@ -231,7 +231,7 @@ ColumnLayout {
                                     onClicked: {
                                         root.visibilities.qspanel = false;
                                         root.visibilities.notificationcenter = false;
-                                        Quickshell.execDetached(["app2unit", "--", ...Config.general.apps.explorer, recording.modelData.path]);
+                                        Quickshell.execDetached(["app2unit", "--", ...GlobalConfig.general.apps.explorer, recording.modelData.path]);
                                     }
                                 }
                                 IconButton {

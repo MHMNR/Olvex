@@ -79,7 +79,7 @@ Item {
             "for d in dirs:\n" +
             "  for p in glob.glob(os.path.join(d, '*.desktop')):\n" +
             "    fn = os.path.basename(p)\n" +
-            "    name, cat_str, nodisp = None, '', False\n" +
+            "    name, cat_str, mime_str, exec_cmd, nodisp = None, '', '', '', False\n" +
             "    try:\n" +
             "      with open(p, 'r', errors='ignore') as f:\n" +
             "        in_entry = False\n" +
@@ -90,12 +90,21 @@ Item {
             "          if not in_entry: continue\n" +
             "          if s.startswith('Name=') and not name: name = s[5:].strip()\n" +
             "          elif s.startswith('Categories='): cat_str = s[11:].strip()\n" +
+            "          elif s.startswith('MimeType='): mime_str = s[9:].strip()\n" +
+            "          elif s.startswith('Exec=') and not exec_cmd: exec_cmd = s[5:].strip()\n" +
             "          elif s == 'NoDisplay=true' or s == 'Hidden=true': nodisp = True\n" +
             "    except Exception: continue\n" +
             "    if nodisp or not name: continue\n" +
+            "    bin_name = os.path.basename(exec_cmd.split()[0]) if exec_cmd.split() else fn.replace('.desktop', '')\n" +
+            "    entry = {'label': name, 'val': fn, 'exec': bin_name}\n" +
             "    cset = set(c.strip() for c in cat_str.split(';') if c.strip())\n" +
-            "    for k in cats:\n" +
-            "      if k in cset: cats[k][fn] = {'label': name, 'val': fn}\n" +
+            "    mset = set(m.strip() for m in mime_str.split(';') if m.strip())\n" +
+            "    if 'WebBrowser' in cset or 'x-scheme-handler/http' in mset: cats['WebBrowser'][fn] = entry\n" +
+            "    if 'FileManager' in cset or 'inode/directory' in mset: cats['FileManager'][fn] = entry\n" +
+            "    if 'TerminalEmulator' in cset: cats['TerminalEmulator'][fn] = entry\n" +
+            "    if 'TextEditor' in cset or 'text/plain' in mset: cats['TextEditor'][fn] = entry\n" +
+            "    if 'Video' in cset or 'video/mp4' in mset: cats['Video'][fn] = entry\n" +
+            "    if 'ImageViewer' in cset or 'image/png' in mset: cats['Graphics'][fn] = entry\n" +
             "def qmime(m):\n" +
             "  try: return subprocess.check_output(['xdg-mime', 'query', 'default', m], stderr=subprocess.DEVNULL).decode().strip()\n" +
             "  except Exception: return ''\n" +
@@ -201,6 +210,10 @@ Item {
                         if (opt) {
                             root.currentFileManager = opt.val;
                             root.setMimeDefault("inode/directory", opt.val);
+                            if (opt.exec) {
+                                GlobalConfig.general.apps.explorer = [opt.exec];
+                                GlobalConfig.save();
+                            }
                         }
                     }
                 }
@@ -217,6 +230,10 @@ Item {
                         if (opt) {
                             root.currentTerminal = opt.val;
                             root.setTerminalDefault(opt.val);
+                            if (opt.exec) {
+                                GlobalConfig.general.apps.terminal = [opt.exec];
+                                GlobalConfig.save();
+                            }
                         }
                     }
                 }
@@ -257,6 +274,12 @@ Item {
                         if (opt) {
                             root.currentVideo = opt.val;
                             root.setMimeDefault("video/mp4", opt.val);
+                            root.setMimeDefault("video/x-matroska", opt.val);
+                            root.setMimeDefault("video/webm", opt.val);
+                            if (opt.exec) {
+                                GlobalConfig.general.apps.playback = [opt.exec];
+                                GlobalConfig.save();
+                            }
                         }
                     }
                 }

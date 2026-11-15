@@ -79,7 +79,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 56
         radius: Tokens.rounding.normal
-        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHigh
 
         RowLayout {
             anchors.fill: parent
@@ -158,7 +158,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 56
         radius: Tokens.rounding.normal
-        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHigh
 
         RowLayout {
             anchors.fill: parent
@@ -214,7 +214,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 56
         radius: Tokens.rounding.normal
-        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHigh
 
         RowLayout {
             anchors.fill: parent
@@ -507,8 +507,8 @@ ColumnLayout {
                         radius: Tokens.rounding.normal
                         color: {
                             if (networkItem.isEditing) return Colours.light ? Colours.tintContainer(Colours.containerAtLevel(3), 0.18) : Colours.opaqueDarkContainer(3);
-                            if (networkItem.isActive) return Colours.palette.m3primaryContainer;
-                            return Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest;
+                            if (networkItem.isActive) return Colours.layer(Colours.palette.m3surfaceContainerHigh, 2);
+                            return Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHigh;
                         }
                         border.width: 0
                         border.color: "transparent"
@@ -579,7 +579,7 @@ ColumnLayout {
                                     text: networkItem.modelData.ssid
                                     font.weight: networkItem.isActive ? Font.DemiBold : Font.Medium
                                     textPointSize: Tokens.font.size.small
-                                    color: networkItem.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+                                    color: networkItem.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
                                     elide: Text.ElideRight
                                 }
 
@@ -591,21 +591,21 @@ ColumnLayout {
                                         visible: networkItem.isActive
                                         text: qsTr("Connected")
                                         textPointSize: Tokens.font.size.smaller - 1
-                                        color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
+                                        color: Colours.palette.m3onSurfaceVariant
                                     }
 
                                     StyledText {
                                         visible: networkItem.isActive
                                         text: "•"
                                         textPointSize: Tokens.font.size.smaller - 1
-                                        color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.5)
+                                        color: Qt.alpha(Colours.palette.m3onSurfaceVariant, 0.5)
                                     }
 
                                     StyledText {
                                         visible: networkItem.isActive
                                         text: `${networkItem.modelData.strength}%`
                                         textPointSize: Tokens.font.size.smaller - 1
-                                        color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8)
+                                        color: Colours.palette.m3onSurfaceVariant
                                     }
 
                                     // When Not Active
@@ -648,18 +648,18 @@ ColumnLayout {
                                 implicitWidth: 36
                                 implicitHeight: 36
                                 radius: Tokens.rounding.full
-                                color: Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.12)
+                                color: Qt.alpha(Colours.palette.m3primary, 0.14)
 
                                 MaterialIcon {
                                     anchors.centerIn: parent
                                     text: "link_off"
-                                    color: Colours.palette.m3onPrimaryContainer
+                                    color: Colours.palette.m3primary
                                     iconPointSize: Tokens.font.size.normal
                                 }
 
                                 StateLayer {
                                     anchors.fill: parent
-                                    color: Colours.palette.m3onPrimaryContainer
+                                    color: Colours.palette.m3primary
                                     onClicked: Nmcli.disconnectFromNetwork()
                                 }
                             }
@@ -978,7 +978,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 46
         radius: Tokens.rounding.normal
-        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest
+        color: Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHigh
 
         RowLayout {
             anchors.fill: parent

@@ -38,10 +38,11 @@ Item {
     // ── Tile hiding ──────────────────────────────────────────────────────────
     // Tile stays hidden the ENTIRE time the overlay is visible.
     // Overlay always looks like the tile at collapsed state → seamless swap.
+    property bool _isTransitioning: false
     Binding {
         target: props
         property: "isTransitioning"
-        value: root._overlayVisible
+        value: root._isTransitioning
     }
 
     // ── Overlay visibility (no opacity fade — use visible + Timer) ───────────
@@ -52,8 +53,13 @@ Item {
 
     Timer {
         id: hideTimer
-        interval: root.collapseDur
-        onTriggered: root._overlayVisible = false
+        interval: root.collapseDur + 80
+        onTriggered: {
+            root._isTransitioning = false;
+            Qt.callLater(() => {
+                if (!root.active) root._overlayVisible = false;
+            });
+        }
     }
 
     // Save tile position at expansion start — collapse must return HERE exactly
@@ -121,6 +127,7 @@ Item {
             
             btEnabled = Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
             hideTimer.stop()
+            _isTransitioning = true
             _overlayVisible = true
         } else {
             // Reset rescan states on collapse
@@ -198,8 +205,8 @@ Item {
         y: root.savedStartPoint.y
         width: root.savedStartSize.width
         height: root.savedStartSize.height
-        radius: 32
-        color: Colours.tileGlass
+        radius: root.lastActiveType === "displayprojection" ? (root.savedStartSize.height / 2) : 32
+        color: Colours.tileFill
         border.color: "transparent"
         border.width: 0
         clip: true
@@ -240,7 +247,7 @@ Item {
                     width: root.width
                     height: root.expandedHeight
                     radius: Tokens.rounding.large
-                    color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
+                    color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceContainerLow
                     border.color: "transparent"
                     border.width: 0
                 }
@@ -416,6 +423,15 @@ Item {
             Transition {
                 id: collapseTransition
                 from: "expanded"; to: "collapsed"
+                onRunningChanged: {
+                    if (!running && !root.active && root._overlayVisible) {
+                        hideTimer.stop();
+                        root._isTransitioning = false;
+                        Qt.callLater(() => {
+                            if (!root.active) root._overlayVisible = false;
+                        });
+                    }
+                }
                 ParallelAnimation {
                     NumberAnimation {
                         target: card
@@ -870,7 +886,7 @@ Item {
 
         readonly property bool isActive: PowerProfiles.profile === profile
 
-        color: isActive ? Colours.palette.m3primaryContainer : (Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest)
+        color: isActive ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2) : (Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHigh)
         border.width: 0
         border.color: "transparent"
 
@@ -882,7 +898,7 @@ Item {
 
             MaterialIcon {
                 text: itemRoot.icon
-                color: itemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+                color: itemRoot.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
                 iconPointSize: Tokens.font.size.large
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -894,23 +910,24 @@ Item {
 
                 StyledText {
                     text: itemRoot.title
-                    font.weight: itemRoot.isActive ? 600 : 400
-                    color: itemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
-                    textPointSize: Tokens.font.size.small
+                    font.weight: itemRoot.isActive ? Font.DemiBold : Font.Medium
+                    color: itemRoot.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                    textPointSize: Tokens.font.size.normal
                     Layout.fillWidth: true
                 }
 
                 MarqueeText {
+                    Layout.fillWidth: true
                     text: itemRoot.description
-                    color: itemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8) : Colours.palette.m3onSurfaceVariant
-                    textPointSize: Tokens.font.size.smaller
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.smaller - 1
                 }
             }
 
             MaterialIcon {
                 visible: itemRoot.isActive
                 text: "check_circle"
-                color: Colours.palette.m3onPrimaryContainer
+                color: Colours.palette.m3primary
                 iconPointSize: Tokens.font.size.normal
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -918,7 +935,7 @@ Item {
 
         StateLayer {
             anchors.fill: parent
-            color: itemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+            color: itemRoot.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
             onClicked: PowerProfiles.profile = itemRoot.profile
         }
     }
@@ -972,7 +989,7 @@ Item {
 
         readonly property bool isActive: DisplayProjection.activeProjection === mode
 
-        color: isActive ? Colours.palette.m3primaryContainer : (Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHighest)
+        color: isActive ? Colours.layer(Colours.palette.m3surfaceContainerHigh, 2) : (Colours.light ? Colours.tintContainer(Colours.containerAtLevel(2), 0.14) : Colours.palette.m3surfaceContainerHigh)
         border.width: 0
         border.color: "transparent"
 
@@ -994,7 +1011,7 @@ Item {
 
             MaterialIcon {
                 text: projItemRoot.icon
-                color: projItemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+                color: projItemRoot.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
                 iconPointSize: Tokens.font.size.large
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -1006,23 +1023,24 @@ Item {
 
                 StyledText {
                     text: projItemRoot.title
-                    font.weight: projItemRoot.isActive ? 600 : 400
-                    color: projItemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
-                    textPointSize: Tokens.font.size.small
+                    font.weight: projItemRoot.isActive ? Font.DemiBold : Font.Medium
+                    color: projItemRoot.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                    textPointSize: Tokens.font.size.normal
                     Layout.fillWidth: true
                 }
 
                 MarqueeText {
+                    Layout.fillWidth: true
                     text: projItemRoot.description
-                    color: projItemRoot.isActive ? Qt.alpha(Colours.palette.m3onPrimaryContainer, 0.8) : Colours.palette.m3onSurfaceVariant
-                    textPointSize: Tokens.font.size.smaller
+                    color: Colours.palette.m3onSurfaceVariant
+                    textPointSize: Tokens.font.size.smaller - 1
                 }
             }
 
             MaterialIcon {
                 visible: projItemRoot.isActive
                 text: "check_circle"
-                color: Colours.palette.m3onPrimaryContainer
+                color: Colours.palette.m3primary
                 iconPointSize: Tokens.font.size.normal
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -1031,7 +1049,7 @@ Item {
         StateLayer {
             id: projMa
             anchors.fill: parent
-            color: projItemRoot.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
+            color: projItemRoot.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurface
             preventStealing: false
             onClicked: DisplayProjection.applyProjection(projItemRoot.mode)
         }
