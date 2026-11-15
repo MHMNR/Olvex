@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.components.controls
@@ -132,36 +133,18 @@ ColumnLayout {
                 Behavior on value { Anim { type: Anim.StandardLarge } }
             }
 
-            // ── Center Tonal Hero Hub ────────────────────────────────────────
-            StyledRect {
+            // ── Center M3 Expressive Badge ──────────────────────────────────
+            MaterialShape {
                 anchors.centerIn: parent
-                width: parent.width - 102
-                height: width
-                radius: width / 2
-                color: Colours.tileFill
+                implicitSize: 64
+                shape: MaterialShape.Cookie12Sided
+                color: Qt.alpha(Colours.palette.m3primary, 0.14)
 
-                ColumnLayout {
+                MaterialIcon {
                     anchors.centerIn: parent
-                    spacing: 0
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: `${Math.round((SystemUsage.cpuPerc || 0) * 100)}%`
-                        color: Colours.palette.m3onSurface
-                        font.family: Tokens.font.family.mono
-                        textPointSize: Tokens.font.size.normal
-                        font.weight: Font.Black
-                    }
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: qsTr("CPU")
-                        color: Colours.palette.m3secondary
-                        font.family: Tokens.font.family.mono
-                        textPointSize: 8
-                        font.weight: Font.Bold
-                        font.letterSpacing: 0.8
-                    }
+                    text: "monitoring"
+                    color: Colours.palette.m3primary
+                    iconPointSize: 26
                 }
             }
         }
