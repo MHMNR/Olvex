@@ -76,7 +76,7 @@ ColumnLayout {
         Layout.fillHeight: true
 
         radius: Tokens.rounding.small
-        color: "transparent"
+        color: Colours.tileFill
 
         Loader {
             asynchronous: true
@@ -84,10 +84,7 @@ ColumnLayout {
             active: opacity > 0
             opacity: Notifs.notClosed.length > 0 && !GlobalConfig.lock.hideNotifs ? 0 : 1
 
-            sourceComponent: StyledRect {
-                radius: Tokens.rounding.small
-                color: Colours.tileFill
-
+            sourceComponent: Item {
                 ColumnLayout {
                     anchors.centerIn: parent
                     width: Math.min(parent.width - 24, 240)
@@ -134,6 +131,7 @@ ColumnLayout {
 
         StyledListView {
             anchors.fill: parent
+            anchors.margins: 8
             visible: !GlobalConfig.lock.hideNotifs
             spacing: Tokens.spacing.small
             clip: true

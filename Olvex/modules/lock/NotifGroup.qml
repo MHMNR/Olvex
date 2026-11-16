@@ -75,7 +75,7 @@ StyledRect {
 
     clip: true
     radius: Tokens.rounding.normal
-    color: root.urgency === "critical" ? Colours.palette.m3secondaryContainer : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+    color: root.urgency === "critical" ? Colours.palette.m3secondaryContainer : Colours.tileFillElevated
 
     RowLayout {
         id: content
