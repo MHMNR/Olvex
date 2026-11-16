@@ -14,6 +14,7 @@ Singleton {
     property string loc
     property var realCc: null
     property bool demoMode: false
+    property bool demoFrozen: true
     property int demoIndex: 0
     readonly property var demoPresets: [
         { weatherCode: 0, weatherDesc: "Clear", tempC: 29, tempF: 84, feelsLikeC: 31, feelsLikeF: 88, humidity: 48, windSpeed: 10, isDay: 1, demoCycle: 0.45, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
@@ -64,14 +65,14 @@ Singleton {
 
     Timer {
         interval: 4500
-        running: root.demoMode
+        running: root.demoMode && !root.demoFrozen
         repeat: true
         onTriggered: root.demoIndex = (root.demoIndex + 1) % root.demoPresets.length
     }
 
     Timer {
         interval: 100
-        running: root.demoMode
+        running: root.demoMode && !root.demoFrozen
         repeat: true
         onTriggered: {
             const start = new Date();
@@ -493,6 +494,10 @@ Singleton {
     }
 
     function toggleDemoMode(): void {
+        if (root.demoFrozen) {
+            root.demoMode = false;
+            return;
+        }
         if (!root.demoMode) {
             const d = new Date();
             d.setHours(6, 0, 0, 0);
@@ -506,15 +511,21 @@ Singleton {
 
     IpcHandler {
         function toggleDemo(): void {
+            if (root.demoFrozen)
+                return;
             root.toggleDemoMode();
         }
 
         function nextDemo(): void {
+            if (root.demoFrozen)
+                return;
             root.demoMode = true;
             root.demoIndex = (root.demoIndex + 1) % root.demoPresets.length;
         }
 
         function setDemo(index: int): void {
+            if (root.demoFrozen)
+                return;
             root.demoMode = true;
             root.demoIndex = Math.max(0, Math.min(root.demoPresets.length - 1, index));
         }

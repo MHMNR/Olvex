@@ -41,7 +41,7 @@ Item {
 
     readonly property real currentLogoScale: root.heroFloatScale + (1.0 - root.heroFloatScale) * root.dockScaleProgress
 
-    readonly property var stepComponents: [cHello, cDisplay, cTheme, cApps, cShortcuts, cFinish]
+    readonly property var stepComponents: [cHello, cDisplay, cTheme, cClock, cApps, cShortcuts, cFinish]
 
     function goTo(index) {
         if (busy || index < 0 || index > last || index === wizState.step)
@@ -782,6 +782,15 @@ Item {
         id: cTheme
 
         Step2Theme {
+            wiz: wizState
+            backend: backendObj
+        }
+    }
+
+    Component {
+        id: cClock
+
+        StepClock {
             wiz: wizState
             backend: backendObj
         }

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.services
@@ -19,8 +20,21 @@ FocusScope {
         "clipboard": ["Super", "V"],
         "screenshot": ["Super", "Shift", "S"],
         "terminal": ["Super", "T"],
-        "cheatsheet": ["Super", "/"]
+        "closeWindow": ["Super", "C"],
+        "cheatsheet": ["Super", "/"],
+        "lockScreen": ["Super", "L"]
     })
+
+    readonly property var shapePool: [
+        MaterialShape.Cookie12Sided,
+        MaterialShape.Sunny,
+        MaterialShape.Clover4Leaf,
+        MaterialShape.SoftBurst,
+        MaterialShape.Cookie4Sided,
+        MaterialShape.Gem,
+        MaterialShape.Clover8Leaf,
+        MaterialShape.Flower
+    ]
 
     readonly property var tour: [
         {
@@ -54,10 +68,22 @@ FocusScope {
             hint: qsTr("Open command line terminal")
         },
         {
+            id: "closeWindow",
+            icon: "close",
+            title: qsTr("Close active window"),
+            hint: qsTr("Close the focused application")
+        },
+        {
             id: "cheatsheet",
             icon: "keyboard",
             title: qsTr("Full cheatsheet"),
             hint: qsTr("Explore every desktop shortcut")
+        },
+        {
+            id: "lockScreen",
+            icon: "lock",
+            title: qsTr("Lock screen"),
+            hint: qsTr("Lock your desktop session")
         }
     ]
 
@@ -77,6 +103,10 @@ FocusScope {
             flashRow("screenshot");
         } else if (meta && (event.key === Qt.Key_T || event.key === Qt.Key_Q)) {
             flashRow("terminal");
+        } else if (meta && event.key === Qt.Key_C) {
+            flashRow("closeWindow");
+        } else if (meta && event.key === Qt.Key_L) {
+            flashRow("lockScreen");
         } else if (meta && event.key === Qt.Key_Slash) {
             flashRow("cheatsheet");
         }
@@ -159,25 +189,24 @@ FocusScope {
                             anchors.rightMargin: 14
                             spacing: 12
 
-                            // Squircle Icon Container
-                            Item {
+                            // M3Shape Solid Primary Icon Container
+                            MaterialShape {
                                 width: 38
                                 height: 38
+                                implicitWidth: 38
+                                implicitHeight: 38
+                                implicitSize: 38
                                 Layout.alignment: Qt.AlignVCenter
+                                shape: root.shapePool[card.index % root.shapePool.length]
+                                color: Colours.palette.m3primary
 
-                                StyledRect {
-                                    anchors.fill: parent
-                                    radius: 11
-                                    color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.12 : 0.16)
-                                    border.width: 0
-                                    border.color: "transparent"
-
-                                    MaterialIcon {
-                                        anchors.centerIn: parent
-                                        text: card.modelData.icon
-                                        iconPointSize: 19
-                                        color: Colours.palette.m3primary
-                                    }
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: card.modelData.icon
+                                    iconPointSize: 18
+                                    color: Colours.palette.m3onPrimary
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
                                 }
                             }
 

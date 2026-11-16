@@ -55,7 +55,6 @@ Item {
             SettingRow {
                 Layout.fillWidth: true
                 implicitHeight: 66
-                icon: "opacity"
                 title: qsTr("Transparency")
                 description: qsTr("See-through panels and dialogs with background blur")
                 isSingleInGroup: true

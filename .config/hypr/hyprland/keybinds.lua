@@ -67,9 +67,8 @@ create_bind(vars.kbWallpapers, hl.dsp.global("olvex:wallpapers"))
 create_bind(vars.kbHelp, hl.dsp.global("olvex:help"))
 create_bind(vars.kbLock, hl.dsp.global("olvex:lock"))
 
--- Restore lock
-create_bind(vars.kbRestoreLock, hl.dsp.exec_cmd("olvex shell -d"), locked)
-create_bind(vars.kbRestoreLock, hl.dsp.global("olvex:lock"), locked)
+-- Restore lock (only launch shell if not running, then lock via IPC)
+create_bind(vars.kbRestoreLock, hl.dsp.exec_cmd("bash -c 'if ! pgrep -x quickshell >/dev/null; then olvex shell -d; sleep 1.2; fi; qs ipc call lock lock'"), { locked = true })
 
 -- Kill / restart shell
 create_bind("CTRL + SUPER + SHIFT + R", hl.dsp.exec_cmd("olvex shell kill"), { release = true })

@@ -35,7 +35,7 @@ QtObject {
 
     // ── Navigation ──
     property int step: 0
-    readonly property int stepCount: 6   // 0 hello · 1 display · 2 theme · 3 apps · 4 shortcuts · 5 finish
+    readonly property int stepCount: 7   // 0 hello · 1 display · 2 theme · 3 clock · 4 apps · 5 shortcuts · 6 finish
 
     // ── Choices ──
     property real scale: (DisplayManager && DisplayManager.monitors && DisplayManager.monitors.length > 0) ? (DisplayManager.monitors[0].scale || 1.0) : 1.0
@@ -265,6 +265,8 @@ QtObject {
                             else if (t.includes("terminal") && combo.length > 0) map["terminal"] = combo;
                             else if (t.includes("web browser") && combo.length > 0) map["browser"] = combo;
                             else if (t.includes("file manager") && combo.length > 0) map["fileManager"] = combo;
+                            else if ((t.includes("close") || t.includes("kill")) && combo.length > 0) map["closeWindow"] = combo;
+                            else if (t.includes("lock") && combo.length > 0) map["lockScreen"] = combo;
                             else if (t.includes("cheatsheet") && combo.length > 0) map["cheatsheet"] = combo;
                         }
                     }

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.services
@@ -15,13 +16,24 @@ Item {
     signal editStepRequested(int stepIndex)
     signal finishRequested
 
+    readonly property var shapePool: [
+        MaterialShape.Cookie12Sided,
+        MaterialShape.Sunny,
+        MaterialShape.Clover4Leaf,
+        MaterialShape.SoftBurst,
+        MaterialShape.Cookie4Sided,
+        MaterialShape.Gem,
+        MaterialShape.Clover8Leaf
+    ]
+
     readonly property var summary: [
         { id: "scale", step: 1, icon: "monitor", label: qsTr("Interface scale"), value: Math.round(wiz.scale * 100) + "%" },
         { id: "theme", step: 2, icon: "contrast", label: qsTr("Theme"), value: wiz.themeModeNames[wiz.themeMode] },
         { id: "wallpaper", step: 2, icon: "wallpaper", label: qsTr("Wallpaper"), value: (wiz.wallpaperApplied && wiz.wallpaperIdx >= 0) ? wiz.wallpapers[wiz.wallpaperIdx].name : qsTr("Current wallpaper") },
         { id: "transparency", step: 2, icon: "opacity", label: qsTr("Transparency"), value: wiz.transparency ? qsTr("On") : qsTr("Off") },
-        { id: "terminal", step: 3, icon: "terminal", label: qsTr("Default terminal"), value: wiz.selectedTerminal },
-        { id: "browser", step: 3, icon: "language", label: qsTr("Default browser"), value: wiz.selectedBrowser }
+        { id: "clock", step: 3, icon: "watch", label: qsTr("Clock face"), value: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.style) ? GlobalConfig.background.desktopClock.style : "classic" },
+        { id: "terminal", step: 4, icon: "terminal", label: qsTr("Default terminal"), value: wiz.selectedTerminal },
+        { id: "browser", step: 4, icon: "language", label: qsTr("Default browser"), value: wiz.selectedBrowser }
     ]
 
     ColumnLayout {
@@ -123,25 +135,24 @@ Item {
                             anchors.rightMargin: 16
                             spacing: 14
 
-                            // Squircle Icon Container
-                            Item {
+                            // M3Shape Solid Primary Icon Container
+                            MaterialShape {
                                 width: 40
                                 height: 40
+                                implicitWidth: 40
+                                implicitHeight: 40
+                                implicitSize: 40
                                 Layout.alignment: Qt.AlignVCenter
+                                shape: root.shapePool[card.index % root.shapePool.length]
+                                color: Colours.palette.m3primary
 
-                                StyledRect {
-                                    anchors.fill: parent
-                                    radius: 12
-                                    color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.12 : 0.16)
-                                    border.width: 0
-                                    border.color: "transparent"
-
-                                    MaterialIcon {
-                                        anchors.centerIn: parent
-                                        text: card.modelData.icon
-                                        iconPointSize: 20
-                                        color: Colours.palette.m3primary
-                                    }
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: card.modelData.icon
+                                    iconPointSize: 19
+                                    color: Colours.palette.m3onPrimary
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
                                 }
                             }
 
