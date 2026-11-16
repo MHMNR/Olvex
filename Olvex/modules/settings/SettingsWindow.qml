@@ -87,7 +87,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 64
+            height: 72
             z: 130
 
             readonly property var activeCat: PaneRegistry.getById(session.currentId || session.pageId)
@@ -99,7 +99,8 @@ Item {
                 id: homeHeader
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 18
+                anchors.verticalCenterOffset: 2
+                anchors.leftMargin: 20
                 implicitWidth: homeHeaderTitle.implicitWidth
                 implicitHeight: homeHeaderTitle.implicitHeight
                 opacity: !topbar.inSubpage ? 1.0 : 0.0
@@ -125,7 +126,8 @@ Item {
                 id: pageHeader
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 18
+                anchors.verticalCenterOffset: 2
+                anchors.leftMargin: 20
                 implicitWidth: pageHeaderRow.implicitWidth
                 implicitHeight: pageHeaderRow.implicitHeight
                 opacity: topbar.inSubpage ? 1.0 : 0.0
@@ -184,7 +186,8 @@ Item {
             RowLayout {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.rightMargin: 18
+                anchors.verticalCenterOffset: 2
+                anchors.rightMargin: 20
                 spacing: Tokens.spacing.normal
 
                 // ── Expandable Search Pill (Circle 42px → 320px input field) ──

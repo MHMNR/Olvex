@@ -49,6 +49,8 @@ class DesktopClock : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(QString, style, QStringLiteral("classic"))
+    CONFIG_PROPERTY(int, styleVariant, 0)
     CONFIG_PROPERTY(qreal, scale, 1.02459716796875)
     CONFIG_PROPERTY(QString, placementStrategy, QStringLiteral("fixed")) // "fixed", "leastBusy", "mostBusy"
     CONFIG_PROPERTY(QString, position, QStringLiteral("bottom-right"))

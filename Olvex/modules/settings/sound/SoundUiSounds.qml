@@ -174,15 +174,17 @@ Item {
         anchors.topMargin: Tokens.padding.large
         spacing: Tokens.spacing.large
 
-        // ── Master Controls Card ──
-        Column {
+        // ── General / Master Controls Section ──
+        Section {
             Layout.fillWidth: true
-            spacing: 0
+            title: qsTr("General")
+            description: qsTr("Master toggle and volume for desktop audio feedback")
+            icon: "volume_up"
+            accentColor: Colours.palette.m3primary
 
             SettingRow {
                 title: qsTr("UI Sound Effects")
                 description: qsTr("Play audio feedback for desktop events")
-                divider: true
                 StyledSwitch {
                     checked: GlobalConfig.services.uiSounds.enabled
                     onToggled: {
@@ -195,7 +197,6 @@ Item {
             SettingRow {
                 title: qsTr("Effects volume")
                 description: qsTr("Master volume level for UI sound effects")
-                divider: false
                 StyledSlider {
                     width: 200
                     from: 0.05

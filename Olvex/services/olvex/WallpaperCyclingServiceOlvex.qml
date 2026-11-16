@@ -16,7 +16,7 @@ Singleton {
     }
 
     property bool cyclingActive: cycleTimer.running
-    readonly property bool fullscreenShowing: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
+    readonly property bool fullscreenShowing: Boolean(Hypr.focusedWorkspace?.toplevels?.values?.some(t => (t?.lastIpcObject?.fullscreen ?? 0) > 1))
     readonly property bool liveWallpaperShowing: Wallpapers.isVideoPath(Wallpapers.actualCurrent)
     readonly property bool lockscreenShowing: LockState.locked
     readonly property var cyclingConfig: GlobalConfig.background?.wallpaperCycling ?? null

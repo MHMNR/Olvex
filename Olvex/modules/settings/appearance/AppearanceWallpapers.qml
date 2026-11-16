@@ -960,6 +960,9 @@ Item {
                         Layout.fillWidth: true
                         implicitWidth: parent ? parent.width : 0
                         width: parent ? parent.width : implicitWidth
+                        enabled: GlobalConfig.background.wallpaperEnabled
+                        opacity: enabled ? 1.0 : 0.38
+                        Behavior on opacity { Anim { duration: Tokens.anim.durations.small } }
 
                         property bool isFirstInGroup: false
                         property bool isLastInGroup: false
@@ -1080,6 +1083,7 @@ Item {
                         title: qsTr("Per-monitor wallpaper")
                         description: qsTr("Use an independent wallpaper on each display")
                         divider: false
+                        enabled: GlobalConfig.background.wallpaperEnabled
                         StyledSwitch {
                             checked: GlobalConfig.background.perMonitorWallpaper
                             onToggled: {

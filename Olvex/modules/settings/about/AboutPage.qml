@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Shapes
+import M3Shapes
 import Quickshell
 import Quickshell.Io
 import Olvex.Config
@@ -104,12 +105,24 @@ Item {
 
                     // 1. Header Category: System
                     RowLayout {
-                        spacing: 8
+                        spacing: 10
 
-                        MaterialIcon {
-                            text: "desktop_windows"
+                        MaterialShape {
+                            Layout.alignment: Qt.AlignVCenter
+                            implicitWidth: 32
+                            implicitHeight: 32
+                            implicitSize: 32
+                            shape: MaterialShape.Cookie12Sided
                             color: Colours.palette.m3primary
-                            iconPointSize: 16
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "desktop_windows"
+                                color: Colours.palette.m3onPrimary
+                                iconPointSize: 15
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
 
                         StyledText {
@@ -667,12 +680,24 @@ Item {
 
                         // Header: Specifications
                         RowLayout {
-                            spacing: 8
+                            spacing: 10
 
-                            MaterialIcon {
-                                text: "memory"
+                            MaterialShape {
+                                Layout.alignment: Qt.AlignVCenter
+                                implicitWidth: 32
+                                implicitHeight: 32
+                                implicitSize: 32
+                                shape: MaterialShape.Sunny
                                 color: Colours.palette.m3primary
-                                iconPointSize: 16
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "memory"
+                                    color: Colours.palette.m3onPrimary
+                                    iconPointSize: 15
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
 
                             StyledText {
@@ -898,12 +923,24 @@ Item {
 
                         // Header: Maintainer
                         RowLayout {
-                            spacing: 8
+                            spacing: 10
 
-                            MaterialIcon {
-                                text: "verified_user"
+                            MaterialShape {
+                                Layout.alignment: Qt.AlignVCenter
+                                implicitWidth: 32
+                                implicitHeight: 32
+                                implicitSize: 32
+                                shape: MaterialShape.Clover4Leaf
                                 color: Colours.palette.m3primary
-                                iconPointSize: 16
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "verified_user"
+                                    color: Colours.palette.m3onPrimary
+                                    iconPointSize: 15
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
 
                             StyledText {
@@ -1057,19 +1094,21 @@ Item {
                                     anchors.rightMargin: 14
                                     spacing: 12
 
-                                    StyledRect {
+                                    MaterialShape {
                                         Layout.alignment: Qt.AlignVCenter
-                                        implicitWidth: 36
-                                        implicitHeight: 36
-                                        radius: 10
-                                        color: Qt.alpha(Colours.palette.m3onSurface, 0.07)
+                                        implicitWidth: 38
+                                        implicitHeight: 38
+                                        implicitSize: 38
+                                        shape: MaterialShape.SoftBurst
+                                        color: Colours.palette.m3primary
 
                                         MaterialIcon {
                                             anchors.centerIn: parent
                                             text: "code"
-                                            color: repoArea.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                                            iconPointSize: 18
-                                            Behavior on color { CAnim {} }
+                                            color: Colours.palette.m3onPrimary
+                                            iconPointSize: 17
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
                                         }
                                     }
 
@@ -1130,19 +1169,21 @@ Item {
                                     anchors.rightMargin: 14
                                     spacing: 12
 
-                                    StyledRect {
+                                    MaterialShape {
                                         Layout.alignment: Qt.AlignVCenter
-                                        implicitWidth: 36
-                                        implicitHeight: 36
-                                        radius: 10
-                                        color: Qt.alpha(Colours.palette.m3onSurface, 0.07)
+                                        implicitWidth: 38
+                                        implicitHeight: 38
+                                        implicitSize: 38
+                                        shape: MaterialShape.Cookie4Sided
+                                        color: Colours.palette.m3primary
 
                                         MaterialIcon {
                                             anchors.centerIn: parent
                                             text: "folder_open"
-                                            color: cfgArea.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                                            iconPointSize: 18
-                                            Behavior on color { CAnim {} }
+                                            color: Colours.palette.m3onPrimary
+                                            iconPointSize: 17
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
                                         }
                                     }
 
@@ -1203,19 +1244,21 @@ Item {
                                     anchors.rightMargin: 14
                                     spacing: 12
 
-                                    StyledRect {
+                                    MaterialShape {
                                         Layout.alignment: Qt.AlignVCenter
-                                        implicitWidth: 36
-                                        implicitHeight: 36
-                                        radius: 10
-                                        color: Qt.alpha(Colours.palette.m3onSurface, 0.07)
+                                        implicitWidth: 38
+                                        implicitHeight: 38
+                                        implicitSize: 38
+                                        shape: MaterialShape.Gem
+                                        color: Colours.palette.m3primary
 
                                         MaterialIcon {
                                             anchors.centerIn: parent
                                             text: "bug_report"
-                                            color: issueArea.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
-                                            iconPointSize: 18
-                                            Behavior on color { CAnim {} }
+                                            color: Colours.palette.m3onPrimary
+                                            iconPointSize: 17
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
                                         }
                                     }
 

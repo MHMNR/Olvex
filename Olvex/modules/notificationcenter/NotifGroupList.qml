@@ -74,13 +74,18 @@ LazyListView {
             x: LazyListView.removing ? width * 0.5 : 0
 
             hoverEnabled: true
-            cursorShape: notifInner.body?.hoveredLink ? Qt.PointingHandCursor : pressed ? Qt.ClosedHandCursor : undefined
+            cursorShape: notifInner.body?.hoveredLink ? Qt.PointingHandCursor : pressed ? Qt.ClosedHandCursor : (!root.expanded ? Qt.PointingHandCursor : undefined)
             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             preventStealing: !root.expanded
             enabled: !(modelData?.closed ?? true)
 
             drag.target: this
             drag.axis: Drag.XAxis
+
+            onClicked: event => {
+                if (!root.expanded && event.button === Qt.LeftButton && Math.abs(x) < 4)
+                    root.requestToggleExpand(true);
+            }
 
             onPressed: event => {
                 startY = event.y;

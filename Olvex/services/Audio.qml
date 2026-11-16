@@ -21,11 +21,18 @@ Singleton {
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property PwNode source: Pipewire.defaultAudioSource
 
+    function safeVolume(node): real {
+        if (!node || !node.audio)
+            return 0;
+        const v = node.audio.volume;
+        return (typeof v === "number" && !isNaN(v)) ? v : 0;
+    }
+
     readonly property bool muted: !!sink?.audio?.muted
-    readonly property real volume: sink?.audio?.volume ?? 0
+    readonly property real volume: safeVolume(sink)
 
     readonly property bool sourceMuted: !!source?.audio?.muted
-    readonly property real sourceVolume: source?.audio?.volume ?? 0
+    readonly property real sourceVolume: safeVolume(source)
 
     readonly property alias cava: cava
     readonly property int visualiserFps: Math.max(1, Math.min(GlobalConfig.services["visualiserFps"] || 60, 60))

@@ -18,9 +18,9 @@ Singleton {
 
     readonly property HyprlandToplevel activeToplevel: {
         const t = Hyprland.activeToplevel;
-        return t?.workspace?.name.startsWith("special:") || Hyprland.focusedWorkspace?.toplevels.values.length > 0 ? t : null;
+        return (t && (t?.workspace?.name?.startsWith("special:") || (Hyprland.focusedWorkspace?.toplevels?.values?.length ?? 0) > 0)) ? t : null;
     }
-    readonly property HyprlandWorkspace focusedWorkspace: Hyprland.focusedWorkspace
+    readonly property HyprlandWorkspace focusedWorkspace: Hyprland.focusedWorkspace ?? null
     readonly property HyprlandMonitor focusedMonitor: Hyprland.focusedMonitor
     readonly property int activeWsId: focusedWorkspace?.id ?? 1
 
@@ -148,7 +148,7 @@ Singleton {
         return title.length > 0 && /visual studio code|^cursor(\s|$|-)/i.test(title);
     }
 
-    readonly property bool hasCodeEditorOpen: toplevels.values.some(t => isCodeEditorToplevel(t))
+    readonly property bool hasCodeEditorOpen: Boolean(toplevels?.values?.some(t => isCodeEditorToplevel(t)))
 
     function shouldBlockScreenCapture(): bool {
         return isCodeEditorToplevel(activeToplevel);

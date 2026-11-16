@@ -176,8 +176,20 @@ Variants {
                     win.triggerAutoPlacement();
             }
 
-            x: isAutoPlacement ? autoTargetX : undefined
-            y: isAutoPlacement ? autoTargetY : undefined
+            Binding {
+                target: clockLoader
+                property: "x"
+                value: clockLoader.autoTargetX
+                when: clockLoader.isAutoPlacement
+                restoreMode: Binding.RestoreNone
+            }
+            Binding {
+                target: clockLoader
+                property: "y"
+                value: clockLoader.autoTargetY
+                when: clockLoader.isAutoPlacement
+                restoreMode: Binding.RestoreNone
+            }
 
             Behavior on x {
                 id: clockXBehavior

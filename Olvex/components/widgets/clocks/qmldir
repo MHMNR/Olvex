@@ -1,0 +1,44 @@
+module qs.components.widgets.clocks
+
+singleton ClockCatalog 1.0 ClockCatalog.qml
+SlottedHand 1.0 SlottedHand.qml
+ContinuousSecondHand 1.0 ContinuousSecondHand.qml
+Clock01Scalloped 1.0 Clock01Scalloped.qml
+Clock03ChunkyOverlap 1.0 Clock03ChunkyOverlap.qml
+Clock04BoldZeroAnalog 1.0 Clock04BoldZeroAnalog.qml
+Clock05Stacked2x2 1.0 Clock05Stacked2x2.qml
+Clock06WidePerspective 1.0 Clock06WidePerspective.qml
+Clock07ChronoDigital 1.0 Clock07ChronoDigital.qml
+Clock08ClusteredGiant 1.0 Clock08ClusteredGiant.qml
+Clock09SquareSwiss 1.0 Clock09SquareSwiss.qml
+Clock10TallSplit 1.0 Clock10TallSplit.qml
+Clock11ExpressiveFlower 1.0 Clock11ExpressiveFlower.qml
+Clock12EditorialSerif 1.0 Clock12EditorialSerif.qml
+Clock13OrbitRing 1.0 Clock13OrbitRing.qml
+Clock14BentoCards 1.0 Clock14BentoCards.qml
+Clock15PillMorph 1.0 Clock15PillMorph.qml
+Clock16SunburstAnalog 1.0 Clock16SunburstAnalog.qml
+Clock17DotMatrix 1.0 Clock17DotMatrix.qml
+Clock18TypoRibbon 1.0 Clock18TypoRibbon.qml
+Clock19FlipTiles 1.0 Clock19FlipTiles.qml
+Clock20ArchGauge 1.0 Clock20ArchGauge.qml
+Clock21RadarMinimal 1.0 Clock21RadarMinimal.qml
+Clock22WaveProgress 1.0 Clock22WaveProgress.qml
+Clock23PixelSlanted 1.0 Clock23PixelSlanted.qml
+Clock24HexagonAnalog 1.0 Clock24HexagonAnalog.qml
+Clock25VerticalBars 1.0 Clock25VerticalBars.qml
+Clock26DualRingAnalog 1.0 Clock26DualRingAnalog.qml
+Clock27Wordmark 1.0 Clock27Wordmark.qml
+Clock28MinimalistArc 1.0 Clock28MinimalistArc.qml
+Clock29CornerBadge 1.0 Clock29CornerBadge.qml
+Clock30SegmentedPill 1.0 Clock30SegmentedPill.qml
+Clock31FloatingDigits 1.0 Clock31FloatingDigits.qml
+Clock32CompassDial 1.0 Clock32CompassDial.qml
+Clock33GlassStack 1.0 Clock33GlassStack.qml
+Clock34BinaryDots 1.0 Clock34BinaryDots.qml
+Clock35CloverAnalog 1.0 Clock35CloverAnalog.qml
+Clock36SplitTicker 1.0 Clock36SplitTicker.qml
+Clock37MinimalOutline 1.0 Clock37MinimalOutline.qml
+Clock38AnalogDigital 1.0 Clock38AnalogDigital.qml
+Clock39OlvexSignature 1.0 Clock39OlvexSignature.qml
+

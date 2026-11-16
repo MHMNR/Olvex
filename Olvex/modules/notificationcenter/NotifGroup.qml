@@ -70,14 +70,33 @@ StyledRect {
 
     clip: true
     radius: Tokens.rounding.normal
-    color: Colours.tileFill
+    color: (!root.expanded && root.notifCount > 1 && cardHover.hovered)
+        ? Colours.layer(Colours.tileFill, 1)
+        : Colours.tileFill
     border.width: 0
     border.color: "transparent"
+
+    Behavior on color {
+        CAnim {}
+    }
 
     Behavior on implicitHeight {
         Anim {
             type: Anim.Standard
         }
+    }
+
+    HoverHandler {
+        id: cardHover
+        enabled: !root.expanded && root.notifCount > 1
+    }
+
+    StateLayer {
+        anchors.fill: parent
+        radius: root.radius
+        enabled: !root.expanded && root.notifCount > 1
+        color: Colours.palette.m3onSurface
+        onClicked: root.toggleExpand(true)
     }
 
     RowLayout {
