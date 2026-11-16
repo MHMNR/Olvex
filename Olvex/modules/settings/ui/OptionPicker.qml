@@ -21,6 +21,7 @@ Item {
     property var model: []
     property int currentIndex: 0
     property bool menuOnTop: false
+    property bool alignLeft: false
     property real menuMaxHeight: 320
     property bool expanded: false
     property bool searchable: count > 10
@@ -235,6 +236,10 @@ Item {
         const refX = (root.freezeW > 0) ? root.freezeX : currentX;
         const refW = (root.freezeW > 0) ? root.freezeW : startW;
         const rightAlignedX = refX + refW - targetW;
+
+        if (root.alignLeft) {
+            return Math.max(8, Math.min(refX, maxOverlayW - targetW - 8));
+        }
 
         // If in right half (e.g. SettingRow), lock right edge to button right edge
         if (refX > maxOverlayW * 0.45) {

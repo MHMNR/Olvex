@@ -201,7 +201,7 @@ ColumnLayout {
                             columnSpacing: Tokens.spacing.normal
                             rowSpacing: Tokens.spacing.normal
 
-                            readonly property real cardWidth: Math.max(140, Math.floor((clockStyleCard.width - 32 - columnSpacing * 2) / 3))
+                            readonly property real cardWidth: Math.max(140, Math.floor((clockStyleCard.width - 40 - columnSpacing * 2) / 3))
 
                             Repeater {
                                 model: ClockCatalog.styles
@@ -217,7 +217,7 @@ ColumnLayout {
                                     Layout.preferredWidth: clockGrid.cardWidth
                                     Layout.maximumWidth: clockGrid.cardWidth
                                     Layout.minimumWidth: clockGrid.cardWidth
-                                    Layout.preferredHeight: 164
+                                    Layout.preferredHeight: 192
                                     radius: Tokens.rounding.large
                                     border.width: 0
                                     border.color: "transparent"
@@ -315,64 +315,31 @@ ColumnLayout {
                                             StyledText {
                                                 Layout.fillWidth: true
                                                 readonly property var varsList: styleCard.modelData.variants || []
-                                                text: styleCard.isSelected && varsList.length > 1
-                                                    ? (varsList[root.currentStyleVariant] || varsList[0])
-                                                    : (varsList.length > 1 ? qsTr("%1 variants").arg(varsList.length) : qsTr("Standard"))
+                                                visible: !(styleCard.isSelected && varsList.length > 1)
+                                                text: varsList.length > 1 ? qsTr("%1 variants").arg(varsList.length) : qsTr("Standard")
                                                 textPointSize: Tokens.font.size.small
                                                 color: Colours.palette.m3onSurfaceVariant
                                                 elide: Text.ElideRight
                                             }
-                                        }
-                                    }
-                                }
-                            }
-                        }
 
-                        // Variant Selector Chips (shown when selected clock style has multiple variants)
-                        Flow {
-                            id: variantRow
-                            readonly property var variantsList: ClockCatalog.entryFor(root.currentClockStyle).variants || []
-                            visible: variantsList.length > 1
-                            Layout.fillWidth: true
-                            spacing: 8
-
-                            Repeater {
-                                model: variantRow.variantsList
-
-                                StyledRect {
-                                    id: varChip
-                                    required property string modelData
-                                    required property int index
-
-                                    readonly property bool active: root.currentStyleVariant === index
-                                    implicitWidth: varText.implicitWidth + 24
-                                    implicitHeight: 32
-                                    radius: height / 2
-                                    border.width: 0
-                                    border.color: "transparent"
-                                    color: active ? Colours.palette.m3primary : Colours.palette.m3surfaceContainer
-
-                                    Behavior on color { CAnim {} }
-
-                                    StateLayer {
-                                        anchors.fill: parent
-                                        radius: varChip.radius
-                                        color: varChip.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-                                        onClicked: {
-                                            if (GlobalConfig.background && GlobalConfig.background.desktopClock) {
-                                                GlobalConfig.background.desktopClock.styleVariant = varChip.index;
-                                                GlobalConfig.save();
+                                            // Native Olvex OptionPicker directly on the applied clock card
+                                            OptionPicker {
+                                                readonly property var varsList: styleCard.modelData.variants || []
+                                                visible: styleCard.isSelected && varsList.length > 1
+                                                alignLeft: true
+                                                Layout.alignment: Qt.AlignLeft
+                                                Layout.maximumWidth: parent.width
+                                                Layout.topMargin: 4
+                                                model: varsList.map(v => ({ label: v }))
+                                                currentIndex: root.currentStyleVariant
+                                                onSelected: index => {
+                                                    if (GlobalConfig.background && GlobalConfig.background.desktopClock) {
+                                                        GlobalConfig.background.desktopClock.styleVariant = index;
+                                                        GlobalConfig.save();
+                                                    }
+                                                }
                                             }
                                         }
-                                    }
-
-                                    StyledText {
-                                        id: varText
-                                        anchors.centerIn: parent
-                                        text: varChip.modelData
-                                        textPointSize: Tokens.font.size.small
-                                        font.weight: varChip.active ? Font.DemiBold : Font.Normal
-                                        color: varChip.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                                     }
                                 }
                             }
