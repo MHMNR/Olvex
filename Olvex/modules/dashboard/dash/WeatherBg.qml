@@ -11,6 +11,7 @@ Item {
     property real overrideKind: -1
     property real overrideDayCycle: -1.0
     property real overrideMoonPhase: -1.0
+    property real overrideWind: -1
 
     readonly property bool shaderReady: fx.status !== ShaderEffect.Error
     readonly property real elapsed: clock.elapsed
@@ -61,6 +62,7 @@ Item {
         property real iHeight: Math.max(height, 1)
         property real iSunProgress: root.continuousCycle
         property real iMoonPhase: root.overrideMoonPhase >= 0.0 ? root.overrideMoonPhase : Weather.moonPhase
+        property real iWindSpeed: root.overrideWind >= 0 ? root.overrideWind : Weather.windSpeed
 
         Behavior on iSunProgress {
             enabled: root.animating

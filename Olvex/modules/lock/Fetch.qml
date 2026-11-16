@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Services.UPower
+import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.services
@@ -85,6 +86,7 @@ ColumnLayout {
             label: qsTr("WM")
             value: SysInfo.wm || "Hyprland"
             accent: Colours.palette.m3primary
+            badgeShape: MaterialShape.Cookie4Sided
         }
 
         InfoTile {
@@ -92,6 +94,7 @@ ColumnLayout {
             label: qsTr("SHELL")
             value: SysInfo.shell || "Fish"
             accent: Colours.palette.m3secondary
+            badgeShape: MaterialShape.Clover4Leaf
         }
 
         InfoTile {
@@ -99,6 +102,7 @@ ColumnLayout {
             label: qsTr("UPTIME")
             value: SysInfo.uptime || "0m"
             accent: Colours.palette.m3tertiary
+            badgeShape: MaterialShape.Pentagon
             monoValue: true
         }
 
@@ -119,6 +123,7 @@ ColumnLayout {
                 ? `${Math.round(UPower.displayDevice.percentage * 100)}%`
                 : qsTr("AC")
             accent: Colours.palette.m3primary
+            badgeShape: MaterialShape.SoftBurst
             monoValue: true
         }
     }
@@ -130,6 +135,7 @@ ColumnLayout {
         required property string label
         required property string value
         required property color accent
+        property int badgeShape: MaterialShape.Cookie4Sided
         property bool monoValue: false
 
         Layout.fillWidth: true
@@ -143,18 +149,19 @@ ColumnLayout {
             anchors.rightMargin: 8
             spacing: 8
 
-            StyledRect {
+            MaterialShape {
                 Layout.alignment: Qt.AlignVCenter
-                implicitWidth: 26
-                implicitHeight: 26
-                radius: Tokens.rounding.small
-                color: Qt.alpha(tile.accent, 0.16)
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                implicitSize: 28
+                shape: tile.badgeShape
+                color: Colours.palette.m3primary
 
                 MaterialIcon {
-                    anchors.centerIn: parent
+                    anchors.fill: parent
                     text: tile.icon
-                    color: tile.accent
-                    iconPointSize: 14
+                    color: Colours.palette.m3onPrimary
+                    iconPointSize: 12
                 }
             }
 

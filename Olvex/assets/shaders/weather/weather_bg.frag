@@ -16,7 +16,13 @@ layout(std140, binding = 0) uniform buf {
     float iHeight;
     float iSunProgress;
     float iMoonPhase;
+    float iWindSpeed;
 };
+
+float windNorm()
+{
+    return clamp(iWindSpeed / 45.0, 0.0, 1.5);
+}
 
 float hash12(vec2 p)
 {
@@ -67,9 +73,10 @@ float sdSegment(vec2 p, vec2 a, vec2 b)
 
 float getCycle(float forceNight)
 {
-    if (forceNight > 0.5)
+    float c = mod(mod(iSunProgress, 2.0) + 2.0, 2.0);
+    if (forceNight > 0.5 && c < 1.0)
         return 1.50;
-    return mod(mod(iSunProgress, 2.0) + 2.0, 2.0);
+    return c;
 }
 
 float getSunElev(float cycle)
@@ -424,7 +431,7 @@ vec3 kindFog(vec2 uv, vec2 aspectUV, float t, float day)
     return col;
 }
 
-// ── 4: Mist (Light, airy horizontal ribbons + 24h sky & dew motes) ───────────
+// ── 4: Drizzle / Mist (Soft mist ribbons + fine light drizzle streaks) ────────
 vec3 kindMist(vec2 uv, vec2 aspectUV, float t, float day)
 {
     float aspect = iWidth / max(iHeight, 1.0);
@@ -456,11 +463,27 @@ vec3 kindMist(vec2 uv, vec2 aspectUV, float t, float day)
         float waveY = yTarget + sin(aspectUV.x * 2.2 - t * (0.25 + fi * 0.06) + fi * 1.7) * 0.045;
         float ribbon = exp(-pow((uv.y - waveY) * 18.0, 2.0));
         float breakN = smoothstep(0.28, 0.75, valueNoise(vec2(aspectUV.x * 2.0 - t * (0.12 + fi * 0.04), fi * 5.3)));
-        col = mix(col, ribbonCol, ribbon * breakN * 0.42);
+        col = mix(col, ribbonCol, ribbon * breakN * 0.38);
     }
 
-    // Suspended fine mist droplets drifting gently
+    // Fine delicate drizzle streaks (distinct from heavy rain)
     vec2 px = uv * vec2(max(iWidth, 1.0), max(iHeight, 1.0));
+    float dAngle = 0.08 + windNorm() * 0.16;
+    float ca = cos(dAngle);
+    float sa = sin(dAngle);
+    vec2 rp = mat2(ca, -sa, sa, ca) * px;
+    float dCellW = 18.0;
+    float dCol = floor(rp.x / dCellW);
+    float dRnd = hash12(vec2(dCol, 3.7));
+    float dRnd2 = hash12(vec2(dCol * 1.9 + 5.1, 8.3));
+    float dCenterX = (dCol + 0.2 + dRnd2 * 0.6) * dCellW;
+    float dDx = abs(rp.x - dCenterX);
+    float dPeriod = 26.0 + dRnd * 18.0;
+    float dY = mod(rp.y - t * (165.0 + dRnd2 * 45.0) - dRnd * 500.0, dPeriod);
+    float dStreak = step(dY, 10.0) * smoothstep(0.0, 10.0, dY) * smoothstep(0.95, 0.0, dDx) * step(0.32, dRnd2);
+    col += ribbonCol * dStreak * 0.42;
+
+    // Suspended fine mist droplets drifting gently
     vec2 mp = px - vec2(t * 18.0, t * 5.0);
     vec2 mc = floor(mp / 42.0);
     vec2 mr = hash22(mc);
@@ -468,7 +491,7 @@ vec3 kindMist(vec2 uv, vec2 aspectUV, float t, float day)
         vec2 mf = fract(mp / 42.0) - 0.5;
         float md = length(mf - (mr - 0.5) * 0.45) * 42.0;
         float dew = smoothstep(2.0, 0.3, md) * (0.35 + 0.65 * sin(t * 2.0 + mr.y * 20.0));
-        col += ribbonCol * dew * 0.30;
+        col += ribbonCol * dew * 0.28;
     }
     return col;
 }
@@ -689,6 +712,94 @@ vec3 kindLoading(vec2 uv, float t)
     return mix(iSecondary.rgb * 0.28, iPrimary.rgb * 0.36, wave);
 }
 
+// ── 11: Sleet / Freezing Rain (Cold overcast + icy rain streaks + ice pellets) ─
+vec3 kindSleet(vec2 uv, vec2 aspectUV, float t, float day)
+{
+    float w = smoothstep(-0.34, 0.32, getSunElev(getCycle(1.0 - day)));
+    vec3 col = kindOvercast(uv, aspectUV, t * 0.75, day) * mix(0.84, 0.88, w);
+    col = mix(col, vec3(0.55, 0.72, 0.90) * mix(0.32, 0.68, w), 0.18);
+
+    vec2 px = uv * vec2(max(iWidth, 1.0), max(iHeight, 1.0));
+    float angle = 0.16 + windNorm() * 0.20;
+    float rThin = rainLayer(px, t, angle, 0.052, 260.0, 20.0, 0.95, 3.1);
+    float pellets = snowLayer(px, t, 36.0, 125.0, 18.0 + windNorm() * 24.0, 1.9, 0.55, 0.52, 0.0, 14.3);
+
+    vec3 iceCol = mix(vec3(0.76, 0.88, 1.0), iPrimary.rgb, 0.14);
+    col += iceCol * (rThin * 0.38 + pellets * 0.72);
+    return col;
+}
+
+// ── 12: Heavy Rain / Downpour (Dark clouds + 4-layer dense sheets + splashes) ──
+vec3 kindHeavyRain(vec2 uv, vec2 aspectUV, float t, float day)
+{
+    float w = smoothstep(-0.34, 0.32, getSunElev(getCycle(1.0 - day)));
+    vec3 col = kindOvercast(uv, aspectUV, t * 0.95, day) * mix(0.64, 0.68, w);
+    vec2 px = uv * vec2(max(iWidth, 1.0), max(iHeight, 1.0));
+    float angle = 0.22 + windNorm() * 0.22;
+
+    float rFar  = rainLayer(px, t, angle - 0.02, 0.085, 300.0, 22.0, 0.95, 2.3);
+    float rMid  = rainLayer(px, t, angle,        0.058, 420.0, 34.0, 1.25, 9.1);
+    float rNear = rainLayer(px, t, angle + 0.02, 0.036, 540.0, 48.0, 1.65, 21.4);
+
+    vec3 streakCol = mix(vec3(0.62, 0.75, 0.94), iPrimary.rgb, 0.20);
+    col += streakCol * (rFar * 0.30 + rMid * 0.52 + rNear * 0.78);
+
+    if (uv.y > 0.72) {
+        float spX = floor(px.x / 20.0);
+        float spRnd = hash12(vec2(spX, floor(t * 3.4)));
+        if (spRnd > 0.52) {
+            float life = fract(t * 3.4 + spRnd);
+            vec2 spCenter = vec2((spX + 0.5) * 20.0, iHeight * (0.82 + spRnd * 0.14));
+            vec2 diff = (px - spCenter) * vec2(1.0, 2.4);
+            float ring = smoothstep(2.2, 0.0, abs(length(diff) - life * 12.0));
+            col += streakCol * ring * (1.0 - life) * 0.38;
+        }
+    }
+    return col;
+}
+
+// ── 13: Thunderstorm with Hail (Lightning + storm rain + faceted hailstones) ───
+vec3 kindHailStorm(vec2 uv, vec2 aspectUV, float t, float day)
+{
+    vec3 col = kindStorm(uv, aspectUV, t, day);
+    vec2 px = uv * vec2(max(iWidth, 1.0), max(iHeight, 1.0));
+    float hailFar  = snowLayer(px, t, 46.0, 185.0, 28.0 + windNorm() * 26.0, 2.2, 0.35, 0.62, 0.0, 31.7);
+    float hailNear = snowLayer(px, t, 74.0, 240.0, 38.0 + windNorm() * 34.0, 3.6, 0.45, 0.72, 0.0, 47.9);
+    vec3 hailCol = vec3(0.92, 0.96, 1.0);
+    col += hailCol * (hailFar * 0.58 + hailNear * 0.88);
+    return col;
+}
+
+// ── 14: Haze / Dust / Heat Shimmer (Warm amber haze + convective shimmer) ────
+vec3 kindHaze(vec2 uv, vec2 aspectUV, float t, float day)
+{
+    float shimmer = sin(uv.y * 28.0 - t * 3.2 + sin(uv.x * 12.0 + t * 1.4)) * 0.008 * smoothstep(0.15, 0.95, uv.y);
+    vec2 sUV = vec2(uv.x + shimmer, uv.y);
+    vec2 sAspect = vec2(aspectUV.x + shimmer, aspectUV.y);
+
+    float w = smoothstep(-0.34, 0.32, getSunElev(getCycle(1.0 - day)));
+    vec3 sky = skyBase(sUV, sAspect, t, day);
+    vec3 hazeTop = mix(vec3(0.14, 0.11, 0.16), mix(vec3(0.76, 0.58, 0.40), iTertiary.rgb * 0.85, 0.25), w);
+    vec3 hazeBot = mix(vec3(0.24, 0.18, 0.18), mix(vec3(0.95, 0.72, 0.44), iPrimary.rgb * 0.90, 0.22), w);
+    vec3 col = mix(mix(hazeTop, hazeBot, smoothstep(0.0, 1.0, sUV.y)), sky, 0.28);
+
+    // Drifting warm dust bands + suspended dust motes
+    float dustBand = fbm(vec2(sAspect.x * 1.4 - t * (0.045 + windNorm() * 0.06), sAspect.y * 2.8));
+    col = mix(col, hazeBot * 1.08, smoothstep(0.35, 0.82, dustBand) * 0.38);
+
+    vec2 px = sUV * vec2(max(iWidth, 1.0), max(iHeight, 1.0));
+    vec2 mp = px - vec2(t * (22.0 + windNorm() * 30.0), -t * 6.0);
+    vec2 mc = floor(mp / 46.0);
+    vec2 mr = hash22(mc);
+    if (mr.x > 0.48) {
+        vec2 mf = fract(mp / 46.0) - 0.5;
+        float md = length(mf - (mr - 0.5) * 0.45) * 46.0;
+        float speck = smoothstep(2.2, 0.3, md) * (0.4 + 0.6 * sin(t * 2.1 + mr.y * 22.0));
+        col += vec3(1.0, 0.84, 0.56) * speck * 0.34;
+    }
+    return col;
+}
+
 void main()
 {
     vec2 uv = qt_TexCoord0;
@@ -698,6 +809,7 @@ void main()
     vec3 col;
 
     float day = 1.0;
+    float wAngle = 0.16 + windNorm() * 0.22;
     if (kind < 0.5)
         col = kindClear(uv, aspectUV, t, day);
     else if (kind < 1.5)
@@ -709,7 +821,7 @@ void main()
     else if (kind < 4.5)
         col = kindMist(uv, aspectUV, t, day);
     else if (kind < 5.5)
-        col = kindRain(uv, aspectUV, t, 0.18, 1.0, day);
+        col = kindRain(uv, aspectUV, t, wAngle, 1.0 + windNorm() * 0.25, day);
     else if (kind < 6.5)
         col = kindSnow(uv, aspectUV, t, day);
     else if (kind < 7.5)
@@ -718,8 +830,16 @@ void main()
         col = kindClear(uv, aspectUV, t, 0.0);
     else if (kind < 9.5)
         col = kindCloudy(uv, aspectUV, t, 0.0);
-    else
+    else if (kind < 10.5)
         col = kindLoading(uv, t);
+    else if (kind < 11.5)
+        col = kindSleet(uv, aspectUV, t, day);
+    else if (kind < 12.5)
+        col = kindHeavyRain(uv, aspectUV, t, day);
+    else if (kind < 13.5)
+        col = kindHailStorm(uv, aspectUV, t, day);
+    else
+        col = kindHaze(uv, aspectUV, t, day);
 
     fragColor = vec4(col, 1.0) * qt_Opacity;
 }

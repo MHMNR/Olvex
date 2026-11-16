@@ -110,36 +110,104 @@ Item {
             }
         }
 
-        // ── Open-Sky Hero Area (left temp/detail, right sky left completely open) ──
-        ColumnLayout {
+        // ── Hero Area (left temp/detail, right compact 3-slot forecast) ─────
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.leftMargin: 2
-            spacing: 2
+            spacing: 8
 
-            Item { Layout.fillHeight: true }
-
-            StyledText {
+            ColumnLayout {
                 Layout.fillWidth: true
-                text: Weather.hasData ? Weather.temp : "--°"
-                textPointSize: Tokens.font.size.extraLarge
-                font.weight: Font.Black
-                font.family: Tokens.font.family.mono
-                color: Colours.palette.m3primary
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 2
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Weather.hasData ? Weather.temp : "--°"
+                    textPointSize: Tokens.font.size.extraLarge
+                    font.weight: Font.Black
+                    font.family: Tokens.font.family.mono
+                    color: Colours.palette.m3primary
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: root.detailLine
+                    textPointSize: Tokens.font.size.smaller - 1
+                    font.weight: Font.Medium
+                    color: Colours.palette.m3onSurface
+                    opacity: 0.92
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                }
             }
 
-            StyledText {
-                Layout.fillWidth: true
-                text: root.detailLine
-                textPointSize: Tokens.font.size.smaller - 1
-                font.weight: Font.Medium
-                color: Colours.palette.m3onSurface
-                opacity: 0.92
-                elide: Text.ElideRight
-                maximumLineCount: 1
-            }
+            StyledRect {
+                id: miniForecast
+                readonly property var slots: {
+                    const h = Weather.hourlyForecast ?? [];
+                    if (h.length >= 6)
+                        return [h[1], h[3], h[5]].map(x => ({ label: Weather.formatHourLabel(x.hour), icon: x.icon, temp: Weather.formatTempValue(x.tempC, x.tempF) }));
+                    if (h.length > 0)
+                        return h.slice(0, 3).map(x => ({ label: Weather.formatHourLabel(x.hour), icon: x.icon, temp: Weather.formatTempValue(x.tempC, x.tempF) }));
+                    const d = Weather.forecast ?? [];
+                    return d.slice(1, 4).map(x => ({
+                        label: new Date(x.date).toLocaleDateString(Qt.locale(), "ddd").slice(0, 3).toUpperCase(),
+                        icon: x.icon,
+                        temp: Weather.formatTempValue(x.maxTempC, x.maxTempF)
+                    }));
+                }
 
-            Item { Layout.fillHeight: true }
+                visible: slots.length > 0
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                implicitWidth: forecastRow.implicitWidth + 14
+                implicitHeight: forecastRow.implicitHeight + 10
+                radius: Tokens.rounding.small
+                color: Colours.tileFill
+
+                RowLayout {
+                    id: forecastRow
+                    anchors.centerIn: parent
+                    spacing: 10
+
+                    Repeater {
+                        model: miniForecast.slots
+
+                        delegate: ColumnLayout {
+                            required property var modelData
+                            spacing: 2
+
+                            StyledText {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: modelData.label
+                                textPointSize: Tokens.font.size.smaller - 3
+                                font.family: Tokens.font.family.mono
+                                font.weight: Font.DemiBold
+                                color: Colours.palette.m3onSurfaceVariant
+                                opacity: 0.85
+                            }
+
+                            MaterialIcon {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: modelData.icon || "cloud"
+                                iconPointSize: 14
+                                color: Colours.palette.m3primary
+                                fill: 1
+                            }
+
+                            StyledText {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: modelData.temp
+                                textPointSize: Tokens.font.size.smaller - 2
+                                font.family: Tokens.font.family.mono
+                                font.weight: Font.Bold
+                                color: Colours.palette.m3onSurface
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // ── Compact Bottom Stats Row (keeps upper/right sky clear for Moon/Sun) ──

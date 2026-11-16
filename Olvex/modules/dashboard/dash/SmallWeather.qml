@@ -1,5 +1,6 @@
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Olvex.Config
 import qs.components
@@ -170,15 +171,76 @@ Item {
                     color: Colours.palette.m3primary
                 }
 
-                StyledText {
+                Item {
+                    id: detailMarquee
                     Layout.fillWidth: true
-                    text: root.detailLine
-                    textPointSize: Tokens.font.size.smaller
-                    font.weight: Font.Medium
-                    color: Colours.palette.m3onSurfaceVariant
-                    opacity: 0.8
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
+                    Layout.preferredHeight: detailText.implicitHeight
+                    clip: true
+
+                    readonly property bool needsMarquee: detailText.implicitWidth > width
+                    readonly property real speed: 36
+
+                    layer.enabled: needsMarquee
+                    layer.effect: MultiEffect {
+                        maskEnabled: true
+                        maskSource: ShaderEffectSource {
+                            sourceItem: Rectangle {
+                                width: detailMarquee.width
+                                height: detailMarquee.height
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0.0; color: "transparent" }
+                                    GradientStop { position: 0.06; color: "black" }
+                                    GradientStop { position: 0.94; color: "black" }
+                                    GradientStop { position: 1.0; color: "transparent" }
+                                }
+                            }
+                        }
+                    }
+
+                    Row {
+                        id: detailRow
+                        spacing: 36
+                        property real marqueeX: 0
+                        x: detailMarquee.needsMarquee ? detailRow.marqueeX : 0
+
+                        StyledText {
+                            id: detailText
+                            text: root.detailLine
+                            textPointSize: Tokens.font.size.smaller
+                            font.weight: Font.Medium
+                            color: Colours.palette.m3onSurfaceVariant
+                            opacity: 0.8
+                            onTextChanged: detailRow.marqueeX = 0
+                        }
+
+                        StyledText {
+                            text: detailText.text
+                            textPointSize: detailText.textPointSize
+                            font.weight: detailText.font.weight
+                            color: detailText.color
+                            opacity: detailText.opacity
+                            visible: detailMarquee.needsMarquee
+                        }
+
+                        SequentialAnimation {
+                            id: detailMarqueeAnim
+                            running: detailMarquee.needsMarquee && root.dashboardActive
+                            loops: Animation.Infinite
+
+                            PropertyAction { target: detailRow; property: "marqueeX"; value: 0 }
+                            PauseAnimation { duration: 1200 }
+
+                            NumberAnimation {
+                                target: detailRow
+                                property: "marqueeX"
+                                from: 0
+                                to: -(detailText.implicitWidth + 36)
+                                duration: Math.max(1800, (detailText.implicitWidth + 36) * 1000 / detailMarquee.speed)
+                                easing.type: Easing.Linear
+                            }
+                        }
+                    }
                 }
             }
 

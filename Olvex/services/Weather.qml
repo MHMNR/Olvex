@@ -12,12 +12,31 @@ Singleton {
 
     property string city
     property string loc
-    property var cc
+    property var realCc: null
+    property bool demoMode: false
+    property int demoIndex: 0
+    readonly property var demoPresets: [
+        { weatherCode: 0, weatherDesc: "Clear", tempC: 29, tempF: 84, feelsLikeC: 31, feelsLikeF: 88, humidity: 48, windSpeed: 10, isDay: 1, demoCycle: 0.45, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 2, weatherDesc: "Partly cloudy", tempC: 26, tempF: 79, feelsLikeC: 28, feelsLikeF: 82, humidity: 58, windSpeed: 16, isDay: 1, demoCycle: 0.35, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 3, weatherDesc: "Overcast", tempC: 23, tempF: 73, feelsLikeC: 24, feelsLikeF: 75, humidity: 72, windSpeed: 20, isDay: 1, demoCycle: 0.50, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 45, weatherDesc: "Fog", tempC: 18, tempF: 64, feelsLikeC: 18, feelsLikeF: 64, humidity: 94, windSpeed: 5, isDay: 1, demoCycle: 0.12, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 53, weatherDesc: "Drizzle", tempC: 22, tempF: 72, feelsLikeC: 23, feelsLikeF: 73, humidity: 86, windSpeed: 14, isDay: 1, demoCycle: 0.40, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 66, weatherDesc: "Sleet", tempC: 1, tempF: 34, feelsLikeC: -3, feelsLikeF: 27, humidity: 90, windSpeed: 28, isDay: 1, demoCycle: 0.45, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 63, weatherDesc: "Rain", tempC: 21, tempF: 70, feelsLikeC: 21, feelsLikeF: 70, humidity: 92, windSpeed: 24, isDay: 1, demoCycle: 0.50, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 65, weatherDesc: "Heavy rain", tempC: 19, tempF: 66, feelsLikeC: 18, feelsLikeF: 64, humidity: 97, windSpeed: 42, isDay: 1, demoCycle: 0.55, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 73, weatherDesc: "Snow", tempC: -3, tempF: 27, feelsLikeC: -7, feelsLikeF: 19, humidity: 85, windSpeed: 22, isDay: 1, demoCycle: 0.50, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 95, weatherDesc: "Thunderstorm", tempC: 24, tempF: 75, feelsLikeC: 26, feelsLikeF: 79, humidity: 95, windSpeed: 48, isDay: 0, demoCycle: 1.50, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 96, weatherDesc: "Storm + Hail", tempC: 16, tempF: 61, feelsLikeC: 14, feelsLikeF: 57, humidity: 94, windSpeed: 54, isDay: 0, demoCycle: 1.50, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 0, weatherDesc: "Clear night", tempC: 20, tempF: 68, feelsLikeC: 20, feelsLikeF: 68, humidity: 65, windSpeed: 8, isDay: 0, demoCycle: 1.50, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 2, weatherDesc: "Cloudy night", tempC: 19, tempF: 66, feelsLikeC: 19, feelsLikeF: 66, humidity: 74, windSpeed: 14, isDay: 0, demoCycle: 1.55, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" },
+        { weatherCode: 999, weatherDesc: "Haze & Heat", demoIcon: "wb_twilight", tempC: 39, tempF: 102, feelsLikeC: 44, feelsLikeF: 111, humidity: 42, windSpeed: 18, isDay: 1, demoCycle: 0.65, sunrise: "2026-11-16 06:15", sunset: "2026-11-16 17:10" }
+    ]
+    readonly property var cc: demoMode ? demoPresets[demoIndex % demoPresets.length] : realCc
     property list<var> forecast
     property list<var> hourlyForecast
     property bool loading: false
 
-    readonly property string icon: cc ? Icons.getWeatherIcon(cc.weatherCode) : "cloud_alert"
+    readonly property string icon: cc ? (cc.demoIcon ?? Icons.getWeatherIcon(cc.weatherCode)) : "cloud_alert"
     readonly property string description: cc?.weatherDesc ?? qsTr("No weather")
     readonly property string temp: GlobalConfig.services.useFahrenheit ? `${cc?.tempF ?? 0}°F` : `${cc?.tempC ?? 0}°C`
     readonly property string feelsLike: GlobalConfig.services.useFahrenheit ? `${cc?.feelsLikeF ?? 0}°F` : `${cc?.feelsLikeC ?? 0}°C`
@@ -26,6 +45,13 @@ Singleton {
     readonly property string sunrise: cc ? Qt.formatDateTime(new Date(cc.sunrise), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
     readonly property string sunset: cc ? Qt.formatDateTime(new Date(cc.sunset), GlobalConfig.services.useTwelveHourClock ? "h:mm A" : "h:mm") : "--:--"
     property real nowMs: Date.now()
+
+    property real demoTimeMs: {
+        const d = new Date();
+        d.setHours(6, 0, 0, 0);
+        return d.getTime();
+    }
+    readonly property real activeTimeMs: demoMode ? demoTimeMs : nowMs
 
     Timer {
         interval: 60000
@@ -36,13 +62,34 @@ Singleton {
 
     onCcChanged: root.nowMs = Date.now()
 
+    Timer {
+        interval: 4500
+        running: root.demoMode
+        repeat: true
+        onTriggered: root.demoIndex = (root.demoIndex + 1) % root.demoPresets.length
+    }
+
+    Timer {
+        interval: 100
+        running: root.demoMode
+        repeat: true
+        onTriggered: {
+            const start = new Date();
+            start.setHours(6, 0, 0, 0);
+            const base = start.getTime();
+            const stepMs = (2 * 86400000) / ((root.demoPresets.length * 4500) / interval);
+            const next = root.demoTimeMs + stepMs;
+            root.demoTimeMs = (next >= base + 86400000) ? (next - 86400000) : next;
+        }
+    }
+
     readonly property bool hasData: root.cc != null
     readonly property bool isDay: {
         if (cc && cc.sunrise && cc.sunset) {
             const sr = new Date(cc.sunrise).getTime();
             const ss = new Date(cc.sunset).getTime();
             if (!isNaN(sr) && !isNaN(ss) && ss > sr)
-                return root.nowMs >= sr && root.nowMs <= ss;
+                return root.activeTimeMs >= sr && root.activeTimeMs <= ss;
         }
         return root.cc?.isDay ?? true;
     }
@@ -65,12 +112,12 @@ Singleton {
         return 1.0 + (t - ss) / nightLen;
     }
 
-    readonly property real dayCycle: dayCycleForTime(root.nowMs)
+    readonly property real dayCycle: dayCycleForTime(root.activeTimeMs)
     readonly property real sunProgress: (dayCycle <= 1.0) ? dayCycle : -1.0
     readonly property real moonPhase: {
         const synodicMs = 2551442861.0; // 29.53058867 days
         const epochMs = 947182440000.0; // 2000-01-06 18:14 UTC New Moon
-        const diff = root.nowMs - epochMs;
+        const diff = root.activeTimeMs - epochMs;
         return (((diff % synodicMs) + synodicMs) % synodicMs) / synodicMs;
     }
     readonly property real visualKind: root.visualKindFromCode(root.cc?.weatherCode, root.isDay)
@@ -91,14 +138,22 @@ Singleton {
             return 2;
         if (c === 45 || c === 48)
             return 3;
-        if (c >= 51 && c <= 57)
+        if (c >= 51 && c <= 55)
             return 4;
-        if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82))
+        if (c === 56 || c === 57 || c === 66 || c === 67)
+            return 11;
+        if (c === 65 || c === 82)
+            return 12;
+        if ((c >= 61 && c <= 64) || (c >= 80 && c <= 81))
             return 5;
         if ((c >= 71 && c <= 77) || (c >= 85 && c <= 86))
             return 6;
-        if (c >= 95)
+        if (c === 95)
             return 7;
+        if (c >= 96 && c <= 99)
+            return 13;
+        if (c === 999)
+            return 14;
 
         return 2;
     }
@@ -313,7 +368,7 @@ Singleton {
                 if (!json.current || !json.daily)
                     return;
 
-                cc = {
+                realCc = {
                     weatherCode: json.current.weather_code,
                     weatherDesc: getWeatherCondition(json.current.weather_code),
                     tempC: Math.round(json.current.temperature_2m),
@@ -435,6 +490,36 @@ Singleton {
 
     ElapsedTimer {
         id: timer
+    }
+
+    function toggleDemoMode(): void {
+        if (!root.demoMode) {
+            const d = new Date();
+            d.setHours(6, 0, 0, 0);
+            root.demoTimeMs = d.getTime();
+            root.demoIndex = 0;
+            root.demoMode = true;
+        } else {
+            root.demoMode = false;
+        }
+    }
+
+    IpcHandler {
+        function toggleDemo(): void {
+            root.toggleDemoMode();
+        }
+
+        function nextDemo(): void {
+            root.demoMode = true;
+            root.demoIndex = (root.demoIndex + 1) % root.demoPresets.length;
+        }
+
+        function setDemo(index: int): void {
+            root.demoMode = true;
+            root.demoIndex = Math.max(0, Math.min(root.demoPresets.length - 1, index));
+        }
+
+        target: "weather"
     }
 
     Process {

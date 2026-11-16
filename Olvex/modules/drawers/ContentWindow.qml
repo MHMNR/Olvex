@@ -225,6 +225,12 @@ StyledWindow {
         }
     }
 
+    Shortcut {
+        sequence: "Ctrl+D"
+        enabled: visibilities.dashboard && Config.dashboard.enabled
+        onActivated: Weather.toggleDemoMode()
+    }
+
     HyprlandFocusGrab {
         id: focusGrab
 

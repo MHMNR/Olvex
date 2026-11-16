@@ -127,6 +127,7 @@ RowLayout {
                 Layout.preferredWidth: root.weatherWidth
                 Layout.preferredHeight: root.weatherHeight
                 Layout.alignment: Qt.AlignTop
+                borderless: true
                 SmallWeather {
                     anchors.fill: parent
                     dashboardActive: root.dashboardActive
@@ -269,8 +270,8 @@ RowLayout {
             StyledClippingRect {
                 id: innerContent
                 anchors.fill: parent
-                anchors.margins: 4
-                radius: bg.radius - 4
+                anchors.margins: cardRoot.borderless ? 0 : 4
+                radius: cardRoot.borderless ? bg.radius : bg.radius - 4
                 color: "transparent"
                 clip: true
             }
