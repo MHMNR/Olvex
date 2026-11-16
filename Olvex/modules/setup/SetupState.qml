@@ -241,6 +241,8 @@ QtObject {
         "terminal": ["Super", "T"],
         "browser": ["Super", "B"],
         "fileManager": ["Super", "E"],
+        "closeWindow": ["Super", "Q"],
+        "lockScreen": ["Super", "L"],
         "cheatsheet": ["Super", "/"]
     })
 
@@ -265,8 +267,8 @@ QtObject {
                             else if (t.includes("terminal") && combo.length > 0) map["terminal"] = combo;
                             else if (t.includes("web browser") && combo.length > 0) map["browser"] = combo;
                             else if (t.includes("file manager") && combo.length > 0) map["fileManager"] = combo;
-                            else if ((t.includes("close") || t.includes("kill")) && combo.length > 0) map["closeWindow"] = combo;
-                            else if (t.includes("lock") && combo.length > 0) map["lockScreen"] = combo;
+                            else if ((t === "close focused window" || t.includes("close window")) && combo.length > 0) map["closeWindow"] = combo;
+                            else if (t === "lock screen" && combo.length > 0) map["lockScreen"] = combo;
                             else if (t.includes("cheatsheet") && combo.length > 0) map["cheatsheet"] = combo;
                         }
                     }

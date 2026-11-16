@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.services
@@ -59,28 +58,12 @@ Item {
             icon: "apps"
 
             SettingRow {
+                icon: "terminal"
                 title: qsTr("Terminal emulator")
                 customCardColor: root.wiz.cardColor(2)
                 customCardHoverColor: root.wiz.cardHoverColor(3)
                 keys: root.keysForBind("terminal", ["Super", "T"])
                 description: qsTr("Launched for terminal tasks and shell commands")
-                customIcon: Component {
-                    MaterialShape {
-                        implicitWidth: 38
-                        implicitHeight: 38
-                        implicitSize: 38
-                        shape: MaterialShape.SoftBurst
-                        color: Colours.palette.m3primary
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "terminal"
-                            color: Colours.palette.m3onPrimary
-                            iconPointSize: 18
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                    }
-                }
 
                 OptionPicker {
                     model: root.wiz.availableTerminals
@@ -90,28 +73,12 @@ Item {
             }
 
             SettingRow {
+                icon: "language"
                 title: qsTr("Web browser")
                 customCardColor: root.wiz.cardColor(2)
                 customCardHoverColor: root.wiz.cardHoverColor(3)
                 keys: root.keysForBind("browser", ["Super", "B"])
                 description: qsTr("Default browser for web links and online services")
-                customIcon: Component {
-                    MaterialShape {
-                        implicitWidth: 38
-                        implicitHeight: 38
-                        implicitSize: 38
-                        shape: MaterialShape.Cookie12Sided
-                        color: Colours.palette.m3primary
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "language"
-                            color: Colours.palette.m3onPrimary
-                            iconPointSize: 18
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                    }
-                }
 
                 OptionPicker {
                     model: root.wiz.availableBrowsers
@@ -121,28 +88,12 @@ Item {
             }
 
             SettingRow {
+                icon: "folder"
                 title: qsTr("File manager")
                 customCardColor: root.wiz.cardColor(2)
                 customCardHoverColor: root.wiz.cardHoverColor(3)
                 keys: root.keysForBind("fileManager", ["Super", "E"])
                 description: qsTr("Opened for files, directories and file picker")
-                customIcon: Component {
-                    MaterialShape {
-                        implicitWidth: 38
-                        implicitHeight: 38
-                        implicitSize: 38
-                        shape: MaterialShape.Clover4Leaf
-                        color: Colours.palette.m3primary
-                        MaterialIcon {
-                            anchors.centerIn: parent
-                            text: "folder"
-                            color: Colours.palette.m3onPrimary
-                            iconPointSize: 18
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                    }
-                }
 
                 OptionPicker {
                     model: root.wiz.availableFileManagers

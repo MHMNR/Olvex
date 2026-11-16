@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.services
@@ -15,16 +14,6 @@ Item {
 
     signal editStepRequested(int stepIndex)
     signal finishRequested
-
-    readonly property var shapePool: [
-        MaterialShape.Cookie12Sided,
-        MaterialShape.Sunny,
-        MaterialShape.Clover4Leaf,
-        MaterialShape.SoftBurst,
-        MaterialShape.Cookie4Sided,
-        MaterialShape.Gem,
-        MaterialShape.Clover8Leaf
-    ]
 
     readonly property var summary: [
         { id: "scale", step: 1, icon: "monitor", label: qsTr("Interface scale"), value: Math.round(wiz.scale * 100) + "%" },
@@ -135,24 +124,24 @@ Item {
                             anchors.rightMargin: 16
                             spacing: 14
 
-                            // M3Shape Solid Primary Icon Container
-                            MaterialShape {
-                                width: 40
-                                height: 40
+                            // Squircle Icon Container
+                            StyledRect {
                                 implicitWidth: 40
                                 implicitHeight: 40
-                                implicitSize: 40
+                                Layout.preferredWidth: 40
+                                Layout.preferredHeight: 40
                                 Layout.alignment: Qt.AlignVCenter
-                                shape: root.shapePool[card.index % root.shapePool.length]
-                                color: Colours.palette.m3primary
+                                radius: 12
+                                color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.12 : 0.16)
+                                border.width: 0
+                                border.color: "transparent"
 
                                 MaterialIcon {
                                     anchors.centerIn: parent
+                                    anchors.verticalCenterOffset: -1
                                     text: card.modelData.icon
-                                    iconPointSize: 19
-                                    color: Colours.palette.m3onPrimary
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
+                                    iconPointSize: 20
+                                    color: Colours.palette.m3primary
                                 }
                             }
 

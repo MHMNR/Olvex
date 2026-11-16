@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import M3Shapes
 import Olvex.Config
 import qs.components
 import qs.services
@@ -20,21 +19,10 @@ FocusScope {
         "clipboard": ["Super", "V"],
         "screenshot": ["Super", "Shift", "S"],
         "terminal": ["Super", "T"],
-        "closeWindow": ["Super", "C"],
+        "closeWindow": ["Super", "Q"],
         "cheatsheet": ["Super", "/"],
         "lockScreen": ["Super", "L"]
     })
-
-    readonly property var shapePool: [
-        MaterialShape.Cookie12Sided,
-        MaterialShape.Sunny,
-        MaterialShape.Clover4Leaf,
-        MaterialShape.SoftBurst,
-        MaterialShape.Cookie4Sided,
-        MaterialShape.Gem,
-        MaterialShape.Clover8Leaf,
-        MaterialShape.Flower
-    ]
 
     readonly property var tour: [
         {
@@ -101,9 +89,9 @@ FocusScope {
             flashRow("clipboard");
         } else if (meta && shift && event.key === Qt.Key_S) {
             flashRow("screenshot");
-        } else if (meta && (event.key === Qt.Key_T || event.key === Qt.Key_Q)) {
+        } else if (meta && event.key === Qt.Key_T) {
             flashRow("terminal");
-        } else if (meta && event.key === Qt.Key_C) {
+        } else if (meta && (event.key === Qt.Key_Q || event.key === Qt.Key_C)) {
             flashRow("closeWindow");
         } else if (meta && event.key === Qt.Key_L) {
             flashRow("lockScreen");
@@ -189,24 +177,24 @@ FocusScope {
                             anchors.rightMargin: 14
                             spacing: 12
 
-                            // M3Shape Solid Primary Icon Container
-                            MaterialShape {
-                                width: 38
-                                height: 38
+                            // Squircle Icon Container
+                            StyledRect {
                                 implicitWidth: 38
                                 implicitHeight: 38
-                                implicitSize: 38
+                                Layout.preferredWidth: 38
+                                Layout.preferredHeight: 38
                                 Layout.alignment: Qt.AlignVCenter
-                                shape: root.shapePool[card.index % root.shapePool.length]
-                                color: Colours.palette.m3primary
+                                radius: 11
+                                color: Qt.alpha(Colours.palette.m3primary, Colours.light ? 0.12 : 0.16)
+                                border.width: 0
+                                border.color: "transparent"
 
                                 MaterialIcon {
                                     anchors.centerIn: parent
+                                    anchors.verticalCenterOffset: -1
                                     text: card.modelData.icon
-                                    iconPointSize: 18
-                                    color: Colours.palette.m3onPrimary
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
+                                    iconPointSize: 19
+                                    color: Colours.palette.m3primary
                                 }
                             }
 
