@@ -227,7 +227,7 @@ StyledWindow {
 
     Shortcut {
         sequence: "Ctrl+D"
-        enabled: visibilities.dashboard && Config.dashboard.enabled
+        enabled: visibilities.dashboard && GlobalConfig.dashboard.enabled
         onActivated: Weather.toggleDemoMode()
     }
 

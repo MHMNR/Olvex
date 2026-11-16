@@ -570,8 +570,10 @@ QJsonObject WallpaperEngine::generateScheme(const QString& imagePath, const QStr
     colours[QStringLiteral("inverseOnSurface")] = toHex(MaterialDynamicColors::InverseOnSurface().GetArgb(*s));
     colours[QStringLiteral("surfaceTint")] = toHex(MaterialDynamicColors::SurfaceTint().GetArgb(*s));
 
-    colours[QStringLiteral("background")] = colours[QStringLiteral("surface")];
-    colours[QStringLiteral("onBackground")] = colours[QStringLiteral("onSurface")];
+    const QString surfaceHex = colours.value(QStringLiteral("surface")).toString();
+    const QString onSurfaceHex = colours.value(QStringLiteral("onSurface")).toString();
+    colours[QStringLiteral("background")] = surfaceHex;
+    colours[QStringLiteral("onBackground")] = onSurfaceHex;
 
     // Key palette colors
     QString pKey = toHex(MaterialDynamicColors::PrimaryPaletteKeyColor().GetArgb(*s));
@@ -648,12 +650,15 @@ QJsonObject WallpaperEngine::generateScheme(const QString& imagePath, const QStr
     }
 
     // Derived Catppuccin / Legacy tokens
-    colours[QStringLiteral("text")] = colours[QStringLiteral("onBackground")];
-    colours[QStringLiteral("subtext1")] = colours[QStringLiteral("onSurfaceVariant")];
-    colours[QStringLiteral("subtext0")] = colours[QStringLiteral("outline")];
+    const QString onBgHex = colours.value(QStringLiteral("onBackground")).toString();
+    const QString onSurfVarHex = colours.value(QStringLiteral("onSurfaceVariant")).toString();
+    const QString outlineHex = colours.value(QStringLiteral("outline")).toString();
+    colours[QStringLiteral("text")] = onBgHex;
+    colours[QStringLiteral("subtext1")] = onSurfVarHex;
+    colours[QStringLiteral("subtext0")] = outlineHex;
 
-    Hct surfHct = hexToHct(colours[QStringLiteral("surface")].toString());
-    Hct outHct = hexToHct(colours[QStringLiteral("outline")].toString());
+    Hct surfHct = hexToHct(colours.value(QStringLiteral("surface")).toString());
+    Hct outHct = hexToHct(outlineHex);
 
     colours[QStringLiteral("overlay2")] = toHex(mixHct(surfHct, outHct, 0.86).ToInt());
     colours[QStringLiteral("overlay1")] = toHex(mixHct(surfHct, outHct, 0.71).ToInt());
@@ -661,7 +666,8 @@ QJsonObject WallpaperEngine::generateScheme(const QString& imagePath, const QStr
     colours[QStringLiteral("surface2")] = toHex(mixHct(surfHct, outHct, 0.43).ToInt());
     colours[QStringLiteral("surface1")] = toHex(mixHct(surfHct, outHct, 0.29).ToInt());
     colours[QStringLiteral("surface0")] = toHex(mixHct(surfHct, outHct, 0.14).ToInt());
-    colours[QStringLiteral("base")] = colours[QStringLiteral("surface")];
+    const QString baseHex = colours.value(QStringLiteral("surface")).toString();
+    colours[QStringLiteral("base")] = baseHex;
     colours[QStringLiteral("mantle")] = toHex(darkenHct(surfHct, 0.03).ToInt());
     colours[QStringLiteral("crust")] = toHex(darkenHct(surfHct, 0.05).ToInt());
 
