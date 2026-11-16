@@ -263,9 +263,9 @@ ColumnLayout {
         
         transform: Translate { id: authTrans; y: 800 }
         
-        implicitWidth: 360
-        implicitHeight: authContent.implicitHeight + Tokens.padding.large * 2
-        
+        implicitWidth: 340
+        implicitHeight: authContent.implicitHeight + 32
+
         radius: Tokens.rounding.large
         color: "transparent"
         
@@ -301,8 +301,8 @@ ColumnLayout {
             anchors.fill: parent
             radius: authCard.radius
             color: Qt.alpha(Colours.palette.m3surfaceContainerHigh, root.blurActive ? Math.min(1.0, root.elementOpacity * 0.62) : root.elementOpacity)
-            border.color: root.blurActive ? Qt.alpha(Colours.palette.m3outlineVariant, 0.28) : "transparent"
-            border.width: root.blurActive ? 1 : 0
+            border.color: "transparent"
+            border.width: 0
             antialiasing: true
 
             Behavior on color {
@@ -312,111 +312,153 @@ ColumnLayout {
                 }
             }
         }
-        
+
         ColumnLayout {
             id: authContent
-            anchors.centerIn: parent
-            spacing: Tokens.spacing.large
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 12
 
-            // ── Spinning Cookie Avatar (matches dashboard & minimal lockscreen) ──
-            Item {
-                id: avatarHost
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 100
-                Layout.preferredHeight: 100
-                implicitWidth: 100
-                implicitHeight: 100
-                width: 100
-                height: 100
+            // ── User Row: Left Spinning Avatar + Right Name & Info ───────────
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 14
 
-                property real spin: 0
-
-                Timer {
-                    id: spinTimer
-                    interval: 33
-                    repeat: true
-                    running: root.visible && (!root.lock || (root.lock.contentReady && !root.lock.unlocking)) && !entranceAnim.running && !exitAnim.running
-                    onTriggered: {
-                        avatarHost.spin = (avatarHost.spin <= 0.6) ? 360 : (avatarHost.spin - 0.6);
-                    }
-                }
-
-                // Outer spinning ring
-                MaterialShape {
-                    id: avatarRing
-                    anchors.fill: parent
-                    z: 0
-                    implicitSize: 100
-                    shape: MaterialShape.Cookie12Sided
-                    color: Colours.layer(Colours.current.m3primaryContainer, 1)
-                    rotation: avatarHost.spin
-                }
-
-                // Invisible spinning mask (clips pfp + fallback icon)
+                // ── Left Spinning Cookie Avatar ──────────────────────────────
                 Item {
-                    id: avatarMaskWrap
-                    anchors.fill: parent
-                    visible: false
-                    z: 0
-                    layer.enabled: true
+                    id: avatarHost
+                    Layout.alignment: Qt.AlignVCenter
+                    Layout.preferredWidth: 64
+                    Layout.preferredHeight: 64
+                    implicitWidth: 64
+                    implicitHeight: 64
 
+                    property real spin: 0
+
+                    Timer {
+                        id: spinTimer
+                        interval: 33
+                        repeat: true
+                        running: root.visible && (!root.lock || (root.lock.contentReady && !root.lock.unlocking)) && !entranceAnim.running && !exitAnim.running
+                        onTriggered: {
+                            avatarHost.spin = (avatarHost.spin <= 0.6) ? 360 : (avatarHost.spin - 0.6);
+                        }
+                    }
+
+                    // Outer spinning ring
                     MaterialShape {
+                        id: avatarRing
                         anchors.fill: parent
-                        implicitSize: 100
+                        z: 0
+                        implicitSize: 64
                         shape: MaterialShape.Cookie12Sided
-                        color: "white"
+                        color: Colours.layer(Colours.current.m3primaryContainer, 1)
                         rotation: avatarHost.spin
                     }
+
+                    // Invisible spinning mask (clips pfp + fallback icon)
+                    Item {
+                        id: avatarMaskWrap
+                        anchors.fill: parent
+                        visible: false
+                        z: 0
+                        layer.enabled: true
+
+                        MaterialShape {
+                            anchors.fill: parent
+                            implicitSize: 64
+                            shape: MaterialShape.Cookie12Sided
+                            color: "white"
+                            rotation: avatarHost.spin
+                        }
+                    }
+
+                    // Fallback — shown when no .face image
+                    Item {
+                        id: avatarFallback
+                        anchors.fill: parent
+                        visible: pfp.status !== Image.Ready
+                        z: 1
+                        layer.enabled: true
+                        layer.effect: Mask {
+                            maskSource: avatarMaskWrap
+                        }
+
+                        MaterialShape {
+                            anchors.centerIn: parent
+                            implicitSize: 48
+                            shape: MaterialShape.Circle
+                            color: Qt.alpha(Colours.current.m3surface, 0.2)
+                        }
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "person"
+                            color: Colours.current.m3onSurfaceVariant
+                            iconPointSize: 26
+                        }
+                    }
+
+                    // Profile picture clipped to spinning Cookie mask
+                    CachingImage {
+                        id: pfp
+                        anchors.fill: parent
+                        z: 1
+                        path: `${Paths.home}/.face`
+                        layer.enabled: true
+                        layer.effect: Mask {
+                            maskSource: avatarMaskWrap
+                        }
+                    }
                 }
 
-                // Fallback — shown when no .face image
-                Item {
-                    id: avatarFallback
-                    anchors.fill: parent
-                    visible: pfp.status !== Image.Ready
-                    z: 1
-                    layer.enabled: true
-                    layer.effect: Mask {
-                        maskSource: avatarMaskWrap
+                // ── Right User Name & Session Info ───────────────────────────
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 2
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: {
+                            const u = SysInfo.user || "user";
+                            return u.charAt(0).toUpperCase() + u.slice(1);
+                        }
+                        color: Colours.palette.m3onSurface
+                        textPointSize: Tokens.font.size.large
+                        font.weight: Font.Bold
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
                     }
 
-                    MaterialShape {
-                        anchors.centerIn: parent
-                        implicitSize: 72
-                        shape: MaterialShape.Circle
-                        color: Qt.alpha(Colours.current.m3surface, 0.2)
-                    }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "person"
-                        color: Colours.current.m3onSurfaceVariant
-                        iconPointSize: 40
-                    }
-                }
-
-                // Profile picture clipped to spinning Cookie mask
-                CachingImage {
-                    id: pfp
-                    anchors.fill: parent
-                    z: 1
-                    path: `${Paths.home}/.face`
-                    layer.enabled: true
-                    layer.effect: Mask {
-                        maskSource: avatarMaskWrap
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: `${SysInfo.user}@${SysInfo.hostName} · ${SysInfo.wm}`
+                        color: Colours.palette.m3onSurfaceVariant
+                        font.family: Tokens.font.family.mono
+                        textPointSize: Tokens.font.size.smaller - 2
+                        opacity: 0.78
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
                     }
                 }
             }
 
+            // ── Password Input Pill ──────────────────────────────────────────
             StyledRect {
                 id: passInputContainer
-                Layout.alignment: Qt.AlignHCenter
-                implicitWidth: 300
+                Layout.fillWidth: true
                 implicitHeight: input.implicitHeight + Tokens.padding.small * 2
-                color: passInputHover.hovered
-                    ? Qt.alpha(Colours.palette.m3onSurface, 0.15)
-                    : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+                color: {
+                    if (root.lock.pam.passwd.message || root.lock.pam.fprint.message)
+                        return Qt.alpha(Colours.palette.m3error, 0.16);
+                    return passInputHover.hovered ? Colours.tileFillElevated : Colours.tileFill;
+                }
                 radius: Tokens.rounding.full
+
+                Behavior on color {
+                    CAnim {}
+                }
 
                 HoverHandler {
                     id: passInputHover

@@ -58,7 +58,7 @@ Item {
     readonly property color stripe: Qt.alpha(Colours.palette.m3primary, 0.50)
     readonly property color eyeDark: Qt.darker(Colours.palette.m3tertiary, 2.8)
     readonly property color iris: Colours.palette.m3tertiary
-    readonly property color sclera: Qt.lighter(Colours.palette.m3tertiaryContainer, 2.6)
+    readonly property color sclera: Qt.tint("#ffffff", Qt.alpha(Colours.palette.m3surface, 0.06))
     readonly property color highlight: Qt.lighter(Colours.palette.m3tertiaryContainer, 2.4)
     readonly property color noseColor: Qt.alpha(Colours.palette.m3error, 0.86)
     readonly property color innerEar: Qt.alpha(Colours.palette.m3tertiary, 0.48)
