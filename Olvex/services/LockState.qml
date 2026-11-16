@@ -9,6 +9,7 @@ Singleton {
     property bool locked: false
     property bool unlocking: false
     property bool lockClockVisible: false
+    property int liveWallpaperPosition: 0
 
     onLockedChanged: {
         if (!locked)

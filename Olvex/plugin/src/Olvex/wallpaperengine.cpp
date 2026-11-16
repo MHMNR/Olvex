@@ -689,8 +689,11 @@ QJsonObject WallpaperEngine::generateScheme(const QString& imagePath, const QStr
 
 void WallpaperEngine::updateSymlinksAndFiles(const QString& wallPath, const QString& thumbPath, const QString& schemeJson) {
     const QString stateDir = QDir::homePath() + QStringLiteral("/.local/state/olvex");
-    writeTextAtomic(stateDir + QStringLiteral("/wallpaper/path.txt"), wallPath);
-    updateSymlink(stateDir + QStringLiteral("/wallpaper/wallpaper"), wallPath);
+    const bool isLiveThumb = wallPath.startsWith(stateDir + QStringLiteral("/wallpaper/live-thumbnails/"));
+    if (!isLiveThumb) {
+        writeTextAtomic(stateDir + QStringLiteral("/wallpaper/path.txt"), wallPath);
+        updateSymlink(stateDir + QStringLiteral("/wallpaper/wallpaper"), wallPath);
+    }
     if (!thumbPath.isEmpty() && QFile::exists(thumbPath)) {
         updateSymlink(stateDir + QStringLiteral("/wallpaper/thumbnail.jpg"), thumbPath);
     }

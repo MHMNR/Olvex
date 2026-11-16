@@ -16,13 +16,14 @@ Item {
 
     property string source: Wallpapers.perMonitorWallpaper ? (Wallpapers.monitorWallpapers[screen?.name ?? ""] ?? Wallpapers.actualCurrent) : Wallpapers.actualCurrent
     readonly property bool sourceIsVideo: Wallpapers.isVideoPath(source)
+    property bool immediateVideo: false
     property bool startupReady: false
     Timer {
         interval: 200
-        running: true
+        running: !root.immediateVideo
         onTriggered: root.startupReady = true
     }
-    readonly property bool liveWallpaperActive: sourceIsVideo && startupReady
+    readonly property bool liveWallpaperActive: sourceIsVideo && (startupReady || immediateVideo)
     property string actualTransitionType: Config.background.wallpaperTransition.type
     property real transitionProgress: 0
     property bool effectActive: false
@@ -86,7 +87,19 @@ Item {
     function handleSourceChange() {
         const isVid = Wallpapers.isVideoPath(source);
         if (isVid) {
-            resetImageState();
+            transitionAnim.stop();
+            effectActive = false;
+            transitionProgress = 0;
+            pendingWallpaper = "";
+            const thumb = Wallpapers.displayPathFor(source);
+            if (thumb) {
+                if (currentImage)
+                    currentImage.source = encodeFileUrl(thumb);
+                if (nextImage)
+                    nextImage.source = "";
+            } else {
+                resetImageState();
+            }
             return;
         }
 
@@ -235,7 +248,10 @@ Item {
 
     Component.onCompleted: {
         debug(`component completed initialSource=${source}`);
-        Qt.callLater(() => handleSourceChange());
+        if (immediateVideo)
+            handleSourceChange();
+        else
+            Qt.callLater(() => handleSourceChange());
     }
 
     Loader {
@@ -311,7 +327,7 @@ Item {
         anchors.fill: parent
         active: root.liveWallpaperActive
         visible: root.sourceIsVideo || root.holdingLiveFrame
-        asynchronous: true
+        asynchronous: !root.immediateVideo
 
         sourceComponent: liveWallpaperComponent
     }
@@ -328,7 +344,7 @@ Item {
         visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && (root.showingPrimary || root.effectActive) && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
-        asynchronous: true
+        asynchronous: !(root.immediateVideo && root.sourceIsVideo)
         cache: true
         smooth: false
         retainWhileLoading: true
@@ -344,7 +360,7 @@ Item {
         visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && (!root.showingPrimary || root.effectActive) && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
-        asynchronous: true
+        asynchronous: !(root.immediateVideo && root.sourceIsVideo)
         cache: true
         smooth: false
         retainWhileLoading: true
@@ -658,7 +674,7 @@ Item {
                 return "";
             }
             property bool wallpaperMuted: GlobalConfig.background?.liveWallpaper?.muted ?? Config.background.liveWallpaper.muted
-            property bool playbackActive: liveRoot.visible && opacity > 0 && !!wallpaperSource
+            property bool playbackActive: liveRoot.visible && opacity > 0 && !!wallpaperSource && (root.immediateVideo || !(LockState.locked && LockState.lockClockVisible))
 
             opacity: wallpaperSource ? 1 : 0
 
@@ -667,6 +683,7 @@ Item {
                     import QtQuick
                     import QtMultimedia
                     Video {
+                        property bool fadeReady: false
                         anchors.fill: parent
                         fillMode: VideoOutput.PreserveAspectCrop
                         loops: MediaPlayer.Infinite
@@ -675,10 +692,13 @@ Item {
                         volume: 0
                         visible: false
                         opacity: 0
-                        layer.enabled: false
-                        smooth: false
+
+                        onErrorOccurred: (error, errorString) => {
+                            console.warn("[BackgroundWallpaper] Video error:", error, errorString, source);
+                        }
 
                         Behavior on opacity {
+                            enabled: fadeReady
                             NumberAnimation {
                                 duration: 180
                                 easing.type: Easing.OutCubic
@@ -692,7 +712,7 @@ Item {
                 if (!player)
                     return false;
 
-                return player.mediaStatus === MediaPlayer.LoadedMedia || player.mediaStatus === MediaPlayer.BufferedMedia || player.mediaStatus === MediaPlayer.BufferingMedia || (player.playbackState === MediaPlayer.PlayingState && player.position >= 0);
+                return player.playbackState === MediaPlayer.PlayingState && player.hasVideo;
             }
 
             function playerSource(player: var): string {
@@ -759,18 +779,30 @@ Item {
                 }
 
                 if (!playerSource(currentPlayer)) {
+                    currentPlayer.fadeReady = false;
                     currentPlayer.source = path;
                     currentPlayer.visible = true;
                     currentPlayer.opacity = 1;
                     currentPlayer.z = 1;
-                    if (playbackActive && currentPlayer.play)
+                    currentPlayer.fadeReady = true;
+                    if (playbackActive && currentPlayer.play) {
                         currentPlayer.play();
+                        Qt.callLater(() => {
+                            if (playbackActive && currentPlayer && currentPlayer.play && currentPlayer.playbackState !== MediaPlayer.PlayingState)
+                                currentPlayer.play();
+                        });
+                    }
                     return;
                 }
 
                 if (playerSource(currentPlayer) === path) {
                     syncPlayback();
                     return;
+                }
+
+                if (!standbyPlayer) {
+                    secondaryPlayer = createPlayer("Wallpaper.LiveVideo.Secondary");
+                    standbyPlayer = secondaryPlayer;
                 }
 
                 cleanupTimer.stop();
@@ -826,13 +858,11 @@ Item {
             }
 
             function ensurePlayers(): void {
-                if (primaryPlayer && secondaryPlayer)
+                if (primaryPlayer)
                     return;
 
                 primaryPlayer = createPlayer("Wallpaper.LiveVideo.Primary");
-                secondaryPlayer = createPlayer("Wallpaper.LiveVideo.Secondary");
                 currentPlayer = primaryPlayer;
-                standbyPlayer = secondaryPlayer;
                 applySource(wallpaperSource);
             }
 

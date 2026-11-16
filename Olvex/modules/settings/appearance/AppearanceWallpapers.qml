@@ -1526,8 +1526,6 @@ Item {
                                                     ? (mainBtnMa.containsMouse ? Colours.layer(Colours.palette.m3secondaryContainer, 2) : Colours.palette.m3secondaryContainer)
                                                     : (mainBtnMa.containsMouse ? Colours.layer(Colours.palette.m3primary, 2) : Colours.palette.m3primary))
 
-                                            Behavior on color { CAnim {} }
-
                                             // State 1: "Installed" / "Applied" Content
                                             RowLayout {
                                                 anchors.centerIn: parent
@@ -1733,26 +1731,37 @@ Item {
             onActivated: root.closeDetail()
         }
 
+        // Scrim background covering the full details pane card without border gaps
+        Rectangle {
+            id: detailScrim
+            anchors.fill: parent
+            anchors.leftMargin: -Tokens.padding.normal
+            anchors.rightMargin: -Tokens.padding.normal
+            anchors.topMargin: -Tokens.padding.normal
+            anchors.bottomMargin: -Tokens.padding.normal
+            radius: Tokens.rounding.large
+            color: Colours.palette.m3scrim
+            opacity: detailLayer.pc * (Colours.light ? 0.42 : 0.62)
+            z: 0
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.AllButtons
+                onClicked: root.closeDetail()
+                onWheel: wheel => { wheel.accepted = true; }
+            }
+        }
+
         ClippingRectangle {
             id: clipBox
+            z: 1
             x: scrollViewport.x
             y: scrollViewport.y
             width: scrollViewport.width
             height: scrollViewport.height
             radius: Tokens.rounding.large
             color: "transparent"
-
-            Rectangle {
-                anchors.fill: parent
-                color: Colours.palette.m3scrim
-                opacity: detailLayer.ex * (Colours.light ? 0.42 : 0.6)
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.closeDetail()
-                    onWheel: wheel => { wheel.accepted = true; }
-                }
-            }
 
             Elevation {
                 x: detailCard.x
@@ -1782,6 +1791,8 @@ Item {
 
                 MouseArea {
                     anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.AllButtons
                     onWheel: wheel => { wheel.accepted = true; }
                 }
 
@@ -2075,8 +2086,6 @@ Item {
                         : (isInstalled
                             ? (dActMa.containsMouse ? Colours.layer(Colours.palette.m3secondaryContainer, 2) : Colours.palette.m3secondaryContainer)
                             : (dActMa.containsMouse ? Colours.layer(Colours.palette.m3primary, 2) : Colours.palette.m3primary))
-
-                    Behavior on color { CAnim {} }
 
                     // State 1: "Installed" / "Applied" Content
                     RowLayout {

@@ -45,6 +45,7 @@ WlSessionLockSurface {
         id: wallpaper
         anchors.fill: parent
         screen: root.screen
+        immediateVideo: true
         z: -1
         scale: 1.0
 

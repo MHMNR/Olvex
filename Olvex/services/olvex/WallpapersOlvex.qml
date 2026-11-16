@@ -213,6 +213,12 @@ Searcher {
             return;
         }
 
+        // Never let a generated live-wallpaper thumbnail overwrite an active video wallpaper.
+        if (root.isVideoPath(root.actualCurrent) && clean.indexOf("/wallpaper/live-thumbnails/") !== -1) {
+            root.persistCurrentPath(root.actualCurrent);
+            return;
+        }
+
         // If an internal wallpaper change is actively in flight or debounced,
         // ignore stale notifications from prior transitions.
         if (applyWallpaperDebounceTimer.running && root.actualCurrent) {
