@@ -77,9 +77,9 @@ WlSessionLockSurface {
         id: cardBlurSource
         anchors.fill: parent
         sourceItem: root.cardBlurActive ? wallpaper : null
-        live: root.cardBlurActive
+        live: root.wallpaperLive
         visible: false
-        textureSize: Qt.size(Math.max(1, Math.round(width / 2)), Math.max(1, Math.round(height / 2)))
+        textureSize: Qt.size(Math.max(1, Math.round(width / 3)), Math.max(1, Math.round(height / 3)))
         smooth: true
     }
 
@@ -110,14 +110,26 @@ WlSessionLockSurface {
         }
     }
 
-    // ── Appear instantly, signal inner slides, fade in backdrop ───────────────
+    // ── Appear once Wayland configure geometry + Loader layout are ready ─────
+    function tryStartEntrance() {
+        if (root.contentReady || root.width <= 0 || root.height <= 0 || content.status !== Loader.Ready)
+            return;
+        Qt.callLater(() => {
+            if (!root.contentReady && root.width > 0 && root.height > 0 && content.status === Loader.Ready)
+                root.contentReady = true;
+        });
+    }
+
+    onWidthChanged: tryStartEntrance()
+    onHeightChanged: tryStartEntrance()
+
     Component.onCompleted: {
         lockContent.opacity = 1
         statusBar.opacity = 1
-        root.contentReady = true
         backdropFadeIn.start()
         if (root.cardBlurActive)
             cardBlurSource.scheduleUpdate()
+        tryStartEntrance()
     }
 
     NumberAnimation {
@@ -162,8 +174,18 @@ WlSessionLockSurface {
             }
         }
 
-        // Wait for all staggered card exits to finish (5×70ms stagger + 650ms exit)
-        PauseAnimation { duration: 1050 }
+        // Wait for all staggered card exits + reverse clock morph to finish (~860ms)
+        PauseAnimation { duration: 860 }
+
+        // Reveal DesktopClock on the desktop layer before unmapping LockSurface
+        // so the compositor swaps seamlessly with zero blink.
+        ScriptAction {
+            script: {
+                LockState.lockClockVisible = false;
+            }
+        }
+
+        PauseAnimation { duration: 35 }
 
         ScriptAction {
             script: {
@@ -197,7 +219,10 @@ WlSessionLockSurface {
 
             onStatusChanged: {
                 if (status === Loader.Error) root.useCardFallback()
-                if (status === Loader.Ready) item.forceActiveFocus()
+                if (status === Loader.Ready) {
+                    item.forceActiveFocus()
+                    root.tryStartEntrance()
+                }
             }
         }
 

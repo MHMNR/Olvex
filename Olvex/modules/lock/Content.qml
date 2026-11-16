@@ -162,30 +162,31 @@ RowLayout {
     ParallelAnimation {
         id: entranceAnim
 
-        // Left column — cards cascade top to bottom
+        // Left column — cards cascade top to bottom (40ms warmup avoids initial FBO upload stutter)
         SequentialAnimation {
+            PauseAnimation { duration: 40 }
             NumberAnimation { target: l1Trans; property: "x"; from: -root.offset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
         }
         SequentialAnimation {
-            PauseAnimation { duration: root.stagger }
+            PauseAnimation { duration: 40 + root.stagger }
             NumberAnimation { target: l2Trans; property: "x"; from: -root.offset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
         }
         SequentialAnimation {
-            PauseAnimation { duration: root.stagger * 2 }
+            PauseAnimation { duration: 40 + root.stagger * 2 }
             NumberAnimation { target: l3Trans; property: "x"; from: -root.offset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
         }
         SequentialAnimation {
-            PauseAnimation { duration: root.stagger * 3 }
+            PauseAnimation { duration: 40 + root.stagger * 3 }
             NumberAnimation { target: l4Trans; property: "x"; from: -root.offset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
         }
 
         // Right column — cascade top to bottom, offset 40ms from left start
         SequentialAnimation {
-            PauseAnimation { duration: 40 }
+            PauseAnimation { duration: 80 }
             NumberAnimation { target: r1Trans; property: "x"; from: root.offset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
         }
         SequentialAnimation {
-            PauseAnimation { duration: 40 + root.stagger }
+            PauseAnimation { duration: 80 + root.stagger }
             NumberAnimation { target: r2Trans; property: "x"; from: root.offset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
         }
     }

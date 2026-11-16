@@ -14,6 +14,7 @@ import qs.components.controls
 import qs.components.effects
 import qs.components.images
 import qs.components.misc
+import qs.components.widgets
 import qs.services
 import qs.utils
 import "cat"
@@ -94,9 +95,9 @@ Item {
     focus: true
     Component.onCompleted: {
         forceActiveFocus();
-        if (root.lock.contentReady) {
-            entranceAnim.start();
-        }
+        root.syncClockToDesktop();
+        if (root.lock.contentReady)
+            Qt.callLater(root.startLockEntrance);
     }
     onActiveFocusChanged: {
         if (!activeFocus && !root.lock.unlocking)
@@ -118,22 +119,80 @@ Item {
     readonly property int offset: 500    // px off-screen start for horizontal (matches Content.qml)
     readonly property int vOffset: 120   // px off-screen start for vertical top/bottom bars
 
+    property bool morphReady: false
+    property bool entranceStarted: false
+    property real morphDx: -root.offset
+    property real morphDy: 0
+    property real morphScale: 1.0
+
+    function prepareClockMorph() {
+        const scr = root.screen ? root.screen.name : (root.lock && root.lock.screen ? root.lock.screen.name : "");
+        const src = LockState.getDesktopClockRect(scr);
+        if (src && src.visible && src.width > 0 && clockSlot.width > 0 && root.lock && root.lock.rootItem) {
+            const dst = clockSlot.mapToItem(root.lock.rootItem, 0, 0);
+            if (dst && Number.isFinite(dst.x) && Number.isFinite(dst.y)) {
+                root.morphDx = (src.x + src.width / 2) - (dst.x + clockSlot.width / 2);
+                root.morphDy = (src.y + src.height / 2) - (dst.y + clockSlot.height / 2);
+                root.morphScale = (src.scale > 0 && minimalClock.clockScale > 0)
+                    ? Math.max(0.4, Math.min(2.2, src.scale / minimalClock.clockScale))
+                    : Math.max(0.4, Math.min(2.2, src.height / Math.max(1, clockSlot.height)));
+                return true;
+            }
+        }
+        root.morphDx = -root.offset;
+        root.morphDy = 0;
+        root.morphScale = 1.0;
+        return false;
+    }
+
+    function syncClockToDesktop() {
+        if (root.entranceStarted || (root.lock && root.lock.unlocking))
+            return;
+        if (root.prepareClockMorph()) {
+            minimalClock.x = root.morphDx;
+            minimalClock.y = root.morphDy;
+            minimalClock.scale = root.morphScale;
+            root.morphReady = true;
+            LockState.lockClockVisible = true;
+        }
+    }
+
+    function startLockEntrance() {
+        if (!root.lock || !root.lock.contentReady || root.entranceStarted)
+            return;
+        root.prepareClockMorph();
+        minimalClock.x = root.morphDx;
+        minimalClock.y = root.morphDy;
+        minimalClock.scale = root.morphScale;
+        root.morphReady = true;
+        root.entranceStarted = true;
+        LockState.lockClockVisible = true;
+        entranceAnim.start();
+    }
+
     Connections {
         target: root.lock
         function onContentReadyChanged() {
-            if (root.lock.contentReady) entranceAnim.start()
+            if (root.lock.contentReady)
+                Qt.callLater(root.startLockEntrance);
         }
         function onUnlockingChanged() {
             if (root.lock.unlocking) {
-                entranceAnim.stop()
-                exitAnim.start()
-            } else {
-                exitAnim.stop()
-                // reset for next cycle
-                clockTrans.x = 0
-                authTrans.x = 0
-                topBarTrans.y = 0
-                bottomBarTrans.y = 0
+                entranceAnim.stop();
+                root.prepareClockMorph();
+                exitAnim.start();
+            } else if (root.lock && root.lock.locked) {
+                exitAnim.stop();
+                // reset only if still locked
+                root.morphReady = false;
+                root.entranceStarted = false;
+                LockState.lockClockVisible = false;
+                minimalClock.x = 0;
+                minimalClock.y = 0;
+                minimalClock.scale = 1.0;
+                authTrans.x = 0;
+                topBarTrans.y = 0;
+                bottomBarTrans.y = 0;
             }
         }
     }
@@ -147,10 +206,36 @@ Item {
             NumberAnimation { target: topBarTrans; property: "y"; from: -root.vOffset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
         }
 
-        // Clock slides from left (staggered by 60ms)
+        // Clock hero-morphs from desktop clock rect (40ms GPU warmup + Render-Thread Animators)
         SequentialAnimation {
-            PauseAnimation { duration: 60 }
-            NumberAnimation { target: clockTrans; property: "x"; from: -root.offset; to: 0; duration: root.dur; easing.type: Easing.OutBack; easing.overshoot: 0.7 }
+            PauseAnimation { duration: 40 }
+            XAnimator {
+                target: minimalClock
+                to: 0
+                duration: 680
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.16, 1.0, 0.3, 1.0, 1, 1]
+            }
+        }
+        SequentialAnimation {
+            PauseAnimation { duration: 40 }
+            YAnimator {
+                target: minimalClock
+                to: 0
+                duration: 680
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.16, 1.0, 0.3, 1.0, 1, 1]
+            }
+        }
+        SequentialAnimation {
+            PauseAnimation { duration: 40 }
+            ScaleAnimator {
+                target: minimalClock
+                to: 1.0
+                duration: 680
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.16, 1.0, 0.3, 1.0, 1, 1]
+            }
         }
 
         // Auth card slides from right (staggered by 120ms)
@@ -175,10 +260,36 @@ Item {
             NumberAnimation { target: topBarTrans; property: "y"; to: -root.vOffset; duration: root.exitDur; easing.type: Easing.InExpo }
         }
 
-        // Clock slides left
+        // Clock reverse-morphs back to desktop clock
         SequentialAnimation {
-            PauseAnimation { duration: 50 }
-            NumberAnimation { target: clockTrans; property: "x"; to: -root.offset; duration: root.exitDur; easing.type: Easing.InExpo }
+            PauseAnimation { duration: 60 }
+            XAnimator {
+                target: minimalClock
+                to: root.morphDx
+                duration: 780
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.16, 1.0, 0.3, 1.0, 1, 1]
+            }
+        }
+        SequentialAnimation {
+            PauseAnimation { duration: 60 }
+            YAnimator {
+                target: minimalClock
+                to: root.morphDy
+                duration: 780
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.16, 1.0, 0.3, 1.0, 1, 1]
+            }
+        }
+        SequentialAnimation {
+            PauseAnimation { duration: 60 }
+            ScaleAnimator {
+                target: minimalClock
+                to: root.morphScale
+                duration: 780
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: [0.16, 1.0, 0.3, 1.0, 1, 1]
+            }
         }
 
         // Auth card slides right
@@ -1392,104 +1503,40 @@ Item {
 
         spacing: 0
 
-        // Clock + Date block (left half)
+        // Clock + Date block (left half — Untransformed slot for exact Desktop -> Lock Hero Morph)
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            transform: Translate { id: clockTrans; x: -root.offset }
+            onXChanged: root.syncClockToDesktop()
+            onYChanged: root.syncClockToDesktop()
+            onWidthChanged: root.syncClockToDesktop()
+            onHeightChanged: root.syncClockToDesktop()
 
-            Column {
+            Item {
+                id: clockSlot
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 0
-                spacing: 24
+                implicitWidth: minimalClock.implicitWidth
+                implicitHeight: minimalClock.implicitHeight
+                onXChanged: root.syncClockToDesktop()
+                onYChanged: root.syncClockToDesktop()
+                onWidthChanged: root.syncClockToDesktop()
 
-                layer.enabled: true
-                layer.effect: MultiEffect {
+                SharedClock {
+                    id: minimalClock
+                    x: 0
+                    y: 0
+                    transformOrigin: Item.Center
+                    opacity: root.morphReady ? 1 : 0
+                    syncFromLockState: true
+                    lockScreenName: root.screen ? root.screen.name : (root.lock && root.lock.screen ? root.lock.screen.name : "")
+                    clockScale: (Config.background && Config.background.desktopClock && Config.background.desktopClock.scale !== undefined)
+                        ? Config.background.desktopClock.scale
+                        : 1.0
+                    dateDetailFormat: "d MMMM yyyy"
                     shadowEnabled: true
-                    shadowColor: Colours.palette.m3shadow
-                    shadowOpacity: 0.5
+                    shadowOpacity: 0.35
                     shadowBlur: 0.6
-                    shadowHorizontalOffset: 0
-                    shadowVerticalOffset: 2
-                }
-
-                // Hour + Minutes column + AM/PM
-                Row {
-                    spacing: 0
-
-                    // Big hour
-                    StyledText {
-                        text: Time.hourStr
-                        color: Colours.palette.m3onSurface
-                        textPointSize: Math.min(180, parent.parent.parent.parent.height * 0.22)
-                        font.weight: Font.Bold
-                        font.family: Tokens.font.family.clock
-                        font.letterSpacing: -4
-                        anchors.bottom: minuteCol.bottom
-                    }
-
-                    // Minutes + divider + AM/PM
-                    Column {
-                        id: minuteCol
-                        spacing: 6
-                        anchors.bottom: parent.bottom
-                        bottomPadding: 10
-
-                        StyledText {
-                            text: Time.minuteStr
-                            color: Qt.alpha(Colours.current.m3primary, 0.65)
-                            textPointSize: Math.min(84, parent.parent.parent.parent.height * 0.10)
-                            font.weight: Font.Medium
-                            font.family: Tokens.font.family.clock
-                        }
-
-                        Rectangle {
-                            width: parent.width
-                            height: 2
-                            color: Qt.alpha(Colours.current.m3primary, 0.30)
-                        }
-
-                        Loader {
-                            active: GlobalConfig.services.useTwelveHourClock
-                            visible: active
-                            sourceComponent: StyledText {
-                                text: Time.amPmStr
-                                color: Qt.alpha(Colours.current.m3primary, 0.50)
-                                textPointSize: Tokens.font.size.small + 2
-                                font.bold: true
-                                font.letterSpacing: 5
-                                font.capitalization: Font.AllUppercase
-                            }
-                        }
-                    }
-                }
-
-                // Date with leading gradient line
-                Row {
-                    spacing: 14
-
-                    Rectangle {
-                        width: 80
-                        height: 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop {
-                                position: 0.0
-                                color: Qt.alpha(Colours.current.m3primary, 0.45)
-                            }
-                            GradientStop { position: 1.0; color: "transparent" }
-                        }
-                    }
-
-                    StyledText {
-                        text: Time.format("MMMM d").toUpperCase()
-                        color: Colours.current.m3onSurfaceVariant
-                        textPointSize: Tokens.font.size.extraLarge
-                        font.letterSpacing: 6
-                        font.weight: Font.DemiBold
-                    }
                 }
             }
         }

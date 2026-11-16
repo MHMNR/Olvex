@@ -73,16 +73,16 @@ Variants {
             const sec = win.contentItem.Config.bar ? win.contentItem.Config.bar.secondaryPanel : null;
             const enabled = sec ? sec.enabled : true;
             const mode = sec ? sec.visibilityMode : "always";
-            if (enabled && mode === "always")
-                return 80;
+            if (enabled && (mode === "always" || mode === "smarthide"))
+                return Math.max(borderThickness, 80);
             return borderThickness;
         }
 
-        // Padding around clock including exclusion zones + comfortable margin (32px)
-        readonly property int safePadLeft: barExclusion + 32
-        readonly property int safePadRight: borderThickness + 32
-        readonly property int safePadTop: borderThickness + 32
-        readonly property int safePadBottom: bottomPanelExclusion + 32
+        // Padding around clock including exclusion zones + comfortable margin (24px)
+        readonly property int safePadLeft: barExclusion + 24
+        readonly property int safePadRight: borderThickness + 24
+        readonly property int safePadTop: borderThickness + 24
+        readonly property int safePadBottom: bottomPanelExclusion + 24
 
         function triggerAutoPlacement() {
             if (!isAutoPlacement || !analysisImagePath) return;
@@ -160,8 +160,21 @@ Variants {
             active: (win.contentItem.Config.background && win.contentItem.Config.background.desktopClock ? win.contentItem.Config.background.desktopClock.enabled : true) && !SetupFactory.active
 
             readonly property bool isAutoPlacement: win.isAutoPlacement
-            readonly property real autoTargetX: (win.contentItem.Config.background && win.contentItem.Config.background.desktopClock) ? win.contentItem.Config.background.desktopClock.autoX : 100
-            readonly property real autoTargetY: (win.contentItem.Config.background && win.contentItem.Config.background.desktopClock) ? win.contentItem.Config.background.desktopClock.autoY : 100
+            readonly property real rawAutoX: (win.contentItem.Config.background && win.contentItem.Config.background.desktopClock) ? win.contentItem.Config.background.desktopClock.autoX : 100
+            readonly property real rawAutoY: (win.contentItem.Config.background && win.contentItem.Config.background.desktopClock) ? win.contentItem.Config.background.desktopClock.autoY : 100
+            readonly property real autoTargetX: {
+                const maxX = Math.max(win.safePadLeft, (win.width > 0 ? win.width : 1920) - win.safePadRight - width);
+                return Math.max(win.safePadLeft, Math.min(maxX, rawAutoX));
+            }
+            readonly property real autoTargetY: {
+                const maxY = Math.max(win.safePadTop, (win.height > 0 ? win.height : 1080) - win.safePadBottom - height);
+                return Math.max(win.safePadTop, Math.min(maxY, rawAutoY));
+            }
+
+            onStatusChanged: {
+                if (status === Loader.Ready)
+                    win.triggerAutoPlacement();
+            }
 
             x: isAutoPlacement ? autoTargetX : undefined
             y: isAutoPlacement ? autoTargetY : undefined
@@ -169,12 +182,22 @@ Variants {
             Behavior on x {
                 id: clockXBehavior
                 enabled: clockLoader.isAutoPlacement
-                NumberAnimation { id: clockXAnim; duration: 600; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    id: clockXAnim
+                    duration: 700
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.2, 0.0, 0.0, 1.0, 1, 1]
+                }
             }
             Behavior on y {
                 id: clockYBehavior
                 enabled: clockLoader.isAutoPlacement
-                NumberAnimation { id: clockYAnim; duration: 600; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    id: clockYAnim
+                    duration: 700
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: [0.2, 0.0, 0.0, 1.0, 1, 1]
+                }
             }
 
             anchors.margins: 0
@@ -185,18 +208,11 @@ Variants {
 
             transform: Translate {
                 id: clockTranslate
-                y: clockLoader._isBottom ? -clockLoader._panelOffset : 0
-                Behavior on y {
-                    SmoothedAnimation {
-                        id: clockTranslateAnim
-                        velocity: 160
-                        easing.type: Easing.InOutCubic
-                    }
-                }
+                y: 0
             }
 
             // Bake into GPU texture while sliding — eliminates expensive shader re-render per frame
-            layer.enabled: Boolean(clockYAnim.running || clockXAnim.running || clockTranslateAnim.running)
+            layer.enabled: Boolean(clockYAnim.running || clockXAnim.running)
             layer.smooth: true
             
             state: isAutoPlacement ? "" : (win.contentItem.Config.background && win.contentItem.Config.background.desktopClock ? win.contentItem.Config.background.desktopClock.position : "middle-center")
@@ -212,6 +228,7 @@ Variants {
                     PropertyChanges {
                         target: clockLoader
                         anchors.margins: Tokens.padding.large * 2
+                        anchors.topMargin: Tokens.padding.large * 2 + win.borderThickness
                         anchors.leftMargin: Tokens.padding.large * 2 + win.barExclusion
                     }
                 },
@@ -226,6 +243,7 @@ Variants {
                     PropertyChanges {
                         target: clockLoader
                         anchors.margins: Tokens.padding.large * 2
+                        anchors.topMargin: Tokens.padding.large * 2 + win.borderThickness
                     }
                 },
                 State {
@@ -239,6 +257,8 @@ Variants {
                     PropertyChanges {
                         target: clockLoader
                         anchors.margins: Tokens.padding.large * 2
+                        anchors.topMargin: Tokens.padding.large * 2 + win.borderThickness
+                        anchors.rightMargin: Tokens.padding.large * 2 + win.borderThickness
                     }
                 },
                 State {
@@ -292,6 +312,7 @@ Variants {
                     PropertyChanges {
                         target: clockLoader
                         anchors.margins: Tokens.padding.large * 2
+                        anchors.rightMargin: Tokens.padding.large * 2 + win.borderThickness
                     }
                 },
                 State {
@@ -306,6 +327,7 @@ Variants {
                         target: clockLoader
                         anchors.margins: Tokens.padding.large * 2
                         anchors.leftMargin: Tokens.padding.large * 2 + win.barExclusion
+                        anchors.bottomMargin: Tokens.padding.large * 2 + win.bottomPanelExclusion
                     }
                 },
                 State {
@@ -319,6 +341,7 @@ Variants {
                     PropertyChanges {
                         target: clockLoader
                         anchors.margins: Tokens.padding.large * 2
+                        anchors.bottomMargin: Tokens.padding.large * 2 + win.bottomPanelExclusion
                     }
                 },
                 State {
@@ -332,6 +355,8 @@ Variants {
                     PropertyChanges {
                         target: clockLoader
                         anchors.margins: Tokens.padding.large * 2
+                        anchors.rightMargin: Tokens.padding.large * 2 + win.borderThickness
+                        anchors.bottomMargin: Tokens.padding.large * 2 + win.bottomPanelExclusion
                     }
                 }
             ]
@@ -341,12 +366,13 @@ Variants {
             }
 
             sourceComponent: DesktopClock {
+                screenName: win.modelData ? win.modelData.name : ""
                 wallpaper: behindClock
                 absX: clockLoader.x
                 absY: clockLoader.y + clockTranslate.y  // tracks real visual position
 
                 // Bake into GPU texture while sliding — eliminates expensive shader re-render per frame
-                layer.enabled: clockYAnim.running || clockXAnim.running || clockTranslateAnim.running
+                layer.enabled: clockYAnim.running || clockXAnim.running
             }
         }
     }
