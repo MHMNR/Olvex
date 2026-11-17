@@ -75,19 +75,32 @@ DRIVER_PKGS=()
 DETECTED_HARDWARE=()
 DM_PKGS=()
 ALL_MISSING_PKGS=()
+IGNORED_FAILED_PKGS=()
 AUR_HELPER="pacman"
 NOCONFIRM=false
 
 banner() {
-    clear
-    echo -e "${CLR_CYAN}${CLR_BOLD}"
-    echo "  ██████╗ ██╗     ██╗   ██╗███████╗██╗  ██╗"
-    echo " ██╔═══██╗██║     ██║   ██║██╔════╝╚██╗██╔╝"
-    echo " ██║   ██║██║     ██║   ██║█████╗   ╚███╔╝ "
-    echo " ██║   ██║██║     ╚██╗ ██╔╝██╔══╝   ██╔██╗ "
-    echo " ╚██████╔╝███████╗ ╚████╔╝ ███████╗██╔╝ ██╗"
-    echo "  ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝"
-    echo -e "         ${CLR_MAGENTA}Desktop Environment Deployment Manager v2${CLR_RESET}\n"
+    local mode_label="${1:-Full System Deployment}"
+    [ -t 1 ] && clear || true
+    if [ "${TERM:-}" = "linux" ]; then
+        echo ""
+        printf "  ${CLR_CYAN}${CLR_BOLD}%-34s${CLR_RESET}   ${CLR_BOLD}O L V E X${CLR_RESET}  ·  Deployment Manager v2\n" ' ___  _     __   __ _____ __   __'
+        printf "  ${CLR_CYAN}${CLR_BOLD}%-34s${CLR_RESET}   ${CLR_DIM}-----------------------------------------${CLR_RESET}\n" '/ _ \| |    \ \ / /| ____|\ \ / /'
+        printf "  ${CLR_CYAN}${CLR_BOLD}%-34s${CLR_RESET}   %s\n" '| | | | |     \ V / |  _|   \ V /' 'Where Motion Feels Alive'
+        printf "  ${CLR_CYAN}${CLR_BOLD}%-34s${CLR_RESET}   Stack   Quickshell | Qt6 | C++ | Shaders\n" '| |_| | |___   \ /  | |___  / . \'
+        printf "  ${CLR_CYAN}${CLR_BOLD}%-34s${CLR_RESET}   ${CLR_DIM}Mode    %s${CLR_RESET}\n\n" ' \___/|_____|   V   |_____|/_/ \_\' "$mode_label"
+    else
+        echo ""
+        echo -e "           \033[38;2;138;124;255m⣀⣀⣀⡀\033[0m   \033[38;2;255;176;136m⣀⣀⣀⡀\033[0m"
+        echo -e "          \033[38;2;131;116;253m⣾⣿⣿⣿⡟\033[0m  \033[38;2;255;167;125m⠘⣿⣿⣿⣿⡆\033[0m            \033[1;38;2;247;224;227mO L V E X\033[0m  \033[38;2;187;166;169m·  Deployment Manager v2\033[0m"
+        echo -e "         \033[38;2;124;109;252m⣼⣿⣿⣿⡟\033[0m    \033[38;2;255;159;114m⠘⣿⣿⣿⣿⡄\033[0m           \033[38;2;138;124;255m─────────\033[38;2;255;151;103m─────────\033[38;2;119;204;248m───────────────────────\033[0m"
+        echo -e "        \033[38;2;118;101;251m⣼⣿⣿⣿⡟\033[0m      \033[38;2;255;151;103m⠘⣿⣿⣿⣿⡄\033[0m          \033[38;2;255;176;136mWhere Motion Feels Alive\033[0m"
+        echo -e "       \033[38;2;111;94;250m⣼⣿⣿⣿⡿\033[0m        \033[38;2;255;143;93m⠸⣿⣿⣿⣿⡄\033[0m"
+        echo -e "      \033[38;2;104;87;248m⣼⣿⣿⣿⡿⠁\033[0m         \033[38;2;255;134;82m⠹⣿⣿⣿⣿⡄\033[0m        \033[38;2;187;166;169mStack\033[0m   \033[38;2;138;124;255mQuickshell\033[0m · \033[38;2;255;151;103mQt6\033[0m · \033[38;2;119;204;248mC++ & Shaders\033[0m"
+        echo -e "     \033[38;2;98;79;247m⣼⣿⣿⣿⡿⠁\033[0m           \033[38;2;255;126;71m⠹⣿⣿⣿⣿⡄\033[0m       \033[38;2;187;166;169mTarget\033[0m  \033[38;2;247;224;227m~/.local/Olvex\033[0m · \033[38;2;247;224;227m~/.config/hypr\033[0m"
+        echo -e "     \033[38;2;128;199;246m⣛\033[0m\033[38;2;131;197;245m⣻\033[0m\033[38;2;134;195;244m⣿\033[0m\033[38;2;137;193;243m⡛\033[0m\033[38;2;91;72;246m⠁\033[0m       \033[38;2;164;177;236m⢀\033[0m\033[38;2;167;175;236m⣀\033[0m\033[38;2;170;173;235m⣀\033[0m\033[38;2;173;171;234m⣀\033[0m  \033[38;2;255;118;60m⠙⠻⠿⠛⠃\033[0m       \033[38;2;187;166;169mMode\033[0m    \033[38;2;247;224;227m${mode_label}\033[0m"
+        echo -e "  \033[38;2;119;204;248m⠤\033[0m\033[38;2;122;202;247m⠒\033[0m\033[38;2;125;200;247m⠉\033[0m\033[38;2;128;199;246m⠁\033[0m  \033[38;2;137;193;243m⠉\033[0m\033[38;2;140;191;243m⠓\033[0m\033[38;2;143;190;242m⠦\033[0m\033[38;2;146;188;241m⢄\033[0m\033[38;2;149;186;240m⣀\033[0m\033[38;2;152;184;239m⣀\033[0m\033[38;2;155;182;239m⣠\033[0m\033[38;2;158;180;238m⠴\033[0m\033[38;2;161;179;237m⠚\033[0m\033[38;2;164;177;236m⠉\033[0m   \033[38;2;176;170;233m⠉\033[0m\033[38;2;179;168;232m⠓\033[0m\033[38;2;182;166;232m⠦\033[0m\033[38;2;185;164;231m⣄\033[0m\033[38;2;188;162;230m⣀\033[0m\033[38;2;191;160;229m⣀\033[0m\033[38;2;194;159;228m⡤\033[0m\033[38;2;197;157;228m⠔\033[0m\033[38;2;200;155;227m⠊\033[0m\033[38;2;203;153;226m⠁\033[0m\n"
+    fi
 }
 
 repeat_str() {
@@ -102,13 +115,13 @@ repeat_str() {
 section_header() {
     local title="$1"
     local step_tag="${2:-}"
-    local width=64
+    local width=72
     local label="$title"
     if [ -n "$step_tag" ]; then
         label="${step_tag} ${title}"
     fi
     local label_len=${#label}
-    local fill_len=$((width - label_len - 8))
+    local fill_len=$((width - label_len - 9))
     [ $fill_len -lt 4 ] && fill_len=4
     local fill_line
     fill_line="$(repeat_str "${BOX_H}" "$fill_len")"
@@ -116,6 +129,26 @@ section_header() {
     prefix_line="$(repeat_str "${BOX_H}" 3)"
 
     echo -e "\n${CLR_CYAN}${CLR_BOLD}${prefix_line} [ ${label} ] ${fill_line}${CLR_RESET}"
+}
+
+print_wrapped_list() {
+    local indent="${1:-    }"
+    local max_width="${2:-70}"
+    shift 2
+    local line="" item
+    for item in "$@"; do
+        if [ -z "$line" ]; then
+            line="${indent}${item}"
+        elif [ $((${#line} + 1 + ${#item})) -le "$max_width" ]; then
+            line="${line} ${item}"
+        else
+            echo -e "${CLR_DIM}${line}${CLR_RESET}"
+            line="${indent}${item}"
+        fi
+    done
+    if [ -n "$line" ]; then
+        echo -e "${CLR_DIM}${line}${CLR_RESET}"
+    fi
 }
 
 log_info() { echo -e " ${CLR_BLUE}${GLYPH_INFO}${CLR_RESET} $1"; }
@@ -158,7 +191,7 @@ select_menu() {
     # Output interactive menu to stderr so stdout only captures the return index
     local out_fd=2
 
-    echo -e " ${CLR_BOLD}${prompt}${CLR_RESET} ${CLR_DIM}(Use ↑/↓ arrows or number, Enter to select)${CLR_RESET}" >&$out_fd
+    echo -e " ${CLR_BOLD}${prompt}${CLR_RESET} ${CLR_DIM}(↑/↓ or 1-${count}, Enter to confirm)${CLR_RESET}" >&$out_fd
 
     render_options() {
         for ((i=0; i<count; i++)); do
@@ -228,18 +261,16 @@ select_menu() {
 }
 
 check_environment() {
-    section_header "Pre-flight Verification"
-    
     if [ "$(id -u)" -eq 0 ]; then
-        log_error "This script must NOT be run as root (do not use sudo ./setup.sh)."
-        log_error "Please run it as your normal user. The script will request sudo when needed."
+        log_error "Do not run this script as root (avoid sudo ./setup.sh)."
+        log_error "Run as your regular user; privilege escalation is requested only when needed."
         exit 1
     fi
 
-    log_info "Pre-creating essential user directories to prevent root permission pollution..."
+    log_info "Preparing XDG user directories (~/.config, ~/.cache, ~/.local)..."
     mkdir -p "${HOME}/.config" "${HOME}/.cache" "${HOME}/.local/share" "${HOME}/.local/state" "${HOME}/.local/bin" "${HOME}/Pictures/Wallpapers"
 
-    log_info "Verifying deployment package integrity..."
+    log_info "Verifying deployment bundle integrity..."
     if [[ ! -d "${SCRIPT_DIR}/Olvex" ]]; then
         log_error "Missing required directory: ${SCRIPT_DIR}/Olvex"
         exit 1
@@ -250,77 +281,232 @@ check_environment() {
         exit 1
     fi
 
-    log_success "Environment ready. Package integrity verified."
+    log_success "Environment and deployment bundle verified."
 }
 
 optimize_mirrors_and_keyring() {
-    section_header "System Repository & Keyring Initialization"
+    section_header "Repository & Keyring Initialization"
     
-    log_info "Checking Pacman keyring status..."
+    log_info "Verifying Pacman GPG keyring..."
     if ! sudo pacman-key --list-keys &>/dev/null; then
-        log_warn "Initializing local GPG keyring..."
+        log_warn "Initializing local Pacman GPG keyring..."
         sudo pacman-key --init || true
         sudo pacman-key --populate archlinux || true
     fi
 
-    log_info "Updating archlinux-keyring package..."
+    log_info "Ensuring archlinux-keyring is up to date..."
     sudo -H pacman -Sy --needed --noconfirm archlinux-keyring || true
 
-    log_info "Refreshing package databases..."
+    log_info "Synchronizing package databases..."
     sudo -H pacman -Sy --noconfirm || true
-    log_success "Databases synchronized."
+    log_success "Package databases synchronized."
 }
 
 select_and_ensure_aur_helper() {
-    section_header "AUR Helper Verification"
+    section_header "AUR Helper Setup"
 
     if command -v yay &>/dev/null; then
-        log_success "Active AUR helper detected: yay"
+        log_success "Detected AUR helper: yay"
         AUR_HELPER="yay"
         return 0
     elif command -v paru &>/dev/null; then
-        log_success "Active AUR helper detected: paru"
+        log_success "Detected AUR helper: paru"
         AUR_HELPER="paru"
         return 0
     fi
 
-    log_warn "No supported AUR helper (yay/paru) found."
+    log_warn "No supported AUR helper (yay or paru) detected."
     local aur_choice
-    aur_choice="$(select_menu "Select an AUR helper to compile and install:" 0 \
-        "yay-bin  (Precompiled binary - Recommended)" \
+    aur_choice="$(select_menu "Select an AUR helper to install:" 0 \
+        "yay-bin  (Precompiled binary — Recommended)" \
         "paru-bin (Rust-based AUR helper)")"
 
-    log_info "Installing toolchain dependencies (base-devel, git, cmake, ninja)..."
+    log_info "Installing base build toolchain (base-devel, git, cmake, ninja)..."
     sudo -H pacman -S --needed --noconfirm base-devel git cmake ninja || true
 
     local tmp_dir
     tmp_dir="$(mktemp -d)"
 
     if [[ "$aur_choice" == "2" ]]; then
-        log_info "Compiling paru-bin..."
+        log_info "Building and installing paru-bin..."
         git clone https://aur.archlinux.org/paru-bin.git "$tmp_dir/paru-bin"
         ( cd "$tmp_dir/paru-bin" && makepkg -si --noconfirm )
         AUR_HELPER="paru"
     else
-        log_info "Compiling yay-bin..."
+        log_info "Building and installing yay-bin..."
         git clone https://aur.archlinux.org/yay-bin.git "$tmp_dir/yay-bin"
         ( cd "$tmp_dir/yay-bin" && makepkg -si --noconfirm )
         AUR_HELPER="yay"
     fi
     rm -rf "$tmp_dir"
-    log_success "AUR Helper (${AUR_HELPER}) installed."
+    log_success "AUR helper ready: ${AUR_HELPER}"
 }
 
 install_pkgs() {
     local pkgs=("$@")
     [ ${#pkgs[@]} -eq 0 ] && return 0
     if [ "$AUR_HELPER" = "yay" ]; then
-        yay -S --needed --diffmenu=false --cleanmenu=false --redownload=false --noconfirm "${pkgs[@]}" || true
+        yay -S --needed --diffmenu=false --cleanmenu=false --redownload=false --noconfirm "${pkgs[@]}"
     elif [ "$AUR_HELPER" = "paru" ]; then
-        paru -S --needed --fm=false --ch=false --noconfirm "${pkgs[@]}" || true
+        paru -S --needed --skipreview --nochroot --noconfirm "${pkgs[@]}"
     else
-        sudo -H pacman -S --needed --noconfirm "${pkgs[@]}" || true
+        sudo -H pacman -S --needed --noconfirm "${pkgs[@]}"
     fi
+}
+
+format_manual_install_cmd() {
+    local pkgs=("$@")
+    if [ "$AUR_HELPER" = "paru" ] || [ "$AUR_HELPER" = "yay" ]; then
+        echo "${AUR_HELPER} -S --needed ${pkgs[*]}"
+    else
+        echo "sudo pacman -S --needed ${pkgs[*]}"
+    fi
+}
+
+get_unsatisfied_pkgs() {
+    local pkgs=("$@")
+    [ ${#pkgs[@]} -eq 0 ] && return 0
+    pacman -T "${pkgs[@]}" 2>/dev/null | sed '/^[[:space:]]*$/d' || true
+}
+
+install_pkgs_individually() {
+    local pkgs=("$@")
+    local pkg
+    for pkg in "${pkgs[@]}"; do
+        if ! pacman -T "$pkg" &>/dev/null; then
+            log_info "Installing package individually: ${pkg}..."
+            install_pkgs "$pkg" || log_warn "Failed to install '${pkg}'."
+        fi
+    done
+}
+
+remind_manual_ignored_pkgs() {
+    [ ${#IGNORED_FAILED_PKGS[@]} -eq 0 ] && return 0
+    local still_ignored=()
+    mapfile -t still_ignored < <(get_unsatisfied_pkgs "${IGNORED_FAILED_PKGS[@]}")
+    IGNORED_FAILED_PKGS=("${still_ignored[@]}")
+    if [ ${#IGNORED_FAILED_PKGS[@]} -gt 0 ]; then
+        echo ""
+        log_warn "Build succeeded, but ${#IGNORED_FAILED_PKGS[@]} skipped package(s) are still not installed: ${IGNORED_FAILED_PKGS[*]}"
+        log_info "For the best experience, install them manually:"
+        echo -e "   ${CLR_YELLOW}$(format_manual_install_cmd "${IGNORED_FAILED_PKGS[@]}")${CLR_RESET}"
+    fi
+}
+
+report_build_failure() {
+    local stage="$1"
+    echo ""
+    log_error "${stage}."
+    if [ ${#IGNORED_FAILED_PKGS[@]} -gt 0 ]; then
+        local still_ignored=()
+        mapfile -t still_ignored < <(get_unsatisfied_pkgs "${IGNORED_FAILED_PKGS[@]}")
+        IGNORED_FAILED_PKGS=("${still_ignored[@]}")
+        if [ ${#IGNORED_FAILED_PKGS[@]} -gt 0 ]; then
+            log_error "Build failed after continuing without skipped package(s): ${IGNORED_FAILED_PKGS[*]}"
+            log_error "One or more skipped package(s) appear required to build/install Olvex."
+            log_info "Install them manually first:"
+            echo -e "   ${CLR_YELLOW}$(format_manual_install_cmd "${IGNORED_FAILED_PKGS[@]}")${CLR_RESET}"
+            log_info "Then re-run ${CLR_YELLOW}./setup.sh${CLR_RESET} (or ${CLR_YELLOW}./setup.sh --build${CLR_RESET})."
+            return 0
+        fi
+    fi
+    log_error "Review the CMake/compiler output above, install any missing dependencies, and re-run ./setup.sh."
+}
+
+install_missing_dependencies_step() {
+    local remaining_pkgs=("${ALL_MISSING_PKGS[@]}")
+    local skip_install=false
+    IGNORED_FAILED_PKGS=()
+
+    while true; do
+        local install_rc=0
+        if [ "$skip_install" = false ]; then
+            if install_pkgs "${remaining_pkgs[@]}"; then
+                install_rc=0
+            else
+                install_rc=$?
+            fi
+        fi
+        skip_install=false
+
+        local missing_arr=()
+        mapfile -t missing_arr < <(get_unsatisfied_pkgs "${remaining_pkgs[@]}")
+
+        if [ "$install_rc" -eq 0 ] && [ ${#missing_arr[@]} -eq 0 ]; then
+            log_success "Dependencies successfully installed."
+            return 0
+        fi
+
+        echo ""
+        if [ ${#missing_arr[@]} -gt 0 ]; then
+            if [ "$install_rc" -ne 0 ]; then
+                log_error "Dependency installation via ${AUR_HELPER} failed (exit code: ${install_rc})."
+            else
+                log_error "Some dependencies failed to install via ${AUR_HELPER}."
+            fi
+            log_error "Failed / missing package(s) (${#missing_arr[@]}): ${missing_arr[*]}"
+            log_info "You can install them manually with:"
+            echo -e "   ${CLR_YELLOW}$(format_manual_install_cmd "${missing_arr[@]}")${CLR_RESET}\n"
+        else
+            log_error "${AUR_HELPER} exited with code ${install_rc}, though no requested packages appear missing."
+        fi
+
+        if [ "${NOCONFIRM:-false}" = true ] || [ ! -t 0 ]; then
+            log_error "Non-interactive mode: aborting before configuration deployment and compilation."
+            exit 1
+        fi
+
+        local choice
+        local retry_choice="1"
+        local one_by_one_choice=""
+        local ignore_choice="2"
+
+        if [ ${#missing_arr[@]} -gt 1 ]; then
+            one_by_one_choice="2"
+            ignore_choice="3"
+            choice="$(select_menu "How would you like to proceed?" 0 \
+                "Retry failed package(s) (or re-check if installed manually)" \
+                "Install remaining one-by-one (install working packages & isolate failed ones)" \
+                "Ignore failed package(s) & continue installation" \
+                "Abort installation")"
+        else
+            choice="$(select_menu "How would you like to proceed?" 0 \
+                "Retry failed package(s) (or re-check if installed manually)" \
+                "Ignore failed package(s) & continue installation" \
+                "Abort installation")"
+        fi
+
+        if [ "$choice" = "$retry_choice" ]; then
+            if [ ${#missing_arr[@]} -gt 0 ]; then
+                local recheck_arr=()
+                mapfile -t recheck_arr < <(get_unsatisfied_pkgs "${missing_arr[@]}")
+                if [ ${#recheck_arr[@]} -eq 0 ]; then
+                    log_success "All previously failed package(s) are now installed."
+                    log_success "Dependencies successfully installed."
+                    return 0
+                fi
+                remaining_pkgs=("${recheck_arr[@]}")
+            fi
+            log_info "Retrying package installation (${#remaining_pkgs[@]} package(s))..."
+        elif [ -n "$one_by_one_choice" ] && [ "$choice" = "$one_by_one_choice" ]; then
+            install_pkgs_individually "${missing_arr[@]}"
+            remaining_pkgs=("${missing_arr[@]}")
+            skip_install=true
+        elif [ "$choice" = "$ignore_choice" ]; then
+            if [ ${#missing_arr[@]} -gt 0 ]; then
+                IGNORED_FAILED_PKGS=("${missing_arr[@]}")
+                log_warn "Ignoring ${#IGNORED_FAILED_PKGS[@]} failed package(s): ${IGNORED_FAILED_PKGS[*]}"
+                log_info "Continuing installation. Please install them manually later:"
+                echo -e "   ${CLR_YELLOW}$(format_manual_install_cmd "${IGNORED_FAILED_PKGS[@]}")${CLR_RESET}"
+            else
+                log_warn "Ignoring ${AUR_HELPER} error (exit code: ${install_rc}) and continuing..."
+            fi
+            return 0
+        else
+            log_error "Installation aborted. Resolve failed packages and re-run ./setup.sh."
+            exit 1
+        fi
+    done
 }
 
 probe_hardware_drivers() {
@@ -432,8 +618,8 @@ probe_hardware_drivers() {
 }
 
 prompt_user_configuration() {
-    section_header "Installer Configuration Wizard"
-    echo -e " ${CLR_DIM}Configure all options upfront. Once verified, installation runs uninterrupted.${CLR_RESET}\n"
+    section_header "Configuration Wizard"
+    echo -e " ${CLR_DIM}Select preferences upfront. Execution begins only after final review.${CLR_RESET}\n"
 
     # Check for existing configuration folders
     local existing_configs=()
@@ -458,11 +644,11 @@ prompt_user_configuration() {
 
     # 1. Config Overwrite (Only asked if existing configs are found)
     if [ ${#existing_configs[@]} -gt 0 ]; then
-        echo -e " ${CLR_YELLOW}[${step}/${total_steps}] Existing configurations detected in ~/.config/:${CLR_RESET}"
+        echo -e " ${CLR_YELLOW}${CLR_BOLD}[${step}/${total_steps}] Existing User Configurations Detected${CLR_RESET}"
         for c in "${existing_configs[@]}"; do
-            echo -e "       ${GLYPH_BULLET} ${CLR_CYAN}${c}${CLR_RESET}"
+            echo -e "   ${GLYPH_BULLET} ${CLR_CYAN}${c}${CLR_RESET}"
         done
-        if confirm "      Overwrite these configuration paths with installer defaults? (timestamped backup will be created)" "Y"; then
+        if confirm "  Backup and replace these configurations with Olvex defaults?" "Y"; then
             CONF_OVERWRITE=true
         else
             CONF_OVERWRITE=false
@@ -474,29 +660,29 @@ prompt_user_configuration() {
     fi
 
     # 2. Hardware Drivers
-    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Hardware Driver Auto-Detection:${CLR_RESET}"
-    if confirm "      Automatically detect, install, and configure all hardware drivers (GPU, Audio, Bluetooth, CPU Microcode)?" "N"; then
+    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Hardware Drivers & Firmware${CLR_RESET}"
+    if confirm "  Auto-detect and configure GPU, audio, Bluetooth, and CPU microcode drivers?" "N"; then
         CONF_DRIVERS=true
         probe_hardware_drivers
     else
         CONF_DRIVERS=false
-        log_info "Hardware driver auto-detection skipped."
+        log_info "Hardware driver detection skipped."
     fi
     echo ""
     ((step++))
 
     # 3. Login Method
     local login_choice
-    login_choice="$(select_menu "[${step}/${total_steps}] Login & Session Management:" 0 \
+    login_choice="$(select_menu "[${step}/${total_steps}] Display Manager & Session Login:" 0 \
         "Display Manager (Recommended)" \
-        "Autologin TTY1 + Autostart Hyprland (systemd user service)" \
-        "Manual (Console login, start Hyprland manually)")"
+        "TTY1 Autologin + Hyprland User Service (systemd)" \
+        "Manual Console Login")"
     CONF_LOGIN_METHOD="$login_choice"
 
     if [[ "$CONF_LOGIN_METHOD" == "1" ]]; then
         local dm_choice
-        dm_choice="$(select_menu "Select Display Manager to install:" 0 \
-            "SDDM (Recommended for Qt6/Quickshell/Wayland)" \
+        dm_choice="$(select_menu "Select Display Manager:" 0 \
+            "SDDM (Recommended for Qt6 / Wayland)" \
             "greetd + tuigreet (Lightweight Wayland greeter)" \
             "GDM (GNOME Display Manager)" \
             "Ly (Minimal TUI display manager)")"
@@ -513,27 +699,27 @@ prompt_user_configuration() {
     ((step++))
 
     # 4. Default Shell
-    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Default Shell Selection:${CLR_RESET}"
+    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Default Login Shell${CLR_RESET}"
     CONF_SET_FISH=false
     if [[ "$(basename "${SHELL:-bash}")" != "fish" ]]; then
-        if confirm "      Set Fish as your default user shell?" "Y"; then
+        if confirm "  Switch default login shell to Fish (/usr/bin/fish)?" "Y"; then
             CONF_SET_FISH=true
         fi
     else
-        log_info "Fish is already your default shell."
+        log_info "Fish is already set as your default login shell."
     fi
     echo ""
     ((step++))
 
     # 5. Post-installation session action
-    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Post-Installation Action:${CLR_RESET}"
+    echo -e " ${CLR_BOLD}[${step}/${total_steps}] Post-Install Session Action${CLR_RESET}"
     CONF_SESSION_ACTION="none"
     if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x Hyprland &>/dev/null; then
-        if confirm "      Hyprland is currently running. Reload Hyprland and restart Olvex Shell when finished?" "Y"; then
+        if confirm "  Hyprland is active. Reload Hyprland and restart Olvex Shell upon completion?" "Y"; then
             CONF_SESSION_ACTION="reload"
         fi
     else
-        if confirm "      Hyprland is not running. Launch Hyprland session when installation finishes?" "Y"; then
+        if confirm "  Launch Hyprland automatically once deployment completes?" "Y"; then
             CONF_SESSION_ACTION="launch"
         fi
     fi
@@ -599,13 +785,13 @@ check_package_conflicts() {
 }
 
 run_preflight_and_verification() {
-    section_header "Pre-flight Verification & Dependency Resolution"
+    section_header "Preflight Verification & Dependency Check"
 
     check_environment
     optimize_mirrors_and_keyring
     select_and_ensure_aur_helper
 
-    log_info "Resolving system package dependencies..."
+    log_info "Resolving required system & runtime packages..."
     local base_pkgs=(
         base-devel cmake ninja git pkgconf gcc-libs glibc
         qt6-base qt6-declarative qt6-wayland qt6-shadertools qt6-5compat qt6-multimedia qt6-svg qt6-imageformats
@@ -654,21 +840,21 @@ run_preflight_and_verification() {
     # Check conflicts interactively before proceeding
     check_package_conflicts
 
-    section_header "Installation Plan Summary"
-    echo -e " ${CLR_BOLD}The installer will execute the following plan:${CLR_RESET}"
+    section_header "Deployment Plan Summary"
+    echo -e " ${CLR_DIM}Review the pending system changes before execution:${CLR_RESET}\n"
     if [ "$CONF_OVERWRITE" = true ]; then
-        echo -e "   ${GLYPH_BULLET} Configuration Deployment : ${CLR_GREEN}Deploy defaults (auto-backup existing)${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Config Deployment  : ${CLR_GREEN}Deploy Olvex defaults (auto-backup existing)${CLR_RESET}"
     else
-        echo -e "   ${GLYPH_BULLET} Configuration Deployment : ${CLR_YELLOW}Preserve existing configurations${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Config Deployment  : ${CLR_YELLOW}Preserve existing user configs${CLR_RESET}"
     fi
 
     if [ "$CONF_DRIVERS" = true ]; then
-        echo -e "   ${GLYPH_BULLET} Hardware Drivers         : ${CLR_GREEN}Enabled (${#DETECTED_HARDWARE[@]} components detected)${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Hardware Drivers   : ${CLR_GREEN}Auto-configure (${#DETECTED_HARDWARE[@]} component(s))${CLR_RESET}"
         for d in "${DETECTED_HARDWARE[@]}"; do
             echo -e "       - ${CLR_CYAN}${d}${CLR_RESET}"
         done
     else
-        echo -e "   ${GLYPH_BULLET} Hardware Drivers         : ${CLR_YELLOW}Skipped${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Hardware Drivers   : ${CLR_YELLOW}Skipped${CLR_RESET}"
     fi
 
     case "$CONF_LOGIN_METHOD" in
@@ -677,36 +863,40 @@ run_preflight_and_verification() {
             [[ "$CONF_DM_CHOICE" == "2" ]] && dm_name="greetd + tuigreet"
             [[ "$CONF_DM_CHOICE" == "3" ]] && dm_name="GDM"
             [[ "$CONF_DM_CHOICE" == "4" ]] && dm_name="Ly"
-            echo -e "   ${GLYPH_BULLET} Login Method             : ${CLR_GREEN}Display Manager (${dm_name})${CLR_RESET}"
+            echo -e "   ${GLYPH_BULLET} Login Session      : ${CLR_GREEN}Display Manager (${dm_name})${CLR_RESET}"
             ;;
         2)
-            echo -e "   ${GLYPH_BULLET} Login Method             : ${CLR_GREEN}Autologin TTY1 + Hyprland User Service (linger)${CLR_RESET}"
+            echo -e "   ${GLYPH_BULLET} Login Session      : ${CLR_GREEN}TTY1 Autologin + Hyprland User Service${CLR_RESET}"
             ;;
         3)
-            echo -e "   ${GLYPH_BULLET} Login Method             : ${CLR_YELLOW}Manual console login${CLR_RESET}"
+            echo -e "   ${GLYPH_BULLET} Login Session      : ${CLR_YELLOW}Manual console login${CLR_RESET}"
             ;;
     esac
 
     if [ "$CONF_SET_FISH" = true ]; then
-        echo -e "   ${GLYPH_BULLET} Default Shell            : ${CLR_GREEN}Change to Fish (/usr/bin/fish)${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Default Shell      : ${CLR_GREEN}Switch to Fish (/usr/bin/fish)${CLR_RESET}"
     else
-        echo -e "   ${GLYPH_BULLET} Default Shell            : ${CLR_YELLOW}Keep current ($(basename "${SHELL:-bash}"))${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Default Shell      : ${CLR_YELLOW}Keep $(basename "${SHELL:-bash}")${CLR_RESET}"
     fi
 
     case "$CONF_SESSION_ACTION" in
-        reload) echo -e "   ${GLYPH_BULLET} Post-Install Action      : ${CLR_GREEN}Reload Hyprland & Restart Olvex Shell${CLR_RESET}" ;;
-        launch) echo -e "   ${GLYPH_BULLET} Post-Install Action      : ${CLR_GREEN}Launch Hyprland session (start-hyprland)${CLR_RESET}" ;;
-        *) echo -e "   ${GLYPH_BULLET} Post-Install Action      : ${CLR_YELLOW}None (display summary and manual commands)${CLR_RESET}" ;;
+        reload) echo -e "   ${GLYPH_BULLET} Post-Install       : ${CLR_GREEN}Reload Hyprland & Restart Olvex Shell${CLR_RESET}" ;;
+        launch) echo -e "   ${GLYPH_BULLET} Post-Install       : ${CLR_GREEN}Launch Hyprland session (start-hyprland)${CLR_RESET}" ;;
+        *) echo -e "   ${GLYPH_BULLET} Post-Install       : ${CLR_YELLOW}None (print summary & CLI commands)${CLR_RESET}" ;;
     esac
 
-    echo -e "   ${GLYPH_BULLET} Missing Packages         : ${CLR_BOLD}${#ALL_MISSING_PKGS[@]} package(s) to install${CLR_RESET}"
+    echo -e "   ${GLYPH_BULLET} AUR Helper         : ${CLR_CYAN}${AUR_HELPER}${CLR_RESET}"
+    echo -e "   ${GLYPH_BULLET} Target Core        : ${CLR_CYAN}${TARGET_LOCAL}${CLR_RESET}"
     if [ ${#ALL_MISSING_PKGS[@]} -gt 0 ]; then
-        echo -e "     ${CLR_DIM}${ALL_MISSING_PKGS[*]}${CLR_RESET}"
+        echo -e "   ${GLYPH_BULLET} Packages           : ${CLR_BOLD}${#ALL_MISSING_PKGS[@]} missing package(s) queued${CLR_RESET}"
+        print_wrapped_list "       " 70 "${ALL_MISSING_PKGS[@]}"
+    else
+        echo -e "   ${GLYPH_BULLET} Packages           : ${CLR_GREEN}All dependencies already satisfied${CLR_RESET}"
     fi
     echo ""
 
-    if ! confirm "Proceed with installation and apply all changes?" "Y"; then
-        log_warn "Installation cancelled by user. No changes were written."
+    if ! confirm "Proceed with deployment and apply these changes?" "Y"; then
+        log_warn "Deployment cancelled by user. No changes were applied."
         exit 0
     fi
 }
@@ -800,37 +990,44 @@ EOF
     log_success "System installation configuration saved (/etc/olvex/install.conf)."
 }
 
-build_and_setup_olvex() {
-    local build_dir="${TARGET_LOCAL}/build"
-    rm -rf "$build_dir"
-    mkdir -p "$build_dir"
-    mkdir -p "$TARGET_QSCONF"
-    mkdir -p "$TARGET_BIN"
-    mkdir -p "${HOME}/.config/olvex/monitors"
-    touch -a "${HOME}/.config/olvex/hypr-vars.conf" "${HOME}/.config/olvex/hypr-user.conf"
+run_cmake_pipeline() {
+    local build_dir="$1"
+    local jobs
+    jobs="$(nproc 2>/dev/null || echo 2)"
 
-    log_info "Configuring CMake build system..."
+    log_info "Configuring CMake build system (Ninja, Release)..."
     cd "$build_dir"
-    
-    cmake -G Ninja \
+
+    if ! cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/ \
         -DINSTALL_QSCONFDIR="$TARGET_QSCONF" \
-        ..
+        ..; then
+        report_build_failure "CMake configuration failed"
+        exit 1
+    fi
 
-    log_info "Compiling native components (Parallel Job Queue)..."
-    cmake --build . -j"$(nproc 2>/dev/null || echo 2)"
+    log_info "Building native C++ plugins and components (${jobs} parallel jobs)..."
+    if ! cmake --build . -j"$jobs"; then
+        report_build_failure "Native compilation failed"
+        exit 1
+    fi
 
     log_info "Installing compiled targets to system paths (sudo required)..."
-    sudo -H cmake --install .
+    if ! sudo -H cmake --install .; then
+        report_build_failure "CMake installation failed"
+        exit 1
+    fi
+}
 
-    log_info "Restoring user ownership on shell configs..."
-    sudo chown -R "$USER:$USER" "$TARGET_QSCONF" "${TARGET_LOCAL}" "${HOME}/.config/olvex" 2>/dev/null || true
+setup_cli_and_ydotool() {
+    local source_root="$1"
+    local build_dir="$2"
 
-    log_info "Registering olvex CLI executable..."
-    local standalone_olvex="${TARGET_LOCAL}/scripts/olvex"
-    chmod +x "$standalone_olvex" "${TARGET_LOCAL}/scripts/olvex-backend.sh" "${TARGET_LOCAL}/scripts/olvex-backend.py" 2>/dev/null || true
-    
+    log_info "Registering olvex CLI executables..."
+    local standalone_olvex="${source_root}/scripts/olvex"
+    chmod +x "$standalone_olvex" "${source_root}/scripts/olvex-backend.sh" "${source_root}/scripts/olvex-backend.py" 2>/dev/null || true
+
     mkdir -p "${TARGET_BIN}"
     ln -sfn "${standalone_olvex}" "${TARGET_BIN}/olvex"
     sudo mkdir -p "/usr/local/bin" 2>/dev/null || true
@@ -840,9 +1037,9 @@ build_and_setup_olvex() {
         ln -sfn "${build_dir}/lib/olvex-clipboard" "${TARGET_BIN}/olvex-clipboard"
         sudo ln -sfn "${build_dir}/lib/olvex-clipboard" "/usr/local/bin/olvex-clipboard" 2>/dev/null || true
     fi
-    log_success "CLI linked (${TARGET_BIN}/olvex & /usr/local/bin/olvex)."
+    log_success "CLI linked (${TARGET_BIN}/olvex -> /usr/local/bin/olvex)."
 
-    log_info "Configuring ydotool virtual input & uinput permissions..."
+    log_info "Configuring virtual input permissions (uinput / ydotool)..."
     if ! getent group input >/dev/null 2>&1; then
         sudo groupadd input 2>/dev/null || true
     fi
@@ -854,7 +1051,7 @@ EOF
     sudo udevadm control --reload-rules 2>/dev/null || true
     sudo udevadm trigger 2>/dev/null || true
 
-    log_info "Enabling ydotool user service..."
+    log_info "Enabling ydotool user daemon..."
     local ydotool_svc="ydotoold.service"
     if ! systemctl --user list-unit-files 2>/dev/null | grep -q "^ydotoold"; then
         ydotool_svc="ydotool.service"
@@ -863,7 +1060,24 @@ EOF
     systemctl --user enable "$ydotool_svc" 2>/dev/null || true
     systemctl --user reset-failed "$ydotool_svc" 2>/dev/null || true
     systemctl --user restart "$ydotool_svc" 2>/dev/null || true
-    log_success "ydotool service configured."
+    log_success "Input daemon (${ydotool_svc}) configured."
+}
+
+build_and_setup_olvex() {
+    local build_dir="${TARGET_LOCAL}/build"
+    rm -rf "$build_dir"
+    mkdir -p "$build_dir"
+    mkdir -p "$TARGET_QSCONF"
+    mkdir -p "$TARGET_BIN"
+    mkdir -p "${HOME}/.config/olvex/monitors"
+    touch -a "${HOME}/.config/olvex/hypr-vars.conf" "${HOME}/.config/olvex/hypr-user.conf"
+
+    run_cmake_pipeline "$build_dir"
+
+    log_info "Restoring user ownership on shell directories..."
+    sudo chown -R "$USER:$USER" "$TARGET_QSCONF" "${TARGET_LOCAL}" "${HOME}/.config/olvex" 2>/dev/null || true
+
+    setup_cli_and_ydotool "${TARGET_LOCAL}" "$build_dir"
 }
 
 apply_driver_configurations() {
@@ -1075,13 +1289,13 @@ bootstrap_scheme_and_themes() {
 }
 
 universal_permission_sweep() {
-    log_info "Sweeping ${HOME} for root-polluted files and restoring user ownership..."
+    log_info "Verifying user ownership across ~/.config and ~/.local..."
     
-    # Finds any file/directory inside HOME owned by root and safely chowns it to the user.
+    # Restore user ownership on any directory touched under escalated steps
     sudo chown -R "$USER:$USER" "${HOME}/.config" "${HOME}/.local" 2>/dev/null || true
     sudo find "${HOME}" -maxdepth 4 -user root -exec chown "$USER:$USER" {} + 2>/dev/null || true
     
-    log_success "Permissions restored successfully."
+    log_success "User directory ownership verified."
 }
 
 setup_warp_service() {
@@ -1142,6 +1356,7 @@ apply_post_install_actions() {
         log_info "Restarting Olvex Shell daemon..."
         "${TARGET_LOCAL}/scripts/olvex" shell restart 2>/dev/null || "${TARGET_LOCAL}/scripts/olvex" shell -d 2>/dev/null || true
     elif [[ "$CONF_SESSION_ACTION" == "launch" ]]; then
+        remind_manual_ignored_pkgs
         log_info "Initializing Hyprland environment..."
         if command -v start-hyprland &>/dev/null; then
             log_info "Executing start-hyprland..."
@@ -1159,81 +1374,98 @@ apply_post_install_actions() {
 }
 
 display_final_summary() {
-    local width=64
+    local width=72
+    local title="Installation Complete"
+    local fill_len=$((width - ${#title} - 9))
+    [ $fill_len -lt 4 ] && fill_len=4
     local fill_line
-    fill_line="$(repeat_str "${BOX_H}" $((width - 30)))"
+    fill_line="$(repeat_str "${BOX_H}" "$fill_len")"
     local bot_line
-    bot_line="$(repeat_str "${BOX_H}" $((width - 2)))"
+    bot_line="$(repeat_str "${BOX_H}" $((width - 1)))"
 
-    echo -e "\n${CLR_CYAN}${CLR_BOLD}${BOX_TL}${BOX_H}${BOX_H} [ Installation Complete ] ${fill_line}${BOX_TR}${CLR_RESET}"
-    echo -e " ${BOX_V} ${CLR_GREEN}${CLR_BOLD}${GLYPH_OK} Olvex Shell and Hyprland deployed successfully.${CLR_RESET}"
-    echo -e " ${BOX_V}"
-    echo -e " ${BOX_V} ${CLR_BOLD}Target Paths:${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Hyprland Config   : ${CLR_CYAN}${TARGET_HYPR}${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Olvex Shell Core  : ${CLR_CYAN}${TARGET_LOCAL}${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Quickshell Config : ${CLR_CYAN}${TARGET_QSCONF}${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Binary Location   : ${CLR_CYAN}${TARGET_BIN}/olvex${CLR_RESET}"
-    echo -e " ${BOX_V}"
-    echo -e " ${BOX_V} ${CLR_BOLD}Management Commands:${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Start Shell      : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Restart Shell    : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Toggle Launcher  : ${CLR_YELLOW}olvex shell drawers toggle launcher${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Reload Hyprland  : ${CLR_YELLOW}hyprctl reload${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Rebuild Shell    : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}"
-    echo -e " ${BOX_V}   ${GLYPH_BULLET} Update Shell     : ${CLR_YELLOW}olvex update${CLR_RESET}"
-    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_BL}${bot_line}${BOX_BR}${CLR_RESET}\n"
+    echo -e "\n${CLR_CYAN}${CLR_BOLD}${BOX_TL}${BOX_H}${BOX_H} [ ${title} ] ${fill_line}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET} ${CLR_GREEN}${CLR_BOLD}${GLYPH_OK} Olvex Shell and Hyprland environment deployed.${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET} ${CLR_BOLD}Deployed Locations${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Hyprland Config   : ${CLR_CYAN}${TARGET_HYPR}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Shell Core        : ${CLR_CYAN}${TARGET_LOCAL}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Quickshell Dir    : ${CLR_CYAN}${TARGET_QSCONF}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Olvex CLI         : ${CLR_CYAN}${TARGET_BIN}/olvex${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET} ${CLR_BOLD}Quick Commands${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Start Shell       : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Restart Shell     : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Toggle Launcher   : ${CLR_YELLOW}olvex shell drawers toggle launcher${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Reload Hyprland   : ${CLR_YELLOW}hyprctl reload${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Rebuild Plugins   : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Check Updates     : ${CLR_YELLOW}olvex update${CLR_RESET}"
+    if [ "${CONF_SET_FISH:-false}" = true ] || [ "${HAS_NVIDIA:-false}" = true ] || [ "${CONF_LOGIN_METHOD:-1}" = "1" ]; then
+        echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}"
+        echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET} ${CLR_BOLD}Session Notes${CLR_RESET}"
+        if [ "${CONF_SET_FISH:-false}" = true ]; then
+            echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Open a new login session to activate Fish as default shell."
+        fi
+        if [ "${CONF_LOGIN_METHOD:-1}" = "1" ]; then
+            echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Display manager enabled — reboot or restart display-manager to apply."
+        fi
+        if [ "${HAS_NVIDIA:-false}" = true ]; then
+            echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} NVIDIA modeset & DKMS updated — reboot recommended before launch."
+        fi
+    fi
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_BL}${bot_line}${CLR_RESET}\n"
+    remind_manual_ignored_pkgs
 }
 
 execute_all_changes() {
     cd "${HOME}" || true
-    local total_exec_steps=7
+    local total_exec_steps=6
+    [ ${#ALL_MISSING_PKGS[@]} -gt 0 ] && ((total_exec_steps++))
     [ "$CONF_DRIVERS" = true ] && ((total_exec_steps++))
     local current_step=1
 
-    # 1. Install missing packages with zero interruptions
+    # 1. Install missing packages with interactive failure recovery
     if [ ${#ALL_MISSING_PKGS[@]} -gt 0 ]; then
-        section_header "Installing Dependencies" "[${current_step}/${total_exec_steps}]"
-        log_info "Invoking ${AUR_HELPER} to install ${#ALL_MISSING_PKGS[@]} package(s)..."
-        install_pkgs "${ALL_MISSING_PKGS[@]}"
-        log_success "Dependencies successfully installed."
+        section_header "Dependency Installation" "[${current_step}/${total_exec_steps}]"
+        log_info "Invoking ${AUR_HELPER} for ${#ALL_MISSING_PKGS[@]} package(s)..."
+        install_missing_dependencies_step
         ((current_step++))
     fi
 
     # 2. Deploy system configurations
-    section_header "Deploying System Configurations" "[${current_step}/${total_exec_steps}]"
+    section_header "Configuration Deployment" "[${current_step}/${total_exec_steps}]"
     deploy_system_configurations
     ((current_step++))
 
     # 3. Build & Setup Olvex
-    section_header "Compiling C++ Plugins & System Integration" "[${current_step}/${total_exec_steps}]"
+    section_header "Native Build & System Integration" "[${current_step}/${total_exec_steps}]"
     build_and_setup_olvex
     save_install_configuration
     ((current_step++))
 
     # 4. Apply Driver Configurations
     if [ "$CONF_DRIVERS" = true ]; then
-        section_header "Applying Driver Configurations" "[${current_step}/${total_exec_steps}]"
+        section_header "Hardware Driver Configuration" "[${current_step}/${total_exec_steps}]"
         apply_driver_configurations
         ((current_step++))
     fi
 
     # 5. Apply Login Method
-    section_header "Applying Login & Session Configuration" "[${current_step}/${total_exec_steps}]"
+    section_header "Login & Session Management" "[${current_step}/${total_exec_steps}]"
     apply_login_method
     ((current_step++))
 
     # 6. Bootstrap Themes
-    section_header "Bootstrapping M3 Schemes & Themes" "[${current_step}/${total_exec_steps}]"
+    section_header "Theme & Environment Bootstrap" "[${current_step}/${total_exec_steps}]"
     bootstrap_scheme_and_themes
     ((current_step++))
 
-    # 7. Sweep permissions
-    section_header "Universal Root Ownership Sweep" "[${current_step}/${total_exec_steps}]"
+    # 7. Ownership check
+    section_header "Ownership & Permission Check" "[${current_step}/${total_exec_steps}]"
     universal_permission_sweep
     ((current_step++))
 
     # 8. Post-installation actions
-    section_header "Post-Installation Tasks" "[${current_step}/${total_exec_steps}]"
+    section_header "Post-Install Finalization" "[${current_step}/${total_exec_steps}]"
     apply_post_install_actions
 
     # 9. Final summary
@@ -1242,29 +1474,30 @@ execute_all_changes() {
 
 build_and_install_mode() {
     local clean_build="${1:-false}"
+    local mode_tag="Development Build"
+    [ "$clean_build" = true ] && mode_tag="Clean Rebuild"
 
-    banner
-    section_header "Olvex Development Build & Install"
-    
+    banner "$mode_tag"
+
     if [ "$(id -u)" -eq 0 ]; then
-        log_error "This script must NOT be run as root (do not use sudo ./setup.sh)."
-        log_error "Please run it as your normal user. The script will request sudo when needed."
+        log_error "Do not run this script as root (avoid sudo ./setup.sh --build)."
+        log_error "Run as your regular user; privilege escalation is requested when needed."
         exit 1
     fi
 
     local source_dir="${SCRIPT_DIR}/Olvex"
     if [[ ! -d "$source_dir" ]]; then
-        log_error "Missing required directory: $source_dir"
+        log_error "Missing required source directory: $source_dir"
         exit 1
     fi
 
     local build_dir="${source_dir}/build"
     if [ "$clean_build" = true ]; then
-        log_info "Performing clean rebuild (removing $build_dir)..."
+        log_info "Cleaning existing build directory (${build_dir})..."
         rm -rf "$build_dir"
     fi
 
-    log_info "[1/4] Checking build dependencies..."
+    section_header "Build Toolchain Check" "[1/4]"
     local missing=()
     for cmd in cmake ninja git pkgconf gcc; do
         if ! command -v "$cmd" &>/dev/null; then
@@ -1273,16 +1506,16 @@ build_and_install_mode() {
     done
 
     if [ ${#missing[@]} -gt 0 ]; then
-        log_warn "Missing required toolchains: ${missing[*]}"
+        log_warn "Missing required build tools: ${missing[*]}"
         log_info "Installing missing build tools via pacman..."
         sudo -H pacman -S --needed --noconfirm "${missing[@]}" || {
-            log_error "Failed to install required tools. Please run: sudo pacman -S ${missing[*]}"
+            log_error "Failed to install required tools. Run manually: sudo pacman -S ${missing[*]}"
             exit 1
         }
     fi
-    log_success "Build dependencies verified."
+    log_success "Build toolchain verified."
 
-    log_info "[2/4] Configuring build..."
+    section_header "Preparing Targets & Build" "[2/4]"
     mkdir -p "$build_dir"
     mkdir -p "$TARGET_QSCONF"
     mkdir -p "$TARGET_BIN"
@@ -1293,79 +1526,46 @@ build_and_install_mode() {
     fi
     touch -a "${HOME}/.config/olvex/hypr-vars.conf" "${HOME}/.config/olvex/hypr-user.conf"
 
-    cd "$build_dir"
-    cmake -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/ \
-        -DINSTALL_QSCONFDIR="$TARGET_QSCONF" \
-        ..
-    log_success "Build configured."
-
-    log_info "[3/4] Compiling Olvex from source..."
-    cmake --build . -j"$(nproc 2>/dev/null || echo 2)"
-    log_success "Build complete."
-
-    log_info "[4/4] Installing (requires sudo)..."
-    sudo -H cmake --install .
-
-    log_info "Restoring user permissions on config directories..."
+    section_header "Compiling & Installing Targets" "[3/4]"
+    run_cmake_pipeline "$build_dir"
+    log_info "Restoring user ownership on shell directories..."
     sudo chown -R "$USER:$USER" "$TARGET_QSCONF" "${HOME}/.config/olvex" 2>/dev/null || true
-    log_success "Installation complete."
+    log_success "Compiled targets installed."
 
-    log_info "Setting up CLI and ydotool integration..."
-    local standalone_olvex="${source_dir}/scripts/olvex"
-    chmod +x "$standalone_olvex" "${source_dir}/scripts/olvex-backend.sh" "${source_dir}/scripts/olvex-backend.py" 2>/dev/null || true
+    section_header "CLI & Input Daemon Setup" "[4/4]"
+    setup_cli_and_ydotool "$source_dir" "$build_dir"
 
-    mkdir -p "${TARGET_BIN}"
-    ln -sfn "${standalone_olvex}" "${TARGET_BIN}/olvex"
-    sudo mkdir -p "/usr/local/bin" 2>/dev/null || true
-    sudo ln -sfn "${standalone_olvex}" "/usr/local/bin/olvex" 2>/dev/null || true
+    local width=72
+    local title="Build Complete"
+    local fill_len=$((width - ${#title} - 9))
+    local fill_line bot_line
+    fill_line="$(repeat_str "${BOX_H}" "$fill_len")"
+    bot_line="$(repeat_str "${BOX_H}" $((width - 1)))"
 
-    if [ -f "${build_dir}/lib/olvex-clipboard" ]; then
-        ln -sfn "${build_dir}/lib/olvex-clipboard" "${TARGET_BIN}/olvex-clipboard"
-        sudo ln -sfn "${build_dir}/lib/olvex-clipboard" "/usr/local/bin/olvex-clipboard" 2>/dev/null || true
-    fi
-
-    # Ydotool setup
-    if ! getent group input >/dev/null 2>&1; then
-        sudo groupadd input 2>/dev/null || true
-    fi
-    sudo usermod -aG input "$USER" 2>/dev/null || true
-
-    sudo tee /etc/udev/rules.d/80-uinput.rules >/dev/null <<'EOF'
-KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"
-EOF
-    sudo udevadm control --reload-rules 2>/dev/null || true
-    sudo udevadm trigger 2>/dev/null || true
-
-    local ydotool_svc="ydotoold.service"
-    if ! systemctl --user list-unit-files 2>/dev/null | grep -q "^ydotoold"; then
-        ydotool_svc="ydotool.service"
-    fi
-    systemctl --user daemon-reload 2>/dev/null || true
-    systemctl --user enable "$ydotool_svc" 2>/dev/null || true
-    systemctl --user reset-failed "$ydotool_svc" 2>/dev/null || true
-    systemctl --user restart "$ydotool_svc" 2>/dev/null || true
-
-    echo -e "\n${CLR_GREEN}${CLR_BOLD}${GLYPH_OK} Build & Installation complete!${CLR_RESET}\n"
-    echo -e " ${CLR_BOLD}Management Commands:${CLR_RESET}"
-    echo -e "   ${GLYPH_BULLET} Start Shell     : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
-    echo -e "   ${GLYPH_BULLET} Restart Shell   : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
-    echo -e "   ${GLYPH_BULLET} Quickshell CLI  : ${CLR_YELLOW}qs -c olvex${CLR_RESET}"
-    echo -e "   ${GLYPH_BULLET} Rebuild Shell   : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}\n"
+    echo -e "\n${CLR_CYAN}${CLR_BOLD}${BOX_TL}${BOX_H}${BOX_H} [ ${title} ] ${fill_line}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET} ${CLR_GREEN}${CLR_BOLD}${GLYPH_OK} Olvex native build and installation completed.${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET} ${CLR_BOLD}Quick Commands${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Start Shell       : ${CLR_YELLOW}olvex shell -d${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Restart Shell     : ${CLR_YELLOW}olvex shell restart${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Quickshell CLI    : ${CLR_YELLOW}qs -c olvex${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_V}${CLR_RESET}   ${GLYPH_BULLET} Rebuild Shell     : ${CLR_YELLOW}./setup.sh --build${CLR_RESET}"
+    echo -e "${CLR_CYAN}${CLR_BOLD}${BOX_BL}${bot_line}${CLR_RESET}\n"
 }
 
 show_help() {
-    echo -e "Usage: $0 [OPTIONS]"
+    echo -e "${CLR_BOLD}Olvex Shell Deployment Manager v2${CLR_RESET} — Where Motion Feels Alive"
+    echo ""
+    echo -e "Usage: $0 [MODE] [OPTIONS]"
     echo ""
     echo -e "Modes:"
-    echo -e "  (no args)             Full interactive deployment (questionnaire upfront, preflight verification, automated execution)"
-    echo -e "  -b, --build, build    Fast build & install from source (embedded dev build workflow)"
-    echo -e "  --rebuild             Clean build directory and recompile from source"
+    echo -e "  (default)             Interactive deployment wizard, dependency setup, and native build"
+    echo -e "  -b, --build, build    Incremental native build and install from local source"
+    echo -e "  --rebuild             Clean build directory and perform a full native rebuild"
     echo ""
     echo -e "Options:"
-    echo -e "  -y, --noconfirm       Run without interactive confirmation prompts (accept defaults)"
-    echo -e "  -h, --help            Show this help dialog"
+    echo -e "  -y, --noconfirm       Run non-interactively using default wizard selections"
+    echo -e "  -h, --help            Display this help message and exit"
     echo ""
 }
 
@@ -1406,7 +1606,7 @@ main() {
     fi
 
     # 3-Phase Execution Architecture
-    banner
+    banner "Full System Deployment"
     prompt_user_configuration
     run_preflight_and_verification
     execute_all_changes

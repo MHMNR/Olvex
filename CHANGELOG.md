@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-11-17
+
+### Added
+- **Shared Clock Engine & 39-Style Clock Catalog**:
+  - Built unified `SharedClock` component shared across Desktop, Card Lockscreen, and Minimal Lockscreen (`components/widgets/SharedClock.qml`) with seamless Desktop $\leftrightarrow$ Lockscreen hero morph transitions and synced palette state (`LockState`).
+  - Added `ClockCatalog` (`components/widgets/clocks/`) featuring 39 clock styles including the signature morphing hybrid dial (`olvex-signature`), chunky, scalloped, editorial, bento, dot-matrix, radar, and minimalist faces, paired with an embedded `OptionPicker` variant selector in Appearance Settings.
+  - Added frosted wallpaper blur clipped directly to clock card and dial geometry, plus `leastBusy` / `mostBusy` smart wallpaper region placement (`ImageAnalyser`).
+- **Initial Setup Wizard**:
+  - Added interactive multi-step onboarding wizard (`modules/setup/`, `SetupFactory`, `olvex shell setup open|toggle|close`) covering display scale, theme & wallpaper, clock style, default apps, interactive shortcut tour, and finish summary.
+- **Keyboard Shortcuts Cheatsheet**:
+  - Added dedicated cheatsheet overlay (`modules/cheatsheet/`, `Super + /` and `Super + ?`, `olvex shell help|cheatsheet`) powered by dynamic Python AST/Lua keybind discovery (`Keybinds` service).
+- **Appearance Marketplaces (Icons, Cursors & Wallpapers)**:
+  - Added KDE Store / OCS browsing and theme management views (`AppearanceIcons`, `AppearanceCursor`, `AppearanceWallpapers`) with search, preview cards, progress bars, deletion modals, and one-click theme switching.
+- **Wallpaper Engine & MCU Color Pipeline**:
+  - Added C++ `WallpaperEngine` with Material Color Utilities (`olvex-mcu`) extraction, cached palette lookups, adaptive contrast selection, and clean color scheme generation.
+- **Dynamic Weather Shaders & Wind Integration**:
+  - Rewrote dynamic weather fragment shaders with multi-layer skies, celestial bodies, wind-speed reactivity, and liquid spread transitions.
+- **Expanded System Settings & Transparency Modes**:
+  - Added system settings panes for Input Devices, Default Apps, Startup, and Privacy, plus expandable search in System Keybinds.
+  - Added independent Light and Dark mode transparency controls (`baseDark`/`baseLight`, `layersDark`/`layersLight`).
+- **Procedural Lockscreen Cat & Animated Connectivity Icons**:
+  - Added `CatScene`, `CatBody`, and `CatFace` procedural lockscreen simulation reacting to cursor proximity.
+  - Integrated animated Lottie Wi-Fi / Bluetooth icons (`WifiLottieIcon`) and spring-animated sliding hover highlights across network lists.
+- **Setup Dependencies, Installer UX & Terminal Branding**:
+  - Added `fastfetch`, `qps`, and Cloudflare WARP setup support to `setup.sh`, plus `Where Motion Feels Alive` branding and the side-by-side Braille Olvex logo across `setup.sh`, `fastfetch`, `fish`, and `bash`.
+  - Fixed `paru` invocations using valid `--skipreview --nochroot` flags, removed silent `|| true` failure swallowing, added interactive Retry / One-by-One Isolation / Ignore & Continue / Abort recovery, and surfaced clear CMake/post-build manual install guidance.
+
+### Improved & Refactored
+- **Lock Screen Bento Grid & Authentication Card**:
+  - Redesigned lockscreen dashboard (`Content.qml`, `Resources.qml`, `NotifDock.qml`) with borderless Material 3 tonal hierarchy, compact horizontal user authentication row (`Center.qml`), and tonal expressive CPU/status badges.
+  - Optimized live video wallpaper loading and lockscreen surface integration.
+- **Settings UI, Sliding Bridge & Tooltips**:
+  - Added a fluid sliding bridge transition between master and detail panes, adaptive section rounding, unrestricted window resizing, and consistent borderless scrim/modal surfaces.
+  - Enhanced tooltips and context menus with delay timers, scale morphing animations, and `OptionPicker` refinements.
+- **Updated Default Configuration (`shell.json` & Fallbacks)**:
+  - Renamed `bottomPanel` to `secondaryPanel` across config schemas and QML components.
+  - Updated embedded `RootConfig::defaultShellJson()`, C++ config headers, and QML/Python fallbacks to match current defaults: `olvex-signature` blurred `leastBusy` clock (`1.51x`), `Noto Sans` / `Noto Sans Mono` / `Serif` fonts, `kitty` terminal, `vlc` media playback, `WhiteSur-dark` icons, `Bibata-Modern-Classic` cursors, updated light/dark transparency levels, and disabled idle timeouts (`dpms off` at `300s`, `lock` at `3600s`).
+
+### Fixed
+- **Live Blur Morph Sync During Lock/Unlock**:
+  - Replaced render-thread `XAnimator`/`YAnimator`/`ScaleAnimator` on morphing lockscreen clocks (`Center.qml`, `MinimalLockContent.qml`) with `NumberAnimation` so `x`, `y`, `scale`, and `ShaderEffectSource.sourceRect` stay updated every frame.
+  - Enabled synchronous static wallpaper decoding (`asynchronous: !root.immediateVideo`) in `BackgroundWallpaper.qml` when `immediateVideo` is set on lock surfaces.
+- **Clipboard, GPU & Path Reliability**:
+  - Fixed `wl-copy` process hang on exit, proper local file URI encoding for wallpaper/media sources, `lspci`-based GPU detection in `drmGpuScanSh`, `OptionPicker` morph positioning, and theme sync rollback race conditions.
+
+---
+
 ## [1.4.2-hotfix] - 2026-10-23
 
 ### Fixed

@@ -1,21 +1,23 @@
 cmake_minimum_required(VERSION 3.19)
 
 if(NOT DEFINED VERSION)
-    execute_process(COMMAND git describe --tags --abbrev=0
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        OUTPUT_VARIABLE VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-
-    if("${VERSION}" STREQUAL "" AND EXISTS "${CMAKE_SOURCE_DIR}/version.json")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/version.json")
         file(READ "${CMAKE_SOURCE_DIR}/version.json" _VERSION_JSON)
         string(REGEX MATCH "\"version\"[ \t]*:[ \t]*\"([^\"]+)\"" _ ${_VERSION_JSON})
         set(VERSION "${CMAKE_MATCH_1}")
     endif()
 
     if("${VERSION}" STREQUAL "")
-        set(VERSION "1.1.0")
+        execute_process(COMMAND git describe --tags --abbrev=0
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            OUTPUT_VARIABLE VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    endif()
+
+    if("${VERSION}" STREQUAL "")
+        set(VERSION "1.5.0")
     endif()
 endif()
 

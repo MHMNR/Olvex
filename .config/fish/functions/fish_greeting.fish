@@ -98,7 +98,7 @@ try:
                     ff_line += f'{rgb_fg(wr, wg, wb)}{chr(code)}\033[0m'
         fastfetch_lines.append(ff_line)
 
-    logo_src = '\n'.join(fastfetch_lines) + f'\n\n     \033[1;38;2;{fgr};{fgg};{fgb}mO L V E X\033[0m\n     \033[38;2;{mr};{mg};{mb}mHyprland · Wayland Shell\033[0m'
+    logo_src = '\n'.join(fastfetch_lines) + f'\n\n     \033[1;38;2;{fgr};{fgg};{fgb}mO L V E X\033[0m\n     \033[38;2;{mr};{mg};{mb}mWhere Motion Feels Alive\033[0m'
 
     ff_config = {
         '$schema': 'https://github.com/fastfetch-cli/fastfetch/raw/master/doc/json_schema.json',
@@ -133,7 +133,7 @@ except Exception as e:
 
     if command -v fastfetch >/dev/null 2>&1
         if test "$TERM" = "linux"
-            set -l tty_logo (printf "          \033[1;34m///\033[0m       \033[1;33m\\\\\\\\\\\033[0m\n         \033[1;34m///\033[0m         \033[1;33m\\\\\\\\\\\033[0m\n        \033[1;34m///\033[0m           \033[1;33m\\\\\\\\\\\033[0m\n       \033[1;34m///\033[0m             \033[1;33m\\\\\\\\\\\033[0m\n     \033[1;36m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[0m\n\n     \033[1;37mO L V E X\033[0m\n     \033[0;37mHyprland \u00b7 Wayland Shell\u001b[0m\n")
+            set -l tty_logo (printf "          \033[1;34m///\033[0m       \033[1;33m\\\\\\\\\\\033[0m\n         \033[1;34m///\033[0m         \033[1;33m\\\\\\\\\\\033[0m\n        \033[1;34m///\033[0m           \033[1;33m\\\\\\\\\\\033[0m\n       \033[1;34m///\033[0m             \033[1;33m\\\\\\\\\\\033[0m\n     \033[1;36m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\033[0m\n\n     \033[1;37mO L V E X\033[0m\n     \033[0;37mWhere Motion Feels Alive\033[0m\n")
             fastfetch --logo-type data --logo "$tty_logo"
         else
             fastfetch
@@ -165,6 +165,6 @@ except Exception as e:
     end
     echo
     echo -s (set_color --bold $c_fg) "   O L V E X" (set_color normal)
-    echo -s (set_color $c_muted) "   Hyprland Shell" (set_color normal)
+    echo -s (set_color $c_muted) "   Where Motion Feels Alive" (set_color normal)
     echo
 end

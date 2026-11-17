@@ -1,10 +1,10 @@
 {
   "name": "Olvex Shell",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "major": 1,
-  "minor": 4,
-  "patch": 2,
+  "minor": 5,
+  "patch": 0,
   "channel": "Rolling",
-  "releaseType": "hotfix",
-  "buildId": "2026.10.23"
+  "releaseType": "",
+  "buildId": "2026.11.17"
 }

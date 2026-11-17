@@ -9,13 +9,13 @@ Singleton {
     id: root
 
     readonly property string name: "Olvex Shell"
-    property string version: "1.4.2"
+    property string version: "1.5.0"
     property int major: 1
-    property int minor: 4
-    property int patch: 2
+    property int minor: 5
+    property int patch: 0
     property string channel: "Rolling"
-    property string releaseType: "hotfix"
-    property string buildId: "2026.10.23"
+    property string releaseType: ""
+    property string buildId: "2026.11.17"
 
     property string commit: ""
     property string branch: ""

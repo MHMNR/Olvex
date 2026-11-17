@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
 import QtQuick.Shapes
+import M3Shapes
 import Quickshell
 import Quickshell.Io
 import Olvex.Config
@@ -104,12 +105,24 @@ Item {
 
                     // 1. Header Category: System
                     RowLayout {
-                        spacing: 8
+                        spacing: 10
 
-                        MaterialIcon {
-                            text: "desktop_windows"
+                        MaterialShape {
+                            Layout.alignment: Qt.AlignVCenter
+                            implicitWidth: 32
+                            implicitHeight: 32
+                            implicitSize: 32
+                            shape: MaterialShape.Cookie4Sided
                             color: Colours.palette.m3primary
-                            iconPointSize: 16
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "desktop_windows"
+                                color: Colours.palette.m3onPrimary
+                                iconPointSize: 15
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
 
                         StyledText {
@@ -667,12 +680,24 @@ Item {
 
                         // Header: Specifications
                         RowLayout {
-                            spacing: 8
+                            spacing: 10
 
-                            MaterialIcon {
-                                text: "memory"
+                            MaterialShape {
+                                Layout.alignment: Qt.AlignVCenter
+                                implicitWidth: 32
+                                implicitHeight: 32
+                                implicitSize: 32
+                                shape: MaterialShape.Slanted
                                 color: Colours.palette.m3primary
-                                iconPointSize: 16
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "memory"
+                                    color: Colours.palette.m3onPrimary
+                                    iconPointSize: 15
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
 
                             StyledText {
@@ -898,12 +923,24 @@ Item {
 
                         // Header: Maintainer
                         RowLayout {
-                            spacing: 8
+                            spacing: 10
 
-                            MaterialIcon {
-                                text: "verified_user"
+                            MaterialShape {
+                                Layout.alignment: Qt.AlignVCenter
+                                implicitWidth: 32
+                                implicitHeight: 32
+                                implicitSize: 32
+                                shape: MaterialShape.SoftBurst
                                 color: Colours.palette.m3primary
-                                iconPointSize: 16
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "verified_user"
+                                    color: Colours.palette.m3onPrimary
+                                    iconPointSize: 15
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
 
                             StyledText {
@@ -1025,7 +1062,7 @@ Item {
                                 }
 
                                 StyledText {
-                                    text: qsTr("Creator & Lead Architect")
+                                    text: qsTr("Author")
                                     color: Colours.palette.m3onSurfaceVariant
                                     font.weight: Font.Normal
                                     font.letterSpacing: 0.1

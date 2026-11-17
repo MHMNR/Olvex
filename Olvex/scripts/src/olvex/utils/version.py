@@ -32,13 +32,13 @@ def get_version_info() -> Dict[str, Any]:
     """Return dictionary of all Olvex and system component versions."""
     info: Dict[str, Any] = {
         "name": "Olvex Shell",
-        "version": "1.4.2",
+        "version": "1.5.0",
         "major": 1,
-        "minor": 4,
-        "patch": 2,
+        "minor": 5,
+        "patch": 0,
         "channel": "Rolling",
-        "releaseType": "hotfix",
-        "buildId": "2026.10.23",
+        "releaseType": "",
+        "buildId": "2026.11.17",
         "commit": None,
         "branch": None,
         "commitDate": None,

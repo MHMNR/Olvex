@@ -41,8 +41,10 @@ Olvex includes a comprehensive suite of shell interfaces:
 | **Application Launcher** | Rapid application dispatcher featuring inline mathematical calculations and wallpaper selection. |
 | **Control Center** | Independent Qt window providing fine-grained desktop environment preferences and system controls. |
 | **Clipboard Manager** | Dedicated floating interface (`olvex-clipboard`) backed by `cliphist` for text and image history. |
+| **Emoji Picker** | Standalone picker (`olvex-emoji`) with search, category tabs, and glyph metrics. |
 | **Notification Daemon** | Desktop notification service implementing Material Design 3 toast alerts and persistent history. |
-| **Screen Locker** | Security lock surface rendered via Qt Quick with authentication feedback and power management. |
+| **Screen Locker** | Security lock surface with frosted card/clock morphs, authentication feedback, Bento widgets, and procedural cat simulation. |
+| **Setup Wizard & Cheatsheet** | First-run onboarding wizard (`olvex shell setup`) and live Hyprland shortcuts cheatsheet (`Super + /`). |
 
 ---
 
@@ -261,53 +263,178 @@ olvex shell -d
 
 ## Default Keybindings (Hyprland)
 
-Keybindings are configured within `~/.config/hypr/hyprland/keybinds.conf`:
+Keybindings are configured in Lua within `~/.config/hypr/variables.lua` and `~/.config/hypr/hyprland/keybinds.lua`. You can also press `Super + /` anytime to open the interactive **Shortcuts Cheatsheet**.
 
+### Shell, Lockscreen & Session
 | Keybinding | Action |
 | :--- | :--- |
-| `Super` | Toggle Application Launcher |
-| `Super + Space` | Toggle Application Launcher |
-| `Super + D` | Toggle Dashboard |
-| `Super + C` | Open Control Center |
-| `Super + V` | Toggle Clipboard Manager |
-| `Super + .(Period)` | Open Emoji Picker |
-| `Super + L` | Trigger Lock Screen |
-| `Print` | Capture Fullscreen to Clipboard |
-| `Super + Shift + S` | Capture Region (Interactive) |
-| `Super + Alt + R` | Record Screen (Audio Enabled) |
-| `Ctrl + Alt + R` | Record Screen |
-| `Ctrl + Alt + Delete` | Toggle Power Menu |
+| `Super` *(tap release)* | Toggle Application Launcher |
+| `Super + N` | Toggle Notification Sidebar |
+| `Super + K` | Toggle All Panels *(Launcher, Dashboard & QS Panel)* |
+| `Super + W` | Open Wallpaper Selector |
+| `Super + /` / `Super + ?` | Toggle Keyboard Shortcuts Cheatsheet |
+| `Ctrl + Alt + C` | Clear All Notifications |
+| `Super + L` | Lock Session |
+| `Super + Alt + L` | Restore Shell *(if stopped)* & Lock Session |
+| `Super + Shift + L` | Sleep (`systemctl suspend-then-hibernate`) |
+| `Ctrl + Alt + Delete` | Toggle Power / Session Menu |
 | `Ctrl + Super + Shift + R` | Terminate Shell Process |
 | `Ctrl + Super + Alt + R` | Restart Shell Daemon |
+
+### Applications
+| Keybinding | Action |
+| :--- | :--- |
+| `Super + T` | Open Terminal (`kitty`) |
+| `Super + B` | Open Browser (`firefox`) |
+| `Super + C` | Open Code Editor (`antigravity`) |
+| `Super + E` | Open File Manager (`thunar`) |
+| `Super + Alt + E` | Open Secondary File Manager (`nemo`) |
+| `Super + G` | Open GitHub Desktop |
+| `Ctrl + Alt + Escape` | Open Process Manager (`qps`) |
+| `Ctrl + Alt + V` | Open Audio Controls (`pavucontrol`) |
+| `Super + J` | Open Text Editor (`xed`) |
+
+### Clipboard, Emoji, Screenshot & Recording
+| Keybinding | Action |
+| :--- | :--- |
+| `Super + V` | Toggle Clipboard Manager |
+| `Super + Alt + V` | Delete Clipboard Entry |
+| `Ctrl + Shift + Alt + V` | Paste Latest Clipboard Entry (`ydotool`) |
+| `Super + .` *(Period)* | Toggle Emoji Picker |
+| `Print` | Capture Fullscreen Screenshot |
+| `Super + Shift + S` | Interactive Screenshot / Freeze Selector |
+| `Super + Shift + Alt + S` | Capture Region *(Interactive)* |
+| `Ctrl + Alt + R` | Toggle Screen Recording |
+| `Super + Alt + R` | Toggle Screen Recording *(with Audio)* |
+| `Super + Shift + Alt + R` | Toggle Region Screen Recording |
+| `Super + Shift + C` | Pick Color to Clipboard (`hyprpicker`) |
+
+### Media, Volume & Brightness
+| Keybinding | Action |
+| :--- | :--- |
+| `Ctrl + Super + Space` / `XF86AudioPlay` / `XF86AudioPause` | Play / Pause Media |
+| `Ctrl + Super + =` / `XF86AudioNext` | Next Track |
+| `Ctrl + Super + -` / `XF86AudioPrev` | Previous Track |
+| `Ctrl + Super + Backspace` / `XF86AudioStop` | Stop Media |
+| `Super + Shift + M` / `XF86AudioMute` | Toggle Output Mute |
+| `XF86AudioMicMute` | Toggle Microphone Mute |
+| `XF86AudioRaiseVolume` / `XF86AudioLowerVolume` | Raise / Lower Volume |
+| `XF86MonBrightnessUp` / `XF86MonBrightnessDown` | Raise / Lower Screen Brightness |
+
+### Workspaces, Windows & Groups
+| Keybinding | Action |
+| :--- | :--- |
+| `Super + 0-9` / `Ctrl + Super + 0-9` | Switch to Workspace / Workspace Group *(1–10)* |
+| `Super + Shift + 0-9` / `Ctrl + Super + Alt + 0-9` | Move Window to Workspace / Workspace Group |
+| `Super + Scroll` / `Super + PageUp/Down` / `Ctrl + Super + Left/Right` | Switch to Next / Previous Workspace |
+| `Ctrl + Super + Scroll` | Switch to Next / Previous Workspace Group |
+| `Super + Alt + Scroll` / `Super + Alt + PageUp/Down` / `Ctrl + Super + Shift + Left/Right` | Move Window to Next / Previous Workspace |
+| `Super + Alt + S` / `Ctrl + Super + Shift + Up` | Move Window to Special Workspace |
+| `Ctrl + Super + Shift + Down` | Move Window out of Special Workspace |
+| `Super + S` | Toggle Special Workspace (`special:special`) |
+| `Ctrl + Shift + Escape` | Toggle System Monitor Workspace (`special:sysmon`) |
+| `Super + M` | Toggle Music Workspace (`special:music`) |
+| `Super + D` | Toggle Communication Workspace (`special:communication`) |
+| `Super + R` | Toggle Todo Workspace (`special:todo`) |
+| `Super + Arrow` / `Super + Shift + Arrow` | Focus / Move Window in Direction |
+| `Super + -` / `Super + =` / `Super + Alt + Arrow` | Resize Window Width / Height |
+| `Super + Z` / `Super + Left-Drag` | Move Window |
+| `Super + X` / `Super + Right-Drag` | Resize Window |
+| `Ctrl + Super + \` | Center Floating Window |
+| `Ctrl + Super + Alt + \` | Normalize & Center Floating Window |
+| `Super + Alt + \` | Toggle Floating PiP Window |
+| `Super + P` | Pin Floating Window |
+| `Super + F` / `Super + Alt + F` | Fullscreen / Maximized Window |
+| `Super + Alt + Space` | Toggle Floating Window |
+| `Super + Q` | Close Active Window |
+| `Super + ,` / `Super + U` / `Super + Shift + ,` | Toggle Group / Ungroup / Lock Group |
+| `Alt + Tab` / `Shift + Alt + Tab` | Cycle Windows |
+| `Ctrl + Alt + Tab` / `Ctrl + Shift + Alt + Tab` | Cycle Windows in Group |
 
 ---
 
 ## IPC Command Interface
 
-Olvex exposes an IPC interface via the `olvex` CLI binary for programmatic control:
+Olvex exposes Quickshell `IpcHandler` targets via `olvex shell <target> <method> [args...]` (or `qs ipc call <target> <method> [args...]`).
 
-### Interface Control
+### Drawers, Windows & Onboarding
 ```bash
-olvex shell drawers toggle launcher       # Toggle Application Launcher
-olvex shell drawers toggle dashboard      # Toggle System Dashboard
-olvex shell drawers toggle session        # Toggle Session / Power Menu
-olvex shell drawers toggle utilities      # Toggle Quick Utilities Drawer
-olvex shell drawers toggle wallpapers     # Open Wallpaper Selector
-olvex shell controlCenter open            # Launch Control Center
-olvex shell lock open                     # Engage Lock Screen
-olvex shell notifs clear                  # Dismiss All Active Notifications
+olvex shell drawers list                               # List available drawer names
+olvex shell drawers toggle <drawer>                    # Toggle drawer (bar, launcher, dashboard, qspanel, powermenu/session, secondaryPanel, notificationcenter, wallpaperLauncher, osk, help, cheatsheet)
+olvex toggle <drawer>                                  # Shorthand for drawers toggle
+olvex shell drawers openWallpapers                     # Open launcher in wallpaper switcher mode
+olvex shell settings open [page] [section]             # Open Control Center (optionally to a page/section)
+olvex shell setup open|close|toggle                    # Control Setup Wizard window
+olvex shell help open|close|toggle                     # Control Shortcuts Cheatsheet window
+olvex shell cheatsheet open|close|toggle               # Alias for help target
 ```
 
-### Process Management
+### Lockscreen, Notifications & Toasts
 ```bash
-olvex shell restart                       # Soft-restart shell background process
-olvex shell kill                          # Terminate shell process
+olvex shell lock lock                                  # Engage lock screen
+olvex shell lock unlock                                # Unlock session
+olvex shell lock isLocked                              # Query lock state (bool)
+olvex shell notifs clear                               # Clear all notifications
+olvex shell notifs isDndEnabled                        # Check Do Not Disturb state
+olvex shell notifs toggleDnd|enableDnd|disableDnd      # Control Do Not Disturb mode
+olvex shell toaster info|success|warn|error "<title>" "<message>" "[icon]"  # Trigger toast
 ```
 
-### Updates & Maintenance
+### Display, Brightness, Night Light & Modes
 ```bash
-olvex update                              # Update Olvex to latest release & rebuild plugins
-olvex update --check                      # Check if upstream update is available
+olvex shell brightness get                             # Get active monitor brightness
+olvex shell brightness getFor <query>                  # Get brightness by active/model/serial/id/name
+olvex shell brightness set <value>                     # Set active brightness (0.5, +0.1, 0.1-, 50%, +10%, 10%-)
+olvex shell brightness setFor <query> <value>          # Set brightness for matching monitor
+olvex shell nightlight isEnabled|toggle                # Query or toggle Night Light
+olvex shell nightlight setEnabled <true|false>         # Enable or disable Night Light
+olvex shell nightlight setTemperature <kelvin>         # Set Night Light color temperature
+olvex shell nightlight setAutoSchedule <true|false>    # Toggle automatic Night Light schedule
+olvex shell gameMode isEnabled|toggle|enable|disable   # Query or control Game Mode
+olvex shell idleInhibitor isEnabled|toggle|enable|disable  # Query or control Idle Inhibitor
+```
+
+### Media, Audio, Wallpaper, Icons & Weather
+```bash
+olvex shell mpris list                                 # List active MPRIS players
+olvex shell mpris getActive <prop>                     # Read active player property (e.g. trackTitle, trackArtist)
+olvex shell mpris play|pause|playPause|next|previous|stop  # Control active MPRIS player
+olvex shell audio cycleOutput                          # Cycle audio output sink
+olvex shell wallpaper get|list                         # Get active wallpaper or list catalog paths
+olvex shell wallpaper set <path>                       # Set wallpaper by file path
+olvex shell icons get                                  # Get current icon theme
+olvex shell icons reload [theme]                       # Reload or apply icon theme
+olvex shell weather toggleDemo|nextDemo                # Toggle or cycle weather demo presets
+olvex shell weather setDemo <index>                    # Activate specific weather demo preset
+```
+
+### Capture, Windows, Hyprland & Hardware
+```bash
+olvex shell picker open|openFreeze|openClip|openFreezeClip  # Open area screenshot/region picker
+olvex shell resizer pip                                # Toggle PiP mode for active window (alias: olvex resizer pip)
+olvex shell resizer pipWindow <address>                # Toggle PiP mode for specific window address
+olvex shell hypr refreshDevices                        # Refresh Hyprland input devices
+olvex shell hypr cycleSpecialWorkspace <direction>     # Cycle active special workspace
+olvex shell hypr listSpecialWorkspaces                 # List non-empty special workspaces
+olvex shell charging ripple                            # Trigger charging ripple shader effect
+olvex shell hardwareButtons lidClose|lidOpen|powerBtn  # Trigger configured hardware button action
+```
+
+### Process, Inspection & CLI Commands
+```bash
+olvex shell [-d]                                       # Start shell (or daemonize with -d)
+olvex shell restart                                    # Restart running shell daemon
+olvex shell kill                                       # Terminate shell process
+olvex shell show                                       # Print all live IPC targets and signatures (alias: ipc-show)
+olvex shell log                                        # View shell logs
+olvex restart                                          # Top-level restart alias
+olvex update [--check|-c] [--force|-f]                 # Check or install upstream updates
+olvex wallpaper [args...]                              # Manage wallpapers (or open selector if no args)
+olvex scheme <list|get|set> ...                        # Manage active M3 color scheme
+olvex screenshot [-r] [-f]                             # Capture screen / region / freeze
+olvex record [-s] [-r]                                 # Screen recording (sound / region)
+olvex clipboard [-d]                                   # Open or delete from clipboard history
+olvex emoji [-p]                                       # Toggle emoji picker
 ```
 
 ---
@@ -316,8 +443,10 @@ olvex update --check                      # Check if upstream update is availabl
 
 - **QML Shell Target**: `~/.config/quickshell/olvex/`
 - **Global Configuration**: `~/.config/olvex/shell.json`
+- **Theme & CLI State**: `~/.config/olvex/theme.json`, `~/.config/olvex/cli.json`
 - **Per-Monitor Overrides**: `~/.config/olvex/monitors/<MONITOR_NAME>/shell.json`
 - **System Accent Tokens**: `~/.local/state/olvex/scheme.json`
+- **Hyprland Keybinds**: `~/.config/hypr/variables.lua`, `~/.config/hypr/hyprland/keybinds.lua`
 
 ---
 
