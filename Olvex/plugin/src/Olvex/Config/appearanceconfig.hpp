@@ -17,7 +17,7 @@ class AppearanceRounding : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(qreal, scale, 1)
+    CONFIG_PROPERTY(qreal, scale, 0.9962148740310077)
 
     Q_PROPERTY(int extraSmall READ extraSmall NOTIFY valuesChanged)
     Q_PROPERTY(int small READ small NOTIFY valuesChanged)
@@ -48,7 +48,7 @@ class AppearanceSpacing : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(qreal, scale, 1)
+    CONFIG_PROPERTY(qreal, scale, 1.004425048828125)
 
     Q_PROPERTY(int extraSmall READ extraSmall NOTIFY valuesChanged)
     Q_PROPERTY(int small READ small NOTIFY valuesChanged)
@@ -81,7 +81,7 @@ class AppearancePadding : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(qreal, scale, 1)
+    CONFIG_PROPERTY(qreal, scale, 0.9966085271317829)
 
     Q_PROPERTY(int small READ small NOTIFY valuesChanged)
     Q_PROPERTY(int smaller READ smaller NOTIFY valuesChanged)
@@ -112,9 +112,9 @@ class FontFamily : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(QString, sans, QStringLiteral("SF Pro Rounded"))
-    CONFIG_PROPERTY(QString, mono, QStringLiteral("SF Mono"))
-    CONFIG_PROPERTY(QString, clock, QStringLiteral("SF Pro Rounded"))
+    CONFIG_PROPERTY(QString, sans, QStringLiteral("Noto Sans"))
+    CONFIG_PROPERTY(QString, mono, QStringLiteral("Noto Sans Mono"))
+    CONFIG_PROPERTY(QString, clock, QStringLiteral("Serif"))
     CONFIG_PROPERTY(QString, material, QStringLiteral("Material Symbols Rounded"))
 
 public:
@@ -228,12 +228,12 @@ class AppearanceTransparency : public ConfigObject {
 
     CONFIG_GLOBAL_PROPERTY(bool, enabled, true)
     CONFIG_GLOBAL_PROPERTY(bool, blur, true)
-    CONFIG_GLOBAL_PROPERTY(qreal, base, 0.49954530423280424)
-    CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.3995595079787234)
-    CONFIG_GLOBAL_PROPERTY(qreal, baseDark, 0.49954530423280424)
-    CONFIG_GLOBAL_PROPERTY(qreal, baseLight, 0.49954530423280424)
-    CONFIG_GLOBAL_PROPERTY(qreal, layersDark, 0.3995595079787234)
-    CONFIG_GLOBAL_PROPERTY(qreal, layersLight, 0.3995595079787234)
+    CONFIG_GLOBAL_PROPERTY(qreal, base, 0.40126329787234044)
+    CONFIG_GLOBAL_PROPERTY(qreal, layers, 0.5509890292553191)
+    CONFIG_GLOBAL_PROPERTY(qreal, baseDark, 0.40126329787234044)
+    CONFIG_GLOBAL_PROPERTY(qreal, baseLight, 0.40286319813829785)
+    CONFIG_GLOBAL_PROPERTY(qreal, layersDark, 0.5509890292553191)
+    CONFIG_GLOBAL_PROPERTY(qreal, layersLight, 0.2960646609042553)
     CONFIG_GLOBAL_PROPERTY(int, blurRadius, 10)
     CONFIG_GLOBAL_PROPERTY(int, blurPasses, 3)
 

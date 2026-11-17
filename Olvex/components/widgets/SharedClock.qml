@@ -16,7 +16,7 @@ Item {
     // Extensible clock style identifier shared across Desktop, Card Lockscreen, and Minimal Lockscreen.
     property string clockStyle: (_desktopClockCfg && _desktopClockCfg.style)
         ? _desktopClockCfg.style
-        : "classic"
+        : "olvex-signature"
     property int styleVariant: (_desktopClockCfg && _desktopClockCfg.styleVariant !== undefined)
         ? _desktopClockCfg.styleVariant
         : 0

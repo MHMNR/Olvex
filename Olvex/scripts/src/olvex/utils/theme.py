@@ -337,7 +337,7 @@ def apply_gtk(colours: dict[str, str], mode: str, icon_theme: str | None = None)
             icon_theme = get_current_theme()
         except Exception:
             icon_theme = None
-    gtk_icon_theme = icon_theme if icon_theme else "Adwaita"
+    gtk_icon_theme = icon_theme if icon_theme else "WhiteSur-dark"
     subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", gtk_icon_theme])
 
     settings_content = f"""[Settings]

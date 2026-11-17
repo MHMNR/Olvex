@@ -22,8 +22,8 @@ class DesktopClockBackground : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_PROPERTY(bool, enabled, false)
-    CONFIG_PROPERTY(qreal, opacity, 0.7)
+    CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(qreal, opacity, 0.1)
     CONFIG_PROPERTY(bool, blur, true)
 
 public:
@@ -49,15 +49,15 @@ class DesktopClock : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
-    CONFIG_PROPERTY(QString, style, QStringLiteral("classic"))
+    CONFIG_PROPERTY(QString, style, QStringLiteral("olvex-signature"))
     CONFIG_PROPERTY(int, styleVariant, 0)
-    CONFIG_PROPERTY(qreal, scale, 1.02459716796875)
-    CONFIG_PROPERTY(QString, placementStrategy, QStringLiteral("fixed")) // "fixed", "leastBusy", "mostBusy"
+    CONFIG_PROPERTY(qreal, scale, 1.5097524282094594)
+    CONFIG_PROPERTY(QString, placementStrategy, QStringLiteral("leastBusy")) // "fixed", "leastBusy", "mostBusy"
     CONFIG_PROPERTY(QString, position, QStringLiteral("bottom-right"))
     CONFIG_PROPERTY(bool, invertColors, false)
     CONFIG_PROPERTY(bool, adaptiveTextColor, true)
-    CONFIG_PROPERTY(qreal, autoX, 0.0)
-    CONFIG_PROPERTY(qreal, autoY, 0.0)
+    CONFIG_PROPERTY(qreal, autoX, 1348.0)
+    CONFIG_PROPERTY(qreal, autoY, 740.0)
     CONFIG_PROPERTY(bool, dominantIsDark, true)
     CONFIG_SUBOBJECT(DesktopClockBackground, background)
     CONFIG_SUBOBJECT(DesktopClockShadow, shadow)
@@ -87,7 +87,7 @@ class WallpaperCyclingConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, false)
-    CONFIG_PROPERTY(int, intervalSeconds, 300)
+    CONFIG_PROPERTY(int, intervalSeconds, 60)
     CONFIG_PROPERTY(bool, shuffle, false)
     CONFIG_PROPERTY(bool, pauseOnFullscreen, true)
     CONFIG_PROPERTY(bool, pauseOnLock, true)

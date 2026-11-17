@@ -20,7 +20,7 @@ Item {
         { id: "theme", step: 2, icon: "contrast", label: qsTr("Theme"), value: wiz.themeModeNames[wiz.themeMode] },
         { id: "wallpaper", step: 2, icon: "wallpaper", label: qsTr("Wallpaper"), value: (wiz.wallpaperApplied && wiz.wallpaperIdx >= 0) ? wiz.wallpapers[wiz.wallpaperIdx].name : qsTr("Current wallpaper") },
         { id: "transparency", step: 2, icon: "opacity", label: qsTr("Transparency"), value: wiz.transparency ? qsTr("On") : qsTr("Off") },
-        { id: "clock", step: 3, icon: "watch", label: qsTr("Clock face"), value: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.style) ? GlobalConfig.background.desktopClock.style : "classic" },
+        { id: "clock", step: 3, icon: "watch", label: qsTr("Clock face"), value: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.style) ? GlobalConfig.background.desktopClock.style : "olvex-signature" },
         { id: "terminal", step: 4, icon: "terminal", label: qsTr("Default terminal"), value: wiz.selectedTerminal },
         { id: "browser", step: 4, icon: "language", label: qsTr("Default browser"), value: wiz.selectedBrowser }
     ]

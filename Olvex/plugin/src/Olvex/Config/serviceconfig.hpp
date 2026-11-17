@@ -51,10 +51,7 @@ class ServiceConfig : public ConfigObject {
     CONFIG_SUBOBJECT(UiSoundsConfig, uiSounds)
 
     CONFIG_GLOBAL_PROPERTY(QString, weatherLocation)
-    // Guess based on locale
-    CONFIG_GLOBAL_PROPERTY(bool, useFahrenheit,
-        QLocale().measurementSystem() == QLocale::ImperialUSSystem ||
-            QLocale().measurementSystem() == QLocale::ImperialUKSystem)
+    CONFIG_GLOBAL_PROPERTY(bool, useFahrenheit, false)
     // This is always false by default cause apparently even imperial system users don't use it for perf temps?
     CONFIG_GLOBAL_PROPERTY(bool, useFahrenheitPerformance, false)
     CONFIG_GLOBAL_PROPERTY(bool, useTwelveHourClock, true)

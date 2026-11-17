@@ -133,7 +133,7 @@ Singleton {
                 }
             }
         }
-        return "Adwaita";
+        return "WhiteSur-dark";
     }
 
     function reloadIcons(newTheme) {

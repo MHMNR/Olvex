@@ -25,8 +25,9 @@ const char* defaultShellJson() {
         },
         "font": {
             "family": {
-                "mono": "SF Mono",
-                "sans": "SF Pro Rounded"
+                "clock": "Serif",
+                "mono": "Noto Sans Mono",
+                "sans": "Noto Sans"
             }
         },
         "padding": {
@@ -41,27 +42,45 @@ const char* defaultShellJson() {
         },
         "themeMode": "dark",
         "transparency": {
-            "base": 0.49954530423280424,
-            "baseDark": 0.49954530423280424,
-            "baseLight": 0.49954530423280424,
+            "base": 0.40126329787234044,
+            "baseDark": 0.40126329787234044,
+            "baseLight": 0.40286319813829785,
             "blur": true,
             "blurPasses": 3,
             "blurRadius": 10,
             "enabled": true,
-            "layers": 0.3995595079787234,
-            "layersDark": 0.3995595079787234,
-            "layersLight": 0.3995595079787234
+            "layers": 0.5509890292553191,
+            "layersDark": 0.5509890292553191,
+            "layersLight": 0.2960646609042553
         }
     },
     "background": {
         "desktopClock": {
+            "adaptiveTextColor": true,
+            "autoX": 1348,
+            "autoY": 740,
+            "background": {
+                "blur": true,
+                "enabled": true,
+                "opacity": 0.1
+            },
+            "dominantIsDark": true,
             "enabled": true,
+            "invertColors": false,
+            "placementStrategy": "leastBusy",
             "position": "bottom-right",
-            "scale": 1.02459716796875
+            "scale": 1.5097524282094594,
+            "style": "olvex-signature",
+            "styleVariant": 0
         },
         "liveWallpaper": {
             "enabled": false
         },
+        "wallpaperCycling": {
+            "enabled": false,
+            "intervalSeconds": 60
+        },
+        "wallpaperEnabled": true,
         "wallpaperTransition": {
             "edgeSmoothness": 0.3
         }
@@ -70,11 +89,6 @@ const char* defaultShellJson() {
         "activeWindow": {
             "compact": true,
             "inverted": false
-        },
-        "secondaryPanel": {
-            "dockBackground": true,
-            "enabled": true,
-            "visibilityMode": "smarthide"
         },
         "clock": {
             "background": true,
@@ -90,6 +104,11 @@ const char* defaultShellJson() {
         "popouts": {
             "systemPill": false,
             "tray": false
+        },
+        "secondaryPanel": {
+            "dockBackground": true,
+            "enabled": true,
+            "visibilityMode": "smarthide"
         },
         "showOnHover": false,
         "status": {
@@ -120,19 +139,29 @@ const char* defaultShellJson() {
         }
     },
     "general": {
+        "apps": {
+            "playback": [
+                "vlc"
+            ],
+            "terminal": [
+                "kitty"
+            ]
+        },
         "battery": {
             "criticalLevel": 10
         },
         "idle": {
             "timeouts": [
                 {
-                    "idleAction": "lock",
-                    "timeout": 180
-                },
-                {
+                    "enabled": false,
                     "idleAction": "dpms off",
                     "returnAction": "dpms on",
                     "timeout": 300
+                },
+                {
+                    "enabled": false,
+                    "idleAction": "lock",
+                    "timeout": 3600
                 }
             ]
         },

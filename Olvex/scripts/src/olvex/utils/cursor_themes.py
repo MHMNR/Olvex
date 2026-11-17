@@ -130,7 +130,7 @@ def get_current_theme_info():
             pass
 
     if not theme:
-        theme = "Adwaita"
+        theme = "Bibata-Modern-Classic"
 
     return theme, size
 

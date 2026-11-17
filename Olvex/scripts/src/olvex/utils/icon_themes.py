@@ -55,7 +55,7 @@ def get_current_theme():
         except Exception:
             pass
 
-    return "Adwaita"
+    return "WhiteSur-dark"
 
 def set_theme(theme_id):
     # 1. Update gsettings

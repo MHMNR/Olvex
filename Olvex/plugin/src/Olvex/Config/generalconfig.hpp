@@ -14,9 +14,9 @@ class GeneralApps : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
-    CONFIG_GLOBAL_PROPERTY(QStringList, terminal, { u"foot"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, terminal, { u"kitty"_s })
     CONFIG_GLOBAL_PROPERTY(QStringList, audio, { u"pavucontrol"_s })
-    CONFIG_GLOBAL_PROPERTY(QStringList, playback, { u"mpv"_s })
+    CONFIG_GLOBAL_PROPERTY(QStringList, playback, { u"vlc"_s })
     CONFIG_GLOBAL_PROPERTY(QStringList, explorer, { u"thunar"_s })
 
 public:
@@ -33,13 +33,15 @@ class GeneralIdle : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(QVariantList, timeouts,
         {
             vmap({
-                { u"timeout"_s, 180 },
-                { u"idleAction"_s, u"lock"_s },
-            }),
-            vmap({
+                { u"enabled"_s, false },
                 { u"timeout"_s, 300 },
                 { u"idleAction"_s, u"dpms off"_s },
                 { u"returnAction"_s, u"dpms on"_s },
+            }),
+            vmap({
+                { u"enabled"_s, false },
+                { u"timeout"_s, 3600 },
+                { u"idleAction"_s, u"lock"_s },
             }),
         })
 

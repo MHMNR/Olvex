@@ -18,7 +18,7 @@ Item {
 
     readonly property string currentClockStyle: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.style)
         ? GlobalConfig.background.desktopClock.style
-        : "classic"
+        : "olvex-signature"
     readonly property int currentStyleVariant: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.styleVariant !== undefined)
         ? GlobalConfig.background.desktopClock.styleVariant
         : 0
