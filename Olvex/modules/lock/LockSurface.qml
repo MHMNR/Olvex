@@ -41,6 +41,8 @@ WlSessionLockSurface {
     }
 
     // ── Wallpaper with optional blur/dim ─────────────────────────────────────
+    readonly property alias wallpaperItem: wallpaper
+
     OlvexBg.BackgroundWallpaper {
         id: wallpaper
         anchors.fill: parent

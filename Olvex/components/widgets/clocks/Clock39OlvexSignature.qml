@@ -15,6 +15,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real s: 0.90 * clockScale
@@ -78,7 +80,7 @@ Item {
         implicitWidth: Math.round(258 * root.s)
         implicitHeight: Math.round(140 * root.s)
         radius: Math.round(30 * root.s)
-        color: Colours.palette.m3surfaceContainerHigh
+        color: root.surfaceColor
 
         RowLayout {
             anchors.fill: parent
@@ -94,7 +96,7 @@ Item {
                 MaterialShape {
                     anchors.fill: parent
                     implicitSize: width
-                    color: Colours.palette.m3surfaceContainerHighest
+                    color: root.surfaceHighColor
                     readonly property int idxA: Math.floor(root.morphClock) % root.morphShapes.length
                     readonly property int idxB: (idxA + 1) % root.morphShapes.length
                     readonly property real rawT: root.morphClock - Math.floor(root.morphClock)
@@ -108,7 +110,7 @@ Item {
                     handLength: parent.height * 0.24
                     handWidth: Math.max(3.5, parent.width * 0.06)
                     handColor: root.primaryColor
-                    slotColor: Colours.palette.m3surfaceContainerHighest
+                    slotColor: root.surfaceHighColor
                 }
 
                 SlottedHand {
@@ -116,7 +118,7 @@ Item {
                     handLength: parent.height * 0.35
                     handWidth: Math.max(2.5, parent.width * 0.042)
                     handColor: root.onSurfaceColor
-                    slotColor: Colours.palette.m3surfaceContainerHighest
+                    slotColor: root.surfaceHighColor
                 }
 
                 ContinuousSecondHand {

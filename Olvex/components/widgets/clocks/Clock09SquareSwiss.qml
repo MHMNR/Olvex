@@ -12,9 +12,11 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
 
     readonly property real boxSize: Math.round(168 * clockScale)
-    readonly property color bgCol: variant === 0 ? Colours.palette.m3surfaceContainerHigh : root.primaryColor
+    readonly property color bgCol: variant === 0 ? root.surfaceColor : root.primaryColor
     readonly property color fgCol: variant === 0 ? root.primaryColor : Colours.palette.m3onPrimary
     readonly property color subCol: variant === 0 ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onPrimary
 

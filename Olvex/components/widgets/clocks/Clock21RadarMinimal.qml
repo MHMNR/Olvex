@@ -12,6 +12,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
 
     readonly property real dialSize: Math.round(170 * clockScale)
     property real smoothSeconds: 0
@@ -35,7 +37,7 @@ Item {
         id: dial
         anchors.fill: parent
         radius: width / 2
-        color: Colours.palette.m3surfaceContainerHigh
+        color: root.surfaceColor
 
         // Soft trailing radar sector behind continuous second hand
         Canvas {
@@ -120,7 +122,7 @@ Item {
             handLength: dial.height * 0.25
             handWidth: Math.max(4, dial.width * 0.056)
             handColor: root.primaryColor
-            slotColor: Colours.palette.m3surfaceContainerHigh
+            slotColor: root.surfaceColor
         }
 
         SlottedHand {
@@ -128,7 +130,7 @@ Item {
             handLength: dial.height * 0.36
             handWidth: Math.max(3, dial.width * 0.042)
             handColor: root.onSurfaceColor
-            slotColor: Colours.palette.m3surfaceContainerHigh
+            slotColor: root.surfaceColor
         }
 
         ContinuousSecondHand {

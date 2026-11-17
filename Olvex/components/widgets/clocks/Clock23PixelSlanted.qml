@@ -13,6 +13,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real s: 0.90 * clockScale
@@ -48,7 +50,7 @@ Item {
                 implicitWidth: Math.round(secTxt.implicitWidth + 12 * root.s)
                 implicitHeight: Math.round(secTxt.implicitHeight + 4 * root.s)
                 radius: height / 2
-                color: Colours.palette.m3surfaceContainerHighest
+                color: root.surfaceHighColor
 
                 StyledText {
                     id: secTxt

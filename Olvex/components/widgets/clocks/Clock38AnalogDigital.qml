@@ -12,6 +12,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
 
     readonly property real dialSize: Math.round(174 * clockScale)
 
@@ -21,7 +23,7 @@ Item {
     StyledRect {
         anchors.fill: parent
         radius: width / 2
-        color: Colours.palette.m3surfaceContainerHigh
+        color: root.surfaceColor
 
         // 12 crisp M3 ticks
         Repeater {
@@ -50,7 +52,7 @@ Item {
             implicitWidth: Math.round(compTxt.implicitWidth + 14 * root.clockScale)
             implicitHeight: Math.round(compTxt.implicitHeight + 4 * root.clockScale)
             radius: height / 2
-            color: Colours.palette.m3surfaceContainerHighest
+            color: root.surfaceHighColor
 
             StyledText {
                 id: compTxt
@@ -70,7 +72,7 @@ Item {
             handLength: root.dialSize * 0.25
             handWidth: Math.max(4, root.dialSize * 0.056)
             handColor: root.primaryColor
-            slotColor: Colours.palette.m3surfaceContainerHigh
+            slotColor: root.surfaceColor
         }
 
         SlottedHand {
@@ -78,7 +80,7 @@ Item {
             handLength: root.dialSize * 0.36
             handWidth: Math.max(3, root.dialSize * 0.042)
             handColor: root.onSurfaceColor
-            slotColor: Colours.palette.m3surfaceContainerHigh
+            slotColor: root.surfaceColor
         }
 
         ContinuousSecondHand {

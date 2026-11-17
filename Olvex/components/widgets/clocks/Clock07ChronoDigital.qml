@@ -12,6 +12,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real dialSize: Math.round(172 * clockScale)
@@ -26,7 +28,7 @@ Item {
         id: chronoCircle
         anchors.fill: parent
         radius: width / 2
-        color: Colours.palette.m3surfaceContainerHigh
+        color: root.surfaceColor
 
         Repeater {
             model: 60

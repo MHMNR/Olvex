@@ -12,6 +12,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
 
     readonly property real boxSize: Math.round(170 * clockScale)
 
@@ -22,14 +24,14 @@ Item {
         id: splitCard
         anchors.fill: parent
         radius: Math.round(width * 0.16)
-        color: root.variant === 0 ? Colours.palette.m3surfaceContainerHigh : "transparent"
+        color: root.variant === 0 ? root.surfaceColor : "transparent"
 
         readonly property string hourStr: Time.hourStr
         readonly property string minStr: Time.minuteStr
         readonly property string apStr: Time.amPmStr || Time.format("AP")
         readonly property color pillBg: root.variant === 0
             ? Qt.alpha(Colours.palette.m3onSurface, 0.14)
-            : Colours.palette.m3surfaceContainerHigh
+            : root.surfaceColor
 
         readonly property real contentW: Math.round(root.boxSize * 0.73)
         readonly property real contentH: Math.round(root.boxSize * 0.75)

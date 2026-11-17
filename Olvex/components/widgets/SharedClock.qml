@@ -40,7 +40,25 @@ Item {
     property color primaryColor: _lockedColors ? _lockedColors.primaryColor : (useLightSet ? Colours.palette.m3primaryContainer : Colours.palette.m3primary)
     property color secondaryColor: _lockedColors ? _lockedColors.secondaryColor : (useLightSet ? Colours.palette.m3secondaryContainer : Colours.palette.m3secondary)
     property color tertiaryColor: _lockedColors ? _lockedColors.tertiaryColor : (useLightSet ? Colours.palette.m3tertiaryContainer : Colours.palette.m3tertiary)
-    property color onSurfaceColor: _lockedColors ? _lockedColors.onSurfaceColor : (useLightSet ? Colours.palette.m3surfaceContainerLowest : Colours.palette.m3onSurface)
+    property color onSurfaceColor: _lockedColors ? _lockedColors.onSurfaceColor : (useLightSet ? Colours.palette.m3inverseOnSurface : Colours.palette.m3onSurface)
+    property Item wallpaper: null
+    property real absX: 0
+    property real absY: 0
+    property bool blurEnabled: false
+
+    readonly property color _baseSurfaceColor: useLightSet
+        ? (Colours.light ? Colours.palette.m3surfaceContainerHigh : Colours.palette.m3inverseSurface)
+        : (Colours.light ? Colours.palette.m3inverseSurface : Colours.palette.m3surfaceContainerHigh)
+    readonly property color _baseSurfaceHighColor: useLightSet
+        ? (Colours.light ? Colours.palette.m3surfaceContainerHighest : Qt.darker(Colours.palette.m3inverseSurface, 1.08))
+        : (Colours.light ? Qt.lighter(Colours.palette.m3inverseSurface, 1.12) : Colours.palette.m3surfaceContainerHighest)
+
+    property color surfaceColor: (_lockedColors && _lockedColors.surfaceColor)
+        ? _lockedColors.surfaceColor
+        : (blurEnabled ? Qt.alpha(_baseSurfaceColor, 0.36) : _baseSurfaceColor)
+    property color surfaceHighColor: (_lockedColors && _lockedColors.surfaceHighColor)
+        ? _lockedColors.surfaceHighColor
+        : (blurEnabled ? Qt.alpha(_baseSurfaceHighColor, 0.42) : _baseSurfaceHighColor)
 
     property bool showDatePill: true
     property string dateDetailFormat: "d MMMM yyyy"
@@ -65,13 +83,45 @@ Item {
     implicitWidth: styleLoader.item ? Math.round(styleLoader.item.implicitWidth * (root.clockScale / root.renderBase)) : 0
     implicitHeight: styleLoader.item ? Math.round(styleLoader.item.implicitHeight * (root.clockScale / root.renderBase)) : 0
 
+    readonly property bool hasCardSurface: Boolean(styleLoader.item && ("surfaceColor" in styleLoader.item))
+
+    // Frosted wallpaper blur clipped directly to the active clock's own card/dial shape (disabled for bare-digit clocks)
     Loader {
-        id: styleLoader
-        anchors.centerIn: parent
-        transformOrigin: Item.Center
-        scale: root.clockScale / root.renderBase
-        onLoaded: root.applyVectorText(item)
-        sourceComponent: {
+        anchors.fill: parent
+        z: -1
+        active: root.blurEnabled && root.hasCardSurface && root.wallpaper !== null && root.width > 0 && root.height > 0
+
+        sourceComponent: MultiEffect {
+            source: ShaderEffectSource {
+                sourceItem: root.wallpaper
+                sourceRect: Qt.rect(root.absX, root.absY, root.width * root.scale, root.height * root.scale)
+                live: true
+                recursive: false
+                hideSource: false
+            }
+            maskEnabled: true
+            maskSource: clockVisual
+            maskThresholdMin: 0.08
+            maskSpreadAtMin: 0.01
+            blurEnabled: true
+            blur: 1.0
+            blurMax: 64
+            autoPaddingEnabled: false
+        }
+    }
+
+    Item {
+        id: clockVisual
+        anchors.fill: parent
+        layer.enabled: root.blurEnabled && root.hasCardSurface && root.wallpaper !== null
+
+        Loader {
+            id: styleLoader
+            anchors.centerIn: parent
+            transformOrigin: Item.Center
+            scale: root.clockScale / root.renderBase
+            onLoaded: root.applyVectorText(item)
+            sourceComponent: {
             switch (root.clockStyle) {
             case "scalloped": return scallopedComponent;
             case "chunky": return chunkyComponent;
@@ -116,6 +166,23 @@ Item {
                 return classicClockComponent;
             }
         }
+    }
+    }
+
+    Binding {
+        target: styleLoader.item
+        property: "surfaceColor"
+        value: root.surfaceColor
+        when: Boolean(styleLoader.item && ("surfaceColor" in styleLoader.item))
+        restoreMode: Binding.RestoreBindingOrValue
+    }
+
+    Binding {
+        target: styleLoader.item
+        property: "surfaceHighColor"
+        value: root.surfaceHighColor
+        when: Boolean(styleLoader.item && ("surfaceHighColor" in styleLoader.item))
+        restoreMode: Binding.RestoreBindingOrValue
     }
 
     Component {
@@ -614,20 +681,59 @@ Item {
             layer.effect: MultiEffect {
                 shadowEnabled: true
                 shadowColor: Colours.palette.m3shadow
-                shadowOpacity: root.shadowOpacity
-                shadowBlur: root.shadowBlur
+                shadowOpacity: Math.min(root.shadowOpacity, 0.22)
+                shadowBlur: 1.0
                 shadowHorizontalOffset: 0
-                shadowVerticalOffset: 2
+                shadowVerticalOffset: 3
             }
 
             // ── Top M3 Date & Day Capsule (Variant 0) ────────────────────────
             StyledRect {
+                id: datePill
                 visible: root.showDatePill && root.styleVariant === 0
                 Layout.alignment: Qt.AlignHCenter
                 implicitWidth: Math.round(dateRow.implicitWidth + (20 * root.renderBase))
                 implicitHeight: Math.round(dateRow.implicitHeight + (8 * root.renderBase))
                 radius: height / 2
-                color: Colours.palette.m3secondaryContainer
+                color: Qt.alpha(Colours.palette.m3secondaryContainer, root.blurEnabled ? 0.36 : 0.72)
+
+                StyledRect {
+                    id: datePillMask
+                    visible: false
+                    layer.enabled: true
+                    anchors.fill: parent
+                    radius: datePill.radius
+                    color: "white"
+                }
+
+                Loader {
+                    anchors.fill: parent
+                    active: root.blurEnabled && root.wallpaper !== null && datePill.width > 0 && datePill.height > 0
+                    z: -1
+
+                    sourceComponent: MultiEffect {
+                        readonly property real sc: root.clockScale / root.renderBase
+                        readonly property point mappedPos: datePill.mapToItem(root, 0, 0)
+                        source: ShaderEffectSource {
+                            sourceItem: root.wallpaper
+                            sourceRect: Qt.rect(
+                                root.absX + mappedPos.x,
+                                root.absY + mappedPos.y,
+                                datePill.width * sc,
+                                datePill.height * sc
+                            )
+                            live: true
+                            recursive: false
+                            hideSource: false
+                        }
+                        maskEnabled: true
+                        maskSource: datePillMask
+                        blurEnabled: true
+                        blur: 1.0
+                        blurMax: 48
+                        autoPaddingEnabled: false
+                    }
+                }
 
                 RowLayout {
                     id: dateRow

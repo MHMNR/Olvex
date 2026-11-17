@@ -13,6 +13,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real s: 0.88 * clockScale
@@ -38,7 +40,7 @@ Item {
                 height: Math.round(104 * root.s)
                 radius: Math.round(20 * root.s)
                 color: root.variant === 0
-                    ? Colours.palette.m3surfaceContainerHigh
+                    ? root.surfaceColor
                     : Colours.palette.m3primaryContainer
 
                 StyledText {
@@ -69,7 +71,7 @@ Item {
                 height: Math.round(104 * root.s)
                 radius: Math.round(20 * root.s)
                 color: root.variant === 0
-                    ? Colours.palette.m3surfaceContainerHigh
+                    ? root.surfaceColor
                     : Colours.palette.m3secondaryContainer
 
                 StyledText {
@@ -101,7 +103,7 @@ Item {
             implicitWidth: Math.round(dateRow.implicitWidth + 18 * root.s)
             implicitHeight: Math.round(dateRow.implicitHeight + 6 * root.s)
             radius: height / 2
-            color: Colours.palette.m3surfaceContainerHighest
+            color: root.surfaceHighColor
 
             RowLayout {
                 id: dateRow

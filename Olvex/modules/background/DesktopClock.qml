@@ -36,66 +36,28 @@ Item {
     Component.onCompleted: Qt.callLater(reportRect)
 
     property real clockScale: Config.background && Config.background.desktopClock ? Config.background.desktopClock.scale : 1.0
-    readonly property bool bgEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.enabled)
-    readonly property bool blurEnabled: bgEnabled && Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.blur) && !GameMode.enabled
+    readonly property bool bgEnabled: false
+    readonly property bool blurEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.blur) && !GameMode.enabled
     readonly property bool shadowEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow && Config.background.desktopClock.shadow.enabled)
 
-    implicitWidth: Math.round(layout.implicitWidth + (Tokens.padding.large * 2.2 * root.clockScale))
-    implicitHeight: Math.round(layout.implicitHeight + (Tokens.padding.large * 1.4 * root.clockScale))
+    implicitWidth: Math.round(layout.implicitWidth)
+    implicitHeight: Math.round(layout.implicitHeight)
 
     Item {
         id: clockContainer
         anchors.fill: parent
-
-        Loader {
-            asynchronous: true
-            anchors.fill: parent
-            active: root.blurEnabled
-
-            sourceComponent: MultiEffect {
-                source: ShaderEffectSource {
-                    sourceItem: root.wallpaper
-                    sourceRect: Qt.rect(root.absX, root.absY, root.width, root.height)
-                    live: false
-                    recursive: false
-                    hideSource: false
-                }
-                maskSource: backgroundPlate
-                maskEnabled: true
-                blurEnabled: true
-                blur: 0.8
-                blurMax: 32
-                autoPaddingEnabled: false
-            }
-        }
-
-        StyledRect {
-            id: backgroundPlate
-
-            visible: root.bgEnabled
-            anchors.fill: parent
-            radius: Math.round(Tokens.rounding.large * root.clockScale)
-            opacity: Config.background && Config.background.desktopClock && Config.background.desktopClock.background ? Config.background.desktopClock.background.opacity : 0.7
-            color: Colours.palette.m3surfaceContainerLow
-            border.color: "transparent"
-            border.width: 0
-
-            layer.enabled: root.blurEnabled || (root.bgEnabled && root.shadowEnabled)
-            layer.effect: MultiEffect {
-                shadowEnabled: root.bgEnabled && root.shadowEnabled
-                shadowColor: Colours.palette.m3shadow
-                shadowOpacity: Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow ? Config.background.desktopClock.shadow.opacity : 0.7
-                shadowBlur: Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow ? Config.background.desktopClock.shadow.blur : 0.4
-            }
-        }
 
         SharedClock {
             id: layout
 
             anchors.centerIn: parent
             clockScale: root.clockScale
+            wallpaper: root.wallpaper
+            absX: root.absX + x
+            absY: root.absY + y
+            blurEnabled: root.blurEnabled
             dateDetailFormat: "d MMMM yyyy"
-            shadowEnabled: !root.bgEnabled || root.shadowEnabled
+            shadowEnabled: root.shadowEnabled
             shadowOpacity: 0.35
             shadowBlur: 0.6
 
@@ -106,7 +68,9 @@ Item {
                     primaryColor: layout.primaryColor,
                     secondaryColor: layout.secondaryColor,
                     tertiaryColor: layout.tertiaryColor,
-                    onSurfaceColor: layout.onSurfaceColor
+                    onSurfaceColor: layout.onSurfaceColor,
+                    surfaceColor: layout.surfaceColor,
+                    surfaceHighColor: layout.surfaceHighColor
                 });
             }
 
@@ -114,6 +78,8 @@ Item {
             onSecondaryColorChanged: reportColors()
             onTertiaryColorChanged: reportColors()
             onOnSurfaceColorChanged: reportColors()
+            onSurfaceColorChanged: reportColors()
+            onSurfaceHighColorChanged: reportColors()
             onXChanged: root.reportRect()
             onYChanged: root.reportRect()
             onWidthChanged: root.reportRect()

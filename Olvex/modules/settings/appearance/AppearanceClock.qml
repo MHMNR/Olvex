@@ -433,69 +433,15 @@ ColumnLayout {
         }
 
         SettingRow {
-            title: qsTr("Invert color")
-            description: qsTr("Force dark text palette instead of light")
+            title: qsTr("Clock background blur")
+            description: qsTr("Frosted glass blur on clock card and dial backgrounds")
             divider: false
-            StyledSwitch {
-                checked: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.invertColors !== undefined) ? GlobalConfig.background.desktopClock.invertColors : false
-                onToggled: {
-                    if (GlobalConfig.background && GlobalConfig.background.desktopClock) {
-                        GlobalConfig.background.desktopClock.invertColors = checked;
-                        GlobalConfig.save();
-                    }
-                }
-            }
-        }
-    }
-
-    Section {
-        Layout.fillWidth: true
-        title: qsTr("Background Plate & Blur")
-        description: qsTr("Surface card styling behind clock digits")
-        icon: "blur_on"
-
-        SettingRow {
-            title: qsTr("Clock background card")
-            description: qsTr("Show a subtle rounded M3 card behind the clock")
-            StyledSwitch {
-                checked: Boolean(GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background && GlobalConfig.background.desktopClock.background.enabled)
-                onToggled: {
-                    if (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background) {
-                        GlobalConfig.background.desktopClock.background.enabled = checked;
-                        GlobalConfig.save();
-                    }
-                }
-            }
-        }
-
-        SettingRow {
-            visible: Boolean(GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background && GlobalConfig.background.desktopClock.background.enabled)
-            title: qsTr("Card background blur")
-            description: qsTr("Frosted glass effect behind clock")
             StyledSwitch {
                 checked: Boolean(GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background && GlobalConfig.background.desktopClock.background.blur)
                 onToggled: {
                     if (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background) {
+                        GlobalConfig.background.desktopClock.background.enabled = false;
                         GlobalConfig.background.desktopClock.background.blur = checked;
-                        GlobalConfig.save();
-                    }
-                }
-            }
-        }
-
-        SettingRow {
-            visible: Boolean(GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background && GlobalConfig.background.desktopClock.background.enabled)
-            title: qsTr("Card opacity")
-            description: qsTr("Transparency of the clock card plate")
-            divider: false
-            StyledSlider {
-                width: 240
-                from: 0.1
-                to: 1.0
-                value: (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background && GlobalConfig.background.desktopClock.background.opacity !== undefined) ? GlobalConfig.background.desktopClock.background.opacity : 0.7
-                onMoved: {
-                    if (GlobalConfig.background && GlobalConfig.background.desktopClock && GlobalConfig.background.desktopClock.background) {
-                        GlobalConfig.background.desktopClock.background.opacity = value;
                         GlobalConfig.save();
                     }
                 }

@@ -123,7 +123,8 @@ ColumnLayout {
         // 40ms warmup lets LockSurface finish initial FBO/blur upload before clock lifts off at 144fps
         SequentialAnimation {
             PauseAnimation { duration: 40 }
-            XAnimator {
+            NumberAnimation {
+                property: "x"
                 target: clockCol
                 to: 0
                 duration: 680
@@ -134,7 +135,8 @@ ColumnLayout {
 
         SequentialAnimation {
             PauseAnimation { duration: 40 }
-            YAnimator {
+            NumberAnimation {
+                property: "y"
                 target: clockCol
                 to: 0
                 duration: 680
@@ -145,7 +147,8 @@ ColumnLayout {
 
         SequentialAnimation {
             PauseAnimation { duration: 40 }
-            ScaleAnimator {
+            NumberAnimation {
+                property: "scale"
                 target: clockCol
                 to: 1.0
                 duration: 680
@@ -173,7 +176,8 @@ ColumnLayout {
 
         SequentialAnimation {
             PauseAnimation { duration: 60 }
-            XAnimator {
+            NumberAnimation {
+                property: "x"
                 target: clockCol
                 to: root.morphDx
                 duration: 780
@@ -183,7 +187,8 @@ ColumnLayout {
         }
         SequentialAnimation {
             PauseAnimation { duration: 60 }
-            YAnimator {
+            NumberAnimation {
+                property: "y"
                 target: clockCol
                 to: root.morphDy
                 duration: 780
@@ -193,7 +198,8 @@ ColumnLayout {
         }
         SequentialAnimation {
             PauseAnimation { duration: 60 }
-            ScaleAnimator {
+            NumberAnimation {
+                property: "scale"
                 target: clockCol
                 to: root.morphScale
                 duration: 780
@@ -226,6 +232,16 @@ ColumnLayout {
             opacity: root.morphReady ? 1 : 0
             syncFromLockState: true
             lockScreenName: root.lock && root.lock.screen ? root.lock.screen.name : ""
+            wallpaper: (root.lock && root.lock.wallpaperItem) ? root.lock.wallpaperItem : null
+            readonly property point _wpPos: {
+                const _dep = x + y + width + height + scale + clockSlot.x + clockSlot.y + root.x + root.y;
+                return (wallpaper && width > 0 && height > 0)
+                    ? mapToItem(wallpaper, width * (1 - scale) / 2, height * (1 - scale) / 2)
+                    : Qt.point(0, 0);
+            }
+            absX: _wpPos.x
+            absY: _wpPos.y
+            blurEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.blur) && !GameMode.enabled
             clockScale: (Config.background && Config.background.desktopClock && Config.background.desktopClock.scale !== undefined)
                 ? Config.background.desktopClock.scale
                 : 1.0

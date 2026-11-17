@@ -12,12 +12,14 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
 
     readonly property real dialSize: Math.round(168 * clockScale)
     readonly property color dialBg: {
         if (variant === 2) return "#ECEEF2";
-        if (variant === 3) return Colours.palette.m3surfaceContainerHighest;
-        return Colours.palette.m3surfaceContainerHigh;
+        if (variant === 3) return root.surfaceHighColor;
+        return root.surfaceColor;
     }
     readonly property color fgColor: variant === 2 ? "#191C20" : root.primaryColor
 

@@ -13,6 +13,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real s: 0.88 * clockScale
@@ -26,7 +28,7 @@ Item {
     StyledRect {
         anchors.fill: parent
         radius: Math.round(26 * root.s)
-        color: root.variant === 0 ? Colours.palette.m3surfaceContainerHigh : "transparent"
+        color: root.variant === 0 ? root.surfaceColor : "transparent"
 
         ColumnLayout {
             anchors.centerIn: parent

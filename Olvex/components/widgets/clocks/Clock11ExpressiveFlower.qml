@@ -13,11 +13,13 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
 
     readonly property real dialSize: Math.round(172 * clockScale)
     readonly property color shapeColor: variant === 1
         ? Colours.palette.m3primaryContainer
-        : Colours.palette.m3surfaceContainerHigh
+        : root.surfaceColor
     readonly property color handColor: variant === 1
         ? Colours.palette.m3onPrimaryContainer
         : root.primaryColor

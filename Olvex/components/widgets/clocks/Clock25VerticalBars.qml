@@ -13,6 +13,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
 
     readonly property real s: 0.90 * clockScale
     property real smoothSeconds: 0
@@ -64,7 +66,7 @@ Item {
                 width: Math.round(52 * root.s)
                 height: Math.round(132 * root.s)
                 radius: width / 2
-                color: Colours.palette.m3surfaceContainerHigh
+                color: root.surfaceColor
                 clip: true
 
                 StyledRect {

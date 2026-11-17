@@ -13,6 +13,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real s: 0.90 * clockScale
@@ -40,7 +42,7 @@ Item {
     StyledRect {
         anchors.fill: parent
         radius: Math.round(28 * root.s)
-        color: Colours.palette.m3surfaceContainerHigh
+        color: root.surfaceColor
 
         RowLayout {
             anchors.fill: parent
@@ -54,7 +56,7 @@ Item {
                 radius: Math.round(20 * root.s)
                 color: root.variant === 0
                     ? Colours.palette.m3primaryContainer
-                    : Colours.palette.m3surfaceContainerHighest
+                    : root.surfaceHighColor
 
                 ColumnLayout {
                     anchors.centerIn: parent
@@ -138,7 +140,7 @@ Item {
                     radius: Math.round(18 * root.s)
                     color: root.variant === 0
                         ? Colours.palette.m3secondaryContainer
-                        : Colours.palette.m3surfaceContainerHighest
+                        : root.surfaceHighColor
 
                     ColumnLayout {
                         anchors.centerIn: parent

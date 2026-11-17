@@ -12,6 +12,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real w: Math.round(256 * clockScale)
@@ -24,7 +26,7 @@ Item {
         id: dial
         anchors.fill: parent
         radius: Math.round(height * 0.16)
-        color: Colours.palette.m3surfaceContainerHigh
+        color: root.surfaceColor
         clip: true
 
         Canvas {
@@ -139,14 +141,14 @@ Item {
             handLength: dial.height * 0.25
             handWidth: dial.height * 0.05
             handColor: root.primaryColor
-            slotColor: Colours.palette.m3surfaceContainerHigh
+            slotColor: root.surfaceColor
         }
         SlottedHand {
             angleDeg: Time.minutes * 6 + Time.seconds * 0.1
             handLength: dial.height * 0.36
             handWidth: dial.height * 0.04
             handColor: root.primaryColor
-            slotColor: Colours.palette.m3surfaceContainerHigh
+            slotColor: root.surfaceColor
         }
 
         ContinuousSecondHand {

@@ -13,6 +13,8 @@ Item {
     property color secondaryColor: Colours.palette.m3secondary
     property color tertiaryColor: Colours.palette.m3tertiary
     property color onSurfaceColor: Colours.palette.m3onSurface
+    property color surfaceColor: Colours.palette.m3surfaceContainerHigh
+    property color surfaceHighColor: Colours.palette.m3surfaceContainerHighest
     property bool showDatePill: true
 
     readonly property real dialSize: Math.round(172 * clockScale)
@@ -36,7 +38,7 @@ Item {
     StyledRect {
         anchors.fill: parent
         radius: width / 2
-        color: Colours.palette.m3surfaceContainerHigh
+        color: root.surfaceColor
 
         Canvas {
             id: ringCanvas
@@ -134,7 +136,7 @@ Item {
                 implicitWidth: Math.round(dateBadge.implicitWidth + 14 * root.clockScale)
                 implicitHeight: Math.round(dateBadge.implicitHeight + 4 * root.clockScale)
                 radius: height / 2
-                color: Colours.palette.m3surfaceContainerHighest
+                color: root.surfaceHighColor
 
                 StyledText {
                     id: dateBadge

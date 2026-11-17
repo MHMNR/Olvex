@@ -344,7 +344,7 @@ Item {
         visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && (root.showingPrimary || root.effectActive) && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
-        asynchronous: !(root.immediateVideo && root.sourceIsVideo)
+        asynchronous: !root.immediateVideo
         cache: true
         smooth: false
         retainWhileLoading: true
@@ -360,7 +360,7 @@ Item {
         visible: (!root.sourceIsVideo || !liveWallpaperLoader.item?.currentPlayerReady) && (!root.showingPrimary || root.effectActive) && source !== "" && (!root.holdingLiveFrame || status === Image.Ready)
         source: ""
         sourceSize: Qt.size(root.textureWidth, root.textureHeight)
-        asynchronous: !(root.immediateVideo && root.sourceIsVideo)
+        asynchronous: !root.immediateVideo
         cache: true
         smooth: false
         retainWhileLoading: true
