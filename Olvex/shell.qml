@@ -18,6 +18,7 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
+import "modules/setup"
 import "modules/olvex" as Olvex
 import Olvex.Internal
 import Quickshell
@@ -41,17 +42,37 @@ ShellRoot {
     readonly property bool olvexWallpaperCyclingActive: Olvex.WallpaperCyclingServiceOlvex.cyclingActive
 
     Background { id: bg }
-    Drawers {}
-    AreaPicker {}
-    Lock {
-        id: lock
-    }
-
-    ConfigToasts {}
     Shortcuts {}
-    BatteryMonitor {}
-    UsbMonitor {}
-    IdleMonitors {
-        lock: lock
+
+    Loader {
+        active: SetupFactory.shellAllowed
+        sourceComponent: Drawers {}
+    }
+    Loader {
+        active: SetupFactory.shellAllowed
+        sourceComponent: AreaPicker {}
+    }
+    Loader {
+        id: lockLoader
+        active: SetupFactory.shellAllowed
+        sourceComponent: Lock {}
+    }
+    Loader {
+        active: SetupFactory.shellAllowed
+        sourceComponent: ConfigToasts {}
+    }
+    Loader {
+        active: SetupFactory.shellAllowed
+        sourceComponent: BatteryMonitor {}
+    }
+    Loader {
+        active: SetupFactory.shellAllowed
+        sourceComponent: UsbMonitor {}
+    }
+    Loader {
+        active: SetupFactory.shellAllowed && lockLoader.item !== null
+        sourceComponent: IdleMonitors {
+            lock: lockLoader.item
+        }
     }
 }

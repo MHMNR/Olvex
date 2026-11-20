@@ -27,7 +27,14 @@ Singleton {
     }
 
     property bool wallpaperRevealed: hasAppliedWallpaper()
-    property bool isCompleted: true
+    property bool isCompleted: false
+    property bool checkDone: false
+    property bool shellAllowed: false
+    readonly property bool _shouldAllowShell: checkDone && isCompleted && !active
+    on_ShouldAllowShellChanged: {
+        if (_shouldAllowShell && !shellAllowed)
+            shellAllowed = true;
+    }
 
     // First-boot detection: checks if ~/.local/state/olvex/setup_complete exists
     FileView {
@@ -37,23 +44,21 @@ Singleton {
         watchChanges: true
         onLoaded: {
             root.isCompleted = true;
+            root.checkDone = true;
         }
         onLoadFailed: err => {
             if (err === FileViewError.FileNotFound) {
                 root.isCompleted = false;
-                // First boot detected: schedule auto-launch after compositor & shell root settle
-                firstBootTimer.start();
-            }
-        }
-    }
-
-    Timer {
-        id: firstBootTimer
-        interval: 600
-        repeat: false
-        onTriggered: {
-            if (!root.isCompleted && !root.currentInstance) {
-                root.open();
+                root.checkDone = true;
+                // First boot detected: launch setup immediately before loading shell chrome
+                Qt.callLater(() => {
+                    if (!root.isCompleted && !root.currentInstance) {
+                        root.open();
+                    }
+                });
+            } else {
+                root.isCompleted = true;
+                root.checkDone = true;
             }
         }
     }
