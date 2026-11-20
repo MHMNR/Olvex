@@ -161,13 +161,30 @@ ColumnLayout {
                             }
                         }
 
-                        MaterialIcon {
-                            text: "expand_more"
-                            iconPointSize: Tokens.font.size.large
-                            color: toggleHover.hovered ? Colours.palette.m3onSurface : Colours.palette.m3onSurfaceVariant
-                            rotation: root.catalogExpanded ? 180 : 0
-                            Behavior on rotation {
-                                Anim { duration: Tokens.anim.durations.normal }
+                        StyledRect {
+                            id: clockExpandToggleBtn
+                            Layout.preferredWidth: 32
+                            Layout.preferredHeight: 32
+                            Layout.alignment: Qt.AlignVCenter
+                            radius: Tokens.rounding.full
+                            color: Colours.palette.m3surfaceContainerHighest
+                            border.width: 0
+
+                            StateLayer {
+                                radius: parent.radius
+                                color: Colours.palette.m3onSurface
+                                onClicked: root.catalogExpanded = !root.catalogExpanded
+                            }
+
+                            MaterialIcon {
+                                anchors.centerIn: parent
+                                text: "expand_more"
+                                iconPointSize: 20
+                                color: Colours.palette.m3onSurfaceVariant
+                                rotation: root.catalogExpanded ? 180 : 0
+                                Behavior on rotation {
+                                    Anim { type: Anim.DefaultSpatial }
+                                }
                             }
                         }
                     }
@@ -182,10 +199,10 @@ ColumnLayout {
                     visible: implicitHeight > 0
 
                     Behavior on implicitHeight {
-                        Anim { duration: Tokens.anim.durations.normal }
+                        Anim { type: Anim.Emphasized }
                     }
                     Behavior on opacity {
-                        Anim { duration: Tokens.anim.durations.small }
+                        Anim { type: Anim.FastEffects }
                     }
 
                     ColumnLayout {

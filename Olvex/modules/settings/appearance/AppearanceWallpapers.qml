@@ -967,6 +967,7 @@ Item {
                         property bool isFirstInGroup: false
                         property bool isLastInGroup: false
                         property bool isSingleInGroup: false
+                        property bool expanded: true
 
                         readonly property real topR: (isSingleInGroup || isFirstInGroup) ? 22 : 6
                         readonly property real bottomR: (isSingleInGroup || isLastInGroup) ? 22 : 6
@@ -987,32 +988,45 @@ Item {
                             anchors.topMargin: 14
                             anchors.leftMargin: 16
                             anchors.rightMargin: 16
-                            spacing: 12
+                            spacing: 0
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 16
+                                spacing: 12
 
-                                Column {
+                                Item {
                                     Layout.fillWidth: true
-                                    spacing: 2
+                                    implicitHeight: titleCol.implicitHeight
 
-                                    StyledText {
-                                        width: parent.width
-                                        text: qsTr("Wallpaper Type")
-                                        font.weight: Font.DemiBold
-                                        font.letterSpacing: -0.1
-                                        color: Colours.palette.m3onSurface
-                                        textPointSize: Tokens.font.size.normal
+                                    Column {
+                                        id: titleCol
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        spacing: 2
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: qsTr("Wallpaper Type")
+                                            font.weight: Font.DemiBold
+                                            font.letterSpacing: -0.1
+                                            color: Colours.palette.m3onSurface
+                                            textPointSize: Tokens.font.size.normal
+                                        }
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: qsTr("Static images or live video backgrounds")
+                                            color: Colours.palette.m3onSurfaceVariant
+                                            font.weight: Font.Normal
+                                            font.letterSpacing: 0.1
+                                            textPointSize: Tokens.font.size.small
+                                        }
                                     }
 
-                                    StyledText {
-                                        width: parent.width
-                                        text: qsTr("Static images or live video backgrounds")
-                                        color: Colours.palette.m3onSurfaceVariant
-                                        font.weight: Font.Normal
-                                        font.letterSpacing: 0.1
-                                        textPointSize: Tokens.font.size.small
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: wallpaperPickerCard.expanded = !wallpaperPickerCard.expanded
                                     }
                                 }
 
@@ -1027,54 +1041,108 @@ Item {
                                     currentIndex: root.wallpaperMode === "live" ? 1 : 0
                                     onSelected: i => root.setWallpaperMode(i === 1 ? "live" : "static")
                                 }
-                            }
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                visible: root.wallpaperMode === "live"
-                                spacing: 16
+                                StyledRect {
+                                    id: expandToggleBtn
+                                    Layout.preferredWidth: 32
+                                    Layout.preferredHeight: 32
+                                    Layout.alignment: Qt.AlignVCenter
+                                    radius: Tokens.rounding.full
+                                    color: Colours.palette.m3surfaceContainerHighest
+                                    border.width: 0
 
-                                Column {
-                                    Layout.fillWidth: true
-                                    spacing: 2
-
-                                    StyledText {
-                                        width: parent.width
-                                        text: qsTr("Turn off live wallpaper audio")
-                                        font.weight: Font.DemiBold
+                                    StateLayer {
+                                        radius: parent.radius
                                         color: Colours.palette.m3onSurface
-                                        textPointSize: Tokens.font.size.normal
+                                        onClicked: wallpaperPickerCard.expanded = !wallpaperPickerCard.expanded
                                     }
 
-                                    StyledText {
-                                        width: parent.width
-                                        text: qsTr("Silence sound from the video wallpaper")
+                                    MaterialIcon {
+                                        anchors.centerIn: parent
+                                        text: "expand_more"
+                                        iconPointSize: 20
                                         color: Colours.palette.m3onSurfaceVariant
-                                        textPointSize: Tokens.font.size.small
-                                    }
-                                }
+                                        rotation: wallpaperPickerCard.expanded ? 180 : 0
 
-                                StyledSwitch {
-                                    checked: (GlobalConfig.background && GlobalConfig.background.liveWallpaper && GlobalConfig.background.liveWallpaper.muted !== undefined)
-                                             ? GlobalConfig.background.liveWallpaper.muted
-                                             : true
-                                    onToggled: {
-                                        if (GlobalConfig.background && GlobalConfig.background.liveWallpaper) {
-                                            GlobalConfig.background.liveWallpaper.muted = checked;
-                                            GlobalConfig.save();
+                                        Behavior on rotation {
+                                            Anim { type: Anim.DefaultSpatial }
                                         }
                                     }
                                 }
                             }
 
-                            WallpaperGrid {
-                                id: wallGrid
+                            Item {
+                                id: collapsibleBody
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: implicitHeight
-                                session: root.session
-                                mode: root.wallpaperMode
-                                columnsCount: 5
-                                visibleRows: 3
+                                clip: true
+
+                                property real animatedHeight: wallpaperPickerCard.expanded ? (bodyCol.implicitHeight + 12) : 0
+                                Behavior on animatedHeight {
+                                    Anim { type: Anim.Emphasized }
+                                }
+
+                                Layout.preferredHeight: Math.max(0, animatedHeight)
+                                implicitHeight: Math.max(0, animatedHeight)
+                                opacity: wallpaperPickerCard.expanded ? 1.0 : 0.0
+                                Behavior on opacity {
+                                    Anim { type: Anim.FastEffects }
+                                }
+                                visible: animatedHeight > 0.5
+
+                                ColumnLayout {
+                                    id: bodyCol
+                                    y: 12
+                                    width: parent.width
+                                    spacing: 12
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        visible: root.wallpaperMode === "live"
+                                        spacing: 16
+
+                                        Column {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+
+                                            StyledText {
+                                                width: parent.width
+                                                text: qsTr("Turn off live wallpaper audio")
+                                                font.weight: Font.DemiBold
+                                                color: Colours.palette.m3onSurface
+                                                textPointSize: Tokens.font.size.normal
+                                            }
+
+                                            StyledText {
+                                                width: parent.width
+                                                text: qsTr("Silence sound from the video wallpaper")
+                                                color: Colours.palette.m3onSurfaceVariant
+                                                textPointSize: Tokens.font.size.small
+                                            }
+                                        }
+
+                                        StyledSwitch {
+                                            checked: (GlobalConfig.background && GlobalConfig.background.liveWallpaper && GlobalConfig.background.liveWallpaper.muted !== undefined)
+                                                     ? GlobalConfig.background.liveWallpaper.muted
+                                                     : true
+                                            onToggled: {
+                                                if (GlobalConfig.background && GlobalConfig.background.liveWallpaper) {
+                                                    GlobalConfig.background.liveWallpaper.muted = checked;
+                                                    GlobalConfig.save();
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    WallpaperGrid {
+                                        id: wallGrid
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: implicitHeight
+                                        session: root.session
+                                        mode: root.wallpaperMode
+                                        columnsCount: 5
+                                        visibleRows: 3
+                                    }
+                                }
                             }
                         }
                     }
@@ -1317,13 +1385,16 @@ Item {
                     }
                 }
 
-                // Wallpaper Store Grid (3 columns, 16:10 tiles)
+                // Wallpaper Store Grid (responsive columns, 16:10 tiles)
                 GridLayout {
                     id: wallStoreGrid
-                    width: parent.width
-                    columns: 3
+                    Layout.fillWidth: true
                     columnSpacing: Tokens.spacing.normal
                     rowSpacing: Tokens.spacing.normal
+                    readonly property int minCardWidth: 210
+                    readonly property int computedColumns: Math.max(1, Math.floor((marketContentCol.width + columnSpacing) / (minCardWidth + columnSpacing)))
+                    readonly property real cardWidth: Math.max(100, Math.floor((marketContentCol.width - columnSpacing * (computedColumns - 1)) / computedColumns))
+                    columns: computedColumns
                     visible: root.marketList.length > 0
 
                     Repeater {
@@ -1334,9 +1405,10 @@ Item {
                             required property var modelData
                             required property int index
 
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: Math.max(100, Math.floor((wallStoreGrid.width - wallStoreGrid.columnSpacing * 2) / 3))
-                            Layout.maximumWidth: Layout.preferredWidth
+                            Layout.fillWidth: false
+                            Layout.preferredWidth: wallStoreGrid.cardWidth
+                            Layout.minimumWidth: wallStoreGrid.cardWidth
+                            Layout.maximumWidth: wallStoreGrid.cardWidth
                             Layout.preferredHeight: 250
                             implicitHeight: 250
 

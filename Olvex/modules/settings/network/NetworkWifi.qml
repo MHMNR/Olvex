@@ -670,31 +670,29 @@ Item {
                 }
 
                 StyledRect {
+                    id: savedExpandToggleBtn
                     implicitWidth: 32
                     implicitHeight: 32
                     radius: Tokens.rounding.full
-                    color: chevronMa.containsMouse ? Qt.alpha(Colours.palette.m3onSurface, 0.08) : "transparent"
+                    color: Colours.palette.m3surfaceContainerHighest
+                    border.width: 0
 
-                    Behavior on color { CAnim {} }
-
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "expand_more"
-                        iconPointSize: 24
-                        color: Colours.palette.m3onSurfaceVariant
-                        rotation: root.showSavedNetworks ? 180 : 0
-                        Behavior on rotation { Anim { type: Anim.DefaultSpatial } }
-                    }
-
-                    MouseArea {
-                        id: chevronMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                    StateLayer {
+                        radius: parent.radius
+                        color: Colours.palette.m3onSurface
                         onClicked: {
                             root.showSavedNetworks = !root.showSavedNetworks;
                             savedHeaderCard.notifySection();
                         }
+                    }
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        text: "expand_more"
+                        iconPointSize: 20
+                        color: Colours.palette.m3onSurfaceVariant
+                        rotation: root.showSavedNetworks ? 180 : 0
+                        Behavior on rotation { Anim { type: Anim.DefaultSpatial } }
                     }
                 }
             }
@@ -709,10 +707,10 @@ Item {
                 visible: root.showSavedNetworks || height > 0 || opacity > 0.01
 
                 Behavior on height {
-                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+                    Anim { type: Anim.Emphasized }
                 }
                 Behavior on opacity {
-                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                    Anim { type: Anim.FastEffects }
                 }
 
                 Column {

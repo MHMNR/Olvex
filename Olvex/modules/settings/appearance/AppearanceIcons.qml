@@ -961,6 +961,7 @@ Item {
                         property bool isFirstInGroup: false
                         property bool isLastInGroup: false
                         property bool isSingleInGroup: false
+                        property bool expanded: true
 
                         readonly property real topR: (isSingleInGroup || isFirstInGroup) ? 22 : 6
                         readonly property real bottomR: (isSingleInGroup || isLastInGroup) ? 22 : 6
@@ -982,37 +983,108 @@ Item {
                             anchors.topMargin: 14
                             anchors.leftMargin: 16
                             anchors.rightMargin: 16
-                            spacing: 14
+                            spacing: 0
 
-                            // Top row: Clean Title/Subtitle
-                            ColumnLayout {
+                            // Top row: Clean Title/Subtitle + Expand/Collapse toggle
+                            RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 2
+                                spacing: 12
 
-                                StyledText {
-                                    text: qsTr("System Icon Theme")
-                                    font.weight: Font.DemiBold
-                                    textPointSize: Tokens.font.size.normal
-                                    color: Colours.palette.m3onSurface
+                                Item {
+                                    Layout.fillWidth: true
+                                    implicitHeight: iconTitleCol.implicitHeight
+
+                                    Column {
+                                        id: iconTitleCol
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        spacing: 2
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: qsTr("System Icon Theme")
+                                            font.weight: Font.DemiBold
+                                            textPointSize: Tokens.font.size.normal
+                                            color: Colours.palette.m3onSurface
+                                        }
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: qsTr("Applications, launcher, and desktop icon set")
+                                            textPointSize: Tokens.font.size.small
+                                            color: Colours.palette.m3onSurfaceVariant
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: iconThemeCard.expanded = !iconThemeCard.expanded
+                                    }
                                 }
 
-                                StyledText {
-                                    text: qsTr("Applications, launcher, and desktop icon set")
-                                    textPointSize: Tokens.font.size.small
-                                    color: Colours.palette.m3onSurfaceVariant
+                                StyledRect {
+                                    id: iconExpandToggleBtn
+                                    Layout.preferredWidth: 32
+                                    Layout.preferredHeight: 32
+                                    Layout.alignment: Qt.AlignVCenter
+                                    radius: Tokens.rounding.full
+                                    color: Colours.palette.m3surfaceContainerHighest
+                                    border.width: 0
+
+                                    StateLayer {
+                                        radius: parent.radius
+                                        color: Colours.palette.m3onSurface
+                                        onClicked: iconThemeCard.expanded = !iconThemeCard.expanded
+                                    }
+
+                                    MaterialIcon {
+                                        anchors.centerIn: parent
+                                        text: "expand_more"
+                                        iconPointSize: 20
+                                        color: Colours.palette.m3onSurfaceVariant
+                                        rotation: iconThemeCard.expanded ? 180 : 0
+
+                                        Behavior on rotation {
+                                            Anim { type: Anim.DefaultSpatial }
+                                        }
+                                    }
                                 }
                             }
 
-                            GridLayout {
+                            Item {
+                                id: iconCollapsibleBody
+                                Layout.fillWidth: true
+                                clip: true
+
+                                property real animatedHeight: (iconThemeCard.expanded && root.themesList.length > 0)
+                                    ? (installedGrid.implicitHeight + 14)
+                                    : 0
+                                Behavior on animatedHeight {
+                                    Anim { type: Anim.Emphasized }
+                                }
+
+                                Layout.preferredHeight: Math.max(0, animatedHeight)
+                                implicitHeight: Math.max(0, animatedHeight)
+                                opacity: iconThemeCard.expanded ? 1.0 : 0.0
+                                Behavior on opacity {
+                                    Anim { type: Anim.FastEffects }
+                                }
+                                visible: animatedHeight > 0.5
+
+                                GridLayout {
             id: installedGrid
+            y: 14
             width: parent.width
             visible: root.currentTab === 0
-            Layout.fillWidth: true
-            columns: 3
             columnSpacing: Tokens.spacing.normal
             rowSpacing: Tokens.spacing.normal
 
-            readonly property real cardWidth: Math.max(140, Math.floor((iconThemeCard.width - 32 - columnSpacing * 2) / 3))
+            readonly property real availableWidth: Math.max(0, iconThemeCard.width - 32)
+            readonly property int minCardWidth: 190
+            readonly property int computedColumns: Math.max(1, Math.floor((availableWidth + columnSpacing) / (minCardWidth + columnSpacing)))
+            readonly property real cardWidth: Math.max(140, Math.floor((availableWidth - columnSpacing * (computedColumns - 1)) / computedColumns))
+            columns: computedColumns
 
             Repeater {
                 model: root.themesList
@@ -1198,6 +1270,7 @@ Item {
                 }
             }
         }
+                            }
                         }
                     }
                 }
@@ -1271,15 +1344,17 @@ Item {
             }
         }
 
-        // Market Cards Bento Grid
+        // Market Cards Bento Grid (responsive columns)
         GridLayout {
             id: marketGrid
             visible: root.marketList.length > 0
-            width: parent.width
             Layout.fillWidth: true
-            columns: 3
             columnSpacing: Tokens.spacing.normal
             rowSpacing: Tokens.spacing.normal
+            readonly property int minCardWidth: 210
+            readonly property int computedColumns: Math.max(1, Math.floor((marketContentCol.width + columnSpacing) / (minCardWidth + columnSpacing)))
+            readonly property real cardWidth: Math.max(100, Math.floor((marketContentCol.width - columnSpacing * (computedColumns - 1)) / computedColumns))
+            columns: computedColumns
 
             Repeater {
                 model: root.marketList
@@ -1312,9 +1387,10 @@ Item {
                         return 0.0;
                     }
 
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: Math.max(100, Math.floor((marketGrid.width - marketGrid.columnSpacing * 2) / 3))
-                    Layout.maximumWidth: Layout.preferredWidth
+                    Layout.fillWidth: false
+                    Layout.preferredWidth: marketGrid.cardWidth
+                    Layout.minimumWidth: marketGrid.cardWidth
+                    Layout.maximumWidth: marketGrid.cardWidth
                     Layout.preferredHeight: 236
                     implicitHeight: 236
 

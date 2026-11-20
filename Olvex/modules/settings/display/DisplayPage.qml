@@ -305,16 +305,32 @@ Item {
                                     }
                                 }
 
-                                MaterialIcon {
+                                StyledRect {
+                                    id: canvasExpandToggleBtn
+                                    Layout.preferredWidth: 32
+                                    Layout.preferredHeight: 32
                                     Layout.alignment: Qt.AlignVCenter
-                                    text: "expand_more"
-                                    color: Colours.palette.m3onSurfaceVariant
-                                    iconPointSize: 22
-                                    rotation: root.canvasExpanded ? 180 : 0
+                                    radius: Tokens.rounding.full
+                                    color: Colours.palette.m3surfaceContainerHighest
+                                    border.width: 0
 
-                                    Behavior on rotation {
-                                        Anim {
-                                            type: Anim.FastSpatial
+                                    StateLayer {
+                                        radius: parent.radius
+                                        color: Colours.palette.m3onSurface
+                                        onClicked: root.canvasExpanded = !root.canvasExpanded
+                                    }
+
+                                    MaterialIcon {
+                                        anchors.centerIn: parent
+                                        text: "expand_more"
+                                        iconPointSize: 20
+                                        color: Colours.palette.m3onSurfaceVariant
+                                        rotation: root.canvasExpanded ? 180 : 0
+
+                                        Behavior on rotation {
+                                            Anim {
+                                                type: Anim.DefaultSpatial
+                                            }
                                         }
                                     }
                                 }
