@@ -76,6 +76,20 @@ _olvex_backend() {
     exec "${OLVEX_BACKEND}" "$@"
 }
 
+_olvex_pick_bin() {
+    local name="$1"
+    local best=""
+    local sys_bin=""
+    sys_bin="$(command -v "$name" 2>/dev/null || true)"
+    for cand in "${HOME}/.local/bin/${name}" "$sys_bin" "${OLVEX_ROOT}/build/lib/${name}" "${OLVEX_ROOT}/build/${name}"; do
+        [ -n "$cand" ] && [ -x "$cand" ] || continue
+        if [ -z "$best" ] || [ "$cand" -nt "$best" ]; then
+            best="$cand"
+        fi
+    done
+    [ -n "$best" ] && printf '%s\n' "$best"
+}
+
 _olvex_kill_running() {
     local mode path
     {
@@ -199,27 +213,7 @@ elif [ "$1" = "record" ]; then
     exec "${SCRIPT_DIR}/record.sh" "$@"
 elif [ "$1" = "clipboard" ]; then
     shift
-    _olvex_clipboard_bin() {
-        if [ -x "${HOME}/.local/bin/olvex-clipboard" ]; then
-            printf '%s\n' "${HOME}/.local/bin/olvex-clipboard"
-            return 0
-        fi
-        if [ -x "${OLVEX_ROOT}/build/lib/olvex-clipboard" ]; then
-            printf '%s\n' "${OLVEX_ROOT}/build/lib/olvex-clipboard"
-            return 0
-        fi
-        if [ -x "${OLVEX_ROOT}/build/olvex-clipboard" ]; then
-            printf '%s\n' "${OLVEX_ROOT}/build/olvex-clipboard"
-            return 0
-        fi
-        if command -v olvex-clipboard >/dev/null 2>&1; then
-            command -v olvex-clipboard
-            return 0
-        fi
-        return 1
-    }
-
-    clipboard_bin="$(_olvex_clipboard_bin)" || clipboard_bin=""
+    clipboard_bin="$(_olvex_pick_bin "olvex-clipboard")" || clipboard_bin=""
     if [ -n "$clipboard_bin" ]; then
         exec "$clipboard_bin" "$@"
     fi
@@ -245,27 +239,8 @@ elif [ "$1" = "emoji" ]; then
         pkill -x olvex-emoji >/dev/null 2>&1 || true
         exit 0
     fi
-    _olvex_emoji_bin() {
-        if [ -x "${HOME}/.local/bin/olvex-emoji" ]; then
-            printf '%s\n' "${HOME}/.local/bin/olvex-emoji"
-            return 0
-        fi
-        if [ -x "${OLVEX_ROOT}/build/lib/olvex-emoji" ]; then
-            printf '%s\n' "${OLVEX_ROOT}/build/lib/olvex-emoji"
-            return 0
-        fi
-        if [ -x "${OLVEX_ROOT}/build/olvex-emoji" ]; then
-            printf '%s\n' "${OLVEX_ROOT}/build/olvex-emoji"
-            return 0
-        fi
-        if command -v olvex-emoji >/dev/null 2>&1; then
-            command -v olvex-emoji
-            return 0
-        fi
-        return 1
-    }
 
-    emoji_bin="$(_olvex_emoji_bin)" || emoji_bin=""
+    emoji_bin="$(_olvex_pick_bin "olvex-emoji")" || emoji_bin=""
     if [ -n "$emoji_bin" ]; then
         exec "$emoji_bin" "$@"
     fi
@@ -347,33 +322,99 @@ elif [ "$1" = "update" ]; then
             git -C "${repo_dir}" remote set-url origin "${repo_url}" 2>/dev/null || true
         fi
 
-        # 5. Fetch upstream
-        echo -e ":: Fetching latest changes from upstream..."
+        # 5. Step 1: Check online update (fetch upstream)
+        echo -e ":: Checking online update (${branch})..."
         if ! git -C "${repo_dir}" fetch origin "${branch}" --quiet; then
             echo -e "\033[1;31mError: Failed to fetch from ${repo_url}. Check your internet connection.\033[0m" >&2
             return 1
         fi
 
-        local local_hash remote_hash
-        local_hash="$(git -C "${repo_dir}" rev-parse HEAD 2>/dev/null || echo "none")"
+        local remote_hash remote_version
         remote_hash="$(git -C "${repo_dir}" rev-parse "origin/${branch}" 2>/dev/null || echo "")"
-
         if [ -z "$remote_hash" ]; then
             echo -e "\033[1;31mError: Remote branch '${branch}' not found.\033[0m" >&2
             return 1
         fi
 
-        if [ "$local_hash" = "$remote_hash" ] && [ "$force" = false ]; then
-            echo -e "\033[1;32m✔ Olvex is already up to date (${local_hash:0:7}).\033[0m"
+        remote_version="$(git -C "${repo_dir}" show "origin/${branch}:Olvex/version.json" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    v = str(d.get("version", "")).strip()
+    rt = str(d.get("releaseType", "")).strip()
+    print(f"{v}-{rt}" if (v and rt) else v)
+except Exception:
+    pass
+' 2>/dev/null || echo "")"
+
+        # 6. Step 2: Check actually installed version
+        echo -e ":: Checking installed version..."
+        local installed_version="" installed_commit="" version_file=""
+        if [ -f "${OLVEX_ROOT}/version.json" ]; then
+            version_file="${OLVEX_ROOT}/version.json"
+        elif [ -f "${HOME}/.config/quickshell/olvex/version.json" ]; then
+            version_file="${HOME}/.config/quickshell/olvex/version.json"
+        fi
+
+        if [ -n "$version_file" ]; then
+            installed_version="$(python3 -c '
+import json, sys
+try:
+    with open(sys.argv[1], "r", encoding="utf-8") as f:
+        d = json.load(f)
+    v = str(d.get("version", "")).strip()
+    rt = str(d.get("releaseType", "")).strip()
+    print(f"{v}-{rt}" if (v and rt) else v)
+except Exception:
+    pass
+' "$version_file" 2>/dev/null || echo "")"
+        fi
+
+        if [ -d "${OLVEX_ROOT}/.git" ]; then
+            installed_commit="$(git -C "${OLVEX_ROOT}" rev-parse HEAD 2>/dev/null || echo "")"
+        elif [ -n "${INSTALLED_COMMIT:-}" ]; then
+            installed_commit="${INSTALLED_COMMIT}"
+        fi
+
+        local repo_head
+        repo_head="$(git -C "${repo_dir}" rev-parse HEAD 2>/dev/null || echo "none")"
+
+        local disp_installed="${installed_version:-unknown}"
+        local disp_remote="${remote_version:-unknown}"
+        local short_installed_commit="unknown"
+        [ -n "$installed_commit" ] && short_installed_commit="${installed_commit:0:7}"
+        echo -e "   Installed   : \033[0;33mv${disp_installed}\033[0m (${short_installed_commit})"
+        echo -e "   Online      : \033[0;32mv${disp_remote}\033[0m (${remote_hash:0:7})"
+
+        # 7. Step 3: Compare online vs actually installed
+        local is_up_to_date=false
+        if [ "$force" = false ]; then
+            if [ -n "$installed_version" ] && [ -n "$remote_version" ]; then
+                if [ "$installed_version" = "$remote_version" ]; then
+                    if [ -n "$installed_commit" ] && [ "$installed_commit" = "$remote_hash" ]; then
+                        is_up_to_date=true
+                    elif [ -z "$installed_commit" ] && [ "$repo_head" = "$remote_hash" ]; then
+                        is_up_to_date=true
+                    fi
+                fi
+            elif [ -n "$installed_commit" ] && [ "$installed_commit" = "$remote_hash" ]; then
+                is_up_to_date=true
+            elif [ -z "$installed_commit" ] && [ "$repo_head" = "$remote_hash" ]; then
+                is_up_to_date=true
+            fi
+        fi
+
+        if [ "$is_up_to_date" = true ]; then
+            echo -e "\033[1;32m✔ Olvex is already up to date (v${disp_installed}, ${remote_hash:0:7}).\033[0m"
             return 0
         fi
 
-        echo -e ":: Update available: \033[1;33m${local_hash:0:7}\033[0m -> \033[1;32m${remote_hash:0:7}\033[0m"
+        echo -e ":: Update available: \033[1;33mv${disp_installed}\033[0m -> \033[1;32mv${disp_remote}\033[0m (${remote_hash:0:7})"
         if [ "$check_only" = true ]; then
             return 0
         fi
 
-        # 6. Fast-forward code
+        # 8. Fast-forward code
         echo -e ":: Updating source code..."
         git -C "${repo_dir}" reset --hard "origin/${branch}"
         git -C "${repo_dir}" submodule update --init --recursive --quiet 2>/dev/null || true

@@ -497,8 +497,9 @@ public:
     }
 
     Q_INVOKABLE void copyEmoji(const QString &emojiText, const QString &baseEmoji = QString()) {
-        if (emojiText.isEmpty())
+        if (emojiText.isEmpty() || m_copyInProgress)
             return;
+        m_copyInProgress = true;
 
         const QString recentTarget = baseEmoji.isEmpty() ? emojiText : baseEmoji;
         m_recentEmojis.removeAll(recentTarget);
@@ -507,20 +508,24 @@ public:
             m_recentEmojis.removeLast();
 
         saveSettings();
-        emit recentEmojisChanged();
 
         // Run wl-copy with /dev/null stdio so QProcess doesn't hang waiting for
-        // wl-copy's forked daemon to close pipes; parent exits in ~6ms once
-        // Wayland selection is claimed.
+        // wl-copy's forked daemon to close pipes; parent exits once Wayland
+        // selection is claimed. Run before recentEmojisChanged() so QML
+        // ListView delegate rebuilds cannot interfere with the clipboard handoff.
         QProcess wlCopy;
         wlCopy.setStandardInputFile(QProcess::nullDevice());
         wlCopy.setStandardOutputFile(QProcess::nullDevice());
         wlCopy.setStandardErrorFile(QProcess::nullDevice());
         wlCopy.start(QStringLiteral("wl-copy"), QStringList() << QStringLiteral("--") << emojiText);
-        const bool wlCopyOk = wlCopy.waitForStarted(500)
-            && wlCopy.waitForFinished(1500)
+        bool wlCopyOk = wlCopy.waitForStarted(1000)
+            && wlCopy.waitForFinished(3000)
             && wlCopy.exitStatus() == QProcess::NormalExit
             && wlCopy.exitCode() == 0;
+
+        if (!wlCopyOk) {
+            wlCopyOk = QProcess::startDetached(QStringLiteral("wl-copy"), QStringList() << QStringLiteral("--") << emojiText);
+        }
 
         if (!wlCopyOk) {
             if (QClipboard *cb = QGuiApplication::clipboard()) {
@@ -529,8 +534,10 @@ public:
             }
         }
 
-        // Immediate graceful quit after clipboard handoff is complete
-        QTimer::singleShot(30, qApp, &QCoreApplication::quit);
+        emit recentEmojisChanged();
+
+        // Graceful quit after clipboard handoff and Wayland/cliphist settle
+        QTimer::singleShot(80, qApp, &QCoreApplication::quit);
     }
 
     Q_INVOKABLE void quit() {
@@ -832,6 +839,7 @@ private:
     QVariantMap m_keywords;
     QVector<EmojiEntry> m_emojiIndex;
     bool m_isUpdating{false};
+    bool m_copyInProgress{false};
     QString m_updateStatus;
     QProcess *m_updateProcess{nullptr};
 };
