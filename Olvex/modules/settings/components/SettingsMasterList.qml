@@ -28,6 +28,16 @@ Item {
     readonly property real highlightY: highlightRect.y
     readonly property real highlightWidth: highlightRect.width
     readonly property real highlightHeight: highlightRect.height
+    readonly property real minExpandedWidth: {
+        let maxRowW = 0;
+        for (let i = 0; i < colLayout.children.length; i++) {
+            const child = colLayout.children[i];
+            if (child && child.requiredRowWidth !== undefined && child.requiredRowWidth > maxRowW) {
+                maxRowW = child.requiredRowWidth;
+            }
+        }
+        return maxRowW > 0 ? Math.ceil(maxRowW + (Tokens.padding.small * 2) + 8) : 0;
+    }
 
     Component.onCompleted: Qt.callLater(() => { root.isReady = true; })
 
@@ -146,6 +156,7 @@ Item {
 
                 readonly property bool isActive: root.activeSection === delegateRoot.modelData.id
                 readonly property bool isPressed: segMa.pressed
+                readonly property real requiredRowWidth: (Tokens.padding.large * 2) + 24 + Tokens.spacing.normal + labelText.implicitWidth
 
                 onIsActiveChanged: {
                     if (isActive) {
@@ -183,6 +194,7 @@ Item {
                         }
 
                         StyledText {
+                            id: labelText
                             text: delegateRoot.modelData.label ?? ""
                             color: delegateRoot.isActive ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
                             font.weight: delegateRoot.isActive ? Font.Medium : Font.Normal

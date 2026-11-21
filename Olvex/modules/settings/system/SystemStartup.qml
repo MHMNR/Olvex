@@ -156,8 +156,10 @@ Item {
                 description: qsTr("Display label for the startup item")
                 StyledTextField {
                     id: newNameField
-                    implicitWidth: 240
+                    width: Math.max(260, Math.round(contentWidth + leftPadding + rightPadding + 16))
                     placeholderText: qsTr("e.g. Discord")
+                    Keys.onReturnPressed: newExecField.focus = true
+                    Keys.onEnterPressed: newExecField.focus = true
                 }
             }
 
@@ -168,13 +170,42 @@ Item {
                     spacing: Tokens.spacing.small
                     StyledTextField {
                         id: newExecField
-                        implicitWidth: 200
+                        width: Math.max(195, Math.round(contentWidth + leftPadding + rightPadding + 16))
+                        Layout.preferredWidth: width
                         placeholderText: qsTr("e.g. discord --start-minimized")
+                        Keys.onReturnPressed: {
+                            if (newExecField.text.trim().length > 0)
+                                root.addEntry(newNameField.text, newExecField.text)
+                        }
+                        Keys.onEnterPressed: {
+                            if (newExecField.text.trim().length > 0)
+                                root.addEntry(newNameField.text, newExecField.text)
+                        }
                     }
-                    TextButton {
-                        text: qsTr("Add")
-                        type: TextButton.Filled
-                        onClicked: root.addEntry(newNameField.text, newExecField.text)
+                    StyledRect {
+                        readonly property bool canAdd: newExecField.text.trim().length > 0
+                        implicitWidth: addLbl.implicitWidth + 28
+                        implicitHeight: 36
+                        radius: Tokens.rounding.full
+                        color: canAdd ? Colours.palette.m3primary : Qt.alpha(Colours.palette.m3onSurface, 0.12)
+
+                        Behavior on color { CAnim {} }
+
+                        StyledText {
+                            id: addLbl
+                            anchors.centerIn: parent
+                            text: qsTr("Add")
+                            color: parent.canAdd ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                            font.weight: Font.Medium
+                            textPointSize: Tokens.font.size.small
+                        }
+
+                        StateLayer {
+                            radius: parent.radius
+                            color: Colours.palette.m3onPrimary
+                            enabled: parent.canAdd
+                            onClicked: root.addEntry(newNameField.text, newExecField.text)
+                        }
                     }
                 }
             }

@@ -44,8 +44,10 @@ Singleton {
             implicitWidth: cc.implicitWidth
             implicitHeight: cc.implicitHeight
 
-            minimumSize.width: 940
-            minimumSize.height: 676
+            readonly property real _screenW: (win.screen && win.screen.width > 0) ? win.screen.width : 1920
+            readonly property real _screenH: (win.screen && win.screen.height > 0) ? win.screen.height : 1080
+            minimumSize.width: Math.round(Math.min(940, _screenW * 0.65))
+            minimumSize.height: Math.round(Math.min(676, _screenH * 0.72))
 
             title: {
                 const id = cc.currentId || cc.active || "";

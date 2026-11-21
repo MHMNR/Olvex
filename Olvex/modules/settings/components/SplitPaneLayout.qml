@@ -19,8 +19,8 @@ Item {
     property Component leftContent: null
     property Component rightContent: null
     property real leftWidthRatio: 0.24
-    property int leftMinimumWidth: 220
-    property int leftMaximumWidth: 280
+    property int leftMinimumWidth: 260
+    property int leftMaximumWidth: 320
     property var leftLoaderProperties: ({})
     property var rightLoaderProperties: ({})
     property alias leftLoader: leftLoader
@@ -30,7 +30,10 @@ Item {
     property real collapsedWidth: 64
     signal toggleCollapsed()
 
-    readonly property real computedExpandedWidth: Math.max(root.leftMinimumWidth, Math.min(root.leftMaximumWidth, Math.floor(root.width * root.leftWidthRatio)))
+    readonly property real dynamicLeftMinWidth: (masterItem && masterItem.minExpandedWidth !== undefined && masterItem.minExpandedWidth > 0)
+        ? Math.max(root.leftMinimumWidth, masterItem.minExpandedWidth)
+        : root.leftMinimumWidth
+    readonly property real computedExpandedWidth: Math.max(root.dynamicLeftMinWidth, Math.min(root.leftMaximumWidth, Math.floor(root.width * root.leftWidthRatio)))
 
     // ── Active Master Item Geometry for Fluid Bridge / Joint ──
     readonly property Item masterItem: leftLoader.item
