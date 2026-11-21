@@ -837,6 +837,16 @@ run_preflight_and_verification() {
         fi
     fi
 
+    if ! pacman -Qq | grep -Eiq '^bibata-cursor-theme' && \
+       [ ! -d "/usr/share/icons/Bibata-Modern-Classic" ] && \
+       [ ! -d "${HOME}/.local/share/icons/Bibata-Modern-Classic" ] && \
+       [ ! -d "${HOME}/.icons/Bibata-Modern-Classic" ] && \
+       [ ! -d "${HOME}/.cursors/Bibata-Modern-Classic" ]; then
+        if [[ ! " ${ALL_MISSING_PKGS[*]:-} " =~ " bibata-cursor-theme-bin " ]]; then
+            ALL_MISSING_PKGS+=("bibata-cursor-theme-bin")
+        fi
+    fi
+
     # Check conflicts interactively before proceeding
     check_package_conflicts
 
