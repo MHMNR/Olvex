@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] - 2026-11-21
+
+### Added
+- **Uniform Resolution-Adaptive UI Scaling (`UiScale`)**:
+  - Added `UiScale` singleton (`utils/UiScale.qml`) scaling all shell chrome, drawers, floating windows, dialogs, modals, lockscreen, desktop clock, and standalone Emoji/Clipboard windows proportionally on displays below 1080p (`0.60x`–`1.0x`) while keeping `>= 1080p` untouched at `1.0x`.
+  - Updated `Olvex.Blobs` C++ physics & scene mapping (`blobshape.cpp`, `blobrect.cpp`) with `unscaledScenePos()` and switched `StyledText`, `MaterialIcon`, `StyledTextField`, and `ClipboardStandalone` to `QtRendering` when `uiScale < 1.0` for crisp scaled text.
+  - Scaled Wayland `Regions` input masks, `Exclusions`, `SafetyModal`, `FileDialog`, `IdentifyOverlay`, `CheatsheetFactory`, `SetupFactory`, and `OnScreenKeyboardWindow`, plus `scaledContentRoot` overlay parenting for menus/pickers/tooltips.
+- **Bibata Cursor Auto-Install in Setup**:
+  - Added automatic `bibata-cursor-theme-bin` AUR dependency check in `setup.sh` so fresh minimal Arch installs include `Bibata-Modern-Classic` out of the box.
+
+### Improved & Refactored
+- **First-Boot Setup Ordering**:
+  - Deferred loading of shell chrome (`Drawers`, `AreaPicker`, `Lock`, `ConfigToasts`, `BatteryMonitor`, `UsbMonitor`, `IdleMonitors`) in `shell.qml` until `SetupFactory` confirms `setup_complete` exists or the setup wizard completes/skips.
+- **Responsive Settings Grids, Expandable Cards & Master List**:
+  - Replaced fixed 3-column layouts in Wallpaper, Icon, and Cursor stores/grids with responsive width-driven column counts.
+  - Standardized circular tonal `expand_more` toggle buttons and M3 Emphasized collapse transitions across Wallpaper, Icon, Cursor, Clock, Saved Wi-Fi, and Display Arrangement cards.
+  - Prevented left master pane label truncation via dynamic `minExpandedWidth` in `SettingsMasterList` and `SplitPaneLayout`, and matched `SystemStartup` add-entry field/button styling to `NetworkWifi`.
+- **Updater & Binary Discovery (`olvex` CLI)**:
+  - Updated `olvex update` to fetch online version first, read the actually installed `OLVEX_ROOT/version.json` & commit, and compare both before reporting up-to-date.
+  - Added `_olvex_pick_bin()` to select the newest executable across `~/.local/bin`, `PATH`, and `build/` for `olvex-emoji` and `olvex-clipboard`.
+- **Dashboard Accidental-Click Guard**:
+  - Added `openGuardTimer` (`500ms`), `hoverDwellTimer` (`140ms`), and `< 6px` drag-threshold checks on Dashboard avatar picker (`User.qml`) and weather city name (`SmallWeather.qml`).
+
+### Fixed
+- **Emoji Standalone Clipboard Handoff**:
+  - Fixed `EmojiBackend::copyEmoji()` (`standalone/emoji/main.cpp`) by running `wl-copy` before emitting `recentEmojisChanged()`, adding double-click guard (`m_copyInProgress`), `QProcess::startDetached` fallback, and `80ms` quit settle.
+- **Custom Display Resolution Persistence**:
+  - Fixed `DisplayManager.parseMonitors()` and `DisplayControls` so active custom resolutions not present in hardware `availableModes` automatically restore with Custom Resolution Mode enabled when reopening Settings.
+
+---
+
 ## [1.5.0] - 2026-11-17
 
 ### Added
