@@ -95,7 +95,8 @@ RowLayout {
                     const pt = card.mapToItem(root.lock.rootItem, 0, 0);
                     if (!pt || pt.x === undefined || pt.y === undefined || Number.isNaN(pt.x) || Number.isNaN(pt.y))
                         return Qt.rect(0, 0, 0, 0);
-                    return Qt.rect(Math.max(0, pt.x), Math.max(0, pt.y), card.width, card.height);
+                    const s = (root.lock && root.lock.uiScale !== undefined) ? root.lock.uiScale : 1.0;
+                    return Qt.rect(Math.max(0, pt.x * s), Math.max(0, pt.y * s), card.width * s, card.height * s);
                 }
                 live: true
                 smooth: true

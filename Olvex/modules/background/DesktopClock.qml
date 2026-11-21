@@ -35,7 +35,8 @@ Item {
     onVisibleChanged: reportRect()
     Component.onCompleted: Qt.callLater(reportRect)
 
-    property real clockScale: Config.background && Config.background.desktopClock ? Config.background.desktopClock.scale : 1.0
+    property real uiScale: 1.0
+    property real clockScale: (Config.background && Config.background.desktopClock ? Config.background.desktopClock.scale : 1.0) * root.uiScale
     readonly property bool bgEnabled: false
     readonly property bool blurEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.background && Config.background.desktopClock.background.blur) && !GameMode.enabled
     readonly property bool shadowEnabled: Boolean(Config.background && Config.background.desktopClock && Config.background.desktopClock.shadow && Config.background.desktopClock.shadow.enabled)

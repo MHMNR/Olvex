@@ -171,7 +171,7 @@ ColumnLayout {
                 Hypr.dispatch(`togglespecialworkspace ${specialWs.slice(8)}`);
             else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? (mon && mon.activeWorkspace ? mon.activeWorkspace.id : 1) : Hypr.activeWsId) > 1)
                 Hypr.dispatch(`workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
-        } else if (y < screen.height / 2 && Config.bar.scrollActions.brightness) {
+        } else if (y < height / 2 && Config.bar.scrollActions.brightness) {
             // Brightness scroll on top half (top corner / top region)
             const monitor = Brightness.getMonitorForScreen(screen);
             if (angleDelta.y > 0)

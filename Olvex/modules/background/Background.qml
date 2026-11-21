@@ -61,28 +61,32 @@ Variants {
             triggerAutoPlacement();
         }
 
-        // Compute dynamic exclusive zone safe boundaries
-        readonly property int borderThickness: ((win.contentItem.Config && win.contentItem.Config.border) ? win.contentItem.Config.border.thickness : 0)
+        readonly property real uiScale: UiScale.forScreen(win.modelData)
+
+        // Compute dynamic exclusive zone safe boundaries (scaled to physical screen)
+        readonly property int borderThickness: Math.round(((win.contentItem.Config && win.contentItem.Config.border) ? win.contentItem.Config.border.thickness : 0) * win.uiScale)
         readonly property int barExclusion: {
             const barCfg = win.contentItem.Config.bar;
             const isPersistent = barCfg ? barCfg.persistent : true;
-            const barWidth = Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.smaller, borderThickness) * 2;
-            return isPersistent ? barWidth : borderThickness;
+            const rawBorder = (win.contentItem.Config && win.contentItem.Config.border) ? win.contentItem.Config.border.thickness : 0;
+            const barWidth = Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.smaller, rawBorder) * 2;
+            return Math.round((isPersistent ? barWidth : rawBorder) * win.uiScale);
         }
         readonly property int bottomPanelExclusion: {
             const sec = win.contentItem.Config.bar ? win.contentItem.Config.bar.secondaryPanel : null;
             const enabled = sec ? sec.enabled : true;
             const mode = sec ? sec.visibilityMode : "always";
+            const rawBorder = (win.contentItem.Config && win.contentItem.Config.border) ? win.contentItem.Config.border.thickness : 0;
             if (enabled && (mode === "always" || mode === "smarthide"))
-                return Math.max(borderThickness, 80);
-            return borderThickness;
+                return Math.round(Math.max(rawBorder, 80) * win.uiScale);
+            return Math.round(rawBorder * win.uiScale);
         }
 
-        // Padding around clock including exclusion zones + comfortable margin (24px)
-        readonly property int safePadLeft: barExclusion + 24
-        readonly property int safePadRight: borderThickness + 24
-        readonly property int safePadTop: borderThickness + 24
-        readonly property int safePadBottom: bottomPanelExclusion + 24
+        // Padding around clock including exclusion zones + comfortable margin (scaled)
+        readonly property int safePadLeft: barExclusion + Math.round(24 * win.uiScale)
+        readonly property int safePadRight: borderThickness + Math.round(24 * win.uiScale)
+        readonly property int safePadTop: borderThickness + Math.round(24 * win.uiScale)
+        readonly property int safePadBottom: bottomPanelExclusion + Math.round(24 * win.uiScale)
 
         function triggerAutoPlacement() {
             if (!isAutoPlacement || !analysisImagePath) return;
@@ -382,6 +386,7 @@ Variants {
                 wallpaper: behindClock
                 absX: clockLoader.x
                 absY: clockLoader.y + clockTranslate.y  // tracks real visual position
+                uiScale: win.uiScale
 
                 // Bake into GPU texture while sliding — eliminates expensive shader re-render per frame
                 layer.enabled: clockYAnim.running || clockXAnim.running

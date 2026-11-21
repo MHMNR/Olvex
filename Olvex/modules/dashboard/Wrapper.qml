@@ -86,8 +86,8 @@ Item {
     anchors.topMargin: (-implicitHeight - 10) * offsetScale + peekOffset * offsetScale
 
     // Stabilize dimensions to prevent jitter during first load
-    implicitHeight: Math.max(480, content.implicitHeight)
-    implicitWidth: Math.max(854, content.implicitWidth)
+    implicitHeight: Math.min(parent ? Math.max(320, parent.height - 24) : 1000, Math.max(480, content.implicitHeight))
+    implicitWidth: Math.min(parent ? Math.max(480, parent.width - 24) : 1900, Math.max(854, content.implicitWidth))
     // Match QS panel: quadratic 1 - (offsetScale * offsetScale)
     opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)
 

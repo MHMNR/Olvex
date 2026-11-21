@@ -11,6 +11,7 @@ Region {
     required property var win
     required property var morph
 
+    readonly property real s: (win && win.uiScale !== undefined) ? win.uiScale : 1.0
     readonly property real borderThickness: win.safeBorder.thickness
     readonly property real clampedThickness: win.safeBorder.clampedThickness
     readonly property bool borderFloating: win.safeBorder.floating
@@ -20,15 +21,18 @@ Region {
     readonly property real rightEdgeTrigger: 3
     readonly property real leftEdgeTrigger: 8
 
-    readonly property real topInset: Math.max(topEdgeTrigger, clampedThickness)
-    readonly property real bottomInset: Math.max(bottomEdgeTrigger, clampedThickness)
-    readonly property real rightInset: Math.max(rightEdgeTrigger, clampedThickness)
-    readonly property real leftInset: root.bar.shouldBeVisible ? Math.max(root.bar.clampedWidth, root.bar.implicitWidth) : Math.max(leftEdgeTrigger, clampedThickness)
+    readonly property real scaledClampedThickness: clampedThickness * s
+    readonly property real scaledDragMaskPadding: win.dragMaskPadding * s
 
-    x: leftInset + win.dragMaskPadding
-    y: topInset + win.dragMaskPadding
-    width: Math.max(0, win.width - leftInset - rightInset - win.dragMaskPadding * 2)
-    height: Math.max(0, win.height - topInset - bottomInset - win.dragMaskPadding * 2)
+    readonly property real topInset: Math.max(topEdgeTrigger, scaledClampedThickness)
+    readonly property real bottomInset: Math.max(bottomEdgeTrigger, scaledClampedThickness)
+    readonly property real rightInset: Math.max(rightEdgeTrigger, scaledClampedThickness)
+    readonly property real leftInset: root.bar.shouldBeVisible ? Math.max(root.bar.clampedWidth, root.bar.implicitWidth) * s : Math.max(leftEdgeTrigger, scaledClampedThickness)
+
+    x: leftInset + scaledDragMaskPadding
+    y: topInset + scaledDragMaskPadding
+    width: Math.max(0, win.width - leftInset - rightInset - scaledDragMaskPadding * 2)
+    height: Math.max(0, win.height - topInset - bottomInset - scaledDragMaskPadding * 2)
     intersection: Intersection.Xor
 
     R {
@@ -102,18 +106,18 @@ Region {
     Region {
         // Bottom-left corner hot zone (Launcher trigger) - strictly confined to bar width and bottom edge
         x: 0
-        y: root.win.height - Math.max(4, root.clampedThickness)
-        width: Math.max(48, root.bar.clampedWidth, root.bar.implicitWidth)
-        height: Math.max(4, root.clampedThickness)
+        width: Math.max(48 * root.s, Math.max(root.bar.clampedWidth, root.bar.implicitWidth) * root.s)
+        height: Math.max(4, root.scaledClampedThickness)
+        y: root.win.height - height
         intersection: Intersection.Subtract
     }
 
     Region {
         // Bottom-right corner hot zone (QS panel trigger) - tight corner target
-        x: root.win.width - Math.max(12, root.clampedThickness)
-        y: root.win.height - Math.max(12, root.clampedThickness)
-        width: Math.max(12, root.clampedThickness)
-        height: Math.max(12, root.clampedThickness)
+        width: Math.max(12 * root.s, root.scaledClampedThickness)
+        height: Math.max(12 * root.s, root.scaledClampedThickness)
+        x: root.win.width - width
+        y: root.win.height - height
         intersection: Intersection.Subtract
     }
 
@@ -124,10 +128,10 @@ Region {
 
         readonly property int gap: root.borderFloating ? (win.safeBorder.gap ?? 5) : 0
 
-        x: panel.x + root.bar.implicitWidth + gap
-        y: panel.y + root.borderThickness + gap
-        width: customWidth > 0 && customHeight > 0 ? customWidth : 0
-        height: customWidth > 0 && customHeight > 0 ? customHeight : 0
+        x: Math.floor((panel.x + root.bar.implicitWidth + gap) * root.s)
+        y: Math.floor((panel.y + root.borderThickness + gap) * root.s)
+        width: customWidth > 0 && customHeight > 0 ? Math.ceil(customWidth * root.s) : 0
+        height: customWidth > 0 && customHeight > 0 ? Math.ceil(customHeight * root.s) : 0
         intersection: Intersection.Subtract
     }
 }

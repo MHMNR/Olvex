@@ -74,7 +74,7 @@ Item {
     // peekOffset pulls a thin strip into view while closed
     anchors.rightMargin: (-implicitWidth - 6) * offsetScale + peekOffset * offsetScale
     // Height comes from Panels anchors (top + bottom) — full column
-    implicitWidth: Tokens.sizes.qspanel.width
+    implicitWidth: Math.min(parent ? Math.max(300, parent.width - 24) : Tokens.sizes.qspanel.width, Tokens.sizes.qspanel.width)
     // Fallback when not yet anchored
     implicitHeight: parent ? parent.height : ((content.item?.implicitHeight || 0) + content.anchors.margins * 2)
     opacity: (hovered || peekOffset > 0) ? 1 : 1 - (offsetScale * offsetScale)

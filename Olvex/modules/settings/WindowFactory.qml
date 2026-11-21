@@ -7,6 +7,7 @@ import QtQuick
 import Quickshell
 import qs.components
 import qs.services
+import qs.utils
 import "../setup"
 
 Singleton {
@@ -40,14 +41,16 @@ Singleton {
                     destroy();
             }
 
-            // Track content size
-            implicitWidth: cc.implicitWidth
-            implicitHeight: cc.implicitHeight
+            // Track content size scaled cleanly to display resolution
+            readonly property var _resolvedScreen: win.screen || (Screens.screens.find(s => s.focused) ?? Screens.screens[0] ?? null)
+            readonly property real uiScale: UiScale.forScreen(_resolvedScreen)
+            readonly property Item scaledContentRoot: cc
 
-            readonly property real _screenW: (win.screen && win.screen.width > 0) ? win.screen.width : 1920
-            readonly property real _screenH: (win.screen && win.screen.height > 0) ? win.screen.height : 1080
-            minimumSize.width: Math.round(Math.min(940, _screenW * 0.65))
-            minimumSize.height: Math.round(Math.min(676, _screenH * 0.72))
+            implicitWidth: Math.round(cc.implicitWidth * win.uiScale)
+            implicitHeight: Math.round(cc.implicitHeight * win.uiScale)
+
+            minimumSize.width: Math.round(940 * win.uiScale)
+            minimumSize.height: Math.round(676 * win.uiScale)
 
             title: {
                 const id = cc.currentId || cc.active || "";
@@ -60,8 +63,13 @@ Singleton {
             SettingsWindow {
                 id: cc
 
-                anchors.fill: parent
-                screen: win.screen
+                x: 0
+                y: 0
+                transformOrigin: Item.TopLeft
+                scale: win.uiScale
+                width: UiScale.virtualWidth(win.width, win.uiScale)
+                height: UiScale.virtualHeight(win.height, win.uiScale)
+                screen: win._resolvedScreen
                 onClose: win.destroy()
                 floating: true
             }

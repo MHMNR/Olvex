@@ -43,7 +43,14 @@ void BlobRect::updatePolish() {
 }
 
 void BlobRect::updatePhysics() {
-    const QPointF scenePos = mapToScene(QPointF(width() / 2.0, height() / 2.0));
+    const QPointF p0 = mapToScene(QPointF(0, 0));
+    const QPointF px = mapToScene(QPointF(1, 0)) - p0;
+    const QPointF py = mapToScene(QPointF(0, 1)) - p0;
+    const qreal sx = std::hypot(px.x(), px.y());
+    const qreal sy = std::hypot(py.x(), py.y());
+    const QPointF rawPos = mapToScene(QPointF(width() / 2.0, height() / 2.0));
+    const QPointF scenePos(sx > 1e-4 ? rawPos.x() / sx : rawPos.x(),
+                           sy > 1e-4 ? rawPos.y() / sy : rawPos.y());
 
     if (!m_hasPrevPos) {
         m_prevScenePos = scenePos;

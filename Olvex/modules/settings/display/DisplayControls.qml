@@ -207,6 +207,14 @@ Item {
                         }
                         currentIndex: {
                             if (!root.monitor || !root.monitor.availableModes) return 0;
+                            const exactIdx = root.monitor.availableModes.findIndex(m => {
+                                const match = String(m).match(/^(\d+)x(\d+)@([0-9.]+)Hz/);
+                                if (!match) return false;
+                                return parseInt(match[1]) === root.monitor.width
+                                    && parseInt(match[2]) === root.monitor.height
+                                    && Math.abs(parseFloat(match[3]) - root.monitor.refreshRate) < 1.5;
+                            });
+                            if (exactIdx >= 0) return exactIdx;
                             const idx = root.monitor.availableModes.findIndex(m => m.startsWith(`${root.monitor.width}x${root.monitor.height}`));
                             return idx >= 0 ? idx : 0;
                         }

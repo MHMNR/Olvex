@@ -52,15 +52,9 @@ Item {
             searchInput.focus = false;
     }
 
-    // Screen-aware floating default size: scales proportionally below 1080p and caps cleanly on large displays
-    readonly property real _screenW: (screen && screen.width > 0) ? screen.width : 1920
-    readonly property real _screenH: (screen && screen.height > 0) ? screen.height : 1080
-    implicitWidth: root.floating
-        ? Math.round(Math.max(640, Math.min(1300, _screenW * 0.72)))
-        : _screenH * Tokens.sizes.settings.heightMult * Tokens.sizes.settings.ratio
-    implicitHeight: root.floating
-        ? Math.round(Math.max(480, Math.min(954, _screenH * 0.88)))
-        : _screenH * Tokens.sizes.settings.heightMult
+    // Floating reference dimensions (WindowFactory scales the canvas via uiScale to match screen)
+    implicitWidth: root.floating ? 1300 : screen.height * Tokens.sizes.settings.heightMult * Tokens.sizes.settings.ratio
+    implicitHeight: root.floating ? 954 : screen.height * Tokens.sizes.settings.heightMult
 
     // ── surface: glass transparency seamlessly clipped by Hyprland window rounding ──
     StyledRect {

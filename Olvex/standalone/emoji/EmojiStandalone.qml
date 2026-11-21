@@ -7,10 +7,18 @@ import "emojis.js" as EmojiData
 Window {
     id: win
 
-    width: 640
-    height: 480
-    minimumWidth: 520
-    minimumHeight: 380
+    readonly property real uiScale: {
+        const w = Screen.width;
+        const h = Screen.height;
+        if (!w || !h || w <= 0 || h <= 0) return 1.0;
+        const raw = Math.min(Math.max(w, h) / 1920.0, Math.min(w, h) / 1080.0);
+        return raw >= 0.995 ? 1.0 : Math.max(0.60, raw);
+    }
+
+    width: Math.round(640 * uiScale)
+    height: Math.round(480 * uiScale)
+    minimumWidth: Math.round(520 * uiScale)
+    minimumHeight: Math.round(380 * uiScale)
     visible: true
     title: qsTr("Olvex Emoji")
     flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
@@ -358,7 +366,12 @@ Window {
     // ── Root Focus & Entrance Animation ──────────────────────────────────
     FocusScope {
         id: rootFocus
-        anchors.fill: parent
+        x: 0
+        y: 0
+        transformOrigin: Item.TopLeft
+        scale: win.uiScale
+        width: Math.round(win.width / (win.uiScale > 0.01 ? win.uiScale : 1.0))
+        height: Math.round(win.height / (win.uiScale > 0.01 ? win.uiScale : 1.0))
         focus: true
 
         Keys.onPressed: function(event) {
@@ -1939,7 +1952,7 @@ Window {
             required property var modelData
             required property int index
 
-            width: ListView.view ? ListView.view.width : win.width
+            width: ListView.view ? ListView.view.width : rootFocus.width
             height: (modelData && modelData.type === "header") ? 28 : win.baseHeight
 
             // Category Header Section

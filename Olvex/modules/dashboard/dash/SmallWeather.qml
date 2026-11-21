@@ -12,6 +12,40 @@ Item {
     id: root
 
     property bool dashboardActive: true
+    property bool clickReady: false
+
+    onDashboardActiveChanged: {
+        clickReady = false;
+        cityMouse.hoverDwellOk = false;
+        hoverDwellTimer.stop();
+        if (dashboardActive)
+            openGuardTimer.restart();
+        else
+            openGuardTimer.stop();
+    }
+    Component.onCompleted: {
+        Weather.reload();
+        if (dashboardActive)
+            openGuardTimer.restart();
+    }
+
+    Timer {
+        id: openGuardTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            root.clickReady = true;
+            if (cityMouse.containsMouse)
+                hoverDwellTimer.restart();
+        }
+    }
+
+    Timer {
+        id: hoverDwellTimer
+        interval: 140
+        repeat: false
+        onTriggered: cityMouse.hoverDwellOk = true
+    }
 
     readonly property real pad: 16
     readonly property real gapSection: 8
@@ -44,8 +78,6 @@ Item {
             parts.push(qsTr("feels %1").arg(Weather.feelsLike));
         return parts.join(" · ");
     }
-
-    Component.onCompleted: Weather.reload()
 
     WeatherBg {
         anchors.fill: parent
@@ -92,9 +124,30 @@ Item {
                     maximumLineCount: 1
 
                     MouseArea {
+                        id: cityMouse
+                        property bool hoverDwellOk: false
+                        property real pressX: 0
+                        property real pressY: 0
+
                         anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
+                        hoverEnabled: true
+                        enabled: root.clickReady
+                        cursorShape: root.clickReady ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onContainsMouseChanged: {
+                            if (containsMouse && root.clickReady) {
+                                hoverDwellTimer.restart();
+                            } else {
+                                hoverDwellTimer.stop();
+                                hoverDwellOk = false;
+                            }
+                        }
+                        onPressed: mouse => {
+                            pressX = mouse.x;
+                            pressY = mouse.y;
+                        }
+                        onClicked: mouse => {
+                            if (!root.clickReady || !hoverDwellOk || Math.hypot(mouse.x - pressX, mouse.y - pressY) >= 6)
+                                return;
                             WindowFactory.create(null, {
                                 currentId: "panels",
                                 activeSection: "dashboard"

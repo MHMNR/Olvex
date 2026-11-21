@@ -27,7 +27,7 @@ Text {
         return Math.max(10, Math.round((Tokens?.font?.size?.smaller ?? 11) * 96 / 72));
     }
 
-    renderType: Text.NativeRendering
+    renderType: (Window.window && Window.window.uiScale !== undefined && Window.window.uiScale < 0.999) ? Text.QtRendering : Text.NativeRendering
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
     font.family: Tokens?.font?.family?.sans ?? "sans-serif"

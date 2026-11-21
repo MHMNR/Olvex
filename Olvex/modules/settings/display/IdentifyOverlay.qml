@@ -11,6 +11,7 @@ import Quickshell
 import Quickshell.Wayland
 import Olvex.Config
 import qs.services
+import qs.utils
 
 Scope {
     id: root
@@ -31,6 +32,7 @@ Scope {
             screen: modelData
             name: "display-identifier-" + modelData.name
             visible: DisplayManager.identifyActive
+            readonly property real uiScale: UiScale.forScreen(win.screen)
 
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
@@ -46,6 +48,8 @@ Scope {
 
             StyledRect {
                 anchors.centerIn: parent
+                transformOrigin: Item.Center
+                scale: win.uiScale
                 implicitWidth: 260
                 implicitHeight: 200
                 radius: root.rExLarge

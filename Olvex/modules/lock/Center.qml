@@ -16,7 +16,7 @@ ColumnLayout {
     id: root
 
     required property var lock
-    readonly property real centerScale: Math.min(1, (lock && lock.screen ? lock.screen.height : 1440) / 1440)
+    readonly property real centerScale: Math.min(1, ((lock && lock.rootItem && lock.rootItem.height > 0) ? lock.rootItem.height : 1080) / 1440)
     readonly property int centerWidth: Tokens.sizes.lock.centerWidth * centerScale
 
     Layout.preferredWidth: centerWidth
@@ -37,11 +37,17 @@ ColumnLayout {
         if (src && src.visible && src.width > 0 && clockSlot.width > 0 && root.lock && root.lock.rootItem) {
             const dst = clockSlot.mapToItem(root.lock.rootItem, 0, 0);
             if (dst && Number.isFinite(dst.x) && Number.isFinite(dst.y)) {
-                root.morphDx = (src.x + src.width / 2) - (dst.x + clockSlot.width / 2);
-                root.morphDy = (src.y + src.height / 2) - (dst.y + clockSlot.height / 2);
-                root.morphScale = (src.scale > 0 && clockCol.clockScale > 0)
-                    ? Math.max(0.4, Math.min(2.2, src.scale / clockCol.clockScale))
-                    : Math.max(0.4, Math.min(2.2, src.height / Math.max(1, clockSlot.height)));
+                const s = (root.lock && root.lock.uiScale > 0) ? root.lock.uiScale : 1.0;
+                const srcX = src.x / s;
+                const srcY = src.y / s;
+                const srcW = src.width / s;
+                const srcH = src.height / s;
+                const srcScale = src.scale / s;
+                root.morphDx = (srcX + srcW / 2) - (dst.x + clockSlot.width / 2);
+                root.morphDy = (srcY + srcH / 2) - (dst.y + clockSlot.height / 2);
+                root.morphScale = (srcScale > 0 && clockCol.clockScale > 0)
+                    ? Math.max(0.4, Math.min(2.2, srcScale / clockCol.clockScale))
+                    : Math.max(0.4, Math.min(2.2, srcH / Math.max(1, clockSlot.height)));
                 return true;
             }
         }
@@ -233,6 +239,7 @@ ColumnLayout {
             syncFromLockState: true
             lockScreenName: root.lock && root.lock.screen ? root.lock.screen.name : ""
             wallpaper: (root.lock && root.lock.wallpaperItem) ? root.lock.wallpaperItem : null
+            parentUiScale: (root.lock && root.lock.uiScale !== undefined) ? root.lock.uiScale : 1.0
             readonly property point _wpPos: {
                 const _dep = x + y + width + height + scale + clockSlot.x + clockSlot.y + root.x + root.y;
                 return (wallpaper && width > 0 && height > 0)
@@ -337,7 +344,8 @@ ColumnLayout {
                     const pt = authCard.mapToItem(root.lock.rootItem, 0, 0);
                     if (!pt || pt.x === undefined || pt.y === undefined || Number.isNaN(pt.x) || Number.isNaN(pt.y))
                         return Qt.rect(0, 0, 0, 0);
-                    return Qt.rect(Math.max(0, pt.x), Math.max(0, pt.y), authCard.width, authCard.height);
+                    const s = (root.lock && root.lock.uiScale !== undefined) ? root.lock.uiScale : 1.0;
+                    return Qt.rect(Math.max(0, pt.x * s), Math.max(0, pt.y * s), authCard.width * s, authCard.height * s);
                 }
                 live: true
                 smooth: true

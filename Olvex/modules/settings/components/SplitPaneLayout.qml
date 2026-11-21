@@ -33,7 +33,10 @@ Item {
     readonly property real dynamicLeftMinWidth: (masterItem && masterItem.minExpandedWidth !== undefined && masterItem.minExpandedWidth > 0)
         ? Math.max(root.leftMinimumWidth, masterItem.minExpandedWidth)
         : root.leftMinimumWidth
-    readonly property real computedExpandedWidth: Math.max(root.dynamicLeftMinWidth, Math.min(root.leftMaximumWidth, Math.floor(root.width * root.leftWidthRatio)))
+    readonly property real _rawExpandedWidth: Math.max(root.dynamicLeftMinWidth, Math.min(root.leftMaximumWidth, Math.floor(root.width * root.leftWidthRatio)))
+    readonly property real computedExpandedWidth: root.width > 0
+        ? Math.min(_rawExpandedWidth, Math.max(200, Math.floor(root.width * 0.36)))
+        : _rawExpandedWidth
 
     // ── Active Master Item Geometry for Fluid Bridge / Joint ──
     readonly property Item masterItem: leftLoader.item

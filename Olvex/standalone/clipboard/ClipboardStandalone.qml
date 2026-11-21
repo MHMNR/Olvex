@@ -9,10 +9,18 @@ import QtQuick.Shapes
 Window {
     id: win
 
-    width: 1020
-    height: 620
-    minimumWidth: 860
-    minimumHeight: 480
+    readonly property real uiScale: {
+        const w = Screen.width;
+        const h = Screen.height;
+        if (!w || !h || w <= 0 || h <= 0) return 1.0;
+        const raw = Math.min(Math.max(w, h) / 1920.0, Math.min(w, h) / 1080.0);
+        return raw >= 0.995 ? 1.0 : Math.max(0.60, raw);
+    }
+
+    width: Math.round(1020 * uiScale)
+    height: Math.round(620 * uiScale)
+    minimumWidth: Math.round(860 * uiScale)
+    minimumHeight: Math.round(480 * uiScale)
     visible: true
     title: qsTr("Olvex Clipboard")
     flags: Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint
@@ -178,7 +186,7 @@ Window {
         verticalAlignment: Text.AlignVCenter
         color: iconColor
         antialiasing: true
-        renderType: Text.NativeRendering
+        renderType: win.uiScale < 0.999 ? Text.QtRendering : Text.NativeRendering
     }
 
     // Keycap badge for shortcuts
@@ -228,7 +236,7 @@ Window {
             font.weight: Font.Bold
             font.family: tok.type.monoFamily
             font.hintingPreference: Font.PreferFullHinting
-            renderType: Text.NativeRendering
+            renderType: win.uiScale < 0.999 ? Text.QtRendering : Text.NativeRendering
             color: kk.textColor
         }
     }
@@ -786,7 +794,7 @@ Window {
                         font.weight: Font.DemiBold
                         font.family: tok.type.monoFamily
                         font.hintingPreference: Font.PreferFullHinting
-                        renderType: Text.NativeRendering
+                        renderType: win.uiScale < 0.999 ? Text.QtRendering : Text.NativeRendering
                         color: tok.palette.fgSurface
                     }
                 }
@@ -2069,7 +2077,12 @@ Window {
 
     FocusScope {
         id: rootFocus
-        anchors.fill: parent
+        x: 0
+        y: 0
+        transformOrigin: Item.TopLeft
+        scale: win.uiScale
+        width: Math.round(win.width / (win.uiScale > 0.01 ? win.uiScale : 1.0))
+        height: Math.round(win.height / (win.uiScale > 0.01 ? win.uiScale : 1.0))
         focus: true
 
         Keys.onPressed: function(event) { win.handleKey(event) }

@@ -19,7 +19,7 @@ Text {
 
     readonly property int iconPixelSize: Math.max(12, Math.round((iconPointSize > 0 ? iconPointSize : ((Tokens && Tokens.font && Tokens.font.size) ? Tokens.font.size.larger : 18)) * 96 / 72))
 
-    renderType: Text.NativeRendering
+    renderType: (Window.window && Window.window.uiScale !== undefined && Window.window.uiScale < 0.999) ? Text.QtRendering : Text.NativeRendering
     textFormat: Text.PlainText
     color: Colours.palette.m3onSurface
     verticalAlignment: Text.AlignVCenter

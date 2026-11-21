@@ -4,6 +4,7 @@ import Quickshell
 import Olvex.Config
 import qs.components.containers
 import qs.modules.bar as Bar
+import qs.utils
 import "../setup"
 
 Scope {
@@ -11,12 +12,13 @@ Scope {
 
     required property ShellScreen screen
     required property Bar.BarWrapper bar
+    readonly property real uiScale: UiScale.forScreen(root.screen)
 
     ExclusionZone {
         anchors.left: true
         anchors.top: true
         anchors.bottom: true
-        exclusiveZone: SetupFactory.active ? 0 : root.bar.exclusiveZone
+        exclusiveZone: SetupFactory.active ? 0 : Math.round(root.bar.exclusiveZone * root.uiScale)
         implicitWidth: exclusiveZone
     }
 
@@ -25,7 +27,7 @@ Scope {
         anchors.top: true
         anchors.left: true
         anchors.right: true
-        exclusiveZone: (SetupFactory.active ? 0 : ((contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0))
+        exclusiveZone: (SetupFactory.active ? 0 : Math.round(((contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0) * root.uiScale))
         implicitHeight: exclusiveZone
         visible: exclusiveZone > 0
     }
@@ -35,7 +37,7 @@ Scope {
         anchors.right: true
         anchors.top: true
         anchors.bottom: true
-        exclusiveZone: (SetupFactory.active ? 0 : ((contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0))
+        exclusiveZone: (SetupFactory.active ? 0 : Math.round(((contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0) * root.uiScale))
         implicitWidth: exclusiveZone
         visible: exclusiveZone > 0
     }
@@ -55,8 +57,8 @@ Scope {
             const enabled = sec ? sec.enabled : true;
             const mode = sec ? sec.visibilityMode : "always";
             if (enabled && mode === "always")
-                return 80;
-            return (contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0;
+                return Math.round(80 * root.uiScale);
+            return Math.round(((contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0) * root.uiScale);
         }
         implicitHeight: exclusiveZone
     }
@@ -64,7 +66,7 @@ Scope {
     component ExclusionZone: StyledWindow {
         screen: root.screen
         name: "border-exclusion"
-        exclusiveZone: (SetupFactory.active ? 0 : ((contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0))
+        exclusiveZone: (SetupFactory.active ? 0 : Math.round(((contentItem && contentItem.Config && contentItem.Config.border) ? contentItem.Config.border.thickness : 0) * root.uiScale))
         visible: exclusiveZone > 0
         mask: Region {}
         implicitWidth: 1

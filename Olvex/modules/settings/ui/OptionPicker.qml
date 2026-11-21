@@ -80,6 +80,7 @@ Item {
     readonly property Item overlayParent: {
         const win = QsWindow.window;
         if (win) {
+            if (win.scaledContentRoot) return win.scaledContentRoot;
             if (win.interactionWrapper) return win.interactionWrapper;
             return win.contentItem ?? null;
         }

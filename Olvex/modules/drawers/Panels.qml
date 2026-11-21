@@ -456,7 +456,7 @@ Item {
         const ws = mon?.activeWorkspace;
         const monY = mon?.lastIpcObject?.y ?? 0;
         const screenH = root.screen.height;
-        const panelTop = monY + screenH - 80;
+        const panelTop = monY + screenH - Math.round(80 * UiScale.forScreen(root.screen));
         const windows = ws?.toplevels?.values ?? [];
         for (let i = 0; i < windows.length; i++) {
             const ipc = windows[i].lastIpcObject;
@@ -834,7 +834,7 @@ Item {
                     id: layout
                     anchors.centerIn: parent
 
-                    readonly property real maxAvailableWidth: Math.max(280, (root.screen ? root.screen.width : 1920) - 160)
+                    readonly property real maxAvailableWidth: Math.max(280, (root.width > 0 ? root.width : (root.screen ? root.screen.width : 1920)) - 160)
 
                     readonly property var dockMetrics: {
                         const defaultSize = 52;

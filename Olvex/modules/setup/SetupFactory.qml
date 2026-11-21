@@ -154,6 +154,8 @@ Singleton {
 
                     screen: modelData
                     name: "setup-wizard"
+                    readonly property real uiScale: UiScale.forScreen(win.screen)
+                    readonly property Item scaledContentRoot: setupScaledRoot
 
                     WlrLayershell.exclusionMode: ExclusionMode.Ignore
                     WlrLayershell.layer: WlrLayer.Overlay
@@ -188,7 +190,13 @@ Singleton {
 
                     // Only render the interactive setup wizard card on the primary/focused display
                     Item {
-                        anchors.fill: parent
+                        id: setupScaledRoot
+                        x: 0
+                        y: 0
+                        transformOrigin: Item.TopLeft
+                        scale: win.uiScale
+                        width: UiScale.virtualWidth(win.width, win.uiScale)
+                        height: UiScale.virtualHeight(win.height, win.uiScale)
                         visible: win.isPrimaryScreen
 
                         // Inverted-masked shadow: shadow is strictly OUTSIDE the 28px card area.
@@ -250,8 +258,8 @@ Singleton {
                         Item {
                             id: cardContainer
                             anchors.centerIn: parent
-                            width: 900
-                            height: 660
+                            width: Math.round(Math.min(900, Math.max(520, parent.width - 48)))
+                            height: Math.round(Math.min(660, Math.max(420, parent.height - 48)))
 
                             SetupWindow {
                                 id: setupWin

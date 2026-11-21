@@ -3,12 +3,15 @@ import Quickshell
 import Quickshell.Wayland
 import Olvex.Config
 import qs.components
+import qs.utils
 
 PanelWindow {
     id: root
     
     required property ShellScreen oskScreen
     required property var visibilities
+    readonly property real uiScale: UiScale.forScreen(screen)
+    readonly property Item scaledContentRoot: osk
     
     readonly property bool isDocked: visibilities ? visibilities.isOskDocked : false
     readonly property bool isDragging: osk && osk.isDragging
@@ -24,9 +27,9 @@ PanelWindow {
     
     mask: Region {
         x: root.isDragging ? 0 : osk.x
-        y: root.isDragging ? 0 : Math.round(osk.y - (osk.showingSettings ? 450 : 0))
-        width: root.isDragging ? screen.width : osk.width
-        height: root.isDragging ? screen.height : Math.round(osk.height + (osk.showingSettings ? 450 : 0))
+        y: root.isDragging ? 0 : Math.round(osk.y - (osk.showingSettings ? 450 * root.uiScale : 0))
+        width: root.isDragging ? screen.width : Math.round(osk.width * root.uiScale)
+        height: root.isDragging ? screen.height : Math.round((osk.height + (osk.showingSettings ? 450 : 0)) * root.uiScale)
     }
 
     anchors.top: false
@@ -39,14 +42,14 @@ PanelWindow {
     
     // Smooth exclusive zone for docked mode
     readonly property bool exclusiveZoneEnabled: osk ? osk.exclusiveZone : false
-    exclusiveZone: exclusiveZoneEnabled && isDocked && (visibilities && visibilities.osk) && (osk.y <= osk.dockedY + 1) ? Math.round((osk ? osk.safeImplicitHeight : 350) + 6) : 0
+    exclusiveZone: exclusiveZoneEnabled && isDocked && (visibilities && visibilities.osk) && (osk.y <= osk.dockedY + 1) ? Math.round((osk ? osk.renderedHeight : 350 * root.uiScale) + 6 * root.uiScale) : 0
     
     WlrLayershell.namespace: "quickshell:osk"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     
-    property real floatingX: (screen.width - (osk ? osk.safeImplicitWidth : 800)) / 2
-    property real floatingY: screen.height - (osk ? osk.safeImplicitHeight : 350) - 40
+    property real floatingX: (screen.width - (osk ? osk.renderedWidth : 800 * root.uiScale)) / 2
+    property real floatingY: screen.height - (osk ? osk.renderedHeight : 350 * root.uiScale) - Math.round(40 * root.uiScale)
     property real startX: 0
     property real startY: 0
     
@@ -63,20 +66,24 @@ PanelWindow {
     OnScreenKeyboard {
         id: osk
         visibilities: root.visibilities
+        transformOrigin: Item.TopLeft
+        scale: root.uiScale
         
         layer.enabled: osk.showingSettings
         layer.smooth: true
 
         readonly property real safeImplicitHeight: implicitHeight > 100 ? implicitHeight : 350
         readonly property real safeImplicitWidth: implicitWidth > 200 ? implicitWidth : 800
+        readonly property real renderedWidth: (isDocked ? root.width : safeImplicitWidth * root.uiScale)
+        readonly property real renderedHeight: safeImplicitHeight * root.uiScale
         
         readonly property real offScreenY: screen.height + 20
-        readonly property real dockedY: screen.height - safeImplicitHeight
+        readonly property real dockedY: screen.height - renderedHeight
         readonly property real dockedX: 0
         
         x: isDocked ? dockedX : floatingX
         y: (visibilities && visibilities.osk) ? (isDocked ? dockedY : floatingY) : offScreenY
-        width: isDocked ? parent.width : safeImplicitWidth
+        width: isDocked ? UiScale.virtualWidth(root.width, root.uiScale) : safeImplicitWidth
         
         Behavior on x { enabled: !root.isDragging; Anim { type: Anim.DefaultSpatial } }
         Behavior on y { enabled: !root.isDragging; Anim { type: Anim.DefaultSpatial } }
@@ -90,8 +97,8 @@ PanelWindow {
         
         onDragged: (dx, dy) => {
             if (!isDocked) {
-                root.floatingX = Math.max(0, Math.min(screen.width - safeImplicitWidth, root.startX + dx));
-                root.floatingY = Math.max(0, Math.min(screen.height - safeImplicitHeight, root.startY + dy));
+                root.floatingX = Math.max(0, Math.min(screen.width - osk.renderedWidth, root.startX + dx));
+                root.floatingY = Math.max(0, Math.min(screen.height - osk.renderedHeight, root.startY + dy));
             }
         }
     }

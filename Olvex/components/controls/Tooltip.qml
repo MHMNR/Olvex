@@ -143,6 +143,8 @@ Popup {
     readonly property Item overlayParent: {
         let win = root.target ? root.target.Window.window : root.Window.window;
         if (win) {
+            if (win.scaledContentRoot)
+                return win.scaledContentRoot;
             if (win.interactionWrapper)
                 return win.interactionWrapper;
             if (win.contentItem)

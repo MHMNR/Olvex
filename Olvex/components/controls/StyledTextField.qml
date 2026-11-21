@@ -12,7 +12,7 @@ TextField {
     placeholderTextColor: Colours.palette.m3onSurfaceVariant
     font.family: Tokens.font.family.sans
     font.pixelSize: Math.max(10, Math.round(Tokens.font.size.smaller * 96 / 72))
-    renderType: echoMode === TextField.Password ? TextField.QtRendering : TextField.NativeRendering
+    renderType: (echoMode === TextField.Password || (Window.window && Window.window.uiScale !== undefined && Window.window.uiScale < 0.999)) ? TextField.QtRendering : TextField.NativeRendering
     cursorVisible: activeFocus && !readOnly
 
     leftPadding: 12

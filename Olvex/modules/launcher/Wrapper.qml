@@ -28,7 +28,7 @@ Item {
     readonly property bool contentActive: root.shouldBeActive || root.warmedUp || teardownGrace.running
 
     readonly property real maxHeight: {
-        let max = screen.height - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
+        let max = ((parent && parent.height > 0) ? parent.height : screen.height) - ((Config && ((typeof Config !== "undefined" && Config && Config.border) ? Config.border : {
                         thickness: 0,
                         rounding: 0,
                         minThickness: 0,
@@ -114,8 +114,8 @@ Item {
     layer.enabled: offsetScale > 0 && offsetScale < 1
     layer.smooth: true
     anchors.bottomMargin: (-implicitHeight - 6) * offsetScale
-    implicitHeight: closingAnimationActive ? cachedImplicitHeight : (content.implicitHeight || cachedImplicitHeight)
-    implicitWidth: closingAnimationActive ? cachedImplicitWidth : (content.implicitWidth || cachedImplicitWidth)
+    implicitHeight: Math.min(parent ? Math.max(300, parent.height - 24) : 1000, closingAnimationActive ? cachedImplicitHeight : (content.implicitHeight || cachedImplicitHeight))
+    implicitWidth: Math.min(parent ? Math.max(320, parent.width - 24) : 1900, closingAnimationActive ? cachedImplicitWidth : (content.implicitWidth || cachedImplicitWidth))
     opacity: 1 - offsetScale
 
     Behavior on offsetScale {

@@ -164,6 +164,15 @@ Singleton {
             const lh = Math.round((isRotated ? w : h) / s);
             const monName = m.name || ("Output-" + i);
 
+            const modes = Array.isArray(m.availableModes) ? m.availableModes : [];
+            const rate = m.refreshRate ? Number(m.refreshRate.toFixed(2)) : 60.0;
+            const matchesHardwareMode = modes.some(modeStr => {
+                const match = String(modeStr).match(/^(\d+)x(\d+)@([0-9.]+)Hz/);
+                if (!match) return false;
+                return parseInt(match[1]) === w && parseInt(match[2]) === h && Math.abs(parseFloat(match[3]) - rate) < 1.5;
+            });
+            const isCustomMode = !m.disabled && modes.length > 0 && !matchesHardwareMode;
+
             list.push({
                 id: m.id ?? i,
                 name: monName,
@@ -175,7 +184,7 @@ Singleton {
                 height: h,
                 physicalWidth: m.physicalWidth || 0,
                 physicalHeight: m.physicalHeight || 0,
-                refreshRate: m.refreshRate ? Number(m.refreshRate.toFixed(2)) : 60.0,
+                refreshRate: rate,
                 x: m.x || 0,
                 y: m.y || 0,
                 scale: s,
@@ -186,14 +195,14 @@ Singleton {
                 vrr: typeof m.vrr === "number" ? m.vrr : (m.vrr ? 1 : 0),
                 disabled: !!m.disabled,
                 mirrorOf: (m.mirrorOf && m.mirrorOf !== "none") ? m.mirrorOf : "",
-                availableModes: Array.isArray(m.availableModes) ? m.availableModes : [],
+                availableModes: modes,
                 colorManagementPreset: m.colorManagementPreset || "srgb",
                 sdrBrightness: m.sdrBrightness !== undefined ? Number(m.sdrBrightness) : 1.0,
                 sdrSaturation: m.sdrSaturation !== undefined ? Number(m.sdrSaturation) : 1.0,
                 tenBit: m.currentFormat ? m.currentFormat.includes("10") : false,
                 logicalWidth: lw,
                 logicalHeight: lh,
-                customMode: false
+                customMode: isCustomMode
             });
         }
         root.monitors = list;

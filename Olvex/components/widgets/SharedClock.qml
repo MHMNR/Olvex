@@ -44,6 +44,7 @@ Item {
     property Item wallpaper: null
     property real absX: 0
     property real absY: 0
+    property real parentUiScale: 1.0
     property bool blurEnabled: false
 
     readonly property color _baseSurfaceColor: useLightSet
@@ -94,7 +95,7 @@ Item {
         sourceComponent: MultiEffect {
             source: ShaderEffectSource {
                 sourceItem: root.wallpaper
-                sourceRect: Qt.rect(root.absX, root.absY, root.width * root.scale, root.height * root.scale)
+                sourceRect: Qt.rect(root.absX, root.absY, root.width * root.scale * root.parentUiScale, root.height * root.scale * root.parentUiScale)
                 live: true
                 recursive: false
                 hideSource: false
@@ -717,10 +718,10 @@ Item {
                         source: ShaderEffectSource {
                             sourceItem: root.wallpaper
                             sourceRect: Qt.rect(
-                                root.absX + mappedPos.x,
-                                root.absY + mappedPos.y,
-                                datePill.width * sc,
-                                datePill.height * sc
+                                root.absX + mappedPos.x * root.scale * root.parentUiScale,
+                                root.absY + mappedPos.y * root.scale * root.parentUiScale,
+                                datePill.width * sc * root.scale * root.parentUiScale,
+                                datePill.height * sc * root.scale * root.parentUiScale
                             )
                             live: true
                             recursive: false

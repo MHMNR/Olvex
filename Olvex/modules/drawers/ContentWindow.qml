@@ -11,6 +11,7 @@ import qs.components
 import qs.components.containers
 import qs.modules.bar
 import qs.services
+import qs.utils
 import QtCore
 import "../setup"
 import "../qspanel/cards" as Cards
@@ -39,6 +40,11 @@ StyledWindow {
     readonly property alias bar: bar
     readonly property alias interactionWrapper: interactions
     readonly property alias visibilities: visibilities
+
+    readonly property real uiScale: UiScale.forScreen(root.screen)
+    readonly property real virtualWidth: UiScale.virtualWidth(root.screen ? root.screen.width : 1920, uiScale)
+    readonly property real virtualHeight: UiScale.virtualHeight(root.screen ? root.screen.height : 1080, uiScale)
+    readonly property Item scaledContentRoot: revealContainer
 
     // OSK registers itself here so its clicks don't close panels
     property var oskWindow: null
@@ -267,7 +273,13 @@ StyledWindow {
     }
 
     Item {
-        anchors.fill: parent
+        id: blobShadowLayer
+        x: 0
+        y: 0
+        width: root.virtualWidth
+        height: root.virtualHeight
+        transformOrigin: Item.TopLeft
+        scale: root.uiScale
         opacity: Colours.transparencyEnabled ? Colours.transparencyBase : 1
         layer.enabled: true
         layer.smooth: true
@@ -347,8 +359,8 @@ StyledWindow {
                 deformAmount: 0.2
                 x: visibilities.powermenu ? 0 : panels.powermenuWrapper.x + panels.powermenu.x + panels.x
                 y: visibilities.powermenu ? 0 : panels.powermenuWrapper.y + panels.powermenu.y + panels.y
-                implicitWidth: visibilities.powermenu ? root.width : 0
-                implicitHeight: visibilities.powermenu ? root.height : 0
+                implicitWidth: visibilities.powermenu ? root.virtualWidth : 0
+                implicitHeight: visibilities.powermenu ? root.virtualHeight : 0
                 radius: visibilities.powermenu ? 0 : root.drawerRounding
             }
 
@@ -471,8 +483,12 @@ StyledWindow {
 
     Item {
         id: revealContainer
-        width: root.screen ? root.screen.width : 1920
-        height: root.screen ? root.screen.height : 1080
+        x: 0
+        y: 0
+        transformOrigin: Item.TopLeft
+        scale: root.uiScale
+        width: root.virtualWidth
+        height: root.virtualHeight
         opacity: isVisible ? 1 : 0
 
         Behavior on opacity {
@@ -486,8 +502,7 @@ StyledWindow {
 
         Interactions {
             id: interactions
-            width: root.screen ? root.screen.width : 1920
-            height: root.screen ? root.screen.height : 1080
+            anchors.fill: parent
 
             screen: root.screen
             popouts: panels.popouts

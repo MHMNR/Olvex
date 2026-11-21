@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import qs.services
+import qs.utils
 import "../setup"
 
 Singleton {
@@ -53,10 +54,14 @@ Singleton {
                 isReady = true;
             }
 
-            implicitWidth: 880
-            implicitHeight: 660
-            minimumSize.width: 680
-            minimumSize.height: 500
+            readonly property var _resolvedScreen: win.screen || (Screens.screens.find(s => s.focused) ?? Screens.screens[0] ?? null)
+            readonly property real uiScale: UiScale.forScreen(_resolvedScreen)
+            readonly property Item scaledContentRoot: csWin
+
+            implicitWidth: Math.round(880 * uiScale)
+            implicitHeight: Math.round(660 * uiScale)
+            minimumSize.width: Math.round(680 * uiScale)
+            minimumSize.height: Math.round(500 * uiScale)
 
             onVisibleChanged: {
                 if (isReady && !visible) {
@@ -70,7 +75,13 @@ Singleton {
             }
 
             CheatsheetWindow {
-                anchors.fill: parent
+                id: csWin
+                x: 0
+                y: 0
+                transformOrigin: Item.TopLeft
+                scale: win.uiScale
+                width: UiScale.virtualWidth(win.width, win.uiScale)
+                height: UiScale.virtualHeight(win.height, win.uiScale)
                 onCloseRequested: {
                     if (root.currentInstance === win) root.currentInstance = null;
                     win.destroy();

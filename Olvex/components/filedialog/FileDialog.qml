@@ -144,6 +144,10 @@ LazyLoader {
         id: root
         visible: true
 
+        readonly property var _resolvedScreen: root.screen || (Screens.screens.find(s => s.focused) ?? Screens.screens[0] ?? null)
+        readonly property real uiScale: UiScale.forScreen(_resolvedScreen)
+        readonly property Item scaledContentRoot: dialogScaledRoot
+
         readonly property list<string> cwd: loader.cwd
         property string filterLabel: loader.filterLabel
         property list<string> filters: loader.filters
@@ -200,8 +204,10 @@ LazyLoader {
             loader.rejected();
         }
 
-        implicitWidth: 1000
-        implicitHeight: 600
+        implicitWidth: Math.round(1000 * root.uiScale)
+        implicitHeight: Math.round(600 * root.uiScale)
+        minimumSize.width: Math.round(680 * root.uiScale)
+        minimumSize.height: Math.round(440 * root.uiScale)
         color: Colours.tPalette.m3surface
         title: loader.title
 
@@ -230,51 +236,61 @@ LazyLoader {
             onActivated: root.leaveDirectory()
         }
 
-        RowLayout {
-            anchors.fill: parent
+        Item {
+            id: dialogScaledRoot
+            x: 0
+            y: 0
+            transformOrigin: Item.TopLeft
+            scale: root.uiScale
+            width: UiScale.virtualWidth(root.width, root.uiScale)
+            height: UiScale.virtualHeight(root.height, root.uiScale)
 
-            spacing: 0
-
-            Sidebar {
-                Layout.fillHeight: true
-                dialog: root
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+            RowLayout {
+                anchors.fill: parent
 
                 spacing: 0
 
-                HeaderBar {
-                    Layout.fillWidth: true
-                    dialog: root
-                }
-
-                FolderContents {
-                    id: folderContents
-
-                    Layout.fillWidth: true
+                Sidebar {
                     Layout.fillHeight: true
                     dialog: root
                 }
 
-                DialogButtons {
+                ColumnLayout {
                     Layout.fillWidth: true
-                    dialog: root
-                    folder: folderContents
+                    Layout.fillHeight: true
+
+                    spacing: 0
+
+                    HeaderBar {
+                        Layout.fillWidth: true
+                        dialog: root
+                    }
+
+                    FolderContents {
+                        id: folderContents
+
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        dialog: root
+                    }
+
+                    DialogButtons {
+                        Layout.fillWidth: true
+                        dialog: root
+                        folder: folderContents
+                    }
                 }
             }
-        }
 
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.BackButton | Qt.ForwardButton
-            onPressed: event => {
-                if (event.button === Qt.BackButton)
-                    root.goBack();
-                else if (event.button === Qt.ForwardButton)
-                    root.goForward();
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.BackButton | Qt.ForwardButton
+                onPressed: event => {
+                    if (event.button === Qt.BackButton)
+                        root.goBack();
+                    else if (event.button === Qt.ForwardButton)
+                        root.goForward();
+                }
             }
         }
 

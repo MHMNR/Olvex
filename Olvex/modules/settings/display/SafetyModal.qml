@@ -10,9 +10,17 @@ import QtQuick.Layouts
 import Quickshell
 import Olvex.Config
 import qs.services
+import qs.utils
 
 FloatingWindow {
     id: root
+
+    readonly property var _resolvedScreen: root.screen || (Screens.screens.find(s => s.focused) ?? Screens.screens[0] ?? null)
+    readonly property real uiScale: UiScale.forScreen(_resolvedScreen)
+    readonly property Item scaledContentRoot: modalScaledRoot
+
+    contentItem.Config.screen: _resolvedScreen ? _resolvedScreen.name : ""
+    contentItem.Tokens.screen: _resolvedScreen ? _resolvedScreen.name : ""
 
     property bool active: DisplayManager.safetyActive
     property int secondsRemaining: DisplayManager.safetySecondsRemaining
@@ -34,8 +42,12 @@ FloatingWindow {
     color: "transparent"
     visible: active
 
-    implicitWidth: 460
-    implicitHeight: cardRect.implicitHeight + 16
+    implicitWidth: Math.round(460 * root.uiScale)
+    implicitHeight: Math.round((cardRect.implicitHeight + 16) * root.uiScale)
+    minimumSize.width: implicitWidth
+    minimumSize.height: implicitHeight
+    maximumSize.width: implicitWidth
+    maximumSize.height: implicitHeight
 
     Shortcut {
         sequence: "Escape"
@@ -64,12 +76,21 @@ FloatingWindow {
         }
     }
 
-    // Modal Card
-    StyledRect {
-        id: cardRect
-        anchors.centerIn: parent
-        width: parent.width - 16
-        implicitHeight: cardCol.implicitHeight + root.padLarge * 2
+    // Scaled Virtual Root + Modal Card
+    Item {
+        id: modalScaledRoot
+        x: 0
+        y: 0
+        transformOrigin: Item.TopLeft
+        scale: root.uiScale
+        width: UiScale.virtualWidth(root.width, root.uiScale)
+        height: UiScale.virtualHeight(root.height, root.uiScale)
+
+        StyledRect {
+            id: cardRect
+            anchors.centerIn: parent
+            width: Math.min(444, Math.max(320, parent.width - 16))
+            implicitHeight: cardCol.implicitHeight + root.padLarge * 2
         radius: root.rExLarge
         color: Colours.light ? Colours._tileSurfaceRgb : Colours.palette.m3surfaceBright
         border.width: 0
@@ -184,6 +205,7 @@ FloatingWindow {
                     }
                 }
             }
+        }
         }
     }
 }

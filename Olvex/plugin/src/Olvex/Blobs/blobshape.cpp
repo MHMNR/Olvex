@@ -32,6 +32,17 @@ static float cpuSmoothstep(float edge0, float edge1, float x) {
     return t * t * (3.0f - 2.0f * t);
 }
 
+static QPointF unscaledScenePos(const QQuickItem* item, const QPointF& localPt) {
+    const QPointF p0 = item->mapToScene(QPointF(0, 0));
+    const QPointF px = item->mapToScene(QPointF(1, 0)) - p0;
+    const QPointF py = item->mapToScene(QPointF(0, 1)) - p0;
+    const qreal sx = std::hypot(px.x(), px.y());
+    const qreal sy = std::hypot(py.x(), py.y());
+    const QPointF p = item->mapToScene(localPt);
+    return QPointF(sx > 1e-4 ? p.x() / sx : p.x(),
+                   sy > 1e-4 ? p.y() / sy : p.y());
+}
+
 BlobShape::BlobShape(QQuickItem* parent)
     : QQuickItem(parent) {
     setFlag(ItemHasContents);
@@ -121,7 +132,7 @@ void BlobShape::updatePolish() {
     // Ensure all shapes have up-to-date physics (only once per frame)
     m_group->ensurePhysicsUpdated();
 
-    const QPointF scenePos = mapToScene(QPointF(0, 0));
+    const QPointF scenePos = unscaledScenePos(this, QPointF(0, 0));
     const float pad = static_cast<float>(m_group->smoothing());
 
     if (isInvertedRect()) {
@@ -160,7 +171,7 @@ void BlobShape::updatePolish() {
         if (isExcluded(other))
             continue;
 
-        const QPointF otherScene = other->mapToScene(QPointF(0, 0));
+        const QPointF otherScene = unscaledScenePos(other, QPointF(0, 0));
 
         bool include = false;
         if (isInvertedRect()) {
@@ -224,7 +235,7 @@ void BlobShape::updatePolish() {
 
     auto* inv = m_group->invertedRect();
     if (inv) {
-        const QPointF invScene = inv->mapToScene(QPointF(0, 0));
+        const QPointF invScene = unscaledScenePos(inv, QPointF(0, 0));
         const float outerCX = static_cast<float>(invScene.x() + inv->width() / 2.0);
         const float outerCY = static_cast<float>(invScene.y() + inv->height() / 2.0);
         const float outerHW = static_cast<float>(inv->width() / 2.0);

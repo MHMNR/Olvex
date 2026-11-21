@@ -18,6 +18,39 @@ Item {
     required property bool dashboardActive
     required property FileDialog facePicker
 
+    property bool clickReady: false
+    onDashboardActiveChanged: {
+        clickReady = false;
+        avatarLayer.hoverDwellOk = false;
+        hoverDwellTimer.stop();
+        if (dashboardActive)
+            openGuardTimer.restart();
+        else
+            openGuardTimer.stop();
+    }
+    Component.onCompleted: {
+        if (dashboardActive)
+            openGuardTimer.restart();
+    }
+
+    Timer {
+        id: openGuardTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            root.clickReady = true;
+            if (avatarLayer.containsMouse)
+                hoverDwellTimer.restart();
+        }
+    }
+
+    Timer {
+        id: hoverDwellTimer
+        interval: 140
+        repeat: false
+        onTriggered: avatarLayer.hoverDwellOk = true
+    }
+
     readonly property color accentColor: Colours.palette.m3primary
     readonly property color textColor: Colours.palette.m3onSurface
     readonly property int avatarSize: 52
@@ -160,11 +193,25 @@ Item {
             StateLayer {
                 id: avatarLayer
 
+                property bool hoverDwellOk: false
+
                 anchors.fill: parent
                 radius: root.avatarSize / 2
                 color: Colours.palette.m3onSurface
                 z: 2
-                onClicked: root.openFacePicker()
+                disabled: !root.clickReady
+                onContainsMouseChanged: {
+                    if (containsMouse && root.clickReady) {
+                        hoverDwellTimer.restart();
+                    } else {
+                        hoverDwellTimer.stop();
+                        hoverDwellOk = false;
+                    }
+                }
+                onClicked: mouse => {
+                    if (root.clickReady && hoverDwellOk && Math.hypot(mouse.x - pressX, mouse.y - pressY) < 6)
+                        root.openFacePicker();
+                }
             }
         }
 

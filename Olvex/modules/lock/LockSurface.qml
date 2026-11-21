@@ -7,6 +7,7 @@ import "../olvex/background" as OlvexBg
 import "../drawers"
 import qs.components
 import qs.services
+import qs.utils
 
 WlSessionLockSurface {
     id: root
@@ -14,6 +15,7 @@ WlSessionLockSurface {
     required property WlSessionLock lock
     required property Pam pam
 
+    readonly property real uiScale: UiScale.forScreen(root.screen)
     readonly property alias unlocking: unlockAnim.running
     readonly property string configuredStyle: GlobalConfig.lock.style === "minimal" ? "minimal" : "card"
     property string effectiveStyle: configuredStyle
@@ -202,9 +204,12 @@ WlSessionLockSurface {
     // ── Content ───────────────────────────────────────────────────────────────
     Item {
         id: lockContent
-        anchors.fill: parent
-        width: root.width
-        height: root.height
+        x: 0
+        y: 0
+        transformOrigin: Item.TopLeft
+        scale: root.uiScale
+        width: UiScale.virtualWidth(root.width, root.uiScale)
+        height: UiScale.virtualHeight(root.height, root.uiScale)
         opacity: 0  // set to 1 in onCompleted
 
         // Passive pointer tracker (does not consume events). Used by the idle cat.
